@@ -1,0 +1,17 @@
+{
+  "name": "workbench-1-foundation",
+  "build": {"dockerfile": "Dockerfile"},
+  "postCreateCommand": "python3 -m venv .venv && .venv/bin/python -m pip install -e '.[dev]'",
+  "remoteEnv": {
+    "PATH": "${containerWorkspaceFolder}/.venv/bin:${containerEnv:PATH}"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "redhat.vscode-yaml"
+      ]
+    }
+  }
+}

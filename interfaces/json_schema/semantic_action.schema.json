@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SemanticAction",
+  "type": "object",
+  "required": ["action_id", "action_type"],
+  "properties": {
+    "action_id": {"type": "string"},
+    "action_type": {"enum": ["observe", "grasp", "place", "ask_confirm", "express", "stop"]},
+    "target_id": {"type": ["string", "null"]},
+    "parameters": {"type": "object"}
+  }
+}

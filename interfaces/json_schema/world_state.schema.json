@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WorldState",
+  "type": "object",
+  "required": ["run_id", "sequence_no", "state_hash", "entities", "reduced_at"],
+  "properties": {
+    "run_id": {"type": "string"},
+    "sequence_no": {"type": "integer", "minimum": 0},
+    "state_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["entity_id", "entity_type", "belief"],
+        "properties": {
+          "entity_id": {"type": "string"},
+          "entity_type": {"type": "string"},
+          "pose": {"$ref": "pose.schema.json"},
+          "belief": {"enum": ["observed", "inferred", "stale", "lost"]},
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+          "last_observed_at": {"type": ["string", "null"]},
+          "evidence_refs": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["subject_id", "predicate", "object_id", "belief"],
+        "properties": {
+          "subject_id": {"type": "string"},
+          "predicate": {"enum": ["inside", "on_top_of", "held_by", "adjacent_to"]},
+          "object_id": {"type": "string"},
+          "belief": {"enum": ["observed", "inferred", "stale", "lost"]},
+          "evidence_refs": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "reduced_at": {"type": "string"},
+    "clock_id": {"enum": ["monotonic", "wall"]}
+  }
+}

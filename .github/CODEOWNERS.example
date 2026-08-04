@@ -1,0 +1,10 @@
+# Replace role placeholders with GitHub users or organization teams, then rename to CODEOWNERS.
+/services/agent_runtime/ @REPLACE_AGENT_A
+/apps/dashboard/ @REPLACE_AGENT_B
+/services/perception/ @REPLACE_AGENT_C
+/services/world_model/ @REPLACE_WORLD_MODEL
+/robot/ @REPLACE_MOTION @REPLACE_LINUX
+/firmware/ @REPLACE_MCU
+/sim/ @REPLACE_SIMULATION
+/interfaces/ @REPLACE_AGENT_A @REPLACE_WORLD_MODEL @REPLACE_LINUX
+/docs/product/ @REPLACE_PRODUCT_OWNER

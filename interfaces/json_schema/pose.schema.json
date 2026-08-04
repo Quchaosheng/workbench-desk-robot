@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Pose",
+  "description": "Rigid-body pose in a named frame. Position in metres, orientation as a unit quaternion.",
+  "type": "object",
+  "required": ["frame_id", "position", "orientation"],
+  "properties": {
+    "frame_id": {"type": "string"},
+    "position": {
+      "type": "object",
+      "required": ["x", "y", "z"],
+      "properties": {
+        "x": {"type": "number"},
+        "y": {"type": "number"},
+        "z": {"type": "number"}
+      }
+    },
+    "orientation": {
+      "type": "object",
+      "required": ["x", "y", "z", "w"],
+      "properties": {
+        "x": {"type": "number"},
+        "y": {"type": "number"},
+        "z": {"type": "number"},
+        "w": {"type": "number"}
+      }
+    }
+  }
+}

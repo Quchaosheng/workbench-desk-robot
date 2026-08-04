@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ActionResult",
+  "type": "object",
+  "required": ["action_id", "result_id", "outcome", "dispatch_state", "device_state", "started_at", "ended_at", "run_id"],
+  "properties": {
+    "result_id": {"type": "string"},
+    "action_id": {"type": "string"},
+    "run_id": {"type": "string"},
+    "outcome": {"enum": ["completed", "failed", "canceled", "safe_stop", "timeout"]},
+    "dispatch_state": {"enum": ["not_sent", "sent", "send_failed"]},
+    "device_state": {"enum": ["unconfirmed", "confirmed", "rejected", "stopped"]},
+    "error_code": {"type": ["integer", "null"]},
+    "error_reason": {"type": ["string", "null"]},
+    "started_at": {"type": "string"},
+    "ended_at": {"type": "string"},
+    "clock_id": {"enum": ["monotonic", "wall"]},
+    "retry_count": {"type": "integer", "minimum": 0},
+    "evidence_refs": {"type": "array", "items": {"type": "string"}}
+  }
+}

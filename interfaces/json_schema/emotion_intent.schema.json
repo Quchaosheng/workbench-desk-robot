@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EmotionIntent",
+  "description": "Display-only expression state. Never gates execution and never reaches the control path.",
+  "type": "object",
+  "required": ["intent_id", "run_id", "state", "triggered_by", "issued_at"],
+  "properties": {
+    "intent_id": {"type": "string"},
+    "run_id": {"type": "string"},
+    "state": {"enum": ["idle", "thinking", "uncertain", "pleased"]},
+    "triggered_by": {
+      "enum": [
+        "task_accepted",
+        "planning_started",
+        "insufficient_evidence",
+        "awaiting_confirmation",
+        "task_verified",
+        "task_failed",
+        "idle_timeout"
+      ]
+    },
+    "verification_ref": {"type": ["string", "null"]},
+    "issued_at": {"type": "string"},
+    "clock_id": {"enum": ["monotonic", "wall"]}
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "issue": 1,
+  "human_owner": "REPLACE_WITH_GITHUB_HANDLE",
+  "objective": "Apply ordered WorldEvents deterministically.",
+  "allowed_paths": [
+    "services/world_model/**",
+    "tests/unit/**"
+  ],
+  "read_only_paths": [
+    "interfaces/**"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**"
+  ],
+  "acceptance": [
+    "same stream produces same state hash",
+    "duplicate event is idempotent"
+  ],
+  "commands": [
+    "make test",
+    "make contract"
+  ],
+  "evidence": [
+    "unit test output",
+    "before and after state hash"
+  ],
+  "stop_conditions": [
+    "interface conflict",
+    "missing fixture",
+    "safety implication"
+  ]
+}

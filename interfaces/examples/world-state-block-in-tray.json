@@ -1,0 +1,44 @@
+{
+  "run_id": "run-2026-08-04-001",
+  "sequence_no": 31,
+  "state_hash": "9f2c4a7e1b8d3f5062a1c9e4d7b0f836215c4a9e7d2b6f108c3a5e9b4d7f2016",
+  "entities": [
+    {
+      "entity_id": "red_block",
+      "entity_type": "block",
+      "pose": {
+        "frame_id": "table",
+        "position": {"x": 0.31, "y": -0.04, "z": 0.035},
+        "orientation": {"x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0}
+      },
+      "belief": "observed",
+      "confidence": 0.96,
+      "last_observed_at": "2026-08-04T00:00:16.100Z",
+      "evidence_refs": ["obs-005"]
+    },
+    {
+      "entity_id": "tray",
+      "entity_type": "tray",
+      "pose": {
+        "frame_id": "table",
+        "position": {"x": 0.30, "y": -0.05, "z": 0.0},
+        "orientation": {"x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0}
+      },
+      "belief": "observed",
+      "confidence": 0.99,
+      "last_observed_at": "2026-08-04T00:00:16.100Z",
+      "evidence_refs": ["obs-006"]
+    }
+  ],
+  "relations": [
+    {
+      "subject_id": "red_block",
+      "predicate": "inside",
+      "object_id": "tray",
+      "belief": "observed",
+      "evidence_refs": ["obs-005", "obs-006"]
+    }
+  ],
+  "reduced_at": "2026-08-04T00:00:16.150Z",
+  "clock_id": "monotonic"
+}

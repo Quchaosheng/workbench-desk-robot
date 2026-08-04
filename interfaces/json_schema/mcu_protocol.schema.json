@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "McuFrame",
+  "description": "Virtual MCU wire frame. A written frame is not a confirmed device action; command and ack ids live in separate ranges so a stop ack can never be mistaken for a command ack.",
+  "type": "object",
+  "required": ["frame_id", "frame_kind", "command_id", "sent_at"],
+  "properties": {
+    "frame_id": {"type": "string"},
+    "frame_kind": {"enum": ["command", "ack", "telemetry", "stop", "stop_ack"]},
+    "command_id": {"type": "integer", "minimum": 0, "maximum": 65535},
+    "opcode": {"enum": ["move", "grip_open", "grip_close", "hold", "stop", "heartbeat"]},
+    "result_code": {"type": ["integer", "null"]},
+    "fault_code": {
+      "enum": [
+        "none",
+        "ack_timeout",
+        "stop_timeout",
+        "stop_rejected",
+        "link_lost",
+        "duplicate_frame",
+        "watchdog_expired",
+        "malformed_frame"
+      ]
+    },
+    "device_mode": {"enum": ["idle", "moving", "holding", "stopped", "faulted"]},
+    "retry_count": {"type": "integer", "minimum": 0},
+    "sent_at": {"type": "string"},
+    "clock_id": {"enum": ["monotonic", "wall"]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"frame_kind": {"const": "command"}}},
+      "then": {"properties": {"command_id": {"maximum": 32767}}}
+    },
+    {
+      "if": {"properties": {"frame_kind": {"const": "stop"}}},
+      "then": {"properties": {"command_id": {"minimum": 32768}}}
+    }
+  ]
+}

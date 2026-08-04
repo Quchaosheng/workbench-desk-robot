@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskGraph",
+  "type": "object",
+  "required": ["task_id", "goal", "steps", "planner", "model_route"],
+  "properties": {
+    "task_id": {"type": "string"},
+    "goal": {"type": "string"},
+    "planner": {"type": "string"},
+    "model_route": {"type": "string"},
+    "steps": {"type": "array", "minItems": 1}
+  }
+}

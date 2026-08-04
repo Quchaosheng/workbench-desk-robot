@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VerificationResult",
+  "type": "object",
+  "required": ["verification_id", "run_id", "task_id", "claim", "status", "evidence_refs", "verified_at"],
+  "properties": {
+    "verification_id": {"type": "string"},
+    "run_id": {"type": "string"},
+    "task_id": {"type": "string"},
+    "claim": {"type": "string"},
+    "status": {"enum": ["confirmed", "refuted", "insufficient_evidence"]},
+    "reason_code": {
+      "enum": [
+        "goal_satisfied",
+        "goal_not_satisfied",
+        "target_not_observed",
+        "confidence_below_threshold",
+        "conflicting_observations",
+        "evidence_missing",
+        "stale_observation"
+      ]
+    },
+    "completeness": {"type": "number", "minimum": 0, "maximum": 1},
+    "evidence_refs": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "recovery_hint": {"enum": ["re_observe", "retry_action", "ask_confirm", "abort", "none"]},
+    "verified_at": {"type": "string"},
+    "clock_id": {"enum": ["monotonic", "wall"]}
+  }
+}

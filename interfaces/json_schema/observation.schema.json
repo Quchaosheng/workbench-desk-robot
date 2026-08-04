@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Observation",
+  "description": "A single perception result about one entity. Carries its own evidence refs so a downstream verification conclusion can be traced back to raw sensor data.",
+  "type": "object",
+  "required": ["observation_id", "run_id", "entity_id", "entity_type", "pose", "confidence", "observed_at", "source", "evidence_refs"],
+  "properties": {
+    "observation_id": {"type": "string"},
+    "run_id": {"type": "string"},
+    "entity_id": {"type": "string"},
+    "entity_type": {"type": "string"},
+    "pose": {"$ref": "pose.schema.json"},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "detector": {"enum": ["apriltag", "colour_threshold", "mock"]},
+    "hamming": {"type": ["integer", "null"], "minimum": 0},
+    "decision_margin": {"type": ["number", "null"]},
+    "observed_at": {"type": "string"},
+    "clock_id": {"enum": ["monotonic", "wall"]},
+    "source": {"type": "string"},
+    "evidence_refs": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "observation_id": "obs-001",
+  "run_id": "run-2026-08-04-001",
+  "entity_id": "red_block",
+  "entity_type": "block",
+  "pose": {
+    "frame_id": "table",
+    "position": {"x": 0.2, "y": 0.1, "z": 0.02},
+    "orientation": {"x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0}
+  },
+  "confidence": 0.98,
+  "detector": "colour_threshold",
+  "hamming": null,
+  "decision_margin": null,
+  "observed_at": "2026-08-04T00:00:00Z",
+  "clock_id": "monotonic",
+  "source": "gazebo_camera",
+  "evidence_refs": ["camera-frame-001"]
+}

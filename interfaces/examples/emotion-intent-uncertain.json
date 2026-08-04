@@ -1,0 +1,9 @@
+{
+  "intent_id": "emo-007",
+  "run_id": "run-2026-08-04-001",
+  "state": "uncertain",
+  "triggered_by": "insufficient_evidence",
+  "verification_ref": "ver-014",
+  "issued_at": "2026-08-04T00:00:16.250Z",
+  "clock_id": "monotonic"
+}

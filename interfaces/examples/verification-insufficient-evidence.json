@@ -1,0 +1,13 @@
+{
+  "verification_id": "ver-014",
+  "run_id": "run-2026-08-04-001",
+  "task_id": "task-001",
+  "claim": "red_block inside tray",
+  "status": "insufficient_evidence",
+  "reason_code": "target_not_observed",
+  "completeness": 0.5,
+  "evidence_refs": ["evt-0031", "obs-004"],
+  "recovery_hint": "re_observe",
+  "verified_at": "2026-08-04T00:00:16.200Z",
+  "clock_id": "monotonic"
+}

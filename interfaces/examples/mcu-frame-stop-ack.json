@@ -1,0 +1,12 @@
+{
+  "frame_id": "mcu-frame-0187",
+  "frame_kind": "stop_ack",
+  "command_id": 32769,
+  "opcode": "stop",
+  "result_code": 0,
+  "fault_code": "none",
+  "device_mode": "stopped",
+  "retry_count": 0,
+  "sent_at": "2026-08-04T00:00:19.310Z",
+  "clock_id": "monotonic"
+}

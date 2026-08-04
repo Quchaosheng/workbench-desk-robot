@@ -1,0 +1,24 @@
+version: 1
+owner: agent-a
+default_runtime_route: local_first
+routes:
+  template:
+    enabled: true
+    timeout_ms: 100
+  local:
+    enabled: true
+    runner: ollama
+    model_ref: selected-by-spike
+    timeout_ms: 10000
+  cloud_free:
+    enabled: false
+    monthly_call_cap: 0
+    record_shadow_cost: true
+  cloud_paid:
+    enabled: false
+    monthly_budget_cny: 0
+rules:
+  output_schema: interfaces/json_schema/task_graph.schema.json
+  policy_validator_required: true
+  world_model_verifier_required: true
+  maximum_automatic_retries: 1

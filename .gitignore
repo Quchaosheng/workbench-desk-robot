@@ -1,0 +1,34 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.env
+.pytest_cache/
+build/
+dist/
+*.db
+*.sqlite
+*.bag
+*.mcap
+node_modules/
+coverage.xml
+
+# AI tooling working directories — must stay out of history.
+# Once committed, removing these requires rewriting history and a force-push.
+# NOTE: docs/task_packets/ is deliberately NOT ignored. A task packet is a
+# reviewed contract that bounds what an AI task may touch (allowed paths, tests,
+# evidence, stop conditions). It is referenced by `make task-check` and by
+# tools/scripts/check_task_packet.py as its default input.
+.claude/
+.codex/
+.cursor/
+.aider*
+.github/copilot-instructions.md
+docs/superpowers/
+
+# Local run artifacts
+data/raw/
+data/processed/
+data/reports/
+runs/
+*.log

@@ -1,0 +1,15 @@
+{
+  "result_id": "res-014",
+  "action_id": "act-014",
+  "run_id": "run-2026-08-04-001",
+  "outcome": "completed",
+  "dispatch_state": "sent",
+  "device_state": "confirmed",
+  "error_code": null,
+  "error_reason": null,
+  "started_at": "2026-08-04T00:00:12.400Z",
+  "ended_at": "2026-08-04T00:00:15.900Z",
+  "clock_id": "monotonic",
+  "retry_count": 0,
+  "evidence_refs": ["mcu-frame-0142", "mcu-frame-0143"]
+}

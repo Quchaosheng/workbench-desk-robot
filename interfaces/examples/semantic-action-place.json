@@ -1,0 +1,6 @@
+{
+  "action_id": "act-003",
+  "action_type": "place",
+  "target_id": "red_block",
+  "parameters": {"destination_id": "tray"}
+}

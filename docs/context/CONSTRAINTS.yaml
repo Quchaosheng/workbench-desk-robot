@@ -1,0 +1,13 @@
+project:
+  p0_scope: fixed-tabletop-single-arm-simulator
+  required_platform: ubuntu-24.04-ros2-jazzy-gazebo-harmonic
+safety:
+  agent_may_emit_joint_commands: false
+  cloud_required_for_scripted_demo: false
+  physical_completion_judge: world-model-verifier
+licenses:
+  model_weights_reviewed_separately: true
+  assets_reviewed_separately: true
+release:
+  false_completion_must_equal_zero: true
+  collision_or_limit_violation_must_equal_zero: true

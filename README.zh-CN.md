@@ -1,6 +1,6 @@
 # Workbench-1
 
-**以证据为先的桌面机器人工作台:任务完成必须被验证,而不是被假设。**
+**一条会检查自己干得对不对的机械臂 —— 拿不准的时候说"我不确定",而不是瞎猜。**
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
@@ -8,278 +8,289 @@
 [![ROS 2](https://img.shields.io/badge/ROS_2-Jazzy-22314E?logo=ros&logoColor=white)](https://docs.ros.org/en/jazzy/)
 [![Gazebo](https://img.shields.io/badge/Gazebo-Harmonic-FB7A00)](https://gazebosim.org/)
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-仿真环境中的单臂桌面机器人。你用自然语言输入目标;系统观测、规划受约束的动作、执行,
-然后**检查目标是否真的达成**。证据缺失或相互冲突时,它报告不确定,而不是宣布成功。
+---
 
-```text
-"把红色模块放进托盘。"
+## 问题是什么
 
-相机     ->  Observation      物体、位姿、置信度、证据引用
-        ->  WorldState       事实 + 信念,事件溯源
-        ->  TaskGraph        受约束;模型无法发出关节指令
-        ->  抓取 / 放置       MoveIt 2 + Virtual MCU 安全层
-        ->  Verifier         "模块真的在托盘里吗?" —— 附证据
-        ->  失败时            重新观测、重试、或请求确认
-        ->  表达              idle / thinking / uncertain / pleased
-        ->  Dashboard        回放任务、动作、错误和结果
+你告诉机器人:*把模块放进托盘。*
+
+它动了。它报告**成功**。模块掉在地上。
+
+指令执行正确,任务失败了。多数机器人演示分不清这两件事 —— 最后一个函数调用返回 OK,
+它就报告成功。
+
+这个项目能分清。而且当它真的不知道的时候 —— 相机丢了目标、夹爪没回确认 —— 它会说
+**"我无法确认"**,然后重新看一次,而不是报告一个没发生的成功。
+
+---
+
+## 它做什么
+
+仿真里一张桌子、一条机械臂。你用日常语言输入目标:
+
+```
+> 把红色模块放进托盘。
 ```
 
-演示必须包含一次注入的故障。只跑通顺利路径的运行不算通过。
+然后系统:
+
+1. **看** —— 用相机找到模块和托盘,记录自己有多确信
+2. **规划** —— 把你这句话变成一小串允许执行的动作
+3. **执行** —— 抓取、放置,经过一层能随时叫停的安全层
+4. **检查** —— 事后单独问一句:*模块真的在托盘里吗?*
+5. **恢复** —— 如果答案是否或者说不清,就重新看、重试,或者问你
+6. **留痕** —— 每一步、每个错误,事后都能回放
+
+演示一定会故意搞坏一次。只跑通顺利路径的,不算通过。
+
+<!-- TODO: Gazebo 层就位后放演示 GIF -->
 
 ---
 
-## 为什么做这个
+## 你可能为什么用得上
 
-多数机器人演示在最后一条指令返回 OK 时就报告成功。这和任务真的完成不是一回事。
-本项目把**"指令已发出"到"目标已达成"之间的缺口**当作真正的工程问题。
-
-- **返回 ACK 不等于执行成功。** MCU 层把"报文已写出"和"设备已确认"建模为两个独立状态。
-- **动作完成不等于任务成功。** Verifier 独立地把世界状态与目标比对,并给出可指向的证据。
-- **证据不足是一个合法答案。** 系统可以报告"无法确认"并重新观测,而不是输出一个看似
-  合理的假结论。
-- **语言模型永远不持有执行权。** 它只能从白名单化的受类型约束语义动作中选择。关节值、
-  速度、急停和完成判定在结构上就不在它的可达范围内。
+| 如果你在… | 这里有什么 |
+|---|---|
+| 做一个必须被信任的机器人 | 一个把"指令已发出"和"任务已完成"拆开的完整样例,以及证明它的全套管道 |
+| 把大模型放到硬件旁边 | 一个能选目标、但结构上发不出关节指令的模型接法 |
+| 学 ROS 2 / Gazebo / MoveIt | 一套小而完整的栈,笔记本上没显卡也能跑 |
+| 研究机器人评测方法 | 12 个冻结场景、3 个系统版本,以及一组防止自我欺骗的规则 |
 
 ---
 
-## 当前状态
+## 三个决定了代码长相的想法
 
-### 已实现
+这三条是承重墙。别的都不看,看这三条。
 
-| 能力 | 路径 |
+**1. "报文发出去了"和"设备真做了"是两个状态。**
+
+多数代码把写成功当成动作成功。这里它们是结果上两个独立字段,你没法把一个误读成另一个:
+
+```python
+ActionResult(
+    dispatch_state="sent",         # 帧离开了主机
+    device_state="unconfirmed",    # 设备还没确认
+    outcome="timeout",
+)
+```
+
+**2. "我不知道"是一个真答案,不是失败。**
+
+验证返回三种结果之一,永远不是布尔值:
+
+```python
+status = "confirmed"              # 目标达成,这是证据
+status = "refuted"                # 目标确实没达成
+status = "insufficient_evidence"  # 判断不了 —— 这是缺的东西
+```
+
+一个布尔 `done` 字段会迫使系统猜。它没有地方放"不确定",于是不确定就变成了谎话。
+
+**3. 大模型永远动不了电机。**
+
+它从六个允许的动作里挑 —— `observe`、`grasp`、`place`、`ask_confirm`、`express`、
+`stop`。关节角、速度、急停、以及"任务是否完成"在结构上就不在它的可达范围内,不是靠
+提示词约束的。模型返回列表外的东西,请求直接 fail-closed,不会生成任何命令。
+
+---
+
+## 跑起来
+
+Ubuntu 24.04 或 WSL2,Python 3.12。不需要显卡。
+
+```bash
+git clone https://github.com/Quchaosheng/workbench-desk-robot.git
+cd workbench-desk-robot
+make bootstrap
+make demo-scripted
+```
+
+`make demo-scripted` 用纯 Python 跑完整条 观测 → 规划 → 执行 → 验证 → 回放 链路,
+不启动 ROS 2 也不启动 Gazebo。它很快,而且意味着你开发任何一个模块都不用先装仿真器。
+
+其他常用命令:
+
+```bash
+make test             # 单元测试 + 契约测试
+make contract         # 用示例校验每个 schema
+make scenario-check   # 校验冻结的评测场景
+```
+
+Gazebo 层就位之后:
+
+```bash
+make sim              # 世界 + 机械臂 + 相机
+make sim-reset SEED=7 # 用 seed 重建出完全一样的场景
+make demo             # 完整运行,不需要模型
+make demo-llm         # 完整运行,带本地模型
+```
+
+---
+
+## 现在到哪一步了
+
+### 已经能用
+
+| | |
 |---|---|
-| 受类型约束的 Python 契约 + 已提交的 JSON Schema | `interfaces/`、`libs/contracts/` |
-| 确定性 WorldState reducer(事件溯源) | `services/world_model/` |
-| 带证据引用的托盘容纳验证器 | `services/world_model/` |
-| SQLite 事件库 + 回放查询 | `services/backend/` |
-| 受约束的模板 TaskGraph 规划器 | `services/agent_runtime/` |
-| Virtual MCU 安全状态机 | `firmware/virtual_mcu/` |
-| 场景 manifest schema + 校验器 | `sim/scenarios/`、`tools/scripts/` |
-| 契约测试 + 纯 Python 端到端 dry run | `tests/`、`tools/scripts/` |
+| 每个模块边界的类型契约 + JSON Schema | `interfaces/`、`libs/contracts/` |
+| 由事件日志构建、可靠回放重现的世界状态 | `services/world_model/` |
+| 回答"在不在托盘里"并给出证据的验证器 | `services/world_model/` |
+| 事件库 + 回放 API | `services/backend/` |
+| 模板规划器(不需要模型) | `services/agent_runtime/` |
+| 带真实安全状态机的 Virtual MCU | `firmware/virtual_mcu/` |
+| 场景定义 + 校验器 | `sim/scenarios/` |
+| 契约测试 + 端到端 dry run | `tests/`、`tools/scripts/` |
 
-### 尚未实现
+### 还没做
 
-以下是集成面。底座**故意不伪造**它们 —— 每一项都是真实的模块边界,且契约已经冻结。
+下面每一项都是真实模块,而且**契约已经写好冻结了**。这正是重点:你可以只做其中一个,
+不用等别人,做完能对上。
 
-| 能力 | 必须满足的契约 |
-|---|---|
-| Gazebo 世界、资产、相机、光照、spawn/reset | `scenario.schema.json` |
-| MoveIt 2 抓取 / 放置 | `semantic_action.schema.json` → `action_result.schema.json` |
-| 真实相机的 Observation(OpenCV + AprilTag/颜色) | `observation.schema.json` |
-| 自然语言 → TaskGraph,本地模型优先 | `task_graph.schema.json` |
-| 故障注入 | `scenario.schema.json` |
-| Dashboard + 情绪表达 | `world_event.schema.json`、`emotion_intent.schema.json` |
+| 要做的 | 必须满足的契约 | 如果你熟悉…就适合上手 |
+|---|---|---|
+| Gazebo 世界、相机、光照、reset | `scenario.schema.json` | Gazebo / SDF |
+| 用 MoveIt 2 实现抓取放置 | `semantic_action` → `action_result` | MoveIt、运动规划 |
+| 真实相机识别(AprilTag / 颜色) | `observation.schema.json` | OpenCV |
+| 自然语言 → 计划,本地模型优先 | `task_graph.schema.json` | 大模型工具链 |
+| 故障注入 | `scenario.schema.json` | Python、测试设计 |
+| Dashboard + 表达 | `world_event`、`emotion_intent` | 前端 |
 
-### 明确不做
+---
 
-- 不做移动底盘,不做第二条活动臂
-- 不训练视觉或大模型 —— 感知是针对已知目标的经典 CV
-- 不做真实机械、电机、电源和 PCB
-- **模型永远不控制关节、速度、急停或完成判定**
-- 不做第二套仿真器、第二套数据库、第二个运行时 Agent
+## 怎么扩展
+
+演示任务是一个模块一个托盘,但架构上没有任何东西绑死在这上面。下面是插入点。
+
+**加一个新任务。** 一个任务 = 一句目标 + 一个可验证的断言。验证器问的是"断言 X 成立吗、
+证据是什么",它不关心 X 是 `模块在托盘里` 还是 `门已关闭` 还是 `六颗螺丝都在`。
+
+```python
+# services/world_model/ —— 注册一个新的断言类型
+"cable_seated_in_port" -> 检查位姿包含关系 + 一次确认观测
+```
+
+**加一个新传感器。** 任何能产出 `observation.schema.json` 的东西都是传感器。力传感器、
+深度相机、条码枪 —— 世界模型不知道也不关心是哪种,只要每条观测自带置信度和证据引用。
+
+**换一条机械臂。** Motion 消费 `semantic_action`、产出 `action_result`。把 Panda 换成
+UR5e 或者一条真臂,是在这对契约后面写一个新适配器,它上面的东西一行都不用改。
+
+**加一个新规划器。** 模板规划器和 LLM 规划器已经在同一个 `ModelProvider` 接口后面了。
+搜索式或学习式规划器是第三个实现,而六动作白名单同样约束它能请求什么。
+
+**加一个新评测维度。** 场景是带 seed 的声明式 manifest。新故障类别、新光照条件、新物体
+集合 —— 加 manifest,不动代码。
+
+把这些串起来的规则:**新能力以"已有契约后面的新实现"形式出现。** 如果你发现自己需要改
+schema,那先是一次设计讨论,不是一个 PR。
+
+---
+
+## 路线图
+
+v0.1 故意做得小,是为了在往上叠任何东西之前,先把验证层证明对。
+
+| | 范围 | 状态 |
+|---|---|---|
+| **v0.1** | 一条臂、一个任务、纯仿真。验证、恢复、回放端到端跑通 | 进行中 |
+| **v0.2** | 多种任务类型;多步任务;更细的失败分类 | 计划中 |
+| **v0.3** | 真实硬件接入,契约不变;硬件安全回路 | 计划中 |
+| **v0.4** | 移动底盘 —— 验证器契约本身就能推广到导航目标 | 设想 |
+| **更远** | 多臂协同;从回放的失败中学习任务 | 设想 |
+
+有两条是**永久不变量**,不是路线图条目,任何版本都不会放宽:
+
+- 模型永远不控制关节、速度、急停、完成判定
+- 声称成功必须带证据,否则就不算声称成功
 
 ---
 
 ## 目标指标
 
-以下是系统要达到的数值。标 **0** 的是不可放宽的发布门槛。
+v0.1 要达到的数值。标 **0** 的是发布阻断项 —— 不为零就不发。
 
-### 安全与正确性
-
-| 指标 | 目标 |
+| 安全 | 目标 |
 |---|---|
-| 误判完成 —— 宣布完成但实际未完成 | **0** |
+| 误判完成 —— 报告完成但实际没完成 | **0** |
 | 碰撞 / 关节限位穿透 | **0** |
-| 模型发出原始关节控制(越权) | **0** |
-| 危险请求在策略层的拦截率 | 100% |
-| 关键事件字段完整率 | 100% |
+| 模型发出原始关节控制 | **0** |
+| 危险请求到达设备层 | **0** |
 
-### 任务性能
-
-| 指标 | 目标 |
+| 任务 | 目标 |
 |---|---|
-| 固定脚本抓取放置成功率 | ≥ 90% |
-| 已验证任务完成率(VTCR) | ≥ 80% |
+| 抓取放置成功率(脚本化) | ≥ 90% |
+| 已验证任务完成率 | ≥ 80% |
 | 失败后恢复成功率 | ≥ 70% |
-| 任务完成时间 P95 | < 120 秒 |
+| 任务耗时 P95 | < 120 秒 |
 
-### Agent 与感知
-
-| 指标 | 目标 |
+| 证据与可复现 | 目标 |
 |---|---|
-| 语义工具调用合法率 | ≥ 95% |
-| 本地(离线)规划覆盖率 | ≥ 50% |
-| 已知目标识别召回率 | ≥ 90% |
-| Observation 必填字段完整率 | 100% |
+| 同一事件日志重放出同一状态 | 100% |
+| 验证结论携带证据 | 100% |
+| 同一 seed 重建出同一场景 | 100% |
+| 固定任务回放 | ≥ 95% |
 
-### 世界模型与证据
-
-| 指标 | 目标 |
+| 上手成本 | 目标 |
 |---|---|
-| 相同事件流的 state hash 一致率 | 100% |
-| WorldState 一致性 | ≥ 90% |
-| 固定任务回放成功率 | ≥ 95% |
-| 验证结论携带证据引用的比例 | 100% |
-
-### 仿真与可复现性
-
-| 指标 | 目标 |
-|---|---|
-| 冻结场景 schema 校验通过率 | 100% |
-| 相同 seed 下场景配置 hash 一致率 | 100% |
-| 场景 reset 成功率(连续 10 次) | 100% |
-| 故障注入触发率 | ≥ 95% |
-
-### 系统
-
-| 指标 | 目标 |
-|---|---|
-| 一键启动到可用 —— 无模型链路 | < 90 秒 |
-| 一键启动到可用 —— 含本地模型全栈 | < 180 秒 |
-| CUDA 硬依赖 | 无 |
-| 外部复现 | 3 人中 ≥ 2 人在 60 分钟内启动成功 |
+| 从 clone 到跑起 demo(无模型) | < 90 秒 |
+| 从 clone 到跑起 demo(全栈) | < 180 秒 |
+| 是否需要显卡 | 不需要 |
+| 别人能照文档跑起来 | 3 人中 2 人,1 小时内 |
 
 ---
 
-## 快速开始
+## 这个项目证明了什么、没证明什么
 
-Ubuntu 24.04 或 WSL2,Python 3.12。
+纯仿真。把边界说清楚,本身就是这个项目的一部分目的。
 
-```bash
-make bootstrap        # 安装开发依赖
-make test             # 单元测试 + 契约测试
-make contract         # 用示例校验 JSON Schema
-make scenario-check   # 校验冻结的场景 manifest
-make demo-scripted    # 纯 Python 契约 dry run,不含物理仿真
-```
-
-`make demo-scripted` 是**契约 dry run,不是物理仿真**。它在不启动 ROS 2 和 Gazebo 的
-前提下,端到端验证事件 / 验证 / 回放这条链路 —— 所以你可以在没装完整仿真栈的机器上
-开发任何一个模块。
-
-Gazebo 层就位后的仿真入口:
-
-```bash
-make sim              # 启动 Gazebo 世界 + 机械臂 + 相机
-make sim-reset SEED=… # 按 seed 重置场景
-make demo             # 脚本化端到端,不需要模型
-make demo-llm         # 含本地模型的全栈
-```
-
----
-
-## 接口契约
-
-11 个 schema 定义了全部模块边界。它们是**冻结**的:修改任何一个都需要批准并通知所有
-下游消费者,因为已经有别的模块按它写好了。
-
-| Schema | 生产方 | 消费方 |
-|---|---|---|
-| `world_event` | 所有模块 | Dashboard |
-| `observation` | 感知 | 世界模型 |
-| `action_result` | 运动控制 | 世界模型 |
-| `semantic_action` | Agent Runtime | 运动控制 |
-| `world_state` | 世界模型 | Agent Runtime、Dashboard |
-| `verification_result` | 世界模型 | Agent Runtime、Dashboard |
-| `task_graph` | Agent Runtime | 运动控制 |
-| `mcu_protocol` | Virtual MCU | 运动控制 |
-| `emotion_intent` | Dashboard | Dashboard |
-| `scenario` | 场景工厂 | 世界模型、bringup |
-| `pose` | 共享 | 全部 |
-
-Schema 位于 `interfaces/json_schema/`,每个在 `interfaces/examples/` 有一份合法示例。
-`make contract` 会用示例校验每个 schema。
-
-冻结一个 schema 之前,每个字段都要回答四个问题:
-
-1. 这个字段缺失时,消费方是拒绝、降级、还是补默认值?
-2. 谁有权写它?多个写入方就是冲突源。
-3. 它的时间基准是什么 —— monotonic、墙钟、还是无?
-4. 它会不会被评测真值污染?Oracle 字段必须和运行时字段物理分开。
-
-在你按这些契约写代码之前,有三个设计决定值得先知道:
-
-- **`action_result` 把 `dispatch_state` 和 `device_state` 拆开。** "报文已写出"在类型层面
-  就无法被读成"设备已确认",这个区分由类型强制,不靠约定。
-- **`verification_result.status` 是三值的** —— `confirmed` / `refuted` /
-  `insufficient_evidence`。没有布尔的"完成"字段,因为"我无法确认"必须是可表达的。
-- **`mcu_protocol` 拆分了 command id 区间。** 命令用 ≤ 32767,停止用 ≥ 32768,所以停止
-  确认永远不可能被匹配到某条业务命令上。
-
----
-
-## 目录结构
-
-```
-apps/dashboard/            回放、状态与表达显示
-firmware/virtual_mcu/      协议编解码、安全状态机
-interfaces/
-  json_schema/             11 个冻结契约
-  examples/                每个 schema 一份合法示例
-libs/contracts/            受类型约束的 Python 模型
-robot/
-  bringup/                 launch 文件、健康检查
-  description/             URDF、TF、关节限位
-  control/                 控制器、安全限位
-services/
-  agent_runtime/           规划器、工具注册表、模型 provider
-  backend/                 FastAPI + SQLite + 回放 API
-  perception/              OpenCV / AprilTag 观测
-  world_model/             reducer、验证器、故障注入
-sim/scenarios/             冻结的 manifest + seed
-tests/
-  unit/                    分模块行为测试
-  contract/                schema 一致性测试
-tools/scripts/             校验器、dry run、task packet 检查
-docs/
-  architecture/            系统结构
-  decisions/               架构决策记录(ADR)
-```
-
----
-
-## 验证边界
-
-纯仿真项目。结果支持什么、不支持什么:
-
-| 已验证 | 未验证 |
+| 这里证明了 | 这里没证明 |
 |---|---|
-| 软件契约、事件完整性、回放 | 真实 CAN 电气层、总线仲裁时序 |
-| 状态机与安全态转移 | 物理执行器动力学、电机负载 |
-| 任务验证逻辑与证据链 | 传感器噪声、光照变化、标定漂移 |
-| **Gazebo 物理下**的抓取放置成功率 | 真实硬件上的抓取成功率 |
+| 软件契约、事件完整性、回放 | 真实 CAN 电气层、总线时序 |
+| 安全状态机的状态转移 | 物理执行器动力学、电机负载 |
+| 验证逻辑与证据链 | 传感器噪声、光照漂移、标定 |
+| **Gazebo 物理下**的抓取成功率 | 真实夹爪上的抓取成功率 |
 | 故障注入与恢复路径 | 硬件急停、安全认证 |
 
-软件安全停止不等于硬件急停。`vcan` 的 ACK 是应用层应答,不是数据链路层确认。Gazebo 里的
-抓取成功率不经重新验证不能迁移到物理夹爪。
+软件安全停止不等于硬件急停。`vcan` 的 ACK 是应用层应答,不是数据链路层确认。所有抓取
+数字都不能不经重新验证就迁移到真机。
 
 ---
 
-## 参与开发
+## 参与进来
 
-写代码前读 [`AGENTS.md`](AGENTS.md),改接口前读
-[`docs/architecture/system.md`](docs/architecture/system.md)。完整流程见
-[`CONTRIBUTING.md`](CONTRIBUTING.md)。
+欢迎贡献,包括上面那六个还没做的模块。
 
-不可绕过的规则:
+从这里开始:
 
-1. `interfaces/` 是跨模块契约的唯一真相来源。
-2. Agent Runtime 只发出语义动作 —— 永不发出关节位置或速度。
-3. 世界模型是状态语义与完成验证的唯一拥有者。
-4. 场景 manifest、seed 和故障类型在正式评测前冻结。
-5. 任何成功、安全或指标声明都必须有事件和确定性证据。
-6. AI 工具不做合并、不做发布、不改安全配置、不判定物理完成。
+1. 读 [`AGENTS.md`](AGENTS.md) —— 工作规则,很短
+2. 读你要动的那个边界的 schema,在 `interfaces/json_schema/` 下
+3. 开一个 issue,说明你要做哪个模块、满足哪个契约
+4. 一个 PR 一个模块
 
-一次一个 Issue、一个有界模块。改生产方或消费方之前先读对应 schema。每个确定性行为变更
-都要新增或更新一个测试。没有命令、测试结果和证据引用之前,不宣布任务完成。
+完整流程见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。
+各部分怎么拼起来见 [`docs/architecture/system.md`](docs/architecture/system.md)。
 
-本项目采用 AI 辅助开发。契约、不变量、验证策略和全部合并决定由人拥有。任何贡献模块的人
-都应该能解释其中任意一个文件:为什么这样写、当时的替代方案是什么、为什么放弃它。
+**六条不让步的规则:**
+
+1. 跨模块的任何东西,`interfaces/` 是唯一真相来源
+2. 规划器只发语义动作 —— 永不发关节位置或速度
+3. 状态是什么意思、任务算不算完成,只有世界模型说了算
+4. 场景、seed、故障类型在评测前冻结
+5. 任何成功或安全声明背后都要有事件和可复现证据
+6. AI 工具不合并、不发布、不改安全配置、不判定任务完成
+
+**这里"做完了"是什么意思:** 已合并且 CI 绿、有一个能抓住这次回归的行为测试、有一条别人
+能跑的复现命令、有证据引用。"我这儿能跑"和"AI 写的我还没看"都不算做完。
+
+本项目采用 AI 辅助开发。契约、不变量和每一次合并决定都由人拥有。如果你贡献一个模块,
+你应该能解释其中任意一个文件:为什么这样写、你还考虑过什么、为什么放弃它。
 
 ---
 
 ## 许可证
 
-Apache-2.0。见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE)。
+Apache-2.0 —— 见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE)。
 第三方资产许可证记录在 [THIRD_PARTY_REVIEW.md](THIRD_PARTY_REVIEW.md)。

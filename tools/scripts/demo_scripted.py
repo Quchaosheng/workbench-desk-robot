@@ -12,7 +12,13 @@ from workbench_virtual_mcu import VirtualMcu
 from workbench_world_model import SQLiteEventStore, reduce_events, verify_object_in_tray
 
 
-def event(event_id: str, sequence_no: int, event_type: WorldEventType, payload: dict, evidence: list[str]) -> WorldEvent:
+def event(
+    event_id: str,
+    sequence_no: int,
+    event_type: WorldEventType,
+    payload: dict,
+    evidence: list[str],
+) -> WorldEvent:
     return WorldEvent(
         event_id=event_id,
         run_id="dry-run-001",
@@ -29,9 +35,27 @@ def main() -> int:
     mcu = VirtualMcu()
     mcu.command("execute")
     events = [
-        event("evt-001", 1, WorldEventType.OBSERVATION, {"entity_id": "red_block", "location": "table", "confidence": 0.98}, ["camera-frame-001"]),
-        event("evt-002", 2, WorldEventType.OBSERVATION, {"entity_id": "tray", "location": "table", "confidence": 0.99}, ["camera-frame-002"]),
-        event("evt-003", 3, WorldEventType.ACTION_RESULT, {"status": "succeeded", "entity_id": "red_block", "resulting_location": "in:tray"}, ["action-result-003"]),
+        event(
+            "evt-001",
+            1,
+            WorldEventType.OBSERVATION,
+            {"entity_id": "red_block", "location": "table", "confidence": 0.98},
+            ["camera-frame-001"],
+        ),
+        event(
+            "evt-002",
+            2,
+            WorldEventType.OBSERVATION,
+            {"entity_id": "tray", "location": "table", "confidence": 0.99},
+            ["camera-frame-002"],
+        ),
+        event(
+            "evt-003",
+            3,
+            WorldEventType.ACTION_RESULT,
+            {"status": "succeeded", "entity_id": "red_block", "resulting_location": "in:tray"},
+            ["action-result-003"],
+        ),
     ]
     with tempfile.TemporaryDirectory() as directory:
         store = SQLiteEventStore(Path(directory) / "events.sqlite")

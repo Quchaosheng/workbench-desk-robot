@@ -15,6 +15,7 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e ".[dev]"
+      - run: make lint
       - run: make test
       - run: make contract
       - run: make scenario-check

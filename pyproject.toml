@@ -10,7 +10,7 @@ requires-python = ">=3.12"
 dependencies = ["pydantic>=2.8,<3"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8,<9"]
+dev = ["pytest>=8,<9", "ruff>=0.6,<1"]
 
 [tool.setuptools.packages.find]
 where = [
@@ -23,3 +23,39 @@ where = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+extend-exclude = ["build"]
+
+# Rules are deliberately a small, high-signal set. The point is to catch real
+# defects (undefined names, unused imports, mutable default arguments), not to
+# enforce taste. Widen this only when the team agrees the added rule is worth the
+# churn it causes.
+[tool.ruff.lint]
+select = [
+  "F",    # pyflakes: undefined names, unused imports, f-string mistakes
+  "E",    # pycodestyle errors
+  "I",    # import ordering
+  "B",    # bugbear: mutable defaults, shadowed loop vars, assert-false
+  "UP",   # pyupgrade: no 3.8 idioms in a 3.12 project
+  "RUF",  # ruff's own correctness rules
+]
+ignore = [
+  # These scripts must add the local package paths to sys.path before they can
+  # import the packages under test, so the import cannot come first. The pattern
+  # is intentional and is the documented way to run the tools without installing.
+  "E402",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests repeat setup deliberately and use literal fixtures.
+"tests/**" = ["B011"]
+
+# `make fmt` runs the formatter. It is not gated in CI yet: the tree has never
+# been formatted, so gating it now would fail every PR until one large
+# reformat lands. Run `make fmt`, review the diff, commit it, then add
+# `ruff format --check` to the `lint` target.
+[tool.ruff.format]
+quote-style = "double"

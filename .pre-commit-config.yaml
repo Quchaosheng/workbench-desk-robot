@@ -1,0 +1,17 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: contract-check
+        name: contract validation
+        entry: python tools/scripts/validate_contracts.py
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [commit]

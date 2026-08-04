@@ -10,7 +10,13 @@ requires-python = ">=3.12"
 dependencies = ["pydantic>=2.8,<3"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8,<9", "ruff>=0.6,<1"]
+dev = [
+  "pytest>=8,<9",
+  "pytest-cov>=5,<6",
+  "pytest-benchmark>=4,<5",
+  "ruff>=0.6,<1",
+  "pre-commit>=3,<4",
+]
 
 [tool.setuptools.packages.find]
 where = [
@@ -23,6 +29,33 @@ where = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+addopts = [
+  "-v",
+  "--strict-markers",
+  "--tb=short",
+]
+markers = [
+  "integration: marks tests as integration tests (跨模块)",
+  "regression: marks tests as regression tests (12 场景)",
+  "benchmark: marks tests as performance benchmarks",
+]
+
+[tool.coverage.run]
+source = ["services", "libs", "firmware"]
+omit = ["*/tests/*", "*/__pycache__/*", "*/build/*"]
+
+[tool.coverage.report]
+precision = 1
+show_missing = true
+skip_covered = false
+exclude_lines = [
+  "pragma: no cover",
+  "def __repr__",
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
 
 [tool.ruff]
 target-version = "py312"

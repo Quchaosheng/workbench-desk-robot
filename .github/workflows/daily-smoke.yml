@@ -1,0 +1,35 @@
+name: daily-smoke
+
+on:
+  schedule:
+    # 每天 UTC 02:00 (北京时间 10:00)
+    - cron: '7 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Run full check suite
+        run: make check
+
+      - name: Report health
+        if: always()
+        run: |
+          if [ $? -eq 0 ]; then
+            echo "✅ 所有健康检查通过"
+          else
+            echo "❌ 健康检查失败,见上方日志"
+            exit 1
+          fi

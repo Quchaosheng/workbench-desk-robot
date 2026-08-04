@@ -2,6 +2,8 @@
 
 **An evidence-first tabletop robot workbench: task completion must be verified, not assumed.**
 
+[English](README.md) · [简体中文](README.zh-CN.md)
+
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![ROS 2](https://img.shields.io/badge/ROS_2-Jazzy-22314E?logo=ros&logoColor=white)](https://docs.ros.org/en/jazzy/)
 [![Gazebo](https://img.shields.io/badge/Gazebo-Harmonic-FB7A00)](https://gazebosim.org/)
@@ -25,8 +27,8 @@ camera  ->  Observation      object, pose, confidence, evidence refs
         ->  Dashboard        replay the task, actions, errors and result
 ```
 
-The demo always includes one injected failure. A run that only shows the happy path is
-not a passing demo.
+A demo run always includes one injected failure. A run that only shows the happy path is
+not considered a passing demo.
 
 ---
 
@@ -48,9 +50,9 @@ the task being done. This project treats the gap between *"the command was sent"
 
 ---
 
-## v0.1 scope
+## Status
 
-### Foundation — implemented
+### Implemented
 
 | Capability | Path |
 |---|---|
@@ -63,32 +65,34 @@ the task being done. This project treats the gap between *"the command was sent"
 | Scenario manifest schema + validator | `sim/scenarios/`, `tools/scripts/` |
 | Contract tests + pure-Python end-to-end dry run | `tests/`, `tools/scripts/` |
 
-### Integration targets — owned per module, deliberately not faked
+### Not yet implemented
 
-| Capability | Owner | Week |
-|---|---|---|
-| Gazebo world, assets, camera, lighting, spawn/reset | Linux | W1 |
-| MoveIt 2 grasp / place emitting ActionResult | Motion | W2 |
-| Observation from real Gazebo camera (OpenCV + AprilTag/colour) | Agent C | W2 |
-| Natural language → TaskGraph, local-model-first | Agent A | W3 |
-| Fault injection, 4 classes | World Model | W3 |
-| Dashboard + emotion expression | Agent B | W3 |
-| 12 frozen scenarios × 3 versions = 36 evaluation runs | Agent C | W4 |
+These are the integration surfaces. The foundation deliberately does not fake them —
+each is a real module boundary with a frozen contract already defined.
 
-### Out of scope for v0.1
+| Capability | Contract it must satisfy |
+|---|---|
+| Gazebo world, assets, camera, lighting, spawn/reset | `scenario.schema.json` |
+| MoveIt 2 grasp / place | `semantic_action.schema.json` → `action_result.schema.json` |
+| Observation from real camera (OpenCV + AprilTag/colour) | `observation.schema.json` |
+| Natural language → TaskGraph, local-model-first | `task_graph.schema.json` |
+| Fault injection | `scenario.schema.json` |
+| Dashboard + emotion expression | `world_event.schema.json`, `emotion_intent.schema.json` |
+
+### Out of scope
 
 - No mobile base, no second active arm
 - No vision or LLM training — perception is classical CV on known targets
 - No real mechanics, motors, power or PCB
-- No path-blocking scenario class (requires dynamic obstacles)
 - **The model never controls joints, velocity, stop, or completion judgment**
 - No second simulator, second database, or second runtime agent
 
 ---
 
-## Performance targets
+## Target metrics
 
-Every number is a release gate, not an aspiration. Values marked **0** are non-negotiable.
+These are the numbers the system is built to hit. Values marked **0** are
+non-negotiable release gates.
 
 ### Safety and correctness
 
@@ -105,7 +109,7 @@ Every number is a release gate, not an aspiration. Values marked **0** are non-n
 | Metric | Target |
 |---|---|
 | Scripted grasp-and-place success rate | ≥ 90% |
-| Full-system verified task completion rate (VTCR) | ≥ 80% |
+| Verified task completion rate (VTCR) | ≥ 80% |
 | Post-failure recovery success rate | ≥ 70% |
 | Task completion time, P95 | < 120 s |
 
@@ -114,7 +118,7 @@ Every number is a release gate, not an aspiration. Values marked **0** are non-n
 | Metric | Target |
 |---|---|
 | Semantic tool-call legality rate | ≥ 95% |
-| Local (offline) planning coverage | ≥ 50% — stretch 70% |
+| Local (offline) planning coverage | ≥ 50% |
 | Known-target detection recall | ≥ 90% |
 | Observation required-field completeness | 100% |
 
@@ -131,12 +135,12 @@ Every number is a release gate, not an aspiration. Values marked **0** are non-n
 
 | Metric | Target |
 |---|---|
-| Frozen scenario schema validation, 12 scenarios | 100% |
+| Frozen scenario schema validation | 100% |
 | Scene config hash identity under same seed | 100% |
 | Scene reset success rate, 10 consecutive | 100% |
-| Fault injection trigger rate, 4 classes | ≥ 95% |
+| Fault injection trigger rate | ≥ 95% |
 
-### System and release
+### System
 
 | Metric | Target |
 |---|---|
@@ -144,35 +148,6 @@ Every number is a release gate, not an aspiration. Values marked **0** are non-n
 | One-command start to usable — full stack with local model | < 180 s |
 | CUDA hard dependency | none |
 | External reproduction | ≥ 2 of 3 people start within 60 min |
-| Four-state comprehension rate, user study n=5 | ≥ 80% |
-| Behaviour tests per module — lint counted separately | ≥ 15 |
-
----
-
-## Evaluation design
-
-Three system versions run the **same 12 frozen scenarios** with identical seeds.
-
-| Version | Definition |
-|---|---|
-| A | Fixed script + plain state machine |
-| B | Agent, with WorldState verification and re-observation **disabled** |
-| C | Full system: Agent + WorldState + verification + recovery + expression |
-
-Scenario mix: 3 normal · 3 occlusion/low-confidence · 3 target-moved · 3 grasp-failure.
-**12 scenarios × 3 versions = 36 runs.**
-
-Each run reports success rate, recovery rate, false completion, safety violations, human
-intervention, task time, P50/P95, and failure samples.
-
-Anti-gaming rules, enforced in code and review:
-
-- The scenario factory **cannot read holdout expected answers**
-- Oracle fields (`oracle_id`, ground-truth labels) enter the evaluation module only —
-  never reconstruction, planning, or verification
-- Sensor scores are never computed from oracle data
-- Success rates may **not** be raised by relaxing safety limits, disabling collisions,
-  widening joint limits, or leaking oracle data
 
 ---
 
@@ -189,11 +164,10 @@ make demo-scripted    # pure-Python contract dry run, no physics
 ```
 
 `make demo-scripted` is a **contract dry run, not a physics simulation**. It proves the
-event / verification / replay chain end to end without ROS 2 or Gazebo. The Linux, Motion
-and Agent C owners replace its adapters with real ROS 2 / Gazebo while keeping the
-contracts unchanged.
+event / verification / replay chain end to end without ROS 2 or Gazebo, so you can work
+on any module without a full simulation stack installed.
 
-Full simulation entry points land in W1:
+Simulation entry points, once the Gazebo layer lands:
 
 ```bash
 make sim              # launch Gazebo world + arm + camera
@@ -206,21 +180,23 @@ make demo-llm         # full stack with local model
 
 ## Interface contracts
 
-Ten schemas define every module boundary. They are frozen before parallel development
-begins; changing one requires the owner's approval plus notification of all consumers.
+Eleven schemas define every module boundary. They are frozen: changing one requires
+approval and notification of all consumers, because another module is already written
+against it.
 
-| Schema | Owner | Producer | Consumers |
-|---|---|---|---|
-| `world_event` | World Model | all | Dashboard |
-| `observation` | Agent C | Agent C | World Model |
-| `action_result` | Motion | Motion | World Model |
-| `semantic_action` | Agent A | Agent A | Motion |
-| `world_state` | World Model | World Model | Agent A, Agent B |
-| `verification_result` | World Model | World Model | Agent A, Agent B |
-| `task_graph` | Agent A | Agent A | Motion |
-| `mcu_protocol` | MCU | MCU | Motion |
-| `emotion_intent` | Agent B | Agent B | Agent B |
-| `scenario` | Agent C | Agent C | World Model, Linux |
+| Schema | Producer | Consumers |
+|---|---|---|
+| `world_event` | all modules | Dashboard |
+| `observation` | perception | world model |
+| `action_result` | motion | world model |
+| `semantic_action` | agent runtime | motion |
+| `world_state` | world model | agent runtime, dashboard |
+| `verification_result` | world model | agent runtime, dashboard |
+| `task_graph` | agent runtime | motion |
+| `mcu_protocol` | virtual MCU | motion |
+| `emotion_intent` | dashboard | dashboard |
+| `scenario` | scenario factory | world model, bringup |
+| `pose` | shared | all |
 
 Schemas live in `interfaces/json_schema/`, one valid example each in
 `interfaces/examples/`. `make contract` validates every example against its schema.
@@ -230,69 +206,41 @@ Four questions are answered for every field before a schema is frozen:
 1. When this field is missing, does the consumer reject, degrade, or default?
 2. Who may write it? Multiple writers is a conflict source.
 3. What is its time base — monotonic, wall clock, or none?
-4. Can it be contaminated by oracle data? Evaluation fields stay physically separate
-   from runtime fields.
+4. Can it be contaminated by evaluation ground truth? Oracle fields stay physically
+   separate from runtime fields.
 
----
+Three contract decisions worth knowing before you write code against them:
 
-## Module ownership
-
-One owner per module. No shared ownership.
-
-| Path | Owner | Scope |
-|---|---|---|
-| `services/agent_runtime/` | Agent A | TaskGraph, provider routing, typed tools |
-| `apps/dashboard/` | Agent B | Interaction, emotion, replay display |
-| `services/perception/` | Agent C | Observation producer, evaluation |
-| `sim/scenarios/` | Agent C | Scenario manifests, seeds, validators, batch runs |
-| `services/world_model/` | World Model | Reducer, verifier, event store, fault injection |
-| `services/backend/` | World Model | FastAPI, SQLite, replay API |
-| `robot/bringup/` | Linux | Launch files, health checks, world assets |
-| `.github/`, `.devcontainer/`, `tools/` | Linux | Build, CI, dev environment, integration |
-| `firmware/virtual_mcu/` | MCU | Protocol codec, watchdog, safe state |
-| `robot/description/`, `robot/control/` | Motion | URDF, TF, controllers, motion safety |
-| `docs/product/` | Product Owner | Scope, acceptance, release decisions |
-
-`services/world_model/` owns state meaning and verification; it does not own UI or robot
-control. `services/agent_runtime/` owns planning and typed tools; it does not write
-WorldState facts.
-
----
-
-## Rules that cannot be bypassed
-
-1. `interfaces/` is the cross-module contract source of truth.
-2. Agent Runtime emits semantic actions only — never joint positions or velocities.
-3. World Model is the only owner of state semantics and completion verification.
-4. Scenario manifests, seeds and fault types are frozen before formal evaluation.
-5. Any success, safety or metric claim must have events and deterministic evidence.
-6. AI tools do not merge, release, change safety configuration, or decide physical
-   completion.
-
-Read `AGENTS.md` before writing code, and `docs/architecture/system.md` before changing
-an interface.
+- **`action_result` separates `dispatch_state` from `device_state`.** A written frame
+  cannot be read as a confirmed device action; that distinction is enforced by the type,
+  not by convention.
+- **`verification_result.status` is three-valued** — `confirmed` / `refuted` /
+  `insufficient_evidence`. There is no boolean "done" field, because "I cannot confirm
+  this" must be representable.
+- **`mcu_protocol` splits the command id range.** Commands use ids ≤ 32767, stops use
+  ≥ 32768, so a stop acknowledgement can never be matched to a command.
 
 ---
 
 ## Repository layout
 
 ```
-apps/dashboard/            Agent B   replay, state, emotion display
-firmware/virtual_mcu/      MCU       protocol codec, safety state machine
+apps/dashboard/            replay, state and expression display
+firmware/virtual_mcu/      protocol codec, safety state machine
 interfaces/
-  json_schema/             10 frozen contracts
+  json_schema/             11 frozen contracts
   examples/                one valid example per schema
 libs/contracts/            typed Python models
 robot/
-  bringup/                 Linux     launch files, health checks
-  description/             Motion    URDF, TF, joint limits
-  control/                 Motion    controllers, safety limits
+  bringup/                 launch files, health checks
+  description/             URDF, TF, joint limits
+  control/                 controllers, safety limits
 services/
-  agent_runtime/           Agent A   planner, tool registry, provider
-  backend/                 WM        FastAPI + SQLite + replay API
-  perception/              Agent C   OpenCV/AprilTag observation
-  world_model/             WM        reducer, verifier, fault injection
-sim/scenarios/             Agent C   12 frozen manifests + seeds
+  agent_runtime/           planner, tool registry, model provider
+  backend/                 FastAPI + SQLite + replay API
+  perception/              OpenCV / AprilTag observation
+  world_model/             reducer, verifier, fault injection
+sim/scenarios/             frozen manifests + seeds
 tests/
   unit/                    per-module behaviour tests
   contract/                schema conformance tests
@@ -300,7 +248,6 @@ tools/scripts/             validators, dry run, task packet checks
 docs/
   architecture/            system structure
   decisions/               ADRs
-  product/                 execution plan, PM dashboard
 ```
 
 ---
@@ -323,33 +270,30 @@ does not transfer to a physical gripper without re-validation.
 
 ---
 
-## Development
+## Contributing
 
-Built with AI-assisted development. Interface contracts, invariants, verification
-strategy and all merge decisions are owned by the module owners listed above. Every owner
-can walk through any file in their module and explain why it is written that way, what
-the alternative was, and why it was rejected.
+Read [`AGENTS.md`](AGENTS.md) before writing code and
+[`docs/architecture/system.md`](docs/architecture/system.md) before changing an
+interface. [`CONTRIBUTING.md`](CONTRIBUTING.md) has the full workflow.
 
-Rules in `AGENTS.md` and `CONTRIBUTING.md` apply to human and AI contributions equally:
-one issue and one bounded module at a time; read the schema before changing a producer or
-consumer; add or update a test for every deterministic behaviour change; never claim
-completion without a command, a test result, and an evidence reference.
+Rules that cannot be bypassed:
 
----
+1. `interfaces/` is the cross-module contract source of truth.
+2. The agent runtime emits semantic actions only — never joint positions or velocities.
+3. The world model is the only owner of state semantics and completion verification.
+4. Scenario manifests, seeds and fault types are frozen before formal evaluation.
+5. Any success, safety or metric claim must have events and deterministic evidence.
+6. AI tools do not merge, release, change safety configuration, or decide physical
+   completion.
 
-## Release gates
+One issue and one bounded module at a time. Read the relevant schema before changing a
+producer or consumer. Add or update a test for every deterministic behaviour change.
+Never claim completion without a command, a test result, and an evidence reference.
 
-`v0.1.0` is not released if any of these fail:
-
-- False completion is not 0
-- Any collision, joint-limit violation, or agent authority escape
-- The scripted demo requires a cloud API to run
-- Scenarios, seeds, or fault-injection rules are not versioned
-- Key events are incomplete, or a task cannot be replayed
-- The 36 evaluation runs have no raw data
-- README does not state limitations and failure cases
-- An external person cannot start the system by following the docs
-- Any module owner cannot explain a spot-checked file in their module
+This project is built with AI-assisted development. Contracts, invariants, verification
+strategy and all merge decisions are owned by humans. Anyone who contributes a module
+should be able to explain any file in it: why it is written that way, what the
+alternative was, and why it was rejected.
 
 ---
 

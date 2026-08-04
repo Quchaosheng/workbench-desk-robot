@@ -1,4 +1,4 @@
-# Perception (Owner: Agent C)
+# Perception (Owner: Perception)
 
 P0 emits `Observation` from a controlled Gazebo camera using OpenCV plus AprilTag or color recognition. Required fields are documented in `interfaces/json_schema/observation.schema.json`.
 

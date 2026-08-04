@@ -5,7 +5,7 @@
 | ROS 2 Jazzy | pending | pending | Linux | pinned container |
 | Gazebo Harmonic | pending | pending | Linux + Simulation | single simulator baseline |
 | MoveIt 2 | pending | pending | Motion | fixed validated trajectory |
-| OpenCV / AprilTag | pending | pending | Agent C | known-object baseline |
-| Local model runner | pending | pending | Agent A + Linux | template planner |
+| OpenCV / AprilTag | pending | pending | Perception Owner | known-object baseline |
+| Local model runner | pending | pending | Runtime + Integration | template planner |
 
 Model weights, CAD, mesh, images, audio and code are reviewed separately.

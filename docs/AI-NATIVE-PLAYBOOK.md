@@ -3,7 +3,7 @@
 > Version: 1.1  
 > Date: 2026-08-04  
 > Scope: Robot Runtime + AI Engineering Factory  
-> Human team: 12 people  
+> Human team: one owner per module  
 > Core principle: AI accelerates learning cycles; humans retain responsibility.
 
 ## 1. Why this playbook exists
@@ -207,8 +207,8 @@ Parallelism is allowed between independent Research, Test and Code work. A singl
 |---|---|---|
 | Project Owner | Interview transcription/cluster, risk and evidence summaries, project-book drafts | User evidence, scope, priority, Go/Pivot/Stop and Release approval |
 | Agent PhD | Golden set expansion, failure taxonomy, model/prompt ablation | Evaluation design, holdout, conclusion validity |
-| Agent A | Tool/behavior-tree scaffolding and adversarial calls | Runtime boundaries, cancellation, retry and no-joint-control rule |
-| Agent B | Dialogue variants, expression copy and test prompts | Emotion semantics, assets and user comprehension |
+| Runtime | Tool/behavior-tree scaffolding and adversarial calls | Runtime boundaries, cancellation, retry and no-joint-control rule |
+| Interaction | Dialogue variants, expression copy and test prompts | Emotion semantics, assets and user comprehension |
 | World Model | Reducer invariants, counterexample events and fixtures | State meaning, evidence rules and Verifier |
 | Vision PhD | Synthetic scene candidates, calibration scripts and error clusters | Sensor/Oracle separation, calibration and accuracy claims |
 | System Algorithm | Benchmark scripts, threshold sweeps and plots | Data split, leakage, algorithm choice and ablation |
@@ -432,7 +432,7 @@ Measure time from confirmed failure to merged regression test, rework, evidence 
 - [ ] Ask each human DRI for one complete Task Packet.
 - [ ] Decide data classification, external-model policy, free/paid routes, budget cap and shadow-cost rule.
 
-### Agent PhD + Agent A/B
+### Evaluation + Runtime + Interaction
 
 - [ ] Build 20 Agent golden cases, including five fault tasks, plus 10 dangerous/invalid requests.
 - [ ] Define deterministic, human and LLM-as-Judge boundaries.

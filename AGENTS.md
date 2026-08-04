@@ -10,7 +10,7 @@
 
 ## Ownership boundaries
 
-- `interfaces/` changes require Agent A, World Model and the affected producer/consumer Owner.
+- `interfaces/` changes require the Runtime Owner, the World Model Owner and the affected producer/consumer Owner.
 - `sim/` changes require Simulation; robot kinematics/control changes require Motion.
 - `services/world_model/` owns state meaning and verification; it does not own UI or robot control.
 - `services/agent_runtime/` owns planning and typed tools; it does not write WorldState facts.

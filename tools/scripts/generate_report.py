@@ -146,7 +146,10 @@ def main():
     )
 
     if meets_all_gates:
-        decision = "**决策**: ✅ **Go** — 所有发布门槛已达标。\n\n**签字**: ___________(Product Owner, 日期:___________)"
+        decision = (
+            "**决策**: ✅ **Go** — 所有发布门槛已达标。\n\n"
+            "**签字**: ___________(Product Owner, 日期:___________)"
+        )
     else:
         decision = "**决策**: ❌ **No-Go** — 以下门槛未达标:\n\n"
         if not all_safe:

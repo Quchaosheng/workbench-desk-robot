@@ -15,7 +15,10 @@ dev = [
   "jsonschema>=4,<5",
   "pytest-cov>=5,<6",
   "pytest-benchmark>=4,<5",
-  "ruff>=0.6,<1",
+  # Pinned exactly, and must match `rev:` in .pre-commit-config.yaml.
+  # A range here would let CI and the local hook diverge: a newer ruff adds
+  # rules, so a commit that passes the hook could still fail CI.
+  "ruff==0.6.9",
   "pre-commit>=3,<4",
 ]
 

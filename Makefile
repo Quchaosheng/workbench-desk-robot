@@ -6,8 +6,10 @@ bootstrap:
 	$(PYTHON) -m pip install --upgrade pip
 	$(PYTHON) -m pip install -e ".[dev]"
 
+# Both rules and formatting are gated in CI. Run `make fmt` to fix locally.
 lint:
 	$(PYTHON) -m ruff check .
+	$(PYTHON) -m ruff format --check .
 
 fmt:
 	$(PYTHON) -m ruff check --fix .

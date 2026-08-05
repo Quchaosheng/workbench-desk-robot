@@ -25,6 +25,53 @@ jobs:
       - run: make context-check
       - run: make demo-scripted
 
+  # Builds and exercises the wbcan kernel module.
+  #
+  # continue-on-error while the module is new: a GitHub runner's kernel headers
+  # and CAN config are not under our control, and a driver that fails to build
+  # against one specific runner kernel should report that without blocking a PR
+  # that does not touch the kernel. Remove it once this has been green for a
+  # week.
+  kernel-module:
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Install kernel headers and can-utils
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            "linux-headers-$(uname -r)" can-utils build-essential
+          echo "kernel: $(uname -r)"
+
+      - name: Build wbcan.ko
+        run: make -C kernel/wbcan
+
+      - name: Kernel style check
+        run: make -C kernel/wbcan checkpatch
+
+      - name: Load the module and bring the interface up
+        run: |
+          sudo modprobe can can-raw can-dev
+          sudo insmod kernel/wbcan/wbcan.ko
+          sudo ip link set wbcan0 type can restart-ms 100
+          sudo ip link set wbcan0 up
+          ip -details link show wbcan0
+
+      - name: Run the fault suite
+        run: sudo ./kernel/wbcan/test_wbcan.sh wbcan0
+
+      - name: Dump kernel log on failure
+        if: failure()
+        run: sudo dmesg | tail -50
+
+      - name: Unload
+        if: always()
+        run: |
+          sudo ip link set wbcan0 down 2>/dev/null || true
+          sudo rmmod wbcan 2>/dev/null || true
+
   # Runs the cross-compiled MCU firmware in QEMU.
   # Rationale and limits: docs/decisions/ADR-0003-mcu-riscv-qemu.md
   #

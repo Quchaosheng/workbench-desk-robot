@@ -100,8 +100,56 @@ seconds per run.
 - P3 payoff: the same `core/` binary passes the same fault suite in QEMU and on
   the board, with only `hal/` differing.
 
+## Toolchain
+
+Upstream GCC works. WCH's private instructions (`mcpy`) are mandatory only on
+CH584/585, not on CH32V307, so MounRiver is not required.
+
+| Toolchain | Triplet | Use |
+|---|---|---|
+| Ubuntu `gcc-riscv64-unknown-elf` | `riscv64-unknown-elf-` | CI, if its rv32 multilib works |
+| [xpack `riscv-none-elf-gcc`](https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack) | `riscv-none-elf-` | fallback and local dev; newer, reliable rv32 |
+| WCH MounRiver | `riscv-none-elf-` | not needed for '307 |
+
+Flashing uses [`wlink`](https://github.com/ch32-rs/wlink), not OpenOCD:
+
+```
+wlink mode-switch --rv     # put WCH-LinkE into RV mode once
+wlink flash build/board/mcu.elf
+```
+
+`wchisp flash` over USB ISP (BOOT0 + RESET) works with no adapter at all.
+OpenOCD is only needed for GDB, and requires the WCH fork built with
+`--enable-wlinke`.
+
+## Hardware
+
+**CH32V307 has a CAN controller but no CAN transceiver.** The transceiver is
+external and is not on the EVT board.
+
+| Item | Part | Qty | Why |
+|---|---|---:|---|
+| Board | CH32V307V-EVT-R1 | 2 | On-board WCH-Link, no separate debugger needed |
+| **CAN transceiver** | SN65HVD230 module (3.3V) | 2 | **Required. Not on the board.** |
+| USB-CAN bridge | CANable 2.0 or PCAN-USB | 1 | Lets the host see real frames with `candump` |
+| Logic analyser | any 8-channel | 1 | FW22 watchdog timing |
+| Twisted pair + 2×120Ω | — | — | Terminate both ends of the bus |
+
+Two boards, not one: CAN is a bus protocol. Arbitration, error frames and
+bus-off recovery (FW19) cannot be exercised with a single node.
+
+3.3V transceiver specifically: CH32V307 I/O is 3.3V. A 5V TJA1050 would need
+level shifting, which is one more thing to get wrong.
+
+Buy at the end of P2 (task H1). FW1-FW16 are all QEMU; the board is first
+needed at FW17. One exception worth the ¥150: buy a single board early and run
+the FW3 state machine on it once, to test the assumption that QEMU-passing code
+also passes on hardware. Finding that out in P1 beats finding it out in P3.
+
 ## References
 
 - QEMU CAN emulation: https://www.qemu.org/docs/master/system/devices/can.html
 - SocketCAN vcan: https://www.kernel.org/doc/html/latest/networking/can.html
-- CH32V307 datasheet: https://www.wch-ic.com/products/CH32V307.html
+- CH32V307 SDK and datasheet: https://github.com/openwch/ch32v307
+- Open-source CH32V toolchain guide: https://github.com/cjacker/opensource-toolchain-ch32v
+- Zephyr board page (pinout): https://docs.zephyrproject.org/latest/boards/wch/ch32v307v_evt_r1/doc/index.html

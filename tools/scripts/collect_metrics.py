@@ -67,7 +67,7 @@ def compute_task_duration_percentiles(events: list[dict]) -> dict[str, float]:
             tasks[run_id]["end"] = e.get("occurred_at")
 
     durations = []
-    for run_id, times in tasks.items():
+    for _run_id, times in tasks.items():
         if "start" in times and "end" in times:
             try:
                 start = datetime.fromisoformat(times["start"].replace("Z", "+00:00"))

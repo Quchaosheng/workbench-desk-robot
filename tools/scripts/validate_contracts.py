@@ -32,6 +32,7 @@ from workbench_contracts import (
 
 try:
     from jsonschema import Draft202012Validator
+    from referencing import Registry, Resource
 
     HAS_JSONSCHEMA = True
 except ImportError:
@@ -125,6 +126,16 @@ def check_examples_satisfy_required() -> list[str]:
     return problems
 
 
+def _schema_registry() -> "Registry":
+    """Register every schema under its bare filename so a sibling $ref such as
+    {"$ref": "pose.schema.json"} resolves without a network fetch."""
+    resources = []
+    for path in sorted(SCHEMA_DIR.glob("*.schema.json")):
+        contents = json.loads(path.read_text(encoding="utf-8"))
+        resources.append((path.name, Resource.from_contents(contents)))
+    return Registry().with_resources(resources)
+
+
 def check_jsonschema_validation() -> list[str]:
     """Full Draft-2020-12 structural validation: enum, type, range, allOf, $ref.
     This is what the previous version was missing — the checks above only verify
@@ -149,9 +160,7 @@ def check_jsonschema_validation() -> list[str]:
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
         example = json.loads(example_path.read_text(encoding="utf-8"))
 
-        # Draft202012Validator handles same-directory $ref (pose.schema.json) via
-        # the meta-schema resolver. Explicit registry not needed for these schemas.
-        validator = Draft202012Validator(schema)
+        validator = Draft202012Validator(schema, registry=_schema_registry())
 
         errors = list(validator.iter_errors(example))
         for err in errors:

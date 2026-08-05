@@ -62,7 +62,7 @@ def main():
     total = len(results)
     rate = passed / total
 
-    print(f"\n=== Regression Results ===")
+    print("\n=== Regression Results ===")
     print(f"Passed: {passed}/{total} ({rate:.1%})")
 
     if rate < 0.9:

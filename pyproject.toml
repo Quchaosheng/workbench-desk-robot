@@ -82,6 +82,11 @@ ignore = [
   # import the packages under test, so the import cannot come first. The pattern
   # is intentional and is the documented way to run the tools without installing.
   "E402",
+  # Docs and console output are written in Chinese, where × (multiplication sign)
+  # is the correct character for "12 scenarios × 3 versions". Rewriting it as
+  # ASCII "x" would be wrong in that context.
+  "RUF001",
+  "RUF002",
 ]
 
 [tool.ruff.lint.per-file-ignores]

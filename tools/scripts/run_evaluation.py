@@ -39,8 +39,7 @@ def run_one_scenario(version: str, scenario: Path, output_dir: Path, seed_base: 
     # )
     # success = result.returncode == 0
 
-    # 占位:生成假的事件日志
-    manifest = json.loads(scenario.read_text(encoding="utf-8"))
+    # 占位:生成假的事件日志。真实实现会读取 manifest 来配置场景。
     fake_events = [
         {
             "event_id": "evt-001",

@@ -1,5 +1,4 @@
 from pydantic import BaseModel, Field
-
 from workbench_contracts import WorldEvent, WorldEventType
 
 

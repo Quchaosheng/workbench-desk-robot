@@ -17,7 +17,7 @@ def placed_event() -> WorldEvent:
         sequence_no=1,
         event_type=WorldEventType.ACTION_RESULT,
         occurred_at="2026-08-04T00:00:00Z",
-        payload={"status": "succeeded", "entity_id": "red_block", "resulting_location": "in:tray"},
+        payload={"outcome": "completed", "entity_id": "red_block", "resulting_location": "in:tray"},
         evidence_refs=["act-001"],
     )
 

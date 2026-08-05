@@ -160,7 +160,7 @@ def check_jsonschema_validation() -> list[str]:
                     base_uri, jsonschema.Resource.from_contents(schema)
                 ),
             )
-        except Exception:
+        except Exception:  # noqa: BLE001
             # Fallback: validate without explicit registry (works for simple schemas)
             validator = Draft202012Validator(schema)
 
@@ -180,7 +180,7 @@ def check_models_accept_examples() -> list[str]:
             continue
         try:
             model.model_validate_json(path.read_text(encoding="utf-8"))
-        except Exception as exc:  # noqa: BLE001 - report every failure, do not stop at the first
+        except Exception as exc:  # noqa: BLE001
             problems.append(f"{model.__name__} rejected {example_name}: {exc}")
     return problems
 

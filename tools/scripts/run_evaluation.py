@@ -14,7 +14,6 @@
 """
 import argparse
 import json
-import subprocess
 from pathlib import Path
 
 
@@ -70,7 +69,7 @@ def run_one_scenario(version: str, scenario: Path, output_dir: Path, seed_base: 
             "event_type": "verification",
             "occurred_at": "2026-08-04T10:01:00Z",
             "payload": {
-                "completed": True,
+                "status": "confirmed",
                 "reason": "object location matches tray relation",
                 "evidence_refs": ["verification-001"],
             },
@@ -98,7 +97,9 @@ def main():
     versions = args.versions.split(",")
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"Running {len(versions)} versions × {len(args.scenarios)} scenarios = {len(versions) * len(args.scenarios)} runs")
+    n_versions = len(versions)
+    n_scenarios = len(args.scenarios)
+    print(f"Running {n_versions} versions × {n_scenarios} scenarios = {n_versions * n_scenarios} runs")
     print(f"Seed base: {args.seed_base}")
     print()
 

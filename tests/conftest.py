@@ -66,5 +66,5 @@ def sample_semantic_action():
     return SemanticAction(
         action_id="test-action-001",
         action_type=ActionType.GRASP,
-        params={"entity_id": "red_block"},
+        parameters={"entity_id": "red_block"},
     )

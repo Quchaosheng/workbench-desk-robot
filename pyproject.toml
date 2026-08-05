@@ -73,6 +73,7 @@ select = [
   "E",    # pycodestyle errors
   "I",    # import ordering
   "B",    # bugbear: mutable defaults, shadowed loop vars, assert-false
+  "BLE",  # blind-except: broad exception catches must use noqa
   "UP",   # pyupgrade: no 3.8 idioms in a 3.12 project
   "RUF",  # ruff's own correctness rules
 ]

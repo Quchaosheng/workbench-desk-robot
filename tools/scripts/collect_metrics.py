@@ -30,7 +30,7 @@ def compute_vtcr(events: list[dict]) -> float:
     verifications = [e for e in events if e.get("event_type") == "verification"]
     if not verifications:
         return 0.0
-    completed = sum(1 for v in verifications if v.get("payload", {}).get("completed"))
+    completed = sum(1 for v in verifications if v.get("payload", {}).get("status") == "confirmed")
     return completed / len(verifications)
 
 

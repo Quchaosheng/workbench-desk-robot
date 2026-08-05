@@ -132,7 +132,9 @@ def main():
     )
 
     # 典型失败案例
-    failure_cases = "TODO: Product Owner 在此补充 3 个典型失败案例,附事件日志链接和视频截图。"
+    failure_cases = (
+        "TODO: Product Owner 在此补充 3 个典型失败案例,附事件日志链接和视频截图。"
+    )
 
     # Go/No-Go 决策
     c_vtcr = metrics_C["vtcr"]

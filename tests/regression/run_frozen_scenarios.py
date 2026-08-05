@@ -8,6 +8,7 @@
 注意:
     Gazebo 层就位之前,这个脚本只做占位校验。
 """
+
 import argparse
 import json
 import sys

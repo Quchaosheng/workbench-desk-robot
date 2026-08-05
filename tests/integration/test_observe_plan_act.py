@@ -1,6 +1,7 @@
 """
 集成测试:观测 → 规划 → 执行路径
 """
+
 import json
 
 from workbench_agent_runtime import build_template_plan

@@ -12,6 +12,7 @@
     Gazebo 层就位之前,这个脚本只创建占位日志。
     Integration Owner 在 Gazebo 就位后填充实际运行逻辑。
 """
+
 import argparse
 import json
 from pathlib import Path
@@ -76,18 +77,14 @@ def run_one_scenario(version: str, scenario: Path, output_dir: Path, seed_base: 
         },
     ]
 
-    output_file.write_text(
-        "\n".join(json.dumps(e) for e in fake_events) + "\n", encoding="utf-8"
-    )
+    output_file.write_text("\n".join(json.dumps(e) for e in fake_events) + "\n", encoding="utf-8")
     print("✅ (占位数据)")
     return True
 
 
 def main():
     parser = argparse.ArgumentParser(description="Run 36 evaluation runs")
-    parser.add_argument(
-        "--versions", required=True, help="Comma-separated version tags (e.g., v0.1-A,v0.1-B,v0.1-C)"
-    )
+    parser.add_argument("--versions", required=True, help="Comma-separated version tags (e.g., v0.1-A,v0.1-B,v0.1-C)")
     parser.add_argument("--scenarios", nargs="+", type=Path, required=True, help="Scenario manifest files")
     parser.add_argument("--output-dir", type=Path, required=True, help="Output directory")
     parser.add_argument("--seed-base", type=int, default=1000, help="Seed base for reproducibility")

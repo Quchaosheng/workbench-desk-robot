@@ -10,9 +10,7 @@ from workbench_contracts import (
 from .reducer import WorldState
 
 
-def verify_object_in_tray(
-    state: WorldState, task_id: str, object_id: str, tray_id: str
-) -> VerificationResult:
+def verify_object_in_tray(state: WorldState, task_id: str, object_id: str, tray_id: str) -> VerificationResult:
     """Decide whether object_id is inside tray_id.
 
     Three outcomes, not two. If the object was never observed we cannot say the

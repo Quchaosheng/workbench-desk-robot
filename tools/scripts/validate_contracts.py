@@ -77,8 +77,7 @@ def check_every_schema_is_registered() -> list[str]:
     problems = []
     for stem in sorted(on_disk - registered):
         problems.append(
-            f"{stem}.schema.json is not registered here; add an example for it, "
-            "or register it as None with a reason"
+            f"{stem}.schema.json is not registered here; add an example for it, " "or register it as None with a reason"
         )
     for stem in sorted(registered - on_disk):
         problems.append(f"{stem} is registered here but no such schema exists")

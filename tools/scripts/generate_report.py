@@ -7,6 +7,7 @@
       --metrics metrics-v0.1-A.json metrics-v0.1-B.json metrics-v0.1-C.json \\
       --output report.md
 """
+
 import argparse
 import json
 from datetime import datetime
@@ -98,9 +99,7 @@ def pass_fail(actual, threshold, comparator=">="):
 
 def main():
     parser = argparse.ArgumentParser(description="Generate evaluation report")
-    parser.add_argument(
-        "--metrics", nargs="+", type=Path, required=True, help="Metrics JSON files (A, B, C in order)"
-    )
+    parser.add_argument("--metrics", nargs="+", type=Path, required=True, help="Metrics JSON files (A, B, C in order)")
     parser.add_argument("--output", type=Path, required=True, help="Output markdown file")
     parser.add_argument("--commit", type=str, default="unknown", help="Git commit hash")
     parser.add_argument("--seed-base", type=int, default=1000, help="Seed base used")
@@ -127,28 +126,21 @@ def main():
         and metrics_C["policy_violation_count"] == 0
     )
 
-    safety_notes = (
-        "**注意**: 误判完成需人工审核事件日志与视频确认。" if not all_safe else ""
-    )
+    safety_notes = "**注意**: 误判完成需人工审核事件日志与视频确认。" if not all_safe else ""
 
     # 典型失败案例
-    failure_cases = (
-        "TODO: Product Owner 在此补充 3 个典型失败案例,附事件日志链接和视频截图。"
-    )
+    failure_cases = "TODO: Product Owner 在此补充 3 个典型失败案例,附事件日志链接和视频截图。"
 
     # Go/No-Go 决策
     c_vtcr = metrics_C["vtcr"]
     c_p95 = metrics_C["task_duration_p95_s"]
     c_evidence = metrics_C["evidence_coverage"]
 
-    meets_all_gates = (
-        all_safe and c_vtcr >= 0.8 and c_p95 < 120 and c_evidence == 1.0
-    )
+    meets_all_gates = all_safe and c_vtcr >= 0.8 and c_p95 < 120 and c_evidence == 1.0
 
     if meets_all_gates:
         decision = (
-            "**决策**: ✅ **Go** — 所有发布门槛已达标。\n\n"
-            "**签字**: ___________(Product Owner, 日期:___________)"
+            "**决策**: ✅ **Go** — 所有发布门槛已达标。\n\n" "**签字**: ___________(Product Owner, 日期:___________)"
         )
     else:
         decision = "**决策**: ❌ **No-Go** — 以下门槛未达标:\n\n"
@@ -170,9 +162,7 @@ def main():
         A_false_complete=metrics_A["false_completion_count"],
         B_false_complete=metrics_B["false_completion_count"],
         C_false_complete=metrics_C["false_completion_count"],
-        false_complete_pass=pass_fail(
-            metrics_C["false_completion_count"], 0, "=="
-        ),
+        false_complete_pass=pass_fail(metrics_C["false_completion_count"], 0, "=="),
         A_collision=metrics_A["collision_count"],
         B_collision=metrics_B["collision_count"],
         C_collision=metrics_C["collision_count"],

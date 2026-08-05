@@ -8,6 +8,7 @@
 输出:
     metrics.json 包含全部指标的 JSON 文件
 """
+
 import argparse
 import json
 from collections import defaultdict
@@ -43,9 +44,7 @@ def compute_false_completion(events: list[dict]) -> int:
 def compute_collision_count(events: list[dict]) -> int:
     """碰撞次数"""
     return sum(
-        1
-        for e in events
-        if e.get("event_type") == "fault" and e.get("payload", {}).get("fault_type") == "collision"
+        1 for e in events if e.get("event_type") == "fault" and e.get("payload", {}).get("fault_type") == "collision"
     )
 
 
@@ -117,10 +116,7 @@ def compute_observation_completeness(events: list[dict]) -> float:
     complete = sum(
         1
         for o in observations
-        if all(
-            k in o.get("payload", {})
-            for k in ["observation_id", "run_id", "entity_id", "pose", "confidence"]
-        )
+        if all(k in o.get("payload", {}) for k in ["observation_id", "run_id", "entity_id", "pose", "confidence"])
     )
     return complete / len(observations)
 
@@ -130,9 +126,7 @@ def compute_evidence_coverage(events: list[dict]) -> float:
     verifications = [e for e in events if e.get("event_type") == "verification"]
     if not verifications:
         return 1.0
-    with_evidence = sum(
-        1 for v in verifications if v.get("payload", {}).get("evidence_refs")
-    )
+    with_evidence = sum(1 for v in verifications if v.get("payload", {}).get("evidence_refs"))
     return with_evidence / len(verifications)
 
 

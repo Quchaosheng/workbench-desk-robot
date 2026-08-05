@@ -31,7 +31,6 @@ from workbench_contracts import (
 )
 
 try:
-    import jsonschema
     from jsonschema import Draft202012Validator
 
     HAS_JSONSCHEMA = True

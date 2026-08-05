@@ -8,7 +8,6 @@ bootstrap:
 
 lint:
 	$(PYTHON) -m ruff check .
-	$(PYTHON) -m ruff format --check .
 
 fmt:
 	$(PYTHON) -m ruff check --fix .

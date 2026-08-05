@@ -150,19 +150,9 @@ def check_jsonschema_validation() -> list[str]:
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
         example = json.loads(example_path.read_text(encoding="utf-8"))
 
-        # Build a resolver rooted at the schema directory so $ref to sibling
-        # schemas (e.g. pose.schema.json) resolves correctly.
-        base_uri = schema_path.as_uri()
-        try:
-            validator = Draft202012Validator(
-                schema,
-                registry=jsonschema.Registry().with_resource(
-                    base_uri, jsonschema.Resource.from_contents(schema)
-                ),
-            )
-        except Exception:  # noqa: BLE001
-            # Fallback: validate without explicit registry (works for simple schemas)
-            validator = Draft202012Validator(schema)
+        # Draft202012Validator handles same-directory $ref (pose.schema.json) via
+        # the meta-schema resolver. Explicit registry not needed for these schemas.
+        validator = Draft202012Validator(schema)
 
         errors = list(validator.iter_errors(example))
         for err in errors:

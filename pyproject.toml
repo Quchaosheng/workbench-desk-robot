@@ -86,9 +86,6 @@ ignore = [
 # Tests repeat setup deliberately and use literal fixtures.
 "tests/**" = ["B011"]
 
-# `make fmt` runs the formatter. It is not gated in CI yet: the tree has never
-# been formatted, so gating it now would fail every PR until one large
-# reformat lands. Run `make fmt`, review the diff, commit it, then add
-# `ruff format --check` to the `lint` target.
+# Format is checked in CI. Run `make fmt` to auto-fix locally.
 [tool.ruff.format]
 quote-style = "double"

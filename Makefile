@@ -6,11 +6,9 @@ bootstrap:
 	$(PYTHON) -m pip install --upgrade pip
 	$(PYTHON) -m pip install -e ".[dev]"
 
-# Formatting is not gated yet: the tree has never been formatted, so gating it
-# now would fail every PR until one large reformat lands. Run `make fmt`, review
-# the diff, commit it, then add `ruff format --check .` to this target.
 lint:
 	$(PYTHON) -m ruff check .
+	$(PYTHON) -m ruff format --check .
 
 fmt:
 	$(PYTHON) -m ruff check --fix .

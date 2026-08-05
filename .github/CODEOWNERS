@@ -1,0 +1,61 @@
+# CODEOWNERS
+#
+# 每个路径只有一个 Owner。Owner 的 PR 才能合并到 main。
+# GitHub 账号在分工确定后替换 @PLACEHOLDER_*。
+#
+# 替换方式:把下面的 @PLACEHOLDER_* 全部换成真实 GitHub 用户名或团队名。
+# 例: @PLACEHOLDER_RUNTIME_OWNER → @zhangsan
+#
+# 替换完成前, 所有 PR 会被发给 @PLACEHOLDER_PRODUCT_OWNER 审核。
+
+# ── Product Owner: 范围、发布、契约变更 ──────────────────────────
+/docs/product/                     @PLACEHOLDER_PRODUCT_OWNER
+/.github/workflows/                @PLACEHOLDER_PRODUCT_OWNER
+/BOOTSTRAP-CHECKLIST.md            @PLACEHOLDER_PRODUCT_OWNER
+
+# ── Integration: 环境、CI、世界资产、硬件集成 ────────────────────
+/robot/bringup/                    @PLACEHOLDER_INTEGRATION_OWNER
+/.devcontainer/                    @PLACEHOLDER_INTEGRATION_OWNER
+/tools/                            @PLACEHOLDER_INTEGRATION_OWNER
+/sim/worlds/                       @PLACEHOLDER_INTEGRATION_OWNER
+/hardware/                         @PLACEHOLDER_INTEGRATION_OWNER
+/docs/hardware/                    @PLACEHOLDER_INTEGRATION_OWNER
+
+# ── Runtime: Agent 规划、工具注册表 ─────────────────────────────
+/services/agent_runtime/           @PLACEHOLDER_RUNTIME_OWNER
+
+# ── Interaction: Dashboard、情绪、操作员控制台 ───────────────────
+/apps/dashboard/                   @PLACEHOLDER_INTERACTION_OWNER
+/apps/operator_console/            @PLACEHOLDER_INTERACTION_OWNER
+
+# ── Perception: 视觉、场景工厂、评测 ────────────────────────────
+/services/perception/              @PLACEHOLDER_PERCEPTION_OWNER
+/sim/scenarios/                    @PLACEHOLDER_PERCEPTION_OWNER
+/sim/fault_injection/              @PLACEHOLDER_PERCEPTION_OWNER
+
+# ── World Model: 状态、验证、事件库 ─────────────────────────────
+/services/world_model/             @PLACEHOLDER_WORLD_MODEL_OWNER
+/services/backend/                 @PLACEHOLDER_WORLD_MODEL_OWNER
+
+# ── Motion: 机械臂、抓取放置、移动底盘 ──────────────────────────
+/robot/description/                @PLACEHOLDER_MOTION_OWNER
+/robot/control/                    @PLACEHOLDER_MOTION_OWNER
+/robot/mobile_base/                @PLACEHOLDER_MOTION_OWNER
+/hardware/arm_drivers/             @PLACEHOLDER_MOTION_OWNER
+
+# ── MCU: 安全协议、硬件急停 ─────────────────────────────────────
+/firmware/                         @PLACEHOLDER_MCU_OWNER
+/hardware/safety/                  @PLACEHOLDER_MCU_OWNER
+/hardware/can_adapters/            @PLACEHOLDER_MCU_OWNER
+
+# ── Tasks: 每个任务类型各自 Owner ───────────────────────────────
+/tasks/pick_place/                 @PLACEHOLDER_WORLD_MODEL_OWNER
+/tasks/kitting/                    @PLACEHOLDER_WORLD_MODEL_OWNER
+/tasks/inspection/                 @PLACEHOLDER_PERCEPTION_OWNER
+/tasks/assembly/                   @PLACEHOLDER_MOTION_OWNER
+
+# ── Contracts: 需要多方同意才能改 ───────────────────────────────
+# 任何 schema 变更需要 Runtime + World Model + Integration 三方审核
+/interfaces/                       @PLACEHOLDER_RUNTIME_OWNER @PLACEHOLDER_WORLD_MODEL_OWNER @PLACEHOLDER_INTEGRATION_OWNER
+/libs/contracts/                   @PLACEHOLDER_RUNTIME_OWNER @PLACEHOLDER_WORLD_MODEL_OWNER
+/libs/task_utils/                  @PLACEHOLDER_WORLD_MODEL_OWNER

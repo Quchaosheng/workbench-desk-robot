@@ -15,7 +15,7 @@ fmt:
 	$(PYTHON) -m ruff format .
 
 test:
-	$(PYTHON) -m unittest discover -s tests -p "test_*.py" -v
+	$(PYTHON) -m pytest tests/ -v
 
 # Everything CI runs, in one command. Run this before opening a PR.
 check: lint test contract scenario-check context-check demo-scripted

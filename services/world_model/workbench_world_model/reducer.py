@@ -21,10 +21,20 @@ def apply_event(state: WorldState, event: WorldEvent) -> WorldState:
     next_state.evidence_refs.extend(event.evidence_refs)
 
     if event.event_type is WorldEventType.OBSERVATION:
-        entity_id = str(event.payload["entity_id"])
-        next_state.entity_locations[entity_id] = str(event.payload["location"])
-        next_state.entity_confidence[entity_id] = float(event.payload.get("confidence", 0.0))
-    elif event.event_type is WorldEventType.ACTION_RESULT and event.payload.get("status") == "succeeded":
+        entity_id = event.payload.get("entity_id")
+        # location is optional — an observation without a location is still valid
+        location = event.payload.get("location")
+        if entity_id and location:
+            next_state.entity_locations[str(entity_id)] = str(location)
+        if entity_id:
+            confidence = float(event.payload.get("confidence", 0.0))
+            next_state.entity_confidence[str(entity_id)] = confidence
+
+    elif (
+        event.event_type is WorldEventType.ACTION_RESULT
+        # schema uses outcome=completed, not status=succeeded
+        and event.payload.get("outcome") == "completed"
+    ):
         entity_id = event.payload.get("entity_id")
         location = event.payload.get("resulting_location")
         if entity_id and location:

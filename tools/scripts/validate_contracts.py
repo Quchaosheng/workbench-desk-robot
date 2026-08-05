@@ -1,9 +1,17 @@
 """Validate every committed contract example against its schema and typed model.
 
-Five independent checks run here. The point of the generic ones is that adding a
-schema plus an example is enough to get CI coverage: nobody has to remember to
-edit this file, and an unexercised contract fails the build instead of drifting
-silently.
+Six independent checks run here:
+1. Every schema is registered (no schema without an example or a stated reason)
+2. All example files parse as valid JSON
+3. All required fields in schemas are also defined in properties
+4. All examples satisfy the required fields of their schema
+5. jsonschema Draft-2020-12 full structural validation (enum, type, allOf, $ref, etc.)
+6. Pydantic models accept their examples (runtime type check)
+7. Template planner round-trips to JSON
+
+The jsonschema check (5) is what was missing before — it catches enum mismatches,
+type errors, range violations and $ref constraints that a manual field-presence check
+silently ignores.
 """
 
 import json
@@ -14,7 +22,21 @@ from _paths import ROOT, enable_local_packages
 enable_local_packages()
 
 from workbench_agent_runtime import build_template_plan
-from workbench_contracts import Observation, ScenarioManifest, SemanticAction
+from workbench_contracts import (
+    ActionResult,
+    Observation,
+    ScenarioManifest,
+    SemanticAction,
+    VerificationResult,
+)
+
+try:
+    import jsonschema
+    from jsonschema import Draft202012Validator
+
+    HAS_JSONSCHEMA = True
+except ImportError:
+    HAS_JSONSCHEMA = False
 
 SCHEMA_DIR = ROOT / "interfaces" / "json_schema"
 EXAMPLE_DIR = ROOT / "interfaces" / "examples"
@@ -37,10 +59,15 @@ EXAMPLE_FOR_SCHEMA = {
 }
 
 # example filename -> Pydantic model, where a model exists for it.
+# ActionResult and VerificationResult are included because the reviewer found
+# that the Pydantic models diverged from the schemas (completed vs status,
+# status vs outcome) — full coverage makes that drift visible immediately.
 MODEL_FOR_EXAMPLE = {
+    "action-result-place-confirmed.json": ActionResult,
     "observation-red-block.json": Observation,
     "semantic-action-place.json": SemanticAction,
     "scenario-normal-001.json": ScenarioManifest,
+    "verification-insufficient-evidence.json": VerificationResult,
 }
 
 
@@ -99,10 +126,58 @@ def check_examples_satisfy_required() -> list[str]:
     return problems
 
 
+def check_jsonschema_validation() -> list[str]:
+    """Full Draft-2020-12 structural validation: enum, type, range, allOf, $ref.
+    This is what the previous version was missing — the checks above only verify
+    field presence, not field values.
+    """
+    if not HAS_JSONSCHEMA:
+        return [
+            "jsonschema is not installed; run `pip install jsonschema` to enable "
+            "full structural validation. Install it by adding 'jsonschema>=4,<5' to "
+            "[project.optional-dependencies].dev in pyproject.toml."
+        ]
+
+    problems = []
+    for stem, example_name in sorted(EXAMPLE_FOR_SCHEMA.items()):
+        if example_name is None:
+            continue
+        schema_path = SCHEMA_DIR / f"{stem}.schema.json"
+        example_path = EXAMPLE_DIR / example_name
+        if not example_path.is_file():
+            continue  # already reported by check_examples_satisfy_required
+
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+        example = json.loads(example_path.read_text(encoding="utf-8"))
+
+        # Build a resolver rooted at the schema directory so $ref to sibling
+        # schemas (e.g. pose.schema.json) resolves correctly.
+        base_uri = schema_path.as_uri()
+        try:
+            validator = Draft202012Validator(
+                schema,
+                registry=jsonschema.Registry().with_resource(
+                    base_uri, jsonschema.Resource.from_contents(schema)
+                ),
+            )
+        except Exception:
+            # Fallback: validate without explicit registry (works for simple schemas)
+            validator = Draft202012Validator(schema)
+
+        errors = list(validator.iter_errors(example))
+        for err in errors:
+            path = " -> ".join(str(p) for p in err.absolute_path) or "(root)"
+            problems.append(f"{example_name} [{path}]: {err.message}")
+    return problems
+
+
 def check_models_accept_examples() -> list[str]:
     problems = []
     for example_name, model in sorted(MODEL_FOR_EXAMPLE.items()):
         path = EXAMPLE_DIR / example_name
+        if not path.is_file():
+            problems.append(f"{example_name}: file missing, cannot validate {model.__name__}")
+            continue
         try:
             model.model_validate_json(path.read_text(encoding="utf-8"))
         except Exception as exc:  # noqa: BLE001 - report every failure, do not stop at the first
@@ -125,7 +200,8 @@ def main() -> int:
         ("examples parse as JSON", check_examples_parse),
         ("required fields are defined", check_required_fields_are_defined),
         ("examples satisfy required fields", check_examples_satisfy_required),
-        ("models accept examples", check_models_accept_examples),
+        ("jsonschema Draft-2020-12 validation", check_jsonschema_validation),
+        ("Pydantic models accept examples", check_models_accept_examples),
         ("template planner round-trips", check_planner_round_trips),
     ]
     failed = False

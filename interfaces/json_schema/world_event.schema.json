@@ -3,11 +3,25 @@
   "title": "WorldEvent",
   "description": "Append-only event. Replaying the same event stream in sequence_no order must reproduce an identical WorldState hash.",
   "type": "object",
-  "required": ["event_id", "run_id", "sequence_no", "event_type", "occurred_at", "payload"],
+  "required": [
+    "event_id",
+    "run_id",
+    "sequence_no",
+    "event_type",
+    "occurred_at",
+    "payload"
+  ],
   "properties": {
-    "event_id": {"type": "string"},
-    "run_id": {"type": "string"},
-    "sequence_no": {"type": "integer", "minimum": 0},
+    "event_id": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "sequence_no": {
+      "type": "integer",
+      "minimum": 0
+    },
     "event_type": {
       "enum": [
         "observation",
@@ -17,13 +31,34 @@
         "fault",
         "emotion",
         "task_accepted",
-        "task_terminal"
+        "task_terminal",
+        "task_start",
+        "tool_call",
+        "policy_violation",
+        "recovery_started",
+        "recovery_complete"
       ]
     },
-    "payload": {"type": "object"},
-    "occurred_at": {"type": "string"},
-    "recorded_at": {"type": "string"},
-    "clock_id": {"enum": ["monotonic", "wall"]},
-    "evidence_refs": {"type": "array", "items": {"type": "string"}}
+    "payload": {
+      "type": "object"
+    },
+    "occurred_at": {
+      "type": "string"
+    },
+    "recorded_at": {
+      "type": "string"
+    },
+    "clock_id": {
+      "enum": [
+        "monotonic",
+        "wall"
+      ]
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
   }
 }

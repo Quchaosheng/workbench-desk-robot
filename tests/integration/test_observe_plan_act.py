@@ -37,6 +37,8 @@ def test_observe_to_plan_integration(event_store, sample_observation):
             "observation_id": sample_observation.observation_id,
             "entity_id": sample_observation.entity_id,
             "confidence": sample_observation.confidence,
+            # location is required for the reducer to update entity_locations
+            "location": "table",
         },
         evidence_refs=sample_observation.evidence_refs,
     )

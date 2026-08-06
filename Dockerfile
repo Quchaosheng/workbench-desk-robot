@@ -5,6 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     WORKBENCH_OFFLINE=1 \
     PIP_DEFAULT_TIMEOUT=120 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_RETRIES=10 \
     PATH=/opt/workbench-venv/bin:$PATH
 
@@ -18,7 +19,7 @@ RUN printf 'Acquire::Retries "10";\nAcquire::http::Timeout "120";\nAcquire::http
 
 WORKDIR /app
 COPY . /app
-RUN python -m pip install --no-cache-dir . \
+RUN --mount=type=cache,target=/root/.cache/pip python -m pip install . \
     && useradd --create-home --uid 10001 workbench \
     && chown -R workbench:workbench /app
 

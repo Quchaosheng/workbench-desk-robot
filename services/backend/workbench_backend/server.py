@@ -42,12 +42,26 @@ class DashboardHandler(BaseHTTPRequestHandler):
         if not requested.is_file():
             self._send_json({"error": "not_found"}, HTTPStatus.NOT_FOUND)
             return
+        stat = requested.stat()
+        etag = f'"{stat.st_mtime_ns:x}-{stat.st_size:x}"'
+        cache_control = (
+            "public, max-age=31536000, immutable"
+            if "vendor" in requested.relative_to(static_root).parts
+            else "no-cache"
+        )
+        if self.headers.get("If-None-Match") == etag:
+            self.send_response(HTTPStatus.NOT_MODIFIED)
+            self.send_header("ETag", etag)
+            self.send_header("Cache-Control", cache_control)
+            self.end_headers()
+            return
         body = requested.read_bytes()
         content_type, _ = mimetypes.guess_type(requested.name)
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", content_type or "application/octet-stream")
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-cache")
+        self.send_header("ETag", etag)
+        self.send_header("Cache-Control", cache_control)
         self.end_headers()
         self.wfile.write(body)
 

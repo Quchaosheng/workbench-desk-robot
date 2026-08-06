@@ -15,6 +15,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
 
       - name: Install dependencies
         run: |
@@ -22,14 +23,15 @@ jobs:
           python -m pip install -e ".[dev]"
 
       - name: Run full check suite
+        id: checks
+        continue-on-error: true
         run: make check
 
       - name: Report health
         if: always()
         run: |
-          if [ $? -eq 0 ]; then
-            echo "✅ 所有健康检查通过"
-          else
-            echo "❌ 健康检查失败,见上方日志"
+          if [ "${{ steps.checks.outcome }}" != "success" ]; then
+            echo "Health checks failed; see the preceding step."
             exit 1
           fi
+          echo "All health checks passed."

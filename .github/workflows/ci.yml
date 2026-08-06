@@ -13,6 +13,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e ".[dev]"
       - run: make lint
@@ -28,5 +29,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -t workbench-1:ci .
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: workbench-1:ci
+          cache-from: type=gha,scope=ci-runtime
+          cache-to: type=gha,mode=max,scope=ci-runtime
       - run: docker run --rm workbench-1:ci python tools/scripts/local_runner.py --goal "Place the red block in the tray"

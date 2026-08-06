@@ -30,6 +30,8 @@ Dashboard <- Read-only HTTP API <- Event Store <- ActionResult <- Motion / Virtu
 
 - `/healthz` reports process health; `/readyz` checks that the event source is readable.
 - `/api/runs` and `/api/runs/{run_id}/events` expose ordered read models.
+- Event JSONL files are cached by path, modification time and size; changed files invalidate automatically.
+- Static responses use ETags, while versioned vendored assets use immutable caching.
 - `POST`, `PUT`, `PATCH` and `DELETE` return `405 read_only`.
 - Service logs are JSON Lines with `service`, `source`, `run_id` and per-run `sequence_no` fields. The same record shape accepts `simulation` and `hardware` sources without changing analysis code.
 - `apps/dashboard/data/` is fixture data for offline UI and API tests. It is never eligible as physical release evidence.

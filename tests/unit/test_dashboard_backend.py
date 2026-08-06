@@ -1,6 +1,7 @@
 import io
 import json
 import sys
+import tempfile
 import threading
 import unittest
 import urllib.error
@@ -59,6 +60,31 @@ class ReadModelTests(unittest.TestCase):
         self.assertEqual(final["status"], "confirmed")
         self.assertEqual(final["recovery_count"], 1)
 
+    def test_event_cache_reuses_parse_and_invalidates_on_file_change(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "run-cache.jsonl"
+            path.write_text(
+                json.dumps({"run_id": "run-cache", "sequence_no": 0, "event_type": "task_accepted"}) + "\n",
+                encoding="utf-8",
+            )
+            model = DashboardReadModel(temp_dir)
+            first = model.list_events("run-cache")
+            second = model.list_events("run-cache")
+            self.assertIs(first, second)
+            path.write_text(
+                "\n".join(
+                    [
+                        json.dumps({"run_id": "run-cache", "sequence_no": 1, "event_type": "task_terminal"}),
+                        json.dumps({"run_id": "run-cache", "sequence_no": 0, "event_type": "task_accepted"}),
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            refreshed = model.list_events("run-cache")
+            self.assertIsNot(first, refreshed)
+            self.assertEqual([event["sequence_no"] for event in refreshed], [0, 1])
+
 
 class LoggingTests(unittest.TestCase):
     def test_json_log_contains_run_id_and_monotonic_sequence(self) -> None:
@@ -106,9 +132,22 @@ class DashboardApiTests(unittest.TestCase):
         request = urllib.request.Request(f"{self.base_url}/api/runs/run-confirmed", data=b"{}", method="POST")
         with self.assertRaises(urllib.error.HTTPError) as caught:
             urllib.request.urlopen(request, timeout=2)
-        payload = json.loads(caught.exception.read())
-        self.assertEqual(caught.exception.code, 405)
+        with caught.exception as response:
+            payload = json.loads(response.read())
+            self.assertEqual(response.code, 405)
         self.assertEqual(payload["error"], "read_only")
+
+    def test_static_assets_support_conditional_and_immutable_caching(self) -> None:
+        with urllib.request.urlopen(f"{self.base_url}/", timeout=2) as response:
+            etag = response.headers["ETag"]
+            self.assertEqual(response.headers["Cache-Control"], "no-cache")
+        conditional = urllib.request.Request(f"{self.base_url}/", headers={"If-None-Match": etag})
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            urllib.request.urlopen(conditional, timeout=2)
+        with caught.exception as response:
+            self.assertEqual(response.code, 304)
+        with urllib.request.urlopen(f"{self.base_url}/vendor/lucide.min.js", timeout=2) as response:
+            self.assertEqual(response.headers["Cache-Control"], "public, max-age=31536000, immutable")
 
 
 if __name__ == "__main__":

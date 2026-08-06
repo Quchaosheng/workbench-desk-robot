@@ -8,6 +8,8 @@
 - non-root UID `10001`;
 - read-only filesystem, dropped Linux capabilities and `no-new-privileges` in Compose.
 
+The build disables the unnecessary Ubuntu backports source, retries transient APT/pip failures, and uses a BuildKit pip cache. GitHub workflows persist pip and image layers between runs.
+
 ## Start and verify
 
 ```bash

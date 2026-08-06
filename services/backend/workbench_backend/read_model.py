@@ -25,6 +25,7 @@ STEP_LABELS = {
 class DashboardReadModel:
     def __init__(self, data_dir: str | Path) -> None:
         self.data_dir = Path(data_dir)
+        self._event_cache: dict[Path, tuple[int, int, list[dict[str, Any]]]] = {}
 
     def _paths(self) -> list[Path]:
         return sorted(self.data_dir.glob("*.jsonl"))
@@ -32,15 +33,25 @@ class DashboardReadModel:
     def ready(self) -> bool:
         return self.data_dir.is_dir() and bool(self._paths())
 
+    def _load_path(self, path: Path) -> list[dict[str, Any]]:
+        stat = path.stat()
+        cached = self._event_cache.get(path)
+        if cached and cached[:2] == (stat.st_mtime_ns, stat.st_size):
+            return cached[2]
+        events = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+        ordered = sorted(events, key=lambda event: event.get("sequence_no", -1))
+        self._event_cache[path] = (stat.st_mtime_ns, stat.st_size, ordered)
+        return ordered
+
     def list_events(self, run_id: str) -> list[dict[str, Any]]:
         for path in self._paths():
-            events = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+            events = self._load_path(path)
             if events and events[0].get("run_id") == run_id:
-                return sorted(events, key=lambda event: event.get("sequence_no", -1))
+                return events
         raise KeyError(run_id)
 
     def list_runs(self) -> list[dict[str, Any]]:
-        return [self.summarize(self.list_events(path.stem)) for path in self._paths()]
+        return [self.summarize(events) for path in self._paths() if (events := self._load_path(path))]
 
     def summarize(self, events: list[dict[str, Any]], replay_index: int | None = None) -> dict[str, Any]:
         if not events:

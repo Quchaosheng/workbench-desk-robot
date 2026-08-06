@@ -13,8 +13,19 @@ sys.path.insert(0, str(ROOT / "services" / "backend"))
 
 from workbench_backend.expression import ExpressionMachine, ExpressionState, derive_expression
 from workbench_backend.logging import StructuredLogger
-from workbench_backend.read_model import DashboardReadModel
+from workbench_backend.read_model import DashboardReadModel, ReadModelError
 from workbench_backend.server import create_server
+
+
+def stored_event(run_id: object, sequence_no: object, event_type: object) -> dict:
+    return {
+        "event_id": f"event-{sequence_no}",
+        "run_id": run_id,
+        "sequence_no": sequence_no,
+        "event_type": event_type,
+        "occurred_at": "2026-08-06T00:00:00Z",
+        "payload": {},
+    }
 
 
 class ExpressionTests(unittest.TestCase):
@@ -64,7 +75,7 @@ class ReadModelTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "run-cache.jsonl"
             path.write_text(
-                json.dumps({"run_id": "run-cache", "sequence_no": 0, "event_type": "task_accepted"}) + "\n",
+                json.dumps(stored_event("run-cache", 0, "task_accepted")) + "\n",
                 encoding="utf-8",
             )
             model = DashboardReadModel(temp_dir)
@@ -74,8 +85,21 @@ class ReadModelTests(unittest.TestCase):
             path.write_text(
                 "\n".join(
                     [
-                        json.dumps({"run_id": "run-cache", "sequence_no": 1, "event_type": "task_terminal"}),
-                        json.dumps({"run_id": "run-cache", "sequence_no": 0, "event_type": "task_accepted"}),
+                        json.dumps(stored_event("run-cache", 1, "task_terminal")),
+                        json.dumps(stored_event("run-cache", 0, "task_accepted")),
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ReadModelError, "contiguous"):
+                model.list_events("run-cache")
+
+            path.write_text(
+                "\n".join(
+                    [
+                        json.dumps(stored_event("run-cache", 0, "task_accepted")),
+                        json.dumps(stored_event("run-cache", 1, "task_terminal")),
                     ]
                 )
                 + "\n",
@@ -84,6 +108,53 @@ class ReadModelTests(unittest.TestCase):
             refreshed = model.list_events("run-cache")
             self.assertIsNot(first, refreshed)
             self.assertEqual([event["sequence_no"] for event in refreshed], [0, 1])
+
+    def test_malformed_logs_and_duplicate_run_ids_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / "one.jsonl").write_text(
+                json.dumps(stored_event("duplicate", 0, "task_accepted")) + "\n",
+                encoding="utf-8",
+            )
+            (root / "two.jsonl").write_text(
+                json.dumps(stored_event("duplicate", 0, "task_terminal")) + "\n",
+                encoding="utf-8",
+            )
+            model = DashboardReadModel(root)
+            with self.assertRaisesRegex(ReadModelError, "duplicate run_id"):
+                model.list_runs()
+
+            (root / "two.jsonl").write_text("{not-json}\n", encoding="utf-8")
+            with self.assertRaisesRegex(ReadModelError, "valid JSONL"):
+                model.list_runs()
+            self.assertFalse(model.ready())
+
+    def test_non_scalar_identifiers_are_rejected_as_data_errors(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "bad-types.jsonl"
+            path.write_text(
+                json.dumps(stored_event(["not", "hashable"], 0, ["bad"])) + "\n",
+                encoding="utf-8",
+            )
+            model = DashboardReadModel(temp_dir)
+            with self.assertRaises(ReadModelError):
+                model.list_runs()
+            self.assertFalse(model.ready())
+
+    def test_unknown_verification_status_is_displayed_without_crashing(self) -> None:
+        events = [
+            {"run_id": "future", "sequence_no": 0, "event_type": "task_accepted", "payload": {}},
+            {
+                "run_id": "future",
+                "sequence_no": 1,
+                "event_type": "verification",
+                "payload": {"status": "future_status", "missing_evidence": "not-a-list"},
+            },
+        ]
+        summary = self.model.summarize(events)
+        self.assertEqual(summary["status"], "future_status")
+        self.assertEqual(summary["status_label"], "未知状态")
+        self.assertEqual(summary["missing_evidence"], [])
 
 
 class LoggingTests(unittest.TestCase):
@@ -141,6 +212,8 @@ class DashboardApiTests(unittest.TestCase):
         with urllib.request.urlopen(f"{self.base_url}/", timeout=2) as response:
             etag = response.headers["ETag"]
             self.assertEqual(response.headers["Cache-Control"], "no-cache")
+            self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
+            self.assertIn("camera=()", response.headers["Permissions-Policy"])
         conditional = urllib.request.Request(f"{self.base_url}/", headers={"If-None-Match": etag})
         with self.assertRaises(urllib.error.HTTPError) as caught:
             urllib.request.urlopen(conditional, timeout=2)
@@ -148,6 +221,26 @@ class DashboardApiTests(unittest.TestCase):
             self.assertEqual(response.code, 304)
         with urllib.request.urlopen(f"{self.base_url}/vendor/lucide.min.js", timeout=2) as response:
             self.assertEqual(response.headers["Cache-Control"], "public, max-age=31536000, immutable")
+
+    def test_malformed_event_source_returns_503_while_health_stays_live(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            Path(temp_dir, "broken.jsonl").write_text("{broken}\n", encoding="utf-8")
+            server = create_server("127.0.0.1", 0, data_dir=temp_dir)
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            base_url = f"http://127.0.0.1:{server.server_address[1]}"
+            try:
+                with urllib.request.urlopen(f"{base_url}/healthz", timeout=2) as response:
+                    self.assertEqual(response.status, 200)
+                for endpoint in ("/readyz", "/api/runs"):
+                    with self.assertRaises(urllib.error.HTTPError) as caught:
+                        urllib.request.urlopen(f"{base_url}{endpoint}", timeout=2)
+                    with caught.exception as response:
+                        self.assertEqual(response.code, 503)
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=2)
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 from .logging import StructuredLogger
-from .read_model import DashboardReadModel
+from .read_model import DashboardReadModel, ReadModelError
 
 SOURCE_ROOT = Path(__file__).resolve().parents[3]
 ROOT = Path.cwd() if (Path.cwd() / "apps" / "dashboard").is_dir() else SOURCE_ROOT
@@ -30,19 +30,38 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        self._send_security_headers()
         self.end_headers()
         self.wfile.write(body)
 
+    def _send_security_headers(self) -> None:
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
+            "connect-src 'self'; base-uri 'none'; frame-ancestors 'none'",
+        )
+
     def _send_file(self, relative_path: str) -> None:
-        requested = (self.static_dir / relative_path).resolve()
-        static_root = self.static_dir.resolve()
+        try:
+            requested = (self.static_dir / relative_path).resolve()
+            static_root = self.static_dir.resolve()
+        except (OSError, RuntimeError):
+            self._send_json({"error": "invalid_path"}, HTTPStatus.BAD_REQUEST)
+            return
         if requested != static_root and static_root not in requested.parents:
             self._send_json({"error": "invalid_path"}, HTTPStatus.BAD_REQUEST)
             return
         if not requested.is_file():
             self._send_json({"error": "not_found"}, HTTPStatus.NOT_FOUND)
             return
-        stat = requested.stat()
+        try:
+            stat = requested.stat()
+        except OSError:
+            self._send_json({"error": "asset_unavailable"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
         etag = f'"{stat.st_mtime_ns:x}-{stat.st_size:x}"'
         cache_control = (
             "public, max-age=31536000, immutable"
@@ -53,19 +72,35 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self.send_response(HTTPStatus.NOT_MODIFIED)
             self.send_header("ETag", etag)
             self.send_header("Cache-Control", cache_control)
+            self._send_security_headers()
             self.end_headers()
             return
-        body = requested.read_bytes()
+        try:
+            body = requested.read_bytes()
+        except OSError:
+            self._send_json({"error": "asset_unavailable"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
         content_type, _ = mimetypes.guess_type(requested.name)
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", content_type or "application/octet-stream")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("ETag", etag)
         self.send_header("Cache-Control", cache_control)
+        self._send_security_headers()
         self.end_headers()
         self.wfile.write(body)
 
     def do_GET(self) -> None:
+        try:
+            self._do_get()
+        except ReadModelError as exc:
+            self.logger.emit("read_model_error", str(exc), level="ERROR")
+            self._send_json(
+                {"error": "invalid_event_source", "message": "The event source is unavailable or malformed."},
+                HTTPStatus.SERVICE_UNAVAILABLE,
+            )
+
+    def _do_get(self) -> None:
         route = urlparse(self.path).path
         if route == "/healthz":
             self._send_json({"status": "ok", "service": "workbench-backend", "version": "0.1.0"})

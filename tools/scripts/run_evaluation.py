@@ -4,25 +4,83 @@
 import argparse
 import json
 import os
+import re
 import shlex
 import subprocess
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from _paths import enable_local_packages
+
+enable_local_packages()
+
+from pydantic import ValidationError
+from workbench_contracts import ScenarioManifest
+
+SAFE_LABEL = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+EVENT_TYPES = {
+    "action_request",
+    "action_result",
+    "emotion",
+    "fault",
+    "observation",
+    "policy_violation",
+    "task_accepted",
+    "task_graph",
+    "task_terminal",
+    "verification",
+}
+VERIFICATION_STATUSES = {"confirmed", "insufficient_evidence", "refuted"}
+MAX_EVENT_LOG_BYTES = 10 * 1024 * 1024
+MAX_EVENTS_PER_RUN = 10_000
+TIMESTAMP_WINDOW_SECONDS = 365 * 24 * 60 * 60
+
+
+class EvaluationInputError(ValueError):
+    """Raised before execution when an evaluation input is unsafe or ambiguous."""
+
+
+def validate_label(value: str, field: str) -> str:
+    if not isinstance(value, str) or not SAFE_LABEL.fullmatch(value):
+        raise EvaluationInputError(f"{field} must be a filesystem-safe label: {value!r}")
+    return value
+
+
+def load_scenario_manifests(paths: list[Path]) -> list[tuple[Path, dict[str, Any]]]:
+    manifests: list[tuple[Path, dict[str, Any]]] = []
+    seen_ids: dict[str, Path] = {}
+    for path in paths:
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            ScenarioManifest.model_validate(payload, strict=True)
+        except (OSError, UnicodeError, json.JSONDecodeError, ValidationError) as exc:
+            raise EvaluationInputError(f"invalid scenario manifest {path}: {exc}") from exc
+        scenario_id = validate_label(payload["scenario_id"], "scenario_id")
+        if scenario_id in seen_ids:
+            raise EvaluationInputError(f"duplicate scenario_id {scenario_id!r} in {seen_ids[scenario_id]} and {path}")
+        seen_ids[scenario_id] = path
+        manifests.append((path, payload))
+    return manifests
+
 
 def git_commit() -> str:
-    result = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        capture_output=True,
-        check=False,
-        text=True,
-    )
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+    except OSError:
+        return "unknown"
     return result.stdout.strip() if result.returncode == 0 else "unknown"
 
 
 def write_jsonl(path: Path, events: list[dict[str, Any]]) -> None:
-    path.write_text("".join(f"{json.dumps(event, sort_keys=True)}\n" for event in events), encoding="utf-8")
+    temporary = path.with_name(f".{path.name}.tmp")
+    temporary.write_text("".join(f"{json.dumps(event, sort_keys=True)}\n" for event in events), encoding="utf-8")
+    temporary.replace(path)
 
 
 def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_base: int) -> list[dict[str, Any]]:
@@ -30,7 +88,7 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
     scenario_id = manifest["scenario_id"]
     run_id = f"{version}--{scenario_id}"
     effective_seed = seed_base + manifest["seed"]
-    start = datetime(2026, 1, 1, tzinfo=UTC) + timedelta(seconds=effective_seed)
+    start = datetime(2026, 1, 1, tzinfo=UTC) + timedelta(seconds=effective_seed % TIMESTAMP_WINDOW_SECONDS)
     events: list[dict[str, Any]] = []
 
     def append(event_type: str, payload: dict[str, Any], evidence_refs: list[str] | None = None) -> None:
@@ -170,18 +228,88 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
     return events
 
 
-def validate_event_log(path: Path, run_id: str) -> list[dict[str, Any]]:
-    events = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+def validate_event_log(
+    path: Path,
+    run_id: str,
+    *,
+    scenario_id: str | None = None,
+    seed: int | None = None,
+    commit: str | None = None,
+) -> list[dict[str, Any]]:
+    try:
+        if path.stat().st_size > MAX_EVENT_LOG_BYTES:
+            raise RuntimeError(f"event log exceeds {MAX_EVENT_LOG_BYTES} bytes: {path}")
+        events = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    except RuntimeError:
+        raise
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"runner produced an unreadable JSONL event log: {path}") from exc
     if not events:
         raise RuntimeError(f"runner produced an empty event log: {path}")
+    if len(events) > MAX_EVENTS_PER_RUN:
+        raise RuntimeError(f"runner produced more than {MAX_EVENTS_PER_RUN} events: {path}")
+    if any(not isinstance(event, dict) for event in events):
+        raise RuntimeError(f"event log contains a non-object event: {path}")
     sequences = [event.get("sequence_no") for event in events]
-    if sequences != list(range(len(events))):
+    if any(type(sequence) is not int for sequence in sequences) or sequences != list(range(len(events))):
         raise RuntimeError(f"non-contiguous sequence_no values in {path}: {sequences}")
     if any(event.get("run_id") != run_id for event in events):
         raise RuntimeError(f"run_id drift in {path}")
+    event_ids = [event.get("event_id") for event in events]
+    if any(not isinstance(event_id, str) or not event_id for event_id in event_ids):
+        raise RuntimeError(f"missing event_id in {path}")
+    if len(event_ids) != len(set(event_ids)):
+        raise RuntimeError(f"duplicate event_id in {path}")
+    for event in events:
+        event_type = event.get("event_type")
+        if not isinstance(event_type, str) or event_type not in EVENT_TYPES:
+            raise RuntimeError(f"unknown event_type in {path}: {event_type!r}")
+        if not isinstance(event.get("occurred_at"), str) or not event["occurred_at"]:
+            raise RuntimeError(f"missing occurred_at in {path}")
+        if not isinstance(event.get("payload"), dict):
+            raise RuntimeError(f"event payload is not an object in {path}")
+        evidence_refs = event.get("evidence_refs", [])
+        if not isinstance(evidence_refs, list) or any(not isinstance(ref, str) for ref in evidence_refs):
+            raise RuntimeError(f"event evidence_refs is not a string list in {path}")
+        evaluation = event.get("evaluation")
+        if not isinstance(evaluation, dict):
+            raise RuntimeError(f"event is missing evaluation metadata in {path}")
+        if not isinstance(evaluation.get("commit"), str) or not evaluation["commit"]:
+            raise RuntimeError(f"event is missing evaluation commit in {path}")
+        if not isinstance(evaluation.get("scenario_id"), str) or not evaluation["scenario_id"]:
+            raise RuntimeError(f"event is missing evaluation scenario_id in {path}")
+        if type(evaluation.get("seed")) is not int:
+            raise RuntimeError(f"event is missing integer evaluation seed in {path}")
+        if scenario_id is not None and evaluation["scenario_id"] != scenario_id:
+            raise RuntimeError(f"evaluation scenario_id drift in {path}")
+        if seed is not None and evaluation["seed"] != seed:
+            raise RuntimeError(f"evaluation seed drift in {path}")
+        if commit is not None and evaluation["commit"] != commit:
+            raise RuntimeError(f"evaluation commit drift in {path}")
     verifications = [event for event in events if event.get("event_type") == "verification"]
-    if any(not event.get("payload", {}).get("evidence_refs") for event in verifications):
-        raise RuntimeError(f"verification without evidence_refs in {path}")
+    if not verifications:
+        raise RuntimeError(f"event log contains no verification result: {path}")
+    if any(
+        not isinstance(event["payload"].get("status"), str)
+        or event["payload"].get("status") not in VERIFICATION_STATUSES
+        for event in verifications
+    ):
+        raise RuntimeError(f"verification contains an unknown status in {path}")
+    for event in verifications:
+        event_evidence = event.get("evidence_refs")
+        payload_evidence = event["payload"].get("evidence_refs")
+        if (
+            not isinstance(event_evidence, list)
+            or not event_evidence
+            or any(not isinstance(reference, str) for reference in event_evidence)
+            or not isinstance(payload_evidence, list)
+            or not payload_evidence
+            or any(not isinstance(reference, str) for reference in payload_evidence)
+        ):
+            raise RuntimeError(f"verification without evidence_refs in {path}")
+    terminals = [event for event in events if event.get("event_type") == "task_terminal"]
+    if terminals and terminals[-1]["payload"].get("status") != verifications[-1]["payload"].get("status"):
+        raise RuntimeError(f"terminal status disagrees with final verification in {path}")
     return events
 
 
@@ -192,14 +320,22 @@ def run_external(command_template: str, manifest_path: Path, output_path: Path, 
         "seed": str(seed),
         "version": version,
     }
-    command = command_template.format(**substitutions)
-    result = subprocess.run(
-        shlex.split(command, posix=os.name != "nt"),
-        capture_output=True,
-        check=False,
-        text=True,
-        timeout=900,
-    )
+    try:
+        command = command_template.format(**substitutions)
+    except (KeyError, ValueError) as exc:
+        raise EvaluationInputError(f"invalid runner command template: {exc}") from exc
+    try:
+        result = subprocess.run(
+            shlex.split(command, posix=os.name != "nt"),
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=900,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError("external runner timed out after 900 seconds") from exc
+    except OSError as exc:
+        raise RuntimeError(f"external runner could not start: {exc}") from exc
     if result.returncode != 0:
         raise RuntimeError(f"external runner failed ({result.returncode}): {result.stderr.strip()}")
 
@@ -220,11 +356,16 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     if args.runner == "external" and not args.runner_command:
-        raise ValueError("--runner-command is required for the external runner")
+        raise EvaluationInputError("--runner-command is required for the external runner")
     versions = [version.strip() for version in args.versions.split(",") if version.strip()]
     scenarios = sorted(args.scenarios)
     if not versions or not scenarios:
-        raise ValueError("at least one version and scenario are required")
+        raise EvaluationInputError("at least one version and scenario are required")
+    for version in versions:
+        validate_label(version, "version")
+    if len(versions) != len(set(versions)):
+        raise EvaluationInputError("version labels must be unique")
+    manifests = load_scenario_manifests(scenarios)
 
     commit = git_commit()
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -234,16 +375,34 @@ def main() -> int:
     for version in versions:
         version_dir = args.output_dir / version
         version_dir.mkdir(exist_ok=True)
-        for scenario_path in scenarios:
-            manifest = json.loads(scenario_path.read_text(encoding="utf-8"))
+        for scenario_path, manifest in manifests:
             run_id = f"{version}--{manifest['scenario_id']}"
             output_path = version_dir / f"{manifest['scenario_id']}.jsonl"
             effective_seed = args.seed_base + manifest["seed"]
             if args.runner == "scripted":
                 write_jsonl(output_path, scripted_events(version, manifest, commit, args.seed_base))
+                events = validate_event_log(
+                    output_path,
+                    run_id,
+                    scenario_id=manifest["scenario_id"],
+                    seed=effective_seed,
+                    commit=commit,
+                )
             else:
-                run_external(args.runner_command, scenario_path, output_path, effective_seed, version)
-            events = validate_event_log(output_path, run_id)
+                partial_path = output_path.with_name(f".{output_path.name}.partial")
+                partial_path.unlink(missing_ok=True)
+                try:
+                    run_external(args.runner_command, scenario_path, partial_path, effective_seed, version)
+                    events = validate_event_log(
+                        partial_path,
+                        run_id,
+                        scenario_id=manifest["scenario_id"],
+                        seed=effective_seed,
+                        commit=commit,
+                    )
+                    partial_path.replace(output_path)
+                finally:
+                    partial_path.unlink(missing_ok=True)
             final_verification = [event for event in events if event["event_type"] == "verification"][-1]
             summaries.append(
                 {
@@ -255,7 +414,7 @@ def main() -> int:
                     "runner": args.runner,
                     "event_log": str(output_path),
                     "verification_status": final_verification["payload"]["status"],
-                    "release_eligible": args.runner == "external",
+                    "release_eligible": args.runner == "external" and commit != "unknown",
                 }
             )
             print(f"  {run_id}: {summaries[-1]['verification_status']}")
@@ -264,7 +423,7 @@ def main() -> int:
         "generated_at": datetime.now(UTC).isoformat(),
         "commit": commit,
         "runner": args.runner,
-        "release_eligible": args.runner == "external",
+        "release_eligible": args.runner == "external" and commit != "unknown",
         "run_count": len(summaries),
         "runs": summaries,
     }

@@ -1,4 +1,5 @@
 import json
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -21,37 +22,121 @@ STEP_LABELS = {
     "verification": "验证任务结果",
 }
 
+EVENT_TYPES = {
+    "action_request",
+    "action_result",
+    "emotion",
+    "fault",
+    "observation",
+    "policy_violation",
+    "task_accepted",
+    "task_graph",
+    "task_terminal",
+    "verification",
+}
+MAX_EVENT_LOG_BYTES = 10 * 1024 * 1024
+MAX_EVENTS_PER_RUN = 10_000
+MAX_READ_ATTEMPTS = 2
+
+
+class ReadModelError(ValueError):
+    """Raised when a persisted run cannot be trusted as an ordered event stream."""
+
 
 class DashboardReadModel:
     def __init__(self, data_dir: str | Path) -> None:
         self.data_dir = Path(data_dir)
         self._event_cache: dict[Path, tuple[int, int, list[dict[str, Any]]]] = {}
+        self._cache_lock = threading.RLock()
 
     def _paths(self) -> list[Path]:
         return sorted(self.data_dir.glob("*.jsonl"))
 
     def ready(self) -> bool:
-        return self.data_dir.is_dir() and bool(self._paths())
+        if not self.data_dir.is_dir():
+            return False
+        try:
+            return bool(self._runs_by_id())
+        except (OSError, ReadModelError):
+            return False
 
     def _load_path(self, path: Path) -> list[dict[str, Any]]:
-        stat = path.stat()
-        cached = self._event_cache.get(path)
-        if cached and cached[:2] == (stat.st_mtime_ns, stat.st_size):
-            return cached[2]
-        events = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
-        ordered = sorted(events, key=lambda event: event.get("sequence_no", -1))
-        self._event_cache[path] = (stat.st_mtime_ns, stat.st_size, ordered)
-        return ordered
+        with self._cache_lock:
+            contents = None
+            stable_stat = None
+            for _ in range(MAX_READ_ATTEMPTS):
+                try:
+                    before = path.stat()
+                    if before.st_size > MAX_EVENT_LOG_BYTES:
+                        raise ReadModelError(f"event log exceeds {MAX_EVENT_LOG_BYTES} bytes: {path.name}")
+                    cached = self._event_cache.get(path)
+                    if cached and cached[:2] == (before.st_mtime_ns, before.st_size):
+                        return cached[2]
+                    candidate = path.read_text(encoding="utf-8")
+                    after = path.stat()
+                except ReadModelError:
+                    raise
+                except (OSError, UnicodeError) as exc:
+                    raise ReadModelError(f"event source is unavailable or not UTF-8: {path.name}") from exc
+                if (before.st_mtime_ns, before.st_size) == (after.st_mtime_ns, after.st_size):
+                    contents = candidate
+                    stable_stat = after
+                    break
+            if contents is None or stable_stat is None:
+                raise ReadModelError(f"event source changed while being read: {path.name}")
+            try:
+                events = [json.loads(line) for line in contents.splitlines() if line.strip()]
+            except json.JSONDecodeError as exc:
+                raise ReadModelError(f"event log is not valid JSONL: {path.name}") from exc
+            if not events or len(events) > MAX_EVENTS_PER_RUN:
+                raise ReadModelError(f"event log has an invalid event count: {path.name}")
+            if any(not isinstance(event, dict) for event in events):
+                raise ReadModelError(f"event log contains a non-object event: {path.name}")
+            run_ids = [event.get("run_id") for event in events]
+            if any(not isinstance(run_id, str) or not run_id for run_id in run_ids) or any(
+                run_id != run_ids[0] for run_id in run_ids
+            ):
+                raise ReadModelError(f"event log has inconsistent run_id values: {path.name}")
+            sequences = [event.get("sequence_no") for event in events]
+            if any(type(sequence) is not int for sequence in sequences) or sequences != list(range(len(events))):
+                raise ReadModelError(f"event log sequence_no must be contiguous from zero: {path.name}")
+            event_ids = [event.get("event_id") for event in events]
+            if any(not isinstance(event_id, str) or not event_id for event_id in event_ids):
+                raise ReadModelError(f"event log has an invalid event_id: {path.name}")
+            if len(event_ids) != len(set(event_ids)):
+                raise ReadModelError(f"event log has duplicate event_id values: {path.name}")
+            for event in events:
+                event_type = event.get("event_type")
+                if not isinstance(event_type, str) or event_type not in EVENT_TYPES:
+                    raise ReadModelError(f"event log has an unknown event_type: {path.name}")
+                if not isinstance(event.get("payload"), dict):
+                    raise ReadModelError(f"event payload must be an object: {path.name}")
+                if not isinstance(event.get("occurred_at"), str) or not event["occurred_at"]:
+                    raise ReadModelError(f"event occurred_at must be a non-empty string: {path.name}")
+                evidence_refs = event.get("evidence_refs", [])
+                if not isinstance(evidence_refs, list) or any(not isinstance(ref, str) for ref in evidence_refs):
+                    raise ReadModelError(f"event evidence_refs must be a string list: {path.name}")
+            self._event_cache[path] = (stable_stat.st_mtime_ns, stable_stat.st_size, events)
+            return events
 
-    def list_events(self, run_id: str) -> list[dict[str, Any]]:
+    def _runs_by_id(self) -> dict[str, list[dict[str, Any]]]:
+        runs: dict[str, list[dict[str, Any]]] = {}
         for path in self._paths():
             events = self._load_path(path)
-            if events and events[0].get("run_id") == run_id:
-                return events
-        raise KeyError(run_id)
+            run_id = events[0]["run_id"]
+            if run_id in runs:
+                raise ReadModelError(f"duplicate run_id across event logs: {run_id}")
+            runs[run_id] = events
+        return runs
+
+    def list_events(self, run_id: str) -> list[dict[str, Any]]:
+        try:
+            return self._runs_by_id()[run_id]
+        except KeyError:
+            raise KeyError(run_id) from None
 
     def list_runs(self) -> list[dict[str, Any]]:
-        return [self.summarize(events) for path in self._paths() if (events := self._load_path(path))]
+        return [self.summarize(events) for events in self._runs_by_id().values()]
 
     def summarize(self, events: list[dict[str, Any]], replay_index: int | None = None) -> dict[str, Any]:
         if not events:
@@ -60,9 +145,16 @@ class DashboardReadModel:
         accepted = next((event for event in events if event.get("event_type") == "task_accepted"), events[0])
         verifications = [event for event in visible if event.get("event_type") == "verification"]
         final_verification = verifications[-1] if verifications else None
-        status = final_verification.get("payload", {}).get("status", "running") if final_verification else "running"
-        missing_evidence = (
+        raw_status = final_verification.get("payload", {}).get("status") if final_verification else "running"
+        status = raw_status if isinstance(raw_status, str) and raw_status else "unknown"
+        raw_missing_evidence = (
             final_verification.get("payload", {}).get("missing_evidence", []) if final_verification else []
+        )
+        missing_evidence = (
+            raw_missing_evidence
+            if isinstance(raw_missing_evidence, list)
+            and all(isinstance(reference, str) for reference in raw_missing_evidence)
+            else []
         )
         current_event = visible[-1] if visible else None
         recovery_count = sum(
@@ -80,7 +172,7 @@ class DashboardReadModel:
             "goal": accepted.get("payload", {}).get("goal", "Place the red block in the tray"),
             "mode": accepted.get("payload", {}).get("mode", "scripted"),
             "status": status,
-            "status_label": STATUS_LABELS[status],
+            "status_label": STATUS_LABELS.get(status, "未知状态"),
             "expression": derive_expression(visible).value,
             "current_step": STEP_LABELS.get(current_event.get("event_type"), "等待任务")
             if current_event

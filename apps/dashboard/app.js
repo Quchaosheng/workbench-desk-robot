@@ -6,6 +6,9 @@ const state = {
   filter: "all",
   playing: false,
   timer: null,
+  runRequest: null,
+  requestGeneration: 0,
+  toastTimer: null,
 };
 
 const statusLabels = {
@@ -72,6 +75,7 @@ function refreshIcons() {
 function formatTime(value, withDate = false) {
   if (!value) return "--";
   const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "--";
   const options = withDate
     ? { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }
     : { hour: "2-digit", minute: "2-digit", second: "2-digit" };
@@ -123,7 +127,7 @@ function deriveSummary(events, cursor = events.length - 1) {
     goal: accepted?.payload?.goal || "Place the red block in the tray",
     mode: accepted?.payload?.mode || "scripted",
     status,
-    status_label: statusLabels[status],
+    status_label: statusLabels[status] || "未知状态",
     expression,
     current_step: current ? stepLabels[current.event_type] || current.event_type : "等待任务",
     progress: events.length ? Math.round((visible.length / events.length) * 100) : 0,
@@ -184,7 +188,8 @@ function renderWorkbench(events, cursor) {
   const observation = visible.filter((event) => event.event_type === "observation").at(-1);
   const verification = visible.filter((event) => event.event_type === "verification").at(-1);
   const block = get("map-block");
-  const confidence = observation?.payload?.confidence;
+  const rawConfidence = observation?.payload?.confidence;
+  const confidence = Number.isFinite(rawConfidence) ? Math.max(0, Math.min(1, rawConfidence)) : null;
   if (verification?.payload?.status === "confirmed") {
     block.style.left = "73%";
     block.style.top = "39%";
@@ -388,17 +393,29 @@ function togglePlayback() {
 
 async function selectRun(runId) {
   stopPlayback();
+  state.runRequest?.abort();
+  const controller = new AbortController();
+  const generation = ++state.requestGeneration;
+  state.runRequest = controller;
+  get("run-list").setAttribute("aria-busy", "true");
   try {
-    const response = await fetch(`/api/runs/${encodeURIComponent(runId)}/events`);
+    const response = await fetch(`/api/runs/${encodeURIComponent(runId)}/events`, { signal: controller.signal });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const payload = await response.json();
+    if (generation !== state.requestGeneration) return;
     state.currentRun = payload.run;
     state.events = payload.events;
     state.cursor = state.events.length - 1;
     renderRunList();
     renderCurrent();
   } catch (error) {
+    if (error.name === "AbortError" || generation !== state.requestGeneration) return;
     showToast(`无法读取运行记录：${error.message}`);
+  } finally {
+    if (generation === state.requestGeneration) {
+      state.runRequest = null;
+      get("run-list").removeAttribute("aria-busy");
+    }
   }
 }
 
@@ -406,7 +423,8 @@ function showToast(message) {
   const toast = get("toast");
   toast.textContent = message;
   toast.classList.add("is-visible");
-  setTimeout(() => toast.classList.remove("is-visible"), 3200);
+  clearTimeout(state.toastTimer);
+  state.toastTimer = setTimeout(() => toast.classList.remove("is-visible"), 3200);
 }
 
 function bindControls() {

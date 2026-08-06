@@ -7,9 +7,8 @@
 - 模板规划器产出合法 TaskGraph
 - 不 mock 模块边界的契约对象
 """
-import json
 
-import pytest
+import json
 
 from workbench_agent_runtime import build_template_plan
 from workbench_contracts import WorldEvent, WorldEventType
@@ -36,6 +35,7 @@ def test_observe_to_plan_integration(event_store, sample_observation):
         payload={
             "observation_id": sample_observation.observation_id,
             "entity_id": sample_observation.entity_id,
+            "location": "on:table",
             "confidence": sample_observation.confidence,
         },
         evidence_refs=sample_observation.evidence_refs,
@@ -105,7 +105,7 @@ def test_event_replay_integration(event_store):
             sequence_no=i,
             event_type=WorldEventType.OBSERVATION,
             occurred_at=f"2026-08-04T10:00:{i:02d}Z",
-            payload={"entity_id": f"block-{i}"},
+            payload={"entity_id": f"block-{i}", "location": "on:table"},
             evidence_refs=[f"evidence-{i}"],
         )
         for i in range(1, 4)

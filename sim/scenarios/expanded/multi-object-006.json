@@ -1,0 +1,1 @@
+{"scenario_id":"multi-object-006","seed":218,"task_id":"task-place-red-block","world_version":"WorkbenchSim-v0.2","fault_type":"actuator_timeout","scene_variant":"multi_object","timeout_s":120,"oracle_allowed":false}

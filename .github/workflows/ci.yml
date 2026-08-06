@@ -19,5 +19,14 @@ jobs:
       - run: make test
       - run: make contract
       - run: make scenario-check
+      - run: make golden-check
       - run: make context-check
       - run: make demo-scripted
+      - run: make demo-offline
+
+  container-smoke:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t workbench-1:ci .
+      - run: docker run --rm workbench-1:ci python tools/scripts/local_runner.py --goal "Place the red block in the tray"

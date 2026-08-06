@@ -50,8 +50,7 @@ def check_every_schema_is_registered() -> list[str]:
     problems = []
     for stem in sorted(on_disk - registered):
         problems.append(
-            f"{stem}.schema.json is not registered here; add an example for it, "
-            "or register it as None with a reason"
+            f"{stem}.schema.json is not registered here; add an example for it, " "or register it as None with a reason"
         )
     for stem in sorted(registered - on_disk):
         problems.append(f"{stem} is registered here but no such schema exists")
@@ -105,7 +104,7 @@ def check_models_accept_examples() -> list[str]:
         path = EXAMPLE_DIR / example_name
         try:
             model.model_validate_json(path.read_text(encoding="utf-8"))
-        except Exception as exc:  # noqa: BLE001 - report every failure, do not stop at the first
+        except Exception as exc:
             problems.append(f"{model.__name__} rejected {example_name}: {exc}")
     return problems
 
@@ -114,7 +113,7 @@ def check_planner_round_trips() -> list[str]:
     try:
         plan = build_template_plan("Place the red block in the tray")
         json.loads(plan.model_dump_json())
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return [f"template planner did not produce a serialisable TaskGraph: {exc}"]
     return []
 

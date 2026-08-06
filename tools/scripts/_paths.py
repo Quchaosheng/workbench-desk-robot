@@ -1,7 +1,6 @@
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -9,6 +8,7 @@ def enable_local_packages() -> Path:
     for relative_path in [
         "libs/contracts",
         "services/agent_runtime",
+        "services/backend",
         "services/world_model",
         "firmware/virtual_mcu",
     ]:

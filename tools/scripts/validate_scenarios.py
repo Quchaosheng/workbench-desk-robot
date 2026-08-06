@@ -1,6 +1,8 @@
 import json
+from collections import Counter
 
 from _paths import ROOT, enable_local_packages
+from scenario_tools import FROZEN_DISTRIBUTION, P2_FAULT_TYPES, P2_SCENE_VARIANTS, materialize_scenario
 
 enable_local_packages()
 
@@ -11,9 +13,43 @@ def main() -> int:
     scenario_files = sorted((ROOT / "sim" / "scenarios").rglob("*.json"))
     if not scenario_files:
         raise RuntimeError("no scenario manifests found")
+    manifests = []
     for path in scenario_files:
-        ScenarioManifest.model_validate(json.loads(path.read_text(encoding="utf-8")))
-    print(f"scenario validation passed for {len(scenario_files)} manifest(s)")
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        ScenarioManifest.model_validate(payload)
+        first = materialize_scenario(payload)
+        second = materialize_scenario(payload)
+        if first != second:
+            raise RuntimeError(f"same seed produced different scene configs: {path}")
+        manifests.append((path, payload))
+
+    scenario_ids = [manifest["scenario_id"] for _, manifest in manifests]
+    seeds = [manifest["seed"] for _, manifest in manifests]
+    if len(scenario_ids) != len(set(scenario_ids)):
+        raise RuntimeError("scenario_id values must be unique")
+    if len(seeds) != len(set(seeds)):
+        raise RuntimeError("scenario seeds must be unique")
+
+    frozen = [manifest for path, manifest in manifests if path.parent.name == "frozen"]
+    distribution = Counter(manifest["fault_type"] for manifest in frozen)
+    if dict(sorted(distribution.items())) != FROZEN_DISTRIBUTION:
+        raise RuntimeError(f"P1 frozen distribution must be {FROZEN_DISTRIBUTION}, got {dict(distribution)}")
+
+    expanded = [manifest for path, manifest in manifests if path.parent.name == "expanded"]
+    if expanded:
+        if len(frozen) + len(expanded) != 30:
+            raise RuntimeError(f"P2 must contain 30 total scenarios, found {len(frozen) + len(expanded)}")
+        variants = {manifest.get("scene_variant") for manifest in expanded}
+        if not P2_SCENE_VARIANTS.issubset(variants):
+            raise RuntimeError(f"P2 scene variants missing: {sorted(P2_SCENE_VARIANTS - variants)}")
+        faults = {manifest["fault_type"] for _, manifest in manifests}
+        if not P2_FAULT_TYPES.issubset(faults):
+            raise RuntimeError(f"P2 fault injection types missing: {sorted(P2_FAULT_TYPES - faults)}")
+
+    print(
+        f"scenario validation passed for {len(frozen)} frozen and {len(expanded)} expanded manifest(s); "
+        "same-seed materialization is deterministic"
+    )
     return 0
 
 

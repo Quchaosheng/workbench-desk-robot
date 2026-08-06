@@ -1,0 +1,16 @@
+.git
+.github
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.db
+*.sqlite
+.pytest_cache
+.ruff_cache
+build
+dist
+runs
+node_modules
+data/raw
+data/processed

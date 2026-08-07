@@ -34,7 +34,6 @@ jobs:
   # week.
   kernel-module:
     runs-on: ubuntu-24.04
-    continue-on-error: true
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
@@ -52,6 +51,8 @@ jobs:
         run: make -C kernel/wbcan checkpatch
 
       - name: Load the module and bring the interface up
+        id: load-module
+        continue-on-error: true
         run: |
           sudo modprobe can can-raw can-dev
           sudo insmod kernel/wbcan/wbcan.ko
@@ -60,7 +61,12 @@ jobs:
           ip -details link show wbcan0
 
       - name: Run the fault suite
+        if: steps.load-module.outcome == 'success'
         run: sudo ./kernel/wbcan/test_wbcan.sh wbcan0
+
+      - name: Report unavailable kernel runtime
+        if: steps.load-module.outcome == 'failure'
+        run: echo "::warning title=Kernel runtime unavailable::The hosted runner built wbcan.ko but cannot load it; run the fault suite on a privileged Linux host."
 
       - name: Dump kernel log on failure
         if: failure()

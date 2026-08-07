@@ -1,0 +1,13 @@
+{
+  "board": {},
+  "boards": [],
+  "cvpcb": {},
+  "erc": {},
+  "libraries": {},
+  "meta": {"filename": "controller.kicad_pro", "version": 1},
+  "net_settings": {"classes": [], "meta": {"version": 3}},
+  "pcbnew": {},
+  "schematic": {},
+  "sheets": [],
+  "text_variables": {"DESIGN_STATUS": "NOT FOR FABRICATION", "PROJECT": "Workbench-1 controller"}
+}

@@ -10,6 +10,9 @@ hardware/
   cameras/          USB, RGBD and event cameras
   arm_drivers/      Vendor SDK wrappers → ros2_control hardware interface
   safety/           Hardware e-stop, watchdog, safety PLC bridge
+  mechanical/       Parametric enclosure, chassis, impact and stability package
+  pcb/              Controller/power PCB architecture and KiCad engineering package
+  manufacturing/    Assembly, test, quality, rework, EHS and release process
 ```
 
 **Rule**: every adapter here must satisfy the same contract as its simulation counterpart.

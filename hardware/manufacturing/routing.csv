@@ -1,0 +1,15 @@
+op,station,operation,target_minutes,quality_gate,required_record
+010,RECEIVE,Receive and identify lots,6,QG-01,incoming-inspection
+020,KIT,Scan and kit one serial-numbered set,7,QG-02,kit-shortage-log
+030,SMT,Stencil print and place controller PCB,8,QG-03,paste-and-placement-check
+040,REFLOW,Run locked lead-free profile,6,QG-04,reflow-profile-id
+050,PCBA_INSPECT,AOI plus manual polarity inspection,7,QG-05,aoi-result
+060,PCBA_TEST,Power-limited rail and isolation test,8,QG-06,electrical-test-json
+070,CHASSIS,Install motors wheels battery and tray,9,QG-07,torque-record
+080,PCBA_INSTALL,Install controller and protective earth bonds,7,QG-08,ground-bond-result
+090,HARNESS,Route keyed harnesses and strain relief,8,QG-09,harness-check
+100,SHELL,Install display head shell and impact bumper,8,QG-10,cosmetic-fit-check
+110,SAFETY_TEST,Verify E-stop watchdog and protective behavior,6,QG-11,safety-test-json
+120,FUNCTIONAL_TEST,Exercise power CAN sensors and motion interlocks,10,QG-12,functional-test-json
+130,FINAL_INSPECT,Audit labels fasteners gaps and traveller,7,QG-13,final-inspection
+140,PACK,Fit transit locks accessories and packaging,6,QG-14,pack-record

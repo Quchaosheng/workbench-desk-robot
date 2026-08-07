@@ -1,0 +1,24 @@
+(kicad_sch (version 20231120) (generator eeschema)
+  (uuid 6a9e1d70-16a6-4fd7-97d2-18a2d0cf3b19)
+  (paper "A4")
+  (lib_symbols)
+  (text "WORKBENCH-1 CONTROLLER - ARCHITECTURE BASELINE - NOT FOR FABRICATION"
+    (exclude_from_sim no) (at 105 20 0)
+    (effects (font (size 2 2) (thickness 0.3)) (justify bottom)))
+  (text "48V INPUT -> FUSE / REVERSE / TVS / HOT-SWAP -> ISOLATED 12V"
+    (exclude_from_sim no) (at 105 45 0)
+    (effects (font (size 1.5 1.5) (thickness 0.25)) (justify bottom)))
+  (text "12V -> 5V / 10A JETSON; 12V -> 3V3 / 5A LOGIC"
+    (exclude_from_sim no) (at 105 60 0)
+    (effects (font (size 1.5 1.5) (thickness 0.25)) (justify bottom)))
+  (text "CH32V307 <-> REINFORCED ISOLATION <-> CAN FD + CMC + TVS"
+    (exclude_from_sim no) (at 105 75 0)
+    (effects (font (size 1.5 1.5) (thickness 0.25)) (justify bottom)))
+  (text "HARDWIRED ESTOP GATES DRIVER ENABLE; MCU OBSERVES ONLY"
+    (exclude_from_sim no) (at 105 90 0)
+    (effects (font (size 1.5 1.5) (thickness 0.25)) (justify bottom)))
+  (text "STOP: SYMBOL CAPTURE, AVL APPROVAL, ERC, ROUTING, DRC AND LAB VALIDATION REQUIRED"
+    (exclude_from_sim no) (at 105 115 0)
+    (effects (font (size 1.25 1.25) (thickness 0.2)) (justify bottom)))
+  (sheet_instances (path "/" (page "1")))
+)

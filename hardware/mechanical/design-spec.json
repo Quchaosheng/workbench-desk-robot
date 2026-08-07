@@ -1,0 +1,17 @@
+{
+  "units": "mm",
+  "enclosure": {"width": 280, "depth": 240, "height": 330, "wall": 2.5, "corner_radius": 18},
+  "chassis": {"width": 260, "depth": 220, "thickness": 4, "wheelbase": 180, "track": 210, "ground_clearance": 18},
+  "head": {"width": 190, "height": 92, "display_cutout": [150, 72], "tilt_deg": 8},
+  "electronics_tray": {"width": 220, "depth": 170, "clearance_above": 32},
+  "ventilation": {"inlet_area_mm2": 1800, "outlet_area_mm2": 2200, "fan_mm": 60, "direction": "lower-front to upper-rear"},
+  "impact": {"bumper_material": "TPU 95A over compliant honeycomb", "bumper_thickness": 8, "effective_absorber_stroke_mm": 24, "drop_height_m": 0.75, "design_deceleration_g": 35},
+  "components": [
+    {"name": "chassis_and_motors", "mass_kg": 2.70, "xyz": [0, 0, 55]},
+    {"name": "battery", "mass_kg": 1.60, "xyz": [0, -25, 68]},
+    {"name": "electronics", "mass_kg": 0.82, "xyz": [0, 10, 142]},
+    {"name": "shell", "mass_kg": 0.75, "xyz": [0, 0, 170]},
+    {"name": "head_display", "mass_kg": 0.55, "xyz": [0, 5, 278]}
+  ],
+  "minimum_clearances": {"moving_to_fixed": 3, "cable_to_sharp_edge": 5, "pcb_to_shell": 6, "battery_to_heat_source": 20}
+}

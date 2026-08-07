@@ -1,0 +1,26 @@
+{
+  "input": {"nominal_v": 48, "minimum_v": 36, "maximum_v": 60, "continuous_a": 8, "fuse_a": 10},
+  "rails": [
+    {"name": "12V_ISO", "voltage_v": 12, "continuous_a": 12, "peak_a": 16, "efficiency": 0.93, "topology": "isolated DC/DC module", "avl_status": "HOLD"},
+    {"name": "5V_JETSON", "voltage_v": 5, "continuous_a": 10, "peak_a": 12, "efficiency": 0.92, "topology": "12 V synchronous buck", "avl_status": "HOLD"},
+    {"name": "3V3_LOGIC", "voltage_v": 3.3, "continuous_a": 5, "peak_a": 6, "efficiency": 0.9, "topology": "12 V synchronous buck", "avl_status": "HOLD"}
+  ],
+  "loads": [
+    {"name": "Jetson Orin Nano auxiliary", "rail": "5V_JETSON", "maximum_w": 40},
+    {"name": "CH32V307 and logic", "rail": "3V3_LOGIC", "maximum_w": 2},
+    {"name": "CAN isolation", "rail": "3V3_LOGIC", "maximum_w": 1},
+    {"name": "sensors", "rail": "3V3_LOGIC", "maximum_w": 1},
+    {"name": "motor driver auxiliaries", "rail": "12V_ISO", "maximum_w": 120}
+  ],
+  "can": {"transceiver_class": "reinforced isolated CAN FD", "isolation_vrms": 5000, "bus_fault_v": 70, "termination_ohm": 120, "common_mode_choke": true, "tvs": "bidirectional CAN-rated"},
+  "protection": {"input_tvs_standoff_v": 58, "ov_trip_v": 62, "uv_trip_v": 34, "inrush_limit_a": 8, "reverse_polarity": "back-to-back 80 V MOSFET", "estop": "hardwired active-low loop"},
+  "stackup": [
+    {"layer": "L1", "function": "components and controlled signals", "copper_oz": 2},
+    {"layer": "L2", "function": "solid signal ground", "copper_oz": 1},
+    {"layer": "L3", "function": "power planes", "copper_oz": 2},
+    {"layer": "L4", "function": "power and low-speed signals", "copper_oz": 2},
+    {"layer": "L5", "function": "solid signal ground", "copper_oz": 1},
+    {"layer": "L6", "function": "components and low-speed signals", "copper_oz": 2}
+  ],
+  "dfm": {"minimum_trace_mm": 0.15, "minimum_space_mm": 0.15, "minimum_drill_mm": 0.3, "minimum_annular_ring_mm": 0.15, "isolation_creepage_mm": 8, "board_thickness_mm": 1.6}
+}

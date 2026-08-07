@@ -1,0 +1,18 @@
+{
+  "status": "ANALYTICAL_ONLY_PHYSICAL_VALIDATION_REQUIRED",
+  "mass_kg": 6.42,
+  "center_of_gravity_mm": [
+    0.0,
+    -4.5,
+    101.9
+  ],
+  "static_tip_angle_deg": 45.9,
+  "drop_energy_j": 47.2,
+  "minimum_energy_absorber_stroke_mm": 21.4,
+  "vent_area_ratio_outlet_to_inlet": 1.22,
+  "checks": {
+    "tip_angle_at_least_35_deg": true,
+    "outlet_area_at_least_inlet": true,
+    "absorber_at_least_derived_stroke": true
+  }
+}

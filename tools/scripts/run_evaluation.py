@@ -12,9 +12,9 @@
     Gazebo 层就位之前,这个脚本只创建占位日志。
     Integration Owner 在 Gazebo 就位后填充实际运行逻辑。
 """
+
 import argparse
 import json
-import subprocess
 from pathlib import Path
 
 
@@ -40,8 +40,7 @@ def run_one_scenario(version: str, scenario: Path, output_dir: Path, seed_base: 
     # )
     # success = result.returncode == 0
 
-    # 占位:生成假的事件日志
-    manifest = json.loads(scenario.read_text(encoding="utf-8"))
+    # 占位:生成假的事件日志。真实实现会读取 manifest 来配置场景。
     fake_events = [
         {
             "event_id": "evt-001",
@@ -70,7 +69,7 @@ def run_one_scenario(version: str, scenario: Path, output_dir: Path, seed_base: 
             "event_type": "verification",
             "occurred_at": "2026-08-04T10:01:00Z",
             "payload": {
-                "completed": True,
+                "status": "confirmed",
                 "reason": "object location matches tray relation",
                 "evidence_refs": ["verification-001"],
             },
@@ -78,18 +77,14 @@ def run_one_scenario(version: str, scenario: Path, output_dir: Path, seed_base: 
         },
     ]
 
-    output_file.write_text(
-        "\n".join(json.dumps(e) for e in fake_events) + "\n", encoding="utf-8"
-    )
+    output_file.write_text("\n".join(json.dumps(e) for e in fake_events) + "\n", encoding="utf-8")
     print("✅ (占位数据)")
     return True
 
 
 def main():
     parser = argparse.ArgumentParser(description="Run 36 evaluation runs")
-    parser.add_argument(
-        "--versions", required=True, help="Comma-separated version tags (e.g., v0.1-A,v0.1-B,v0.1-C)"
-    )
+    parser.add_argument("--versions", required=True, help="Comma-separated version tags (e.g., v0.1-A,v0.1-B,v0.1-C)")
     parser.add_argument("--scenarios", nargs="+", type=Path, required=True, help="Scenario manifest files")
     parser.add_argument("--output-dir", type=Path, required=True, help="Output directory")
     parser.add_argument("--seed-base", type=int, default=1000, help="Seed base for reproducibility")
@@ -98,7 +93,9 @@ def main():
     versions = args.versions.split(",")
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"Running {len(versions)} versions × {len(args.scenarios)} scenarios = {len(versions) * len(args.scenarios)} runs")
+    n_versions = len(versions)
+    n_scenarios = len(args.scenarios)
+    print(f"Running {n_versions} versions × {n_scenarios} scenarios = {n_versions * n_scenarios} runs")
     print(f"Seed base: {args.seed_base}")
     print()
 

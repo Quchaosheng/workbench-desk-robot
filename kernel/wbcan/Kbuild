@@ -1,0 +1,6 @@
+# Kbuild for the out-of-tree wbcan module.
+#
+# -Werror on purpose: a warning in a driver that fabricates bus errors is not
+# something to skim past.
+obj-m += wbcan.o
+ccflags-y := -Wall -Wextra -Werror -Wno-unused-parameter

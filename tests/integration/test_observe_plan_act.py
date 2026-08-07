@@ -1,15 +1,8 @@
 """
 集成测试:观测 → 规划 → 执行路径
-
-测什么:
-- 从 Observation 输入到 SemanticAction 输出的完整链路
-- WorldState 正确接收并 reduce 观测
-- 模板规划器产出合法 TaskGraph
-- 不 mock 模块边界的契约对象
 """
-import json
 
-import pytest
+import json
 
 from workbench_agent_runtime import build_template_plan
 from workbench_contracts import WorldEvent, WorldEventType
@@ -37,6 +30,8 @@ def test_observe_to_plan_integration(event_store, sample_observation):
             "observation_id": sample_observation.observation_id,
             "entity_id": sample_observation.entity_id,
             "confidence": sample_observation.confidence,
+            # location is required for the reducer to update entity_locations
+            "location": "table",
         },
         evidence_refs=sample_observation.evidence_refs,
     )

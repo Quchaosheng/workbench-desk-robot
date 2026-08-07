@@ -4,7 +4,6 @@ from pathlib import Path
 
 from _paths import ROOT
 
-
 REQUIRED_FIELDS = {
     "issue",
     "human_owner",

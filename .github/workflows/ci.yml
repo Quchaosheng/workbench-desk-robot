@@ -5,12 +5,15 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   foundation-checks:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
         with:
           python-version: "3.12"
       - run: python -m pip install --upgrade pip
@@ -21,3 +24,102 @@ jobs:
       - run: make scenario-check
       - run: make context-check
       - run: make demo-scripted
+
+  # Builds and exercises the wbcan kernel module.
+  #
+  # continue-on-error while the module is new: a GitHub runner's kernel headers
+  # and CAN config are not under our control, and a driver that fails to build
+  # against one specific runner kernel should report that without blocking a PR
+  # that does not touch the kernel. Remove it once this has been green for a
+  # week.
+  kernel-module:
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Install kernel headers and can-utils
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            "linux-headers-$(uname -r)" can-utils build-essential
+          echo "kernel: $(uname -r)"
+
+      - name: Build wbcan.ko
+        run: make -C kernel/wbcan
+
+      - name: Kernel style check
+        run: make -C kernel/wbcan checkpatch
+
+      - name: Load the module and bring the interface up
+        run: |
+          sudo modprobe can can-raw can-dev
+          sudo insmod kernel/wbcan/wbcan.ko
+          sudo ip link set wbcan0 type can restart-ms 100
+          sudo ip link set wbcan0 up
+          ip -details link show wbcan0
+
+      - name: Run the fault suite
+        run: sudo ./kernel/wbcan/test_wbcan.sh wbcan0
+
+      - name: Dump kernel log on failure
+        if: failure()
+        run: sudo dmesg | tail -50
+
+      - name: Unload
+        if: always()
+        run: |
+          sudo ip link set wbcan0 down 2>/dev/null || true
+          sudo rmmod wbcan 2>/dev/null || true
+
+  # Runs the cross-compiled MCU firmware in QEMU.
+  # Rationale and limits: docs/decisions/ADR-0003-mcu-riscv-qemu.md
+  #
+  # QEMU models SJA1000 and CTU CAN FD, not the CH32V307 CAN peripheral. This
+  # job proves firmware/mcu/core/ logic. It does NOT prove hal/ch32v307/,
+  # which needs the board.
+  #
+  # firmware/mcu/ is a skeleton today, so the job reports "not implemented yet"
+  # and passes. It must not look green as if the suite had run.
+  mcu-qemu:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Check whether firmware sources exist
+        id: probe
+        run: |
+          if ls firmware/mcu/core/*.c >/dev/null 2>&1; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=MCU firmware not implemented yet::firmware/mcu/core/ has no .c sources. Skipping the QEMU suite. Expected until task FW1/FW3 lands."
+          fi
+
+      - name: Install RISC-V toolchain and QEMU
+        if: steps.probe.outputs.present == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gcc-riscv64-unknown-elf qemu-system-misc
+          riscv64-unknown-elf-gcc --version | head -1
+          qemu-system-riscv32 --version | head -1
+
+      - name: Build for host and run fast logic tests
+        if: steps.probe.outputs.present == 'true'
+        run: make -C firmware/mcu host && make -C firmware/mcu test-host
+
+      - name: Cross-compile for rv32imac
+        if: steps.probe.outputs.present == 'true'
+        run: make -C firmware/mcu qemu
+
+      - name: Run the fault suite in QEMU
+        if: steps.probe.outputs.present == 'true'
+        run: make -C firmware/mcu test-qemu
+
+      - name: Restate the simulation boundary
+        if: steps.probe.outputs.present == 'true'
+        run: |
+          echo "Proven here: core/ state machine, watchdog timing, dedup, frame codec."
+          echo "NOT proven here: CH32V307 CAN peripheral, bit timing, electrical behaviour."
+          echo "Those need the board — P3 tasks FW17-FW23 and G11/G13/G14."

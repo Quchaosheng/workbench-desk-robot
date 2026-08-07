@@ -1,6 +1,5 @@
 from _paths import ROOT
 
-
 REQUIRED_FILES = [
     "AGENTS.md",
     "docs/context/CONTEXT_MANIFEST.md",

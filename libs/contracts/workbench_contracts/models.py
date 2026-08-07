@@ -84,10 +84,45 @@ class SemanticAction(BaseModel):
     parameters: dict[str, Any] = Field(default_factory=dict)
 
 
+class ActionOutcome(str, Enum):
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELED = "canceled"
+    SAFE_STOP = "safe_stop"
+    TIMEOUT = "timeout"
+
+
+class DispatchState(str, Enum):
+    """Whether the frame left the host. Not whether the device acted on it."""
+
+    NOT_SENT = "not_sent"
+    SENT = "sent"
+    SEND_FAILED = "send_failed"
+
+
+class DeviceState(str, Enum):
+    """Whether the device confirmed. Separate from DispatchState by design:
+    a written frame is not a confirmed action."""
+
+    UNCONFIRMED = "unconfirmed"
+    CONFIRMED = "confirmed"
+    REJECTED = "rejected"
+    STOPPED = "stopped"
+
+
 class ActionResult(BaseModel):
+    result_id: str
     action_id: str
-    status: ActionStatus
-    detail: str = ""
+    run_id: str
+    outcome: ActionOutcome
+    dispatch_state: DispatchState
+    device_state: DeviceState
+    error_code: int | None = None
+    error_reason: str | None = None
+    started_at: str
+    ended_at: str
+    clock_id: ClockId = ClockId.MONOTONIC
+    retry_count: int = Field(default=0, ge=0)
     entity_id: str | None = None
     resulting_location: str | None = None
     evidence_refs: list[str] = Field(default_factory=list)
@@ -117,12 +152,57 @@ class TaskGraph(BaseModel):
     model_route: str = "template"
 
 
+class VerificationStatus(str, Enum):
+    """Three-valued on purpose. A boolean would force the system to guess when
+    the evidence does not support either answer."""
+
+    CONFIRMED = "confirmed"
+    REFUTED = "refuted"
+    INSUFFICIENT_EVIDENCE = "insufficient_evidence"
+
+
+class ReasonCode(str, Enum):
+    GOAL_SATISFIED = "goal_satisfied"
+    GOAL_NOT_SATISFIED = "goal_not_satisfied"
+    TARGET_NOT_OBSERVED = "target_not_observed"
+    CONFIDENCE_BELOW_THRESHOLD = "confidence_below_threshold"
+    CONFLICTING_OBSERVATIONS = "conflicting_observations"
+    EVIDENCE_MISSING = "evidence_missing"
+    STALE_OBSERVATION = "stale_observation"
+
+
+class RecoveryHint(str, Enum):
+    RE_OBSERVE = "re_observe"
+    RETRY_ACTION = "retry_action"
+    ASK_CONFIRM = "ask_confirm"
+    ABORT = "abort"
+    NONE = "none"
+
+
 class VerificationResult(BaseModel):
+    verification_id: str
+    run_id: str
     task_id: str
-    completed: bool
-    reason: str
-    rule_version: str
-    evidence_refs: list[str] = Field(default_factory=list)
+    claim: str
+    status: VerificationStatus
+    reason_code: ReasonCode | None = None
+    completeness: float | None = Field(default=None, ge=0.0, le=1.0)
+    evidence_refs: list[str] = Field(min_length=1)
+    recovery_hint: RecoveryHint = RecoveryHint.NONE
+    verified_at: str
+    clock_id: ClockId = ClockId.MONOTONIC
+    rule_version: str = "unversioned"
+
+    @property
+    def completed(self) -> bool:
+        """True only for a confirmed goal. Both `refuted` and
+        `insufficient_evidence` are not-completed, but they are not the same
+        thing — read `status` when the distinction matters."""
+        return self.status is VerificationStatus.CONFIRMED
+
+    @property
+    def reason(self) -> str:
+        return self.reason_code.value if self.reason_code else self.status.value
 
 
 class ScenarioManifest(BaseModel):

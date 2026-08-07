@@ -1,0 +1,273 @@
+<?xml version="1.0"?>
+<!--
+  Workbench static geometry: table, tray, module, camera mount.
+
+  The arm is NOT here. It comes from an official vendor package and is composed
+  at launch. Keeping them separate is what lets the world and the arm be built
+  in parallel instead of each waiting on the other.
+
+  Primitives, not meshes. Boxes and cylinders have analytic inertia tensors and
+  predictable contact behaviour. Meshes look better and make the physics harder
+  to reason about, and right now the physics has to be trustworthy enough to
+  tune grasp success against.
+
+  Dimensions and their reasoning: see FRAMES.md.
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="workbench">
+
+  <!-- ============================================================ params -->
+  <xacro:property name="table_x"      value="1.20"/>
+  <xacro:property name="table_y"      value="0.80"/>
+  <xacro:property name="table_thick"  value="0.04"/>
+  <xacro:property name="table_height" value="0.75"/>
+
+  <!-- Tray is five parts so the interior is a real volume. A flat plate has no
+       cavity, and containment cannot be decided against a plate. -->
+  <xacro:property name="tray_x"       value="0.24"/>
+  <xacro:property name="tray_y"       value="0.18"/>
+  <xacro:property name="tray_wall"    value="0.006"/>
+  <xacro:property name="tray_depth"   value="0.05"/>
+  <xacro:property name="tray_floor"   value="0.004"/>
+
+  <!-- 40 mm cube: comfortably inside a standard parallel gripper's stroke,
+       with margin for approach error. 50 g is light enough that a hard contact
+       flicks it away - that is deliberate, it is the failure mode physics
+       tuning has to eliminate. -->
+  <xacro:property name="module_size"  value="0.040"/>
+  <xacro:property name="module_mass"  value="0.050"/>
+
+  <xacro:property name="cam_height"   value="0.70"/>
+
+  <!-- ========================================================== materials -->
+  <material name="wood">    <color rgba="0.72 0.58 0.40 1.0"/></material>
+  <material name="grey">    <color rgba="0.55 0.57 0.60 1.0"/></material>
+  <material name="red">     <color rgba="0.85 0.12 0.12 1.0"/></material>
+  <material name="black">   <color rgba="0.10 0.10 0.10 1.0"/></material>
+
+  <!-- ============================================================= macros -->
+  <!-- Inertia for a solid box. Written out rather than approximated: a wrong
+       inertia tensor makes contact behaviour subtly wrong, and then physics
+       tuning chases the wrong parameter. -->
+  <xacro:macro name="box_inertia" params="m x y z">
+    <inertial>
+      <mass value="${m}"/>
+      <inertia
+        ixx="${m * (y*y + z*z) / 12.0}" ixy="0.0" ixz="0.0"
+        iyy="${m * (x*x + z*z) / 12.0}" iyz="0.0"
+        izz="${m * (x*x + y*y) / 12.0}"/>
+    </inertial>
+  </xacro:macro>
+
+  <xacro:macro name="static_box" params="name x y z mat">
+    <link name="${name}">
+      <visual>
+        <geometry><box size="${x} ${y} ${z}"/></geometry>
+        <material name="${mat}"/>
+      </visual>
+      <collision>
+        <geometry><box size="${x} ${y} ${z}"/></geometry>
+      </collision>
+      <xacro:box_inertia m="1.0" x="${x}" y="${y}" z="${z}"/>
+    </link>
+  </xacro:macro>
+
+  <!-- ============================================================== world -->
+  <link name="world"/>
+
+  <!-- ============================================================== table -->
+  <xacro:static_box name="table" x="${table_x}" y="${table_y}"
+                    z="${table_thick}" mat="wood"/>
+
+  <joint name="world_to_table" type="fixed">
+    <parent link="world"/>
+    <child  link="table"/>
+    <!-- Origin at the slab centre, so the top surface lands at table_height -->
+    <origin xyz="0 0 ${table_height - table_thick/2}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Named frame at the working plane. Scenario poses are expressed relative
+       to this, so changing table_thick does not move every object. -->
+  <link name="table_surface"/>
+  <joint name="table_to_surface" type="fixed">
+    <parent link="table"/>
+    <child  link="table_surface"/>
+    <origin xyz="0 0 ${table_thick/2}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- =============================================================== tray -->
+  <link name="tray_base"/>
+  <joint name="surface_to_tray" type="fixed">
+    <parent link="table_surface"/>
+    <child  link="tray_base"/>
+    <!-- Operator's right, clear of the arm's home position -->
+    <origin xyz="0.22 -0.10 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- floor -->
+  <xacro:static_box name="tray_floor" x="${tray_x}" y="${tray_y}"
+                    z="${tray_floor}" mat="grey"/>
+  <joint name="tray_base_to_floor" type="fixed">
+    <parent link="tray_base"/>
+    <child  link="tray_floor"/>
+    <origin xyz="0 0 ${tray_floor/2}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- four walls -->
+  <xacro:static_box name="tray_wall_xp" x="${tray_wall}" y="${tray_y}"
+                    z="${tray_depth}" mat="grey"/>
+  <joint name="tray_base_to_wall_xp" type="fixed">
+    <parent link="tray_base"/>
+    <child  link="tray_wall_xp"/>
+    <origin xyz="${ tray_x/2 - tray_wall/2} 0 ${tray_depth/2}" rpy="0 0 0"/>
+  </joint>
+
+  <xacro:static_box name="tray_wall_xn" x="${tray_wall}" y="${tray_y}"
+                    z="${tray_depth}" mat="grey"/>
+  <joint name="tray_base_to_wall_xn" type="fixed">
+    <parent link="tray_base"/>
+    <child  link="tray_wall_xn"/>
+    <origin xyz="${-tray_x/2 + tray_wall/2} 0 ${tray_depth/2}" rpy="0 0 0"/>
+  </joint>
+
+  <xacro:static_box name="tray_wall_yp" x="${tray_x}" y="${tray_wall}"
+                    z="${tray_depth}" mat="grey"/>
+  <joint name="tray_base_to_wall_yp" type="fixed">
+    <parent link="tray_base"/>
+    <child  link="tray_wall_yp"/>
+    <origin xyz="0 ${ tray_y/2 - tray_wall/2} ${tray_depth/2}" rpy="0 0 0"/>
+  </joint>
+
+  <xacro:static_box name="tray_wall_yn" x="${tray_x}" y="${tray_wall}"
+                    z="${tray_depth}" mat="grey"/>
+  <joint name="tray_base_to_wall_yn" type="fixed">
+    <parent link="tray_base"/>
+    <child  link="tray_wall_yn"/>
+    <origin xyz="0 ${-tray_y/2 + tray_wall/2} ${tray_depth/2}" rpy="0 0 0"/>
+  </joint>
+
+  <!--
+    tray_cavity: the AABB containment is computed against.
+
+    Not decoration. The verifier needs a named frame whose extents are the
+    interior volume, and it needs them from the model rather than hardcoded in
+    Python - otherwise changing the tray here silently breaks the verifier.
+
+    Interior extents, published for consumers:
+      x: tray_x - 2*tray_wall = 0.228
+      y: tray_y - 2*tray_wall = 0.168
+      z: tray_depth - tray_floor = 0.046
+  -->
+  <link name="tray_cavity"/>
+  <joint name="tray_base_to_cavity" type="fixed">
+    <parent link="tray_base"/>
+    <child  link="tray_cavity"/>
+    <origin xyz="0 0 ${tray_floor + (tray_depth - tray_floor)/2}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ============================================================= module -->
+  <!-- Free body. Its pose comes from the scenario manifest, seeded per run, so
+       the same seed rebuilds the same scene. -->
+  <link name="module_red">
+    <visual>
+      <geometry><box size="${module_size} ${module_size} ${module_size}"/></geometry>
+      <material name="red"/>
+    </visual>
+    <collision>
+      <geometry><box size="${module_size} ${module_size} ${module_size}"/></geometry>
+    </collision>
+    <xacro:box_inertia m="${module_mass}" x="${module_size}"
+                       y="${module_size}" z="${module_size}"/>
+  </link>
+
+  <joint name="surface_to_module" type="fixed">
+    <parent link="table_surface"/>
+    <child  link="module_red"/>
+    <origin xyz="-0.15 0.05 ${module_size/2}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ============================================================= camera -->
+  <xacro:static_box name="camera_post" x="0.03" y="0.03"
+                    z="${cam_height}" mat="black"/>
+  <joint name="surface_to_post" type="fixed">
+    <parent link="table_surface"/>
+    <child  link="camera_post"/>
+    <origin xyz="${-table_x/2 + 0.05} ${-table_y/2 + 0.05} ${cam_height/2}"
+            rpy="0 0 0"/>
+  </joint>
+
+  <link name="camera_body">
+    <visual>
+      <geometry><box size="0.05 0.05 0.03"/></geometry>
+      <material name="black"/>
+    </visual>
+    <xacro:box_inertia m="0.1" x="0.05" y="0.05" z="0.03"/>
+  </link>
+
+  <!-- Looking down at the table. Positioned to see the module's start region
+       and the tray at once. -->
+  <joint name="post_to_camera" type="fixed">
+    <parent link="camera_post"/>
+    <child  link="camera_body"/>
+    <origin xyz="0.30 0.28 ${cam_height/2}" rpy="0 ${radians(70)} ${radians(45)}"/>
+  </joint>
+
+  <!--
+    camera_optical: REP-103 optical convention, z forward, x right, y down.
+
+    The image pipeline expects this frame, not the body frame. Publishing from
+    the body frame gives a silent 90-degree error that still looks plausible in
+    RViz - which is the worst kind, because nothing reports it.
+  -->
+  <link name="camera_optical"/>
+  <joint name="camera_body_to_optical" type="fixed">
+    <parent link="camera_body"/>
+    <child  link="camera_optical"/>
+    <origin xyz="0 0 0" rpy="${radians(-90)} 0 ${radians(-90)}"/>
+  </joint>
+
+  <!-- ======================================================= gazebo bits -->
+  <!-- Friction on the module and the tray floor. These are the numbers physics
+       tuning actually moves; they start at plausible values for plastic on
+       plastic and are expected to change. -->
+  <gazebo reference="module_red">
+    <mu1>0.8</mu1>
+    <mu2>0.8</mu2>
+    <kp>1e6</kp>
+    <kd>1.0</kd>
+  </gazebo>
+
+  <gazebo reference="tray_floor">
+    <mu1>0.6</mu1>
+    <mu2>0.6</mu2>
+  </gazebo>
+
+  <gazebo reference="table">
+    <mu1>0.7</mu1>
+    <mu2>0.7</mu2>
+  </gazebo>
+
+  <gazebo reference="camera_body">
+    <sensor name="workbench_camera" type="camera">
+      <pose relative_to="camera_optical">0 0 0 0 0 0</pose>
+      <camera>
+        <horizontal_fov>1.047</horizontal_fov>
+        <!-- 640x480 is what tag detection wants. Larger frames cost simulation
+             time without improving marker recovery at this working distance. -->
+        <image><width>640</width><height>480</height><format>R8G8B8</format></image>
+        <clip><near>0.05</near><far>3.0</far></clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <!-- Non-zero on purpose. A noiseless camera lets perception pass with
+               thresholds that would fail on real hardware. -->
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <always_on>1</always_on>
+      <update_rate>30</update_rate>
+      <visualize>true</visualize>
+      <topic>/workbench/camera/image_raw</topic>
+    </sensor>
+  </gazebo>
+
+</robot>

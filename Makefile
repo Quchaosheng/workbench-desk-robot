@@ -6,6 +6,7 @@ bootstrap:
 	$(PYTHON) -m pip install --upgrade pip
 	$(PYTHON) -m pip install -e ".[dev]"
 
+# Both rules and formatting are gated in CI. Run `make fmt` to fix locally.
 lint:
 	$(PYTHON) -m ruff check .
 	$(PYTHON) -m ruff format --check .
@@ -15,7 +16,7 @@ fmt:
 	$(PYTHON) -m ruff format .
 
 test:
-	$(PYTHON) -m unittest discover -s tests -p "test_*.py" -v
+	$(PYTHON) -m pytest tests/ -v
 
 # Everything CI runs, in one command. Run this before opening a PR.
 check: lint test contract scenario-check context-check demo-scripted

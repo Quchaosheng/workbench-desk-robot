@@ -8,6 +8,7 @@ def enable_local_packages() -> Path:
     for relative_path in [
         "libs/contracts",
         "services/agent_runtime",
+        "services/backend",
         "services/world_model",
         "firmware/virtual_mcu",
     ]:

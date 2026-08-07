@@ -37,14 +37,17 @@
 - 事件库 + 回放
 - 模板规划器(抓放任务不需要模型)
 - 验证器输出"confirmed / refuted / insufficient_evidence"
-- CI 跑 lint + 契约检查
+- 只读任务看板、按序回放与证据查看
+- 断网容器、健康端点、统一 JSON 日志、镜像/SBOM 工作流
+- 12 个 P1 冻结场景与 30 个 P2 场景,含 seed 确定性检查
+- CI 跑 lint、契约、评测 fixture、断网 demo 与容器 smoke test
 
 **还没做:**
 - Gazebo 世界
 - MoveIt 抓取放置
 - 真实相机(OpenCV + AprilTag)
-- Dashboard
 - 自然语言 → 计划(本地模型)
+- Gazebo 真实评测结果(仓库内运行数据明确标为脚本化 fixture)
 
 每个没做的都有冻结的契约。你可以只做其中一个,不用等别人。
 
@@ -77,6 +80,22 @@ Gazebo 集成就位之后:
 make sim              # 启动世界 + 机械臂 + 相机
 make demo             # 完整运行,固定脚本
 ```
+
+任务看板不需要网络或 GPU:
+
+```bash
+make dashboard
+# 打开 http://127.0.0.1:8080
+```
+
+容器启动:
+
+```bash
+docker compose up --build
+curl http://127.0.0.1:8080/healthz
+```
+
+看板 API 只读。所有 HTTP 写方法都返回 `405`;这个服务里没有 ROS、运动、MCU 或急停发布器。
 
 ---
 
@@ -186,6 +205,8 @@ v0.1 要达到的数字。标 **0** 的是发布阻断项。
 | Gazebo 里的抓取成功率 | 真实夹爪上的抓取成功率 |
 
 软件安全停止 ≠ 硬件急停。Gazebo 的数字不能不经重新验证就迁移到真机。
+
+脚本化评测 fixture 也不能证明 Gazebo 性能。它只验证事件顺序、证据覆盖、回放和报告链路,并始终标记为 `release_eligible: false`。见[已记录的 fixture 失败案例](docs/evaluation/failure-cases.md)和[容器运行手册](docs/deployment/container.md)。
 
 ---
 

@@ -1,14 +1,14 @@
-# Frozen scenarios
+# Frozen P1 scenarios
 
-The Perception Owner expands this directory to 12 manifests before formal evaluation:
+This directory contains the 12 immutable v0.1 evaluation manifests:
 
 - normal: 3;
 - occlusion / low confidence: 3;
-- target moved: 3;
-- grasp failed: 3.
+- moving target: 3;
+- grasp failure: 3.
 
 Each manifest must contain a stable scenario ID, seed, world version, timeout and fault type. The expected outcome is held separately from generators and candidate-model prompts.
 
-The same 12 manifests run against every system version under comparison, so a difference in results cannot come from a difference in scenarios.
+The same 12 manifests run against every system version under comparison. `python tools/scripts/validate_scenarios.py` also materializes every seed twice and rejects distribution drift or non-determinism.
 
-Two fault classes are deliberately outside this matrix. Path blocking needs dynamic obstacles in the world and is out of scope. Service and MCU timeouts are covered by the Virtual MCU module's own fault tests, where the timeout, disconnect and stop paths can be asserted directly instead of inferred from a task outcome.
+The `expanded/` directory adds 18 P2 manifests for path blocking, low light, and multiple same-colour objects. It does not modify this frozen baseline.

@@ -37,14 +37,17 @@ The model picks a goal, but cannot send joint positions or velocities. That boun
 - Event store with replay
 - Template planner (no model needed for pick-and-place)
 - Verification logic that outputs "confirmed / refuted / insufficient_evidence"
-- CI running lint + contract checks
+- Read-only task dashboard with ordered replay and evidence inspection
+- Offline container, health endpoints, structured logs and release/SBOM workflow
+- 12 frozen P1 and 30 total P2 scenario manifests with deterministic seed checks
+- CI running lint, contracts, evaluation fixtures, offline demo and container smoke checks
 
 **Not built yet:**
 - Gazebo world
 - MoveIt grasp/place
 - Real camera (OpenCV + AprilTag)
-- Dashboard
 - Natural language → plan (local model)
+- Gazebo-backed evaluation results (the committed runs are explicit scripted fixtures)
 
 Each unbuilt piece has a frozen contract. You can build one without waiting for the others.
 
@@ -77,6 +80,22 @@ Once Gazebo integration lands:
 make sim              # start world + arm + camera
 make demo             # full run, fixed script
 ```
+
+Task dashboard, no network or GPU required:
+
+```bash
+make dashboard
+# open http://127.0.0.1:8080
+```
+
+Container path:
+
+```bash
+docker compose up --build
+curl http://127.0.0.1:8080/healthz
+```
+
+The dashboard API is read-only. Every HTTP write method returns `405`; this service contains no ROS, motion, MCU or emergency-stop publisher.
 
 ---
 
@@ -186,6 +205,8 @@ Simulation only. Being clear about the boundary is part of the point.
 | Grasp success in Gazebo | Grasp success on real hardware |
 
 Software safe-stop ≠ hardware emergency stop. Gazebo numbers don't transfer to real grippers without re-validation.
+
+Scripted evaluation fixtures also do not prove Gazebo performance. They exercise event ordering, evidence coverage, replay and reporting, and are marked `release_eligible: false`. See [documented fixture failures](docs/evaluation/failure-cases.md) and the [container runbook](docs/deployment/container.md).
 
 ---
 

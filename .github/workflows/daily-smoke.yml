@@ -2,6 +2,7 @@ name: daily-smoke
 
 on:
   schedule:
+    # 每天 UTC 02:00 (北京时间 10:00)
     - cron: '7 2 * * *'
   workflow_dispatch:
 
@@ -17,22 +18,23 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
         with:
           python-version: "3.12"
+          cache: pip
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e ".[dev]"
 
-      - id: checks
-        name: Run full check suite
+      - name: Run full check suite
+        id: checks
+        continue-on-error: true
         run: make check
 
       - name: Report health
         if: always()
         run: |
-          if [ "${{ steps.checks.outcome }}" = "success" ]; then
-            echo "✅ All health checks passed"
-          else
-            echo "❌ Health checks failed — see step above"
+          if [ "${{ steps.checks.outcome }}" != "success" ]; then
+            echo "Health checks failed; see the preceding step."
             exit 1
           fi
+          echo "All health checks passed."

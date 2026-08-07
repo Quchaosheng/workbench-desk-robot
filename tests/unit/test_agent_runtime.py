@@ -14,6 +14,11 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual([step.action.action_type.value for step in plan.steps], ["observe", "grasp", "place"])
         self.assertNotIn("joint", plan.model_dump_json())
 
+    def test_offline_template_plan_needs_no_model_provider(self) -> None:
+        plan = build_template_plan("把红色模块放进托盘")
+        self.assertEqual(plan.model_route, "template")
+        self.assertEqual(plan.planner, "template-v1")
+
 
 if __name__ == "__main__":
     unittest.main()

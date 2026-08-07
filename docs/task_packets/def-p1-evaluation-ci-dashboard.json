@@ -1,0 +1,59 @@
+{
+  "issue": "D4-D7/E5-E8/F1-F6",
+  "human_owner": "Quchaosheng",
+  "objective": "Deliver the reproducible evaluation, offline deployment, and read-only dashboard P1 paths without changing frozen contracts.",
+  "allowed_paths": [
+    "apps/dashboard/**",
+    "services/backend/**",
+    "services/world_model/**",
+    "sim/scenarios/**",
+    "evaluation/**",
+    "tools/**",
+    "tests/**",
+    ".github/workflows/**",
+    ".devcontainer/**",
+    "Dockerfile",
+    "compose.yaml",
+    ".dockerignore",
+    "Makefile",
+    "pyproject.toml",
+    "README.md",
+    "README.zh-CN.md",
+    "docs/architecture/**",
+    "docs/task_packets/**"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "libs/contracts/**"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "hardware/safety/**"
+  ],
+  "acceptance": [
+    "20 safe tasks and 10 dangerous requests are frozen and validated",
+    "12 P1 and 30 P2 scenario manifests validate with deterministic seed hashes",
+    "every evaluation record includes run_id, sequence_no, seed, commit and evidence references",
+    "offline dashboard health and replay APIs return 200 without CUDA or network access",
+    "dashboard renders confirmed, refuted, insufficient-evidence and recovery paths without control access"
+  ],
+  "commands": [
+    "make check",
+    "make evaluation-check",
+    "make dashboard-test",
+    "make demo-offline"
+  ],
+  "evidence": [
+    "unit and API test output",
+    "scenario materialization hashes",
+    "36-run scripted pipeline summary marked non-release",
+    "desktop and mobile dashboard screenshots"
+  ],
+  "stop_conditions": [
+    "frozen interface change is required",
+    "dashboard would need to publish a ROS or hardware control command",
+    "scripted data could be mistaken for physical evaluation evidence",
+    "release credentials or human usability participants are required"
+  ]
+}

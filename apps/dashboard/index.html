@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f3f6f7">
+    <title>Workbench 1 · 任务状态</title>
+    <link rel="stylesheet" href="styles.css">
+    <script defer src="vendor/lucide.min.js"></script>
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <header class="app-header">
+      <a class="brand" href="/" aria-label="Workbench 1 任务状态">
+        <span class="brand-mark"><i data-lucide="bot"></i></span>
+        <span>
+          <strong>Workbench 1</strong>
+          <small>验证优先任务系统</small>
+        </span>
+      </a>
+      <div class="header-status" aria-label="系统连接状态">
+        <span class="connection-dot"></span>
+        <span>本地在线</span>
+        <span class="header-divider"></span>
+        <i data-lucide="shield-check"></i>
+        <span>只读</span>
+      </div>
+    </header>
+
+    <div class="app-shell">
+      <aside class="run-sidebar" aria-label="任务运行列表">
+        <div class="sidebar-heading">
+          <div>
+            <p class="eyebrow">运行记录</p>
+            <h1>任务队列</h1>
+          </div>
+          <span id="run-count" class="count-badge">0</span>
+        </div>
+        <div class="run-filter" role="group" aria-label="运行筛选">
+          <button class="filter-button is-active" type="button" data-filter="all">全部</button>
+          <button class="filter-button" type="button" data-filter="attention">需关注</button>
+          <button class="filter-button" type="button" data-filter="confirmed">已确认</button>
+        </div>
+        <div id="run-list" class="run-list"></div>
+        <div class="sidebar-foot">
+          <span><i data-lucide="database"></i>事件源</span>
+          <strong>本地 JSONL</strong>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <div class="workspace-head">
+          <div class="view-tabs" role="tablist" aria-label="任务视图">
+            <button class="view-tab is-active" id="overview-tab" type="button" role="tab" aria-selected="true" data-view="overview">
+              <i data-lucide="layout-dashboard"></i><span>实时状态</span>
+            </button>
+            <button class="view-tab" id="replay-tab" type="button" role="tab" aria-selected="false" data-view="replay">
+              <i data-lucide="history"></i><span>事件回放</span>
+            </button>
+          </div>
+          <div class="run-identity">
+            <span id="run-mode">--</span>
+            <code id="run-id">--</code>
+          </div>
+        </div>
+
+        <section class="status-strip" aria-label="任务摘要">
+          <div class="status-cell">
+            <span>任务状态</span>
+            <strong id="task-status">--</strong>
+          </div>
+          <div class="status-cell">
+            <span>表达状态</span>
+            <strong id="expression-label">--</strong>
+          </div>
+          <div class="status-cell">
+            <span>证据引用</span>
+            <strong id="evidence-count">0</strong>
+          </div>
+          <div class="status-cell">
+            <span>恢复次数</span>
+            <strong id="recovery-count">0</strong>
+          </div>
+        </section>
+
+        <section id="attention-banner" class="attention-banner" hidden>
+          <i data-lucide="scan-search"></i>
+          <div>
+            <strong>暂时无法确认任务结果</strong>
+            <p id="attention-copy"></p>
+          </div>
+          <span class="attention-state">UNCERTAIN</span>
+        </section>
+
+        <div id="overview-view" class="view-panel" role="tabpanel" aria-labelledby="overview-tab">
+          <section class="task-band">
+            <div class="task-primary">
+              <p class="eyebrow">当前目标</p>
+              <h2 id="task-goal">正在载入任务</h2>
+              <div class="task-meta">
+                <span><i data-lucide="list-checks"></i><span id="current-step">--</span></span>
+                <span><i data-lucide="clock-3"></i><time id="updated-at">--</time></span>
+              </div>
+              <div class="progress-row">
+                <div class="progress-label"><span>事件进度</span><strong id="progress-value">0%</strong></div>
+                <div class="progress-track"><span id="progress-bar"></span></div>
+              </div>
+            </div>
+            <div id="expression-panel" class="expression-panel expression-idle" aria-live="polite">
+              <div class="expression-screen" aria-hidden="true">
+                <span class="face-eye face-eye-left"></span>
+                <span class="face-eye face-eye-right"></span>
+                <span class="face-mouth"></span>
+              </div>
+              <div>
+                <span>系统表达</span>
+                <strong id="expression-name">待命</strong>
+              </div>
+            </div>
+          </section>
+
+          <div class="dashboard-grid">
+            <section class="panel timeline-panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">执行轨迹</p>
+                  <h2>事件时间线</h2>
+                </div>
+                <span id="event-count" class="quiet-count">0 个事件</span>
+              </div>
+              <ol id="overview-timeline" class="timeline"></ol>
+            </section>
+
+            <div class="side-stack">
+              <section class="panel evidence-panel">
+                <div class="panel-head">
+                  <div>
+                    <p class="eyebrow">工作区快照</p>
+                    <h2>世界状态</h2>
+                  </div>
+                  <span id="confidence-badge" class="confidence-badge">--</span>
+                </div>
+                <div class="workbench-map" aria-label="红色模块与托盘位置俯视图">
+                  <span class="map-camera"><i data-lucide="camera"></i></span>
+                  <span class="map-tray">托盘</span>
+                  <span id="map-block" class="map-block">红块</span>
+                  <span class="map-arm"><i data-lucide="construction"></i></span>
+                </div>
+                <div id="evidence-list" class="evidence-list"></div>
+              </section>
+
+              <section class="panel safety-panel">
+                <div class="panel-head">
+                  <div>
+                    <p class="eyebrow">边界状态</p>
+                    <h2>安全与控制</h2>
+                  </div>
+                  <i data-lucide="shield"></i>
+                </div>
+                <dl class="signal-list">
+                  <div><dt>界面权限</dt><dd class="signal-ok">只读</dd></div>
+                  <div><dt>ROS 控制</dt><dd>未连接</dd></div>
+                  <div><dt>硬件急停</dt><dd>仿真未接入</dd></div>
+                  <div><dt>完成判定</dt><dd class="signal-ok">验证器</dd></div>
+                </dl>
+              </section>
+            </div>
+          </div>
+        </div>
+
+        <div id="replay-view" class="view-panel" role="tabpanel" aria-labelledby="replay-tab" hidden>
+          <section class="replay-toolbar" aria-label="回放控制">
+            <div class="replay-controls">
+              <button id="replay-start" class="icon-button" type="button" title="回到开始" aria-label="回到开始"><i data-lucide="skip-back"></i></button>
+              <button id="replay-prev" class="icon-button" type="button" title="上一个事件" aria-label="上一个事件"><i data-lucide="step-back"></i></button>
+              <button id="replay-play" class="play-button" type="button"><i data-lucide="play"></i><span>播放</span></button>
+              <button id="replay-next" class="icon-button" type="button" title="下一个事件" aria-label="下一个事件"><i data-lucide="step-forward"></i></button>
+              <button id="replay-end" class="icon-button" type="button" title="跳到末尾" aria-label="跳到末尾"><i data-lucide="skip-forward"></i></button>
+            </div>
+            <div class="replay-position">
+              <span id="replay-position">0 / 0</span>
+              <input id="replay-range" type="range" min="0" max="0" value="0" aria-label="回放事件位置">
+            </div>
+            <label class="speed-control">速度
+              <select id="replay-speed">
+                <option value="1200">0.5x</option>
+                <option value="700" selected>1x</option>
+                <option value="350">2x</option>
+              </select>
+            </label>
+          </section>
+
+          <div class="replay-grid">
+            <section class="panel replay-snapshot">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">当前帧</p>
+                  <h2 id="replay-event-title">等待事件</h2>
+                </div>
+                <code id="replay-sequence">#--</code>
+              </div>
+              <div id="replay-event-body" class="event-payload"></div>
+            </section>
+            <section class="panel replay-timeline-panel">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow">逐步重现</p>
+                  <h2>有序事件流</h2>
+                </div>
+                <span class="quiet-count">sequence_no</span>
+              </div>
+              <ol id="replay-timeline" class="timeline compact"></ol>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <dialog id="evidence-dialog" class="evidence-dialog">
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow">证据详情</p>
+          <h2 id="evidence-title">证据</h2>
+        </div>
+        <button id="evidence-close" class="icon-button" type="button" title="关闭" aria-label="关闭"><i data-lucide="x"></i></button>
+      </div>
+      <div id="evidence-visual" class="evidence-visual"></div>
+      <dl id="evidence-meta" class="evidence-meta"></dl>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>

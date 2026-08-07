@@ -1,0 +1,1 @@
+{"scenario_id":"path-blocked-001","seed":201,"task_id":"task-place-red-block","world_version":"WorkbenchSim-v0.2","fault_type":"occlusion","scene_variant":"path_blocked","timeout_s":120,"oracle_allowed":false}

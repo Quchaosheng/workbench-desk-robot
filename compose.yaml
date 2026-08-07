@@ -1,0 +1,21 @@
+services:
+  dashboard:
+    build:
+      context: .
+    image: workbench-1:local
+    environment:
+      WORKBENCH_OFFLINE: "1"
+    ports:
+      - "127.0.0.1:8080:8080"
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3

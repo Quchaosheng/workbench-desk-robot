@@ -1,0 +1,12 @@
+code,category,description,disposition_owner
+ELEC-OPEN,electrical,Open circuit or incomplete connection,Electrical engineering
+ELEC-SHORT,electrical,Short circuit or isolation failure,Electrical engineering and safety
+PWR-RAIL,power,Rail voltage ripple or sequence out of limit,Electrical engineering
+CAN-COMM,communications,CAN communication or termination failure,Electrical engineering
+SAFE-ESTOP,safety,E-stop trip latch or reset failure,Safety owner
+MECH-FIT,mechanical,Fit interference gap or flush out of limit,Mechanical engineering
+MECH-TORQUE,mechanical,Missing incorrect or unrecorded torque,Manufacturing engineering
+HARNESS,harness,Pinout latch strain relief or routing failure,Electrical and manufacturing
+COSMETIC,appearance,Scratch contamination colour or surface defect,Quality
+PACK,packaging,Incorrect protection contents label or carton,Manufacturing engineering
+TRACE,traceability,Missing lot serial revision calibration or evidence record,Quality

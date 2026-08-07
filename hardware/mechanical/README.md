@@ -17,7 +17,14 @@ newer is installed it also regenerates the solid STEP file; otherwise the checke
 STEP remains unchanged.
 
 - `generated/enclosure.step`: AP203 STEP envelope for supplier exchange.
+- `generated/desk_robot_assembly.step`: seven-solid assembly.
+- `generated/desk_robot_exploded.step`: exploded assembly for work instructions.
+- `generated/parts/*.step`: shell, chassis, tray, display bracket, bumper, and motor bracket.
+- `generated/drawings/general-arrangement.svg`: dimensioned overall drawing.
+- `generated/drawings/thermal-flow.svg`: inlet, heat source, conduction and outlet path.
 - `generated/analysis.json`: mass, centre of gravity, tip angle, drop energy, and clearances.
+- `generated/drop-screening.json`: equivalent-static impact screen and acceptance limits.
+- `generated/assembly-sequence.json`: fastener and torque-controlled assembly order.
 - `generated/bom.csv`: mechanical material and standard-parts BOM.
 
 Open `cad/desk_robot.scad` in OpenSCAD for the detailed, parameterized assembly.
@@ -41,7 +48,7 @@ remain controlled by the injection-moulding supplier after DFM review.
 
 ## Release status
 
-MECH1-10 and MECH15 have design evidence in this package. MECH11-14 and MECH16
-require the actual prototype, drop video, interference scan, toolmaker data, and
-approved production BOM. These are deliberately marked `HOLD` in
-`verification-matrix.md`; generated analysis is not a substitute for a physical test.
+MECH1-10 and MECH15 have reproducible design evidence in this package. MECH11-14
+and MECH16 have controlled execution/acceptance definitions but require the actual
+prototype, drop video, fit inspection, toolmaker data, and approved production BOM.
+Generated analysis is not represented as physical test evidence.

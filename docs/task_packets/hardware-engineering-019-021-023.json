@@ -20,6 +20,9 @@
   "commands": [
     "python hardware/mechanical/tools/generate_artifacts.py",
     "python hardware/pcb/tools/electrical_checks.py",
+    "<kicad>/bin/python hardware/pcb/tools/generate_kicad_board.py",
+    "python hardware/pcb/tools/export_fabrication.py",
+    "python hardware/manufacturing/tools/validate_route.py",
     "python -m unittest discover -s tests/hardware -v"
   ],
   "evidence": [

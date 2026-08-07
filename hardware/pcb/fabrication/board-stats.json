@@ -1,0 +1,81 @@
+{
+  "metadata": {
+    "date": "2026-08-07T15:51:01",
+    "generator": "KiCad 10.0.5",
+    "project": "controller",
+    "board_name": "controller"
+  },
+  "board": {
+    "has_outline": true,
+    "width": "160.0000 mm",
+    "height": "100.0000 mm",
+    "area": "16000.00 mm²",
+    "front_component_density": "2.41",
+    "back_component_density": "2.41",
+    "front_copper_area": "637.03 mm²",
+    "back_copper_area": "1391.356 mm²",
+    "min_track_clearance": "64.1053 mm",
+    "min_track_width": "0.3000 mm",
+    "min_drill_diameter": "1.1000 mm",
+    "board_thickness": "1.6000 mm",
+    "front_footprint_area": "384.897 mm²",
+    "back_footprint_area": "384.897 mm²",
+    "front_footprint_density": "2.41",
+    "back_footprint_density": "2.41"
+  },
+  "pads": {
+    "通孔": 58,
+    "贴片": 0,
+    "连接器": 0,
+    "非电镀孔_(npth)": 4,
+    "半孔": 0,
+    "压接": 0
+  },
+  "vias": {
+    "": 0
+  },
+  "components": {
+    "直插_(tht)": {
+      "front": 0,
+      "back": 0,
+      "total": 0
+    },
+    "贴片": {
+      "front": 0,
+      "back": 0,
+      "total": 0
+    },
+    "未指定": {
+      "front": 17,
+      "back": 0,
+      "total": 17
+    },
+    "total": {
+      "front": 17,
+      "back": 0,
+      "total": 17
+    }
+  },
+  "drill_holes": [
+    {
+      "count": 58,
+      "shape": "圆形",
+      "x_size": "1.1000 mm",
+      "y_size": "1.1000 mm",
+      "plated": true,
+      "source": "焊盘",
+      "start_layer": "F.Cu",
+      "stop_layer": "B.Cu"
+    },
+    {
+      "count": 4,
+      "shape": "圆形",
+      "x_size": "3.2000 mm",
+      "y_size": "3.2000 mm",
+      "plated": false,
+      "source": "焊盘",
+      "start_layer": "N/A",
+      "stop_layer": "N/A"
+    }
+  ]
+}

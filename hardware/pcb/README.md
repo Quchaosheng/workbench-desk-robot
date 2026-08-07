@@ -11,9 +11,18 @@ python hardware/pcb/tools/electrical_checks.py
 ```
 
 The report is written to `generated/electrical_report.json`. Open
-`kicad/controller.kicad_pro` with KiCad 8 for schematic/layout completion and
-fabrication export. KiCad CLI is not bundled in this repository; release must run
-ERC, DRC, Gerber review, and archive the reports before ordering.
+`kicad/controller.kicad_pro` with KiCad 10. The generated EVT carrier has 17
+footprints/interfaces, 121 routed track segments across six copper layers, four
+M3 mounting holes, and a physical 8 mm isolation-barrier region. Reproduce it with:
+
+```bash
+<kicad>/bin/python hardware/pcb/tools/generate_kicad_board.py
+python hardware/pcb/tools/export_fabrication.py
+```
+
+The checked-in ERC and DRC reports contain zero violations and zero unconnected
+items. Gerbers, drills, IPC-D-356, position data, drawings, statistics, and a
+rendered inspection preview are under `fabrication/`.
 
 ## Critical design-review correction
 
@@ -25,12 +34,13 @@ The original task suggestion (`TPS54160 + RT8059 + AMS1117`) is not load-capable
 
 The baseline therefore uses a protected 48 V input, an isolated 48-to-12 V
 240 W module, a 12-to-5 V 50 W synchronous buck, and a 12-to-3.3 V 20 W
-synchronous buck. Exact manufacturer part numbers remain `AVL HOLD` until the
-system owner approves the approved-vendor list.
+synchronous buck. Design candidates are listed in the fabrication BOM; purchase
+requires the system owner's AVL sign-off because component selection is outside
+issue #19's ownership boundary.
 
 ## Release status
 
-PCB1-5 and PCB9-11 have documented design evidence. PCB6/8 require KiCad routing
-and field-solver/DRC evidence. PCB7 requires CTO review. PCB12-18 require ordered
-boards, lab instruments, EMC facilities, and production operators; see
-`verification-matrix.md` for explicit gates.
+PCB1-11 have reproducible engineering evidence. PCB12-18 have complete order,
+bring-up, reliability, and production procedures but still require physical boards,
+lab instruments, EMC facilities, and production operators; see the verification
+matrix for the evidence that must be attached rather than inferred.

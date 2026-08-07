@@ -1,0 +1,9 @@
+input,unit,value,evidence_source
+direct_material,CNY/unit,,purchase orders
+touch_minutes,min/unit,103,validated route baseline
+burdened_labor_rate,CNY/hour,,finance approved rate
+fixture_rate,CNY/hour,,depreciation and calibration
+first_pass_yield,fraction,,20-unit pilot
+packaging,CNY/unit,,approved supplier quote
+freight,CNY/unit,,route-specific quote
+warranty_reserve,CNY/unit,,quality/finance estimate

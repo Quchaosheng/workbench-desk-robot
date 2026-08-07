@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="650" viewBox="0 0 1000 650">
+<style>text{font-family:Arial,sans-serif}.c{fill:#d7ccc8;stroke:#4e342e;stroke-width:4}.f{fill:#bbdefb;stroke:#1565c0;stroke-width:3}</style>
+<text x="35" y="45" font-size="28" font-weight="bold">Workbench-1 Transit Pack - REV A</text>
+<rect class="c" x="160" y="100" width="680" height="470"/><rect class="f" x="220" y="160" width="560" height="350" rx="35"/>
+<rect x="290" y="200" width="420" height="270" rx="25" fill="#eceff1" stroke="#263238" stroke-width="3"/>
+<text x="385" y="350" font-size="24">Robot envelope</text><text x="230" y="610" font-size="20">Double-wall carton; >=50 mm EPE/EPP all faces; display guard; wheel restraints</text>
+</svg>

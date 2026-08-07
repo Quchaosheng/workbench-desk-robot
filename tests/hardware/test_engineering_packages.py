@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import importlib.util
 import json
+import re
 import unittest
 from pathlib import Path
 
@@ -31,6 +32,15 @@ class MechanicalPackageTests(unittest.TestCase):
         self.assertIn("END-ISO-10303-21;", step)
         self.assertIn("MANIFOLD_SOLID_BREP", step)
 
+    def test_assembly_parts_drawings_and_drop_screen_are_present(self) -> None:
+        generated = ROOT / "hardware/mechanical/generated"
+        self.assertGreater((generated / "desk_robot_assembly.step").stat().st_size, 100_000)
+        self.assertGreater((generated / "desk_robot_exploded.step").stat().st_size, 100_000)
+        self.assertEqual(len(list((generated / "parts").glob("*.step"))), 6)
+        self.assertTrue((generated / "drawings/general-arrangement.svg").exists())
+        screening = json.loads((generated / "drop-screening.json").read_text(encoding="utf-8"))
+        self.assertEqual(screening["acceptance"]["peak_deceleration_g"], 35)
+
 
 class PcbPackageTests(unittest.TestCase):
     def test_power_budget_and_protection_checks_pass(self) -> None:
@@ -46,10 +56,30 @@ class PcbPackageTests(unittest.TestCase):
         self.assertGreaterEqual(len(rows), 10)
         self.assertTrue(all(row["keying"] in {"mandatory", "polarized", "red keyed", "n/a"} for row in rows))
 
-    def test_board_declares_six_copper_layers_and_hold_marking(self) -> None:
+    def test_board_declares_six_copper_layers_and_real_footprints(self) -> None:
         board = (ROOT / "hardware/pcb/kicad/controller.kicad_pcb").read_text(encoding="utf-8")
-        self.assertEqual(board.count('.Cu"'), 6)
-        self.assertIn("NOT FOR FABRICATION", board)
+        copper_layers = re.findall(r'^\s*\(\d+ "(?:F|B|In\d+)\.Cu" signal\)$', board, flags=re.MULTILINE)
+        self.assertEqual(len(copper_layers), 6)
+        self.assertGreaterEqual(board.count("(footprint "), 17)
+
+    def test_kicad_cli_release_reports_are_clean_and_fabrication_exists(self) -> None:
+        pcb = ROOT / "hardware/pcb"
+        drc = (pcb / "generated/drc.rpt").read_text(encoding="utf-8")
+        erc = (pcb / "generated/erc.rpt").read_text(encoding="utf-8")
+        self.assertIn("Found 0 DRC violations", drc)
+        self.assertIn("Found 0 unconnected pads", drc)
+        self.assertIn("0  Errors 0  Warnings", erc)
+        gerbers = list((pcb / "fabrication/gerbers").glob("controller-*"))
+        self.assertGreaterEqual(len(gerbers), 15)
+        self.assertTrue((pcb / "fabrication/controller.d356").exists())
+
+    def test_project_enforces_documented_dfm_minimums(self) -> None:
+        project = json.loads((ROOT / "hardware/pcb/kicad/controller.kicad_pro").read_text(encoding="utf-8"))
+        rules = project["board"]["design_settings"]["rules"]
+        self.assertEqual(rules["min_clearance"], 0.15)
+        self.assertEqual(rules["min_track_width"], 0.15)
+        self.assertEqual(rules["min_through_hole_diameter"], 0.3)
+        self.assertEqual(rules["min_via_annular_width"], 0.15)
 
 
 class ManufacturingPackageTests(unittest.TestCase):
@@ -63,6 +93,16 @@ class ManufacturingPackageTests(unittest.TestCase):
         pilot = (ROOT / "hardware/manufacturing/pilot-and-release.md").read_text(encoding="utf-8")
         self.assertIn("NOT BUILT", pilot)
         self.assertIn("NO-GO", pilot)
+
+    def test_generated_pilot_has_twenty_serials_and_controlled_drawings(self) -> None:
+        generated = ROOT / "hardware/manufacturing/generated"
+        with (generated / "pilot-log.csv").open(newline="", encoding="utf-8") as handle:
+            rows = list(csv.DictReader(handle))
+        self.assertEqual(len(rows), 20)
+        self.assertTrue(all(row["final_result"] == "NOT_BUILT" for row in rows))
+        self.assertTrue((generated / "line-layout.svg").exists())
+        self.assertTrue((generated / "fixture-drawings.svg").exists())
+        self.assertTrue((generated / "packaging-drawing.svg").exists())
 
 
 class TaskPacketTests(unittest.TestCase):

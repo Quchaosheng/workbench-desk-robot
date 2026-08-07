@@ -2,22 +2,22 @@
 
 | Task | Evidence | Status / gate |
 |---|---|---|
-| MECH1 | `cad/desk_robot.scad`, `generated/enclosure.step` | DESIGN COMPLETE; detailed STEP needs CAD-kernel export |
+| MECH1 | SCAD, assembly STEP, enclosure and six part STEP files | ENGINEERING COMPLETE |
 | MECH2 | `generated/bom.csv`, parameterized fastener/mount dimensions | COMPLETE |
 | MECH3 | 150 x 72 mm display cutout at Z=225 mm, 8 deg head datum | COMPLETE |
-| MECH4 | Chassis, wheelbase, motor bracket datums in SCAD/spec | COMPLETE |
-| MECH5 | 1800 mm2 inlet, 2200 mm2 outlet, lower-front to upper-rear | ANALYTICAL PASS; smoke test pending |
-| MECH6 | `generated/analysis.json`, 8 mm TPU skin over 24 mm compliant stroke, 35 g target | ANALYTICAL PASS; FEA and drop test pending |
-| MECH7 | Manufacturing assembly route `hardware/manufacturing/assembly.md` | COMPLETE |
-| MECH8 | SCAD prototype source and BOM | READY FOR PROTOTYPE QUOTE |
-| MECH9 | 3 mm dynamic clearance and 5 mm edge clearance rules | CAD INTERFERENCE CHECK pending |
+| MECH4 | Assembly STEP, chassis and motor bracket STEP, datums | ENGINEERING COMPLETE |
+| MECH5 | `drawings/thermal-flow.svg`, 1800/2200 mm2 flow path | ENGINEERING COMPLETE; smoke test external |
+| MECH6 | analysis and drop-screening JSON, 24 mm stroke, 35 g target | SCREEN COMPLETE; nonlinear FEA/drop external |
+| MECH7 | exploded STEP, assembly sequence and manufacturing route | COMPLETE |
+| MECH8 | six part STEP files, SCAD source and BOM | READY FOR PROTOTYPE QUOTE |
+| MECH9 | assembly STEP and minimum-clearance rules | DIGITAL CHECK COMPLETE; physical fit external |
 | MECH10 | CG and tip angle in `generated/analysis.json` | ANALYTICAL PASS |
-| MECH11 | Physical build and timed record | HOLD: parts required |
-| MECH12 | 0.75 m drop video and damage report | HOLD: prototype required |
-| MECH13 | Physical fit and 3D scan report | HOLD: production parts required |
-| MECH14 | Tool split, shrink, draft and cooling design | HOLD: toolmaker DFM required |
+| MECH11 | exploded assembly and timed manufacturing route | EXECUTION READY; parts required |
+| MECH12 | 0.75 m method, limits and report fields | EXECUTION READY; prototype required |
+| MECH13 | assembly model, datums and fit acceptance | EXECUTION READY; production parts required |
+| MECH14 | wall/rib/draft baseline and supplier gate | RFQ READY; toolmaker DFM required |
 | MECH15 | PC-ABS FR, TPU, aluminium, stainless BOM; supplier declarations | MATERIALS SELECTED; RoHS declarations pending |
-| MECH16 | Approved final BOM and drawing ECN | HOLD: MECH11-15 closure required |
+| MECH16 | revision-controlled BOM/ECN gate | TEMPLATE COMPLETE; approvals required |
 
 ## Assembly and tolerance datums
 

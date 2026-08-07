@@ -1,0 +1,7 @@
+layer,copper_oz,dielectric_to_next_mm,function,impedance_control
+F.Cu,2,0.18,components and high-current input,100ohm CAN only
+In1.Cu,1,0.20,ground and CANL reference,no
+In2.Cu,2,0.42,12V isolated power,no
+In3.Cu,2,0.42,5V Jetson power,no
+In4.Cu,1,0.20,3.3V logic power,no
+B.Cu,2,0.18,ground and low-speed return,no

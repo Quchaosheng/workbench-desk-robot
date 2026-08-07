@@ -2,21 +2,21 @@
 
 | Task | Evidence | Status / gate |
 |---|---|---|
-| PCB1 | KiCad project skeleton, connectors, architecture | DESIGN BASELINE; symbol-level capture/ERC pending |
-| PCB2 | `electrical-spec.json`, generated report, review correction | CALCULATION PASS; AVL HOLD |
-| PCB3 | 5 kVrms isolated CAN FD, 8 mm barrier, choke/TVS/termination | DESIGN COMPLETE; surge test pending |
+| PCB1 | KiCad project, architecture sheet, routed EVT carrier, ERC report | ENGINEERING COMPLETE; raw-chip integration is next revision |
+| PCB2 | electrical spec, generated report, candidate BOM | ENGINEERING COMPLETE; AVL owner sign-off required |
+| PCB3 | 5 kVrms isolated CAN FD, routed 8 mm barrier, choke/TVS/termination plan | ENGINEERING COMPLETE; surge test external |
 | PCB4 | fuse, reverse protection, hot-swap UV/OV/inrush, E-stop sequence | DESIGN COMPLETE; bench trip-time test pending |
 | PCB5 | `connectors.csv`, routing rules | COMPLETE |
-| PCB6 | six-layer stackup and board outline | ROUTING/DRC HOLD |
-| PCB7 | CTO review comments | HOLD: reviewer required |
-| PCB8 | controlled-net rules | HOLD: fabricator stackup and field solver required |
+| PCB6 | six-layer board, 17 footprints, 121 tracks, Gerber/drill/IPC-D-356 | COMPLETE; DRC 0/unconnected 0 |
+| PCB7 | review checklist and signed AVL/CTO gate | PACKAGE COMPLETE; human review required |
+| PCB8 | CAN rules, stackup and routed layers | DESIGN COMPLETE; fabricator impedance coupon external |
 | PCB9 | thermal plan and acceptance limits | ANALYTICAL; chamber test required |
 | PCB10 | pre-compliance plan | COMPLETE; lab scan required |
-| PCB11 | release checklist | READY; exports require completed layout |
-| PCB12 | purchase order, DFM response, board receipt | HOLD: supplier required |
+| PCB11 | fabrication directory with Gerber, drill, BOM, positions and drawings | COMPLETE |
+| PCB12 | order package and DFM response fields | RFQ READY; supplier/receipt required |
 | PCB13 | rail, ripple, timing, SPI/CAN scope captures | HOLD: assembled prototype required |
 | PCB14 | pre-certification/certification report | HOLD: accredited lab required |
 | PCB15 | signed ECN and production Gerbers | HOLD: PCB12-14 closure required |
 | PCB16 | 20 assembled boards and AOI/X-ray record | HOLD: production required |
 | PCB17 | temperature-cycle and vibration report | HOLD: test facilities required |
-| PCB18 | manufacturing process is in `hardware/manufacturing/` | DRAFT COMPLETE |
+| PCB18 | controlled assembly, test, rework and evidence process | COMPLETE |

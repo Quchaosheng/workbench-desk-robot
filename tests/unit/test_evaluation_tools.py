@@ -18,7 +18,7 @@ from run_evaluation import (
     write_jsonl,
 )
 from scenario_tools import canonical_hash, materialize_scenario
-from validate_golden_set import validate
+from validate_golden_set import validate, validate_diverse
 
 
 class ScenarioToolTests(unittest.TestCase):
@@ -32,6 +32,8 @@ class ScenarioToolTests(unittest.TestCase):
     def test_golden_set_counts_and_fail_closed_policy(self) -> None:
         payload = json.loads((ROOT / "evaluation" / "golden-set-v0.1.json").read_text(encoding="utf-8"))
         self.assertEqual(validate(payload), [])
+        diverse = json.loads((ROOT / "evaluation" / "golden-set-v0.2.json").read_text(encoding="utf-8"))
+        self.assertEqual(validate_diverse(diverse), [])
 
 
 class EvaluationPipelineTests(unittest.TestCase):
@@ -45,17 +47,41 @@ class EvaluationPipelineTests(unittest.TestCase):
         verification = [event for event in events if event["event_type"] == "verification"][-1]
         self.assertEqual(verification["payload"]["status"], "insufficient_evidence")
         self.assertTrue(verification["payload"]["evidence_refs"])
+        self.assertEqual(
+            verification["payload"]["evaluated_conditions"],
+            verification["payload"]["required_conditions"],
+        )
+        self.assertNotEqual(
+            verification["payload"]["satisfied_conditions"],
+            verification["payload"]["required_conditions"],
+        )
+
+    def test_multi_object_scenario_generates_three_entity_task_evidence(self) -> None:
+        manifest = json.loads(
+            (ROOT / "sim" / "scenarios" / "expanded" / "multi-object-003.json").read_text(encoding="utf-8")
+        )
+        events = scripted_events("v-test", manifest, "abc123", 1000)
+        observations = [event for event in events if event["event_type"] == "observation"]
+        self.assertEqual(
+            {event["payload"]["entity_id"] for event in observations},
+            {"red_block", "blue_cylinder", "green_gear"},
+        )
+        final = [event for event in events if event["event_type"] == "verification"][-1]
+        self.assertEqual(final["payload"]["task_id"], "task-kit-three-parts")
+        self.assertEqual(len(final["payload"]["required_conditions"]), 4)
 
     def test_metrics_keep_unaudited_false_completion_unknown(self) -> None:
-        manifest = json.loads((ROOT / "sim" / "scenarios" / "frozen" / "normal-001.json").read_text(encoding="utf-8"))
+        manifest = json.loads(
+            (ROOT / "sim" / "scenarios" / "frozen" / "occlusion-001.json").read_text(encoding="utf-8")
+        )
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             version_dir = root / "v-test"
             version_dir.mkdir()
             events = scripted_events("v-test", manifest, "abc123", 1000)
-            log_path = version_dir / "normal-001.jsonl"
+            log_path = version_dir / "occlusion-001.jsonl"
             write_jsonl(log_path, events)
-            validate_event_log(log_path, "v-test--normal-001")
+            validate_event_log(log_path, "v-test--occlusion-001")
             (root / "summary.json").write_text(
                 json.dumps({"runner": "scripted", "release_eligible": False}),
                 encoding="utf-8",
@@ -64,6 +90,33 @@ class EvaluationPipelineTests(unittest.TestCase):
         self.assertIsNone(metrics["false_completion_count"])
         self.assertFalse(metrics["release_eligible"])
         self.assertEqual(metrics["evidence_coverage"], 1.0)
+        self.assertEqual(metrics["task_family_count"], 1)
+        self.assertEqual(metrics["complex_task_rate"], 0.0)
+        self.assertEqual(metrics["goal_condition_coverage"], 1.0)
+
+    def test_metrics_expose_task_diversity_and_multi_entity_complexity(self) -> None:
+        manifests = [
+            json.loads((ROOT / "sim" / "scenarios" / "frozen" / "normal-001.json").read_text(encoding="utf-8")),
+            json.loads((ROOT / "sim" / "scenarios" / "expanded" / "multi-object-003.json").read_text(encoding="utf-8")),
+        ]
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            version_dir = root / "v-test"
+            version_dir.mkdir()
+            for manifest in manifests:
+                write_jsonl(
+                    version_dir / f"{manifest['scenario_id']}.jsonl",
+                    scripted_events("v-test", manifest, "abc123", 1000),
+                )
+            (root / "summary.json").write_text(
+                json.dumps({"runner": "scripted", "release_eligible": False}),
+                encoding="utf-8",
+            )
+            metrics = collect(version_dir)
+        self.assertEqual(metrics["task_family_count"], 2)
+        self.assertEqual(metrics["complex_task_rate"], 0.5)
+        self.assertEqual(metrics["mean_observed_entities"], 2.0)
+        self.assertEqual(metrics["task_family_distribution"]["task-kit-three-parts"], 1)
 
     def test_duplicate_or_unsafe_run_inputs_are_rejected_before_execution(self) -> None:
         manifest = json.loads((ROOT / "sim" / "scenarios" / "frozen" / "normal-001.json").read_text(encoding="utf-8"))

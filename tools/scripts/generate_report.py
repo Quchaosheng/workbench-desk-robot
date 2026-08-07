@@ -24,6 +24,10 @@ def percent(value: float | None) -> str:
     return "无数据" if value is None else f"{value:.1%}"
 
 
+def decimal(value: float | None) -> str:
+    return "无数据" if value is None else f"{value:.2f}"
+
+
 def gate(mark: bool | None) -> str:
     if mark is None:
         return "待审核"
@@ -48,6 +52,12 @@ def release_reasons(metrics: dict[str, Any]) -> list[str]:
         reasons.append("任务 P95 缺失或未低于 120 秒")
     if metrics.get("evidence_coverage") != 1.0:
         reasons.append("验证证据覆盖率不是 100%")
+    if metrics.get("task_family_count", 0) < 4:
+        reasons.append("评测任务族少于 4 类")
+    if metrics.get("complex_task_rate", 0.0) < 0.5:
+        reasons.append("复杂任务占比低于 50%")
+    if metrics.get("goal_condition_coverage") != 1.0:
+        reasons.append("目标条件覆盖率不是 100%")
     return reasons
 
 
@@ -96,6 +106,10 @@ def generate(metrics: list[dict[str, Any]], labels: list[str], commit: str, seed
 {row('验证证据覆盖率', 'evidence_coverage', percent, '100%')}
 {row('state hash 一致性', 'state_hash_consistency', percent, '100%')}
 {row('回放成功率', 'replay_success_rate', percent, '>= 95%')}
+{row('任务族数量', 'task_family_count', count, '>= 4')}
+{row('复杂任务占比', 'complex_task_rate', percent, '>= 50%')}
+{row('平均观测实体数', 'mean_observed_entities', decimal, '>= 2')}
+{row('目标条件覆盖率', 'goal_condition_coverage', percent, '100%')}
 
 ## 数据资格
 

@@ -7,4 +7,7 @@ Verifier checks:
 - No extra parts
 - Each part has sufficient detection confidence
 
-Not implemented yet. Waiting for v0.2.
+The v0.2 offline template now emits independent observe/grasp/place branches
+for `red_block`, `blue_cylinder`, and `green_gear`. The verifier is
+order-independent and fails closed when a required part is missing, an extra
+part is in the tray, confidence is below threshold, or evidence is absent.

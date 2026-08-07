@@ -2,7 +2,7 @@ import json
 from collections import Counter
 
 from _paths import ROOT, enable_local_packages
-from scenario_tools import FROZEN_DISTRIBUTION, P2_FAULT_TYPES, P2_SCENE_VARIANTS, materialize_scenario
+from scenario_tools import FROZEN_DISTRIBUTION, P2_FAULT_TYPES, P2_SCENE_VARIANTS, SCENE_TASKS, materialize_scenario
 
 enable_local_packages()
 
@@ -45,6 +45,13 @@ def main() -> int:
         faults = {manifest["fault_type"] for _, manifest in manifests}
         if not P2_FAULT_TYPES.issubset(faults):
             raise RuntimeError(f"P2 fault injection types missing: {sorted(P2_FAULT_TYPES - faults)}")
+        for variant, expected_task_id in SCENE_TASKS.items():
+            variant_manifests = [manifest for manifest in expanded if manifest.get("scene_variant") == variant]
+            if len(variant_manifests) != 6:
+                raise RuntimeError(f"scene variant {variant} must contain 6 scenarios")
+            task_ids = {manifest["task_id"] for manifest in variant_manifests}
+            if task_ids != {expected_task_id}:
+                raise RuntimeError(f"scene variant {variant} must use {expected_task_id}, got {sorted(task_ids)}")
 
     print(
         f"scenario validation passed for {len(frozen)} frozen and {len(expanded)} expanded manifest(s); "

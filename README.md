@@ -18,13 +18,14 @@ Most demos can't tell these apart. This one tries to.
 
 ## What it does
 
-Single arm, table, simulation. You give it a goal in plain text, it:
+Single arm, table, simulation. The red-block task remains a frozen regression baseline; the v0.2 benchmark also covers three-part kitting, multi-workpiece inspection, and obstacle-clearance recovery. You give it a bounded goal in plain text, it:
 
-- Looks at the scene
-- Plans a sequence of actions (observe, grasp, place)
+- Looks at every required entity in the scene
+- Routes the goal to a bounded semantic plan (`observe`, `grasp`, `place`)
 - Executes through MoveIt
-- **Checks afterwards**: is the block actually in the tray?
-- If unsure (camera lost track, low confidence), says "I can't confirm" instead of guessing
+- **Checks afterwards**: are all required goal conditions satisfied, with no extra kit parts?
+- If unsure (camera lost track, low confidence, stale evidence), says "I can't confirm" instead of guessing
+- Re-observes and retries recoverable failures while retaining the failed attempt in replay
 
 The model picks a goal, but cannot send joint positions or velocities. That boundary is enforced by code, not prompts.
 
@@ -35,18 +36,19 @@ The model picks a goal, but cannot send joint positions or velocities. That boun
 **Works today:**
 - Contract definitions (11 JSON schemas)
 - Event store with replay
-- Template planner (no model needed for pick-and-place)
-- Verification logic that outputs "confirmed / refuted / insufficient_evidence"
-- Read-only task dashboard with ordered replay and evidence inspection
+- Template planner for four task families (no model needed)
+- Task-specific verification for placement, exact kit contents, inspection confidence and workspace clearance
+- Read-only multi-entity dashboard with ordered replay, recovery history and evidence inspection
 - Offline container, health endpoints, structured logs and release/SBOM workflow
-- 12 frozen P1 and 30 total P2 scenario manifests with deterministic seed checks
+- 12 frozen v0.1 baselines plus 18 expanded v0.2 scenarios with deterministic seed checks
+- 44 golden task requests across four families plus 22 dangerous requests that must fail closed
 - CI running lint, contracts, evaluation fixtures, offline demo and container smoke checks
 
 **Not built yet:**
 - Gazebo world
 - MoveIt grasp/place
 - Real camera (OpenCV + AprilTag)
-- Natural language → plan (local model)
+- Open-ended natural language → plan (local model; bounded template routing works today)
 - Gazebo-backed evaluation results (the committed runs are explicit scripted fixtures)
 
 Each unbuilt piece has a frozen contract. You can build one without waiting for the others.
@@ -133,7 +135,7 @@ Joint angles, velocities, emergency stop are outside its reach. If it returns so
 
 ## Extending it
 
-The demo is one block and one tray, but nothing locks you into that.
+The one-block demo is the regression floor, not the capability ceiling. The current scripted benchmark already exercises exact three-part kits, evidence-only inspection, and ordered obstacle-clearance recovery behind the same contracts.
 
 **Add a task:** Write a new verifier. The system asks "is claim X true?" — it doesn't care if X is "block in tray" or "cable seated" or "6 screws present."
 
@@ -149,10 +151,10 @@ Rule: new capability arrives as a new implementation behind an existing contract
 
 ## Roadmap
 
-v0.1 is deliberately small so verification can be proven correct before stacking on it.
+v0.1 is deliberately small so verification can be proven correct before stacking on it. v0.2 broadens the offline evaluation surface without pretending scripted evidence is simulator or hardware evidence.
 
-- **v0.1** — one arm, one task, simulation (in progress)
-- **v0.2** — multiple task types, richer failure handling
+- **v0.1** — frozen one-arm, one-task regression baseline
+- **v0.2** — four task families and richer failure handling (scripted pipeline implemented; Gazebo pending)
 - **v0.3** — real hardware behind the same contracts
 - **later** — mobile base (verifier generalizes to nav goals), multi-arm
 
@@ -178,6 +180,9 @@ Numbers v0.1 aims to hit. Ones marked **0** are release blockers.
 | Verified task completion rate | ≥ 80% |
 | Recovery after first failure | ≥ 70% |
 | Task time P95 | < 120s |
+| Evaluated task families | ≥ 4 |
+| Complex-task share | ≥ 50% |
+| Goal-condition coverage | 100% |
 
 | Evidence | Target |
 |---|---|

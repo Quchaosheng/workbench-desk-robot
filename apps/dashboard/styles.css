@@ -914,15 +914,24 @@ svg {
   height: 16px;
 }
 
-.map-tray {
+.map-zones,
+.map-entities {
+  position: absolute;
+  inset: 0;
+}
+
+.map-zone {
   position: absolute;
   z-index: 2;
   top: 48px;
   right: 36px;
   display: grid;
+  box-sizing: border-box;
   width: 104px;
   height: 78px;
-  place-items: center;
+  align-items: start;
+  justify-items: center;
+  padding-top: 6px;
   border: 4px solid #6d7e85;
   border-radius: 7px;
   background: rgba(255, 255, 255, 0.34);
@@ -931,14 +940,41 @@ svg {
   font-weight: 800;
 }
 
-.map-block {
+.map-zone-kit_tray {
+  border-color: #39787e;
+  background: rgba(218, 244, 243, 0.4);
+  color: #285e64;
+}
+
+.map-zone-inspection_area {
+  top: 36px;
+  right: auto;
+  left: 18%;
+  width: 52%;
+  height: 142px;
+  border: 2px dashed #39787e;
+  background: rgba(218, 244, 243, 0.18);
+}
+
+.map-zone-staging_bin {
+  top: auto;
+  right: 26px;
+  bottom: 14px;
+  width: 104px;
+  height: 44px;
+  border-color: #886728;
+  background: rgba(255, 245, 218, 0.42);
+  color: #6f511d;
+}
+
+.map-entity {
   position: absolute;
   z-index: 3;
   top: 58%;
   left: 43%;
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   place-items: center;
   border: 2px solid #812c35;
   border-radius: 5px;
@@ -949,6 +985,36 @@ svg {
   box-shadow: 0 4px 8px rgba(80, 32, 37, 0.2);
   transform: translate(-50%, -50%);
   transition: left 220ms ease, top 220ms ease, opacity 220ms ease;
+}
+
+.map-entity-cylinder {
+  width: 34px;
+  border-color: #285d8a;
+  border-radius: 18px;
+  background: #3e7fb4;
+  box-shadow: inset 0 5px 0 rgba(255, 255, 255, 0.22), 0 4px 8px rgba(31, 70, 100, 0.2);
+}
+
+.map-entity-gear {
+  width: 36px;
+  height: 36px;
+  border-color: #2d6849;
+  border-radius: 50%;
+  background: #3c9363;
+  box-shadow: inset 0 0 0 6px rgba(255, 255, 255, 0.18), 0 4px 8px rgba(36, 90, 61, 0.2);
+}
+
+.map-entity-object {
+  border-color: #53656d;
+  background: #768b93;
+}
+
+.map-empty {
+  position: absolute;
+  top: 57%;
+  left: 39%;
+  color: #65777e;
+  font-size: 10px;
 }
 
 .evidence-list {
@@ -1290,11 +1356,8 @@ svg {
 
 .evidence-visual.camera-frame::before {
   position: absolute;
-  top: 48px;
-  right: 50px;
-  width: 130px;
-  height: 90px;
-  border: 5px solid #687c84;
+  inset: 28px;
+  border: 1px solid rgba(82, 103, 112, 0.3);
   border-radius: 7px;
   background: rgba(255, 255, 255, 0.28);
   content: "";
@@ -1302,14 +1365,16 @@ svg {
 
 .evidence-visual.camera-frame::after {
   position: absolute;
-  top: 81px;
-  right: 95px;
-  width: 40px;
-  height: 40px;
-  border: 2px solid #842c35;
-  border-radius: 5px;
-  background: #ca4b56;
+  top: 50%;
+  right: 28px;
+  left: 28px;
+  height: 1px;
+  background: rgba(82, 103, 112, 0.2);
   content: "";
+}
+
+.evidence-frame-entity {
+  z-index: 2;
 }
 
 .evidence-visual.motion-log {

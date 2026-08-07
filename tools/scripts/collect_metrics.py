@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import json
 import math
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -29,6 +30,11 @@ def verification_statuses(events: list[dict[str, Any]]) -> list[str]:
     return [
         str(event.get("payload", {}).get("status")) for event in events if event.get("event_type") == "verification"
     ]
+
+
+def task_id(events: list[dict[str, Any]]) -> str:
+    accepted = next((event for event in events if event.get("event_type") == "task_accepted"), {})
+    return str(accepted.get("payload", {}).get("task_id", "unknown"))
 
 
 def percentile(values: list[float], quantile: float) -> float | None:
@@ -114,6 +120,38 @@ def collect(run_dir: Path, audit_path: Path | None = None) -> dict[str, Any]:
     )
     stable_hashes = sum(replay_digest(run) == replay_digest(list(reversed(run))) for run in runs.values())
     false_completions, audit_complete, reviewed_by = audit_false_completions(runs, audit_path)
+    run_task_ids = {run_id: task_id(run) for run_id, run in runs.items()}
+    task_family_distribution = Counter(run_task_ids.values())
+    task_family_vtcr = {}
+    for family, family_run_count in sorted(task_family_distribution.items()):
+        family_runs = [run for run_id, run in runs.items() if run_task_ids[run_id] == family]
+        family_verified = sum(verification_statuses(run)[-1] == "confirmed" for run in family_runs)
+        task_family_vtcr[family] = family_verified / family_run_count
+    observed_entities = [
+        len(
+            {
+                event.get("payload", {}).get("entity_id")
+                for event in run
+                if event.get("event_type") == "observation" and event.get("payload", {}).get("entity_id")
+            }
+        )
+        for run in runs.values()
+    ]
+    final_verifications = [
+        [event for event in run if event.get("event_type") == "verification"][-1]
+        for run in runs.values()
+        if any(event.get("event_type") == "verification" for event in run)
+    ]
+    required_condition_count = 0
+    evaluated_condition_count = 0
+    for event in final_verifications:
+        payload = event.get("payload", {})
+        required = payload.get("required_conditions", [])
+        evaluated = payload.get("evaluated_conditions", [])
+        required_set = set(required) if isinstance(required, list) else set()
+        evaluated_set = set(evaluated) if isinstance(evaluated, list) else set()
+        required_condition_count += len(required_set)
+        evaluated_condition_count += len(required_set & evaluated_set)
 
     summary_path = run_dir.parent / "summary.json"
     summary = json.loads(summary_path.read_text(encoding="utf-8")) if summary_path.is_file() else {}
@@ -160,6 +198,14 @@ def collect(run_dir: Path, audit_path: Path | None = None) -> dict[str, Any]:
         ),
         "state_hash_consistency": stable_hashes / len(runs),
         "replay_success_rate": valid_replays / len(runs),
+        "task_family_count": len(task_family_distribution),
+        "task_family_distribution": dict(sorted(task_family_distribution.items())),
+        "task_family_vtcr": task_family_vtcr,
+        "complex_task_rate": sum(family != "task-place-red-block" for family in run_task_ids.values()) / len(runs),
+        "mean_observed_entities": sum(observed_entities) / len(observed_entities) if observed_entities else 0.0,
+        "goal_condition_coverage": (
+            evaluated_condition_count / required_condition_count if required_condition_count else 0.0
+        ),
         "run_count": len(runs),
         "total_events": len(events),
         "run_dir": str(run_dir),

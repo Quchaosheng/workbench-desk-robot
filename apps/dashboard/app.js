@@ -55,6 +55,22 @@ const stepLabels = {
   verification: "验证任务结果",
 };
 
+const entityLabels = {
+  red_block: "红块",
+  blue_cylinder: "蓝柱",
+  green_gear: "绿齿轮",
+};
+
+const taskZones = {
+  "task-place-red-block": [{ id: "tray", label: "托盘" }],
+  "task-kit-three-parts": [{ id: "kit_tray", label: "齐套托盘" }],
+  "task-inspect-workpieces": [{ id: "inspection_area", label: "检验区域" }],
+  "task-clear-workspace": [
+    { id: "tray", label: "目标托盘" },
+    { id: "staging_bin", label: "障碍暂存" },
+  ],
+};
+
 const get = (id) => document.getElementById(id);
 
 function escapeHtml(value) {
@@ -94,7 +110,9 @@ function describeEvent(event) {
     case "action_request":
       return `${payload.action_type || "action"} · ${payload.target_id || "--"}`;
     case "action_result":
-      return `${payload.status || "unknown"}${payload.detail ? ` · ${payload.detail}` : ""}`;
+      return [payload.status || "unknown", payload.entity_id, payload.resulting_location, payload.detail]
+        .filter(Boolean)
+        .join(" · ");
     case "verification":
       return `${statusLabels[payload.status] || payload.status} · ${payload.reason_code || "--"}`;
     case "task_terminal":
@@ -183,29 +201,118 @@ function renderExpression(summary) {
   get("expression-label").textContent = expressionLabels[summary.expression];
 }
 
-function renderWorkbench(events, cursor) {
+function clamp(value, minimum, maximum) {
+  return Math.max(minimum, Math.min(maximum, value));
+}
+
+function entityType(payload) {
+  const supported = new Set(["block", "cylinder", "gear"]);
+  return supported.has(payload?.entity_type) ? payload.entity_type : "object";
+}
+
+function posePosition(payload, index = 0) {
+  const x = Number(payload?.pose?.position?.x || 0);
+  const y = Number(payload?.pose?.position?.y || 0);
+  return {
+    left: clamp(40 + x * 140 + (index % 2) * 2, 18, 62),
+    top: clamp(57 + y * 150 + (index % 3) * 2, 25, 82),
+  };
+}
+
+function destinationPosition(location, index) {
+  const slots = {
+    "in:tray": [
+      { left: 68, top: 30 },
+      { left: 82, top: 30 },
+      { left: 75, top: 48 },
+    ],
+    "in:kit_tray": [
+      { left: 68, top: 30 },
+      { left: 82, top: 30 },
+      { left: 75, top: 48 },
+    ],
+    "in:staging_bin": [
+      { left: 70, top: 80 },
+      { left: 80, top: 80 },
+    ],
+  };
+  const candidates = slots[location];
+  return candidates ? candidates[index % candidates.length] : null;
+}
+
+function buildWorkbenchState(events, cursor) {
   const visible = cursor < 0 ? [] : events.slice(0, cursor + 1);
-  const observation = visible.filter((event) => event.event_type === "observation").at(-1);
-  const verification = visible.filter((event) => event.event_type === "verification").at(-1);
-  const block = get("map-block");
-  const rawConfidence = observation?.payload?.confidence;
-  const confidence = Number.isFinite(rawConfidence) ? Math.max(0, Math.min(1, rawConfidence)) : null;
-  if (verification?.payload?.status === "confirmed") {
-    block.style.left = "73%";
-    block.style.top = "39%";
-  } else if (observation) {
-    const x = Number(observation.payload.pose?.position?.x || 0);
-    const y = Number(observation.payload.pose?.position?.y || 0);
-    block.style.left = `${Math.max(22, Math.min(64, 43 + x * 100))}%`;
-    block.style.top = `${Math.max(28, Math.min(74, 56 + y * 100))}%`;
-  } else {
-    block.style.left = "43%";
-    block.style.top = "58%";
-  }
-  block.style.opacity = confidence == null ? "0.35" : String(Math.max(0.35, confidence));
+  const accepted = visible.find((event) => event.event_type === "task_accepted");
+  const actionTargets = new Map();
+  const entities = new Map();
+  visible.forEach((event) => {
+    const payload = event.payload || {};
+    if (event.event_type === "observation" && payload.entity_id) {
+      const previous = entities.get(payload.entity_id) || {};
+      const rawConfidence = payload.confidence;
+      entities.set(payload.entity_id, {
+        ...previous,
+        entity_id: payload.entity_id,
+        entity_type: entityType(payload),
+        pose: payload.pose,
+        confidence: Number.isFinite(rawConfidence) ? clamp(rawConfidence, 0, 1) : null,
+      });
+    }
+    if (event.event_type === "action_request" && payload.action_id && payload.target_id) {
+      actionTargets.set(payload.action_id, payload.target_id);
+    }
+    if (event.event_type === "action_result" && payload.status === "succeeded" && payload.resulting_location) {
+      const entityId = payload.entity_id || actionTargets.get(payload.action_id);
+      if (entityId) {
+        const previous = entities.get(entityId) || { entity_id: entityId, entity_type: "object", confidence: null };
+        entities.set(entityId, { ...previous, location: payload.resulting_location });
+      }
+    }
+  });
+  return { taskId: accepted?.payload?.task_id || "task-place-red-block", entities: [...entities.values()] };
+}
+
+function entityVisual(entity, index, extraClass = "") {
+  const position = destinationPosition(entity.location, index) || posePosition(entity, index);
+  const opacity = entity.confidence == null ? 0.42 : Math.max(0.35, entity.confidence);
+  const label = entityLabels[entity.entity_id] || entity.entity_id.replaceAll("_", " ");
+  return `<span class="map-entity map-entity-${escapeHtml(entity.entity_type)} ${extraClass}"
+    data-left="${position.left}" data-top="${position.top}" data-opacity="${opacity}"
+    title="${escapeHtml(label)}${entity.location ? ` · ${escapeHtml(entity.location)}` : ""}">${escapeHtml(label)}</span>`;
+}
+
+function applyEntityPositions(container) {
+  container.querySelectorAll(".map-entity").forEach((entity) => {
+    entity.style.left = `${entity.dataset.left}%`;
+    entity.style.top = `${entity.dataset.top}%`;
+    entity.style.opacity = entity.dataset.opacity;
+  });
+}
+
+function renderWorkbench(events, cursor) {
+  const workbench = buildWorkbenchState(events, cursor);
+  const zones = taskZones[workbench.taskId] || taskZones["task-place-red-block"];
+  get("map-zones").innerHTML = zones
+    .map((zone) => `<span class="map-zone map-zone-${escapeHtml(zone.id)}">${escapeHtml(zone.label)}</span>`)
+    .join("");
+  get("map-entities").innerHTML = workbench.entities.length
+    ? workbench.entities.map((entity, index) => entityVisual(entity, index)).join("")
+    : '<span class="map-empty">等待实体观测</span>';
+  applyEntityPositions(get("map-entities"));
+
+  const confidences = workbench.entities
+    .map((entity) => entity.confidence)
+    .filter((confidence) => confidence != null);
+  const minimumConfidence = confidences.length ? Math.min(...confidences) : null;
   const badge = get("confidence-badge");
-  badge.textContent = confidence == null ? "未观测" : `置信度 ${Math.round(confidence * 100)}%`;
-  badge.classList.toggle("is-low", confidence != null && confidence < 0.8);
+  if (minimumConfidence == null) {
+    badge.textContent = "未观测";
+  } else if (confidences.length === 1) {
+    badge.textContent = `置信度 ${Math.round(minimumConfidence * 100)}%`;
+  } else {
+    badge.textContent = `${confidences.length} 个实体 · 最低 ${Math.round(minimumConfidence * 100)}%`;
+  }
+  badge.classList.toggle("is-low", minimumConfidence != null && minimumConfidence < 0.8);
 }
 
 function evidenceKind(reference) {
@@ -330,12 +437,21 @@ function openEvidence(reference) {
   const kind = evidenceKind(reference);
   get("evidence-title").textContent = kind.label;
   const visual = get("evidence-visual");
+  const sourceIndex = state.events.findIndex((event) => (event.evidence_refs || []).includes(reference));
+  const sourceEvent = sourceIndex >= 0 ? state.events[sourceIndex] : null;
   if (reference.startsWith("frame://")) {
+    const snapshot = buildWorkbenchState(state.events, sourceIndex);
     visual.className = "evidence-visual camera-frame";
-    visual.innerHTML = `<span class="evidence-frame-label">${escapeHtml(reference)} · SCRIPTED FIXTURE</span>`;
+    visual.innerHTML = `${snapshot.entities
+      .map((entity, index) => entityVisual(entity, index, "evidence-frame-entity"))
+      .join("")}<span class="evidence-frame-label">${escapeHtml(reference)} · SCRIPTED FIXTURE</span>`;
+    applyEntityPositions(visual);
   } else {
     visual.className = "evidence-visual motion-log";
-    visual.textContent = "10:12:19  semantic_action dispatched\n10:12:27  device_state holding\n10:12:29  resulting_location in:tray\n10:12:30  evidence reference committed";
+    const payloadLines = Object.entries(sourceEvent?.payload || {})
+      .map(([key, value]) => `${key.padEnd(20)} ${typeof value === "object" ? JSON.stringify(value) : value}`)
+      .join("\n");
+    visual.textContent = `${sourceEvent?.occurred_at || "--"}  ${sourceEvent?.event_type || "evidence"}\n${payloadLines || reference}`;
   }
   get("evidence-meta").innerHTML = `
     <dt>Reference</dt><dd>${escapeHtml(reference)}</dd>

@@ -18,7 +18,7 @@ def plan_offline(goal: str) -> dict:
     plan = build_template_plan(goal)
     return {
         "offline": True,
-        "provider": "template-v1",
+        "provider": plan.planner,
         "network_access": "disabled",
         "task_graph": plan.model_dump(mode="json"),
     }

@@ -21,6 +21,66 @@ P2_FAULT_TYPES = {
     "stale_observation",
 }
 
+SCENE_TASKS = {
+    "low_light": "task-inspect-workpieces",
+    "multi_object": "task-kit-three-parts",
+    "path_blocked": "task-clear-workspace",
+}
+
+TASK_PROFILES: dict[str, dict[str, Any]] = {
+    "task-place-red-block": {
+        "goal": "Place the red block in the tray",
+        "goal_zh": "把红色模块放进托盘",
+        "entities": ("red_block",),
+        "operations": (("red_block", "tray"),),
+        "claim": "red_block in tray",
+        "required_conditions": ("red_block in:tray",),
+    },
+    "task-kit-three-parts": {
+        "goal": "Assemble a three-part kit in the kit tray",
+        "goal_zh": "将红块、蓝色圆柱和绿色齿轮配成一套",
+        "entities": ("red_block", "blue_cylinder", "green_gear"),
+        "operations": (
+            ("red_block", "kit_tray"),
+            ("blue_cylinder", "kit_tray"),
+            ("green_gear", "kit_tray"),
+        ),
+        "claim": "required kit contents present with no extras",
+        "required_conditions": (
+            "red_block in:kit_tray",
+            "blue_cylinder in:kit_tray",
+            "green_gear in:kit_tray",
+            "no extra parts in:kit_tray",
+        ),
+    },
+    "task-inspect-workpieces": {
+        "goal": "Inspect presence, identity, and orientation of three workpieces",
+        "goal_zh": "检验三种工件的在位、身份与朝向",
+        "entities": ("red_block", "blue_cylinder", "green_gear"),
+        "operations": (),
+        "claim": "all workpieces inspected above confidence threshold",
+        "required_conditions": (
+            "red_block confidence>=0.8",
+            "blue_cylinder confidence>=0.8",
+            "green_gear confidence>=0.8",
+        ),
+    },
+    "task-clear-workspace": {
+        "goal": "Clear the blocking cylinder, then place the red block in the tray",
+        "goal_zh": "先清走挡路圆柱,再把红块放入托盘",
+        "entities": ("blue_cylinder", "red_block"),
+        "operations": (("blue_cylinder", "staging_bin"), ("red_block", "tray")),
+        "claim": "obstacle cleared and red_block in tray",
+        "required_conditions": ("blue_cylinder in:staging_bin", "red_block in:tray"),
+    },
+}
+
+ENTITY_APPEARANCE = {
+    "red_block": {"entity_type": "block", "colour": "red"},
+    "blue_cylinder": {"entity_type": "cylinder", "colour": "blue"},
+    "green_gear": {"entity_type": "gear", "colour": "green"},
+}
+
 
 def canonical_hash(value: Any) -> str:
     encoded = json.dumps(value, ensure_ascii=True, separators=(",", ":"), sort_keys=True).encode()
@@ -31,23 +91,31 @@ def materialize_scenario(manifest: dict[str, Any]) -> dict[str, Any]:
     """Build the deterministic scene parameters owned by the scenario seed."""
     rng = random.Random(manifest["seed"])
     scene_variant = manifest.get("scene_variant", "baseline")
-    object_count = 1 if scene_variant != "multi_object" else 3
+    task_id = manifest["task_id"]
+    profile = TASK_PROFILES.get(task_id)
+    if profile is None:
+        raise ValueError(f"unsupported task_id: {task_id}")
     return {
         "scenario_id": manifest["scenario_id"],
         "seed": manifest["seed"],
+        "task_id": task_id,
+        "goal": profile["goal"],
         "fault_type": manifest["fault_type"],
         "scene_variant": scene_variant,
         "lighting_lux": 110 if scene_variant == "low_light" else 520,
         "path_obstacle": scene_variant == "path_blocked",
         "camera_noise": round(rng.uniform(0.005, 0.025), 6),
+        "required_entities": list(profile["entities"]),
+        "required_conditions": list(profile["required_conditions"]),
         "objects": [
             {
-                "entity_id": "red_block" if index == 0 else f"red_block_{index + 1}",
+                "entity_id": entity_id,
+                **ENTITY_APPEARANCE[entity_id],
                 "x": round(rng.uniform(-0.18, 0.18), 6),
                 "y": round(rng.uniform(-0.12, 0.12), 6),
                 "yaw": round(rng.uniform(-3.141593, 3.141593), 6),
             }
-            for index in range(object_count)
+            for entity_id in profile["entities"]
         ],
     }
 

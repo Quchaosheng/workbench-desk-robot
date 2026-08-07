@@ -33,6 +33,7 @@ body {
 }
 
 body {
+  overflow-x: hidden;
   margin: 0;
   background: var(--canvas);
   color: var(--ink);
@@ -358,6 +359,7 @@ svg {
 }
 
 .workspace {
+  max-width: 100%;
   min-width: 0;
   padding: 20px 24px 42px;
 }
@@ -540,6 +542,7 @@ svg {
 .task-primary h2 {
   max-width: 760px;
   margin: 0;
+  overflow-wrap: anywhere;
   font-size: 22px;
   line-height: 1.35;
 }

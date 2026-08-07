@@ -1,12 +1,17 @@
 {
   "input": {"nominal_v": 48, "minimum_v": 36, "maximum_v": 60, "continuous_a": 8, "fuse_a": 10},
   "rails": [
-    {"name": "12V_ISO", "voltage_v": 12, "continuous_a": 12, "peak_a": 16, "efficiency": 0.93, "topology": "isolated DC/DC module", "avl_status": "OWNER_APPROVAL_REQUIRED"},
-    {"name": "5V_JETSON", "voltage_v": 5, "continuous_a": 10, "peak_a": 12, "efficiency": 0.92, "topology": "12 V synchronous buck", "avl_status": "OWNER_APPROVAL_REQUIRED"},
-    {"name": "3V3_LOGIC", "voltage_v": 3.3, "continuous_a": 5, "peak_a": 6, "efficiency": 0.9, "topology": "12 V synchronous buck", "avl_status": "OWNER_APPROVAL_REQUIRED"}
+    {"name": "12V_ISO", "voltage_v": 12, "rated_a": 20, "continuous_a": 20, "peak_a": 20, "efficiency": 0.93, "topology": "isolated DC/DC module", "upstream": null, "avl_status": "OWNER_APPROVAL_REQUIRED"},
+    {"name": "JETSON_12V", "voltage_v": 12, "rated_a": 6, "continuous_a": 5, "peak_a": 6, "efficiency": 0.995, "topology": "protected e-fuse branch", "upstream": "12V_ISO", "avl_status": "OWNER_APPROVAL_REQUIRED"},
+    {"name": "3V3_LOGIC", "voltage_v": 3.3, "rated_a": 6, "continuous_a": 5, "peak_a": 6, "efficiency": 0.9, "topology": "12 V synchronous buck", "upstream": "12V_ISO", "avl_status": "OWNER_APPROVAL_REQUIRED"}
+  ],
+  "load_cases": [
+    {"name": "JETSON_15W", "jetson_w": 15},
+    {"name": "JETSON_25W", "jetson_w": 25},
+    {"name": "JETSON_40W_MAXN", "jetson_w": 40}
   ],
   "loads": [
-    {"name": "Jetson Orin Nano auxiliary", "rail": "5V_JETSON", "maximum_w": 40},
+    {"name": "Jetson Orin Nano developer kit", "rail": "JETSON_12V", "maximum_w": "LOAD_CASE"},
     {"name": "CH32V307 and logic", "rail": "3V3_LOGIC", "maximum_w": 2},
     {"name": "CAN isolation", "rail": "3V3_LOGIC", "maximum_w": 1},
     {"name": "sensors", "rail": "3V3_LOGIC", "maximum_w": 1},

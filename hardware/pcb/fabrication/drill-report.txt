@@ -1,5 +1,5 @@
 Drill report for controller.kicad_pcb
-Created on 2026-08-07T15:51:00
+Created on 2026-08-07T16:25:32
 
 Copper Layer Stackup:
     =============================================================
@@ -14,9 +14,9 @@ Copper Layer Stackup:
 Drill file 'controller-PTH.drl' contains
     plated through holes:
     =============================================================
-    T1  1.100mm  0.0433"  (58 holes))
+    T1  1.100mm  0.0433"  (100 holes))
 
-    Total plated holes count 58
+    Total plated holes count 100
 
 
 Drill file 'controller-NPTH.drl' contains

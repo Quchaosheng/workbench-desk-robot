@@ -8,7 +8,7 @@
   (text "48V INPUT -> FUSE / REVERSE / TVS / HOT-SWAP -> ISOLATED 12V"
     (exclude_from_sim no) (at 105 45 0)
     (effects (font (size 1.5 1.5) (thickness 0.25)) (justify bottom)))
-  (text "12V -> 5V / 10A JETSON; 12V -> 3V3 / 5A LOGIC"
+  (text "12V -> EFUSE -> 12V / 5A JETSON DEVKIT; 12V -> 3V3 / 5A LOGIC"
     (exclude_from_sim no) (at 105 60 0)
     (effects (font (size 1.5 1.5) (thickness 0.25)) (justify bottom)))
   (text "CH32V307 <-> REINFORCED ISOLATION <-> CAN FD + CMC + TVS"

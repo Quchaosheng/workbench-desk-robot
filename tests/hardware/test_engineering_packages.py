@@ -41,6 +41,14 @@ class MechanicalPackageTests(unittest.TestCase):
         screening = json.loads((generated / "drop-screening.json").read_text(encoding="utf-8"))
         self.assertEqual(screening["acceptance"]["peak_deceleration_g"], 35)
 
+    def test_controller_board_fits_tray_and_mount_pattern_is_controlled(self) -> None:
+        module = load_module("mechanical_generator_fit", ROOT / "hardware/mechanical/tools/generate_artifacts.py")
+        report = module.analyse()
+        self.assertTrue(report["checks"]["pcb_fits_electronics_tray"])
+        self.assertEqual(report["pcb_tray_margin_mm"], [60, 40])
+        spec = json.loads((ROOT / "hardware/mechanical/design-spec.json").read_text(encoding="utf-8"))
+        self.assertEqual(spec["electronics_tray"]["pcb_mount_pattern"], [152, 122])
+
 
 class PcbPackageTests(unittest.TestCase):
     def test_power_budget_and_protection_checks_pass(self) -> None:
@@ -49,6 +57,8 @@ class PcbPackageTests(unittest.TestCase):
         self.assertTrue(report["pass"])
         self.assertLess(report["input_current_at_36v_a"], 10)
         self.assertIn("LAB_VALIDATION_REQUIRED", report["status"])
+        self.assertEqual(set(report["load_cases"]), {"JETSON_15W", "JETSON_25W", "JETSON_40W_MAXN"})
+        self.assertEqual(set(report["input_corner_currents_a"]), {"36V", "48V", "60V"})
 
     def test_every_external_connector_is_keyed_or_test_only(self) -> None:
         with (ROOT / "hardware/pcb/connectors.csv").open(newline="", encoding="utf-8") as handle:
@@ -60,7 +70,23 @@ class PcbPackageTests(unittest.TestCase):
         board = (ROOT / "hardware/pcb/kicad/controller.kicad_pcb").read_text(encoding="utf-8")
         copper_layers = re.findall(r'^\s*\(\d+ "(?:F|B|In\d+)\.Cu" signal\)$', board, flags=re.MULTILINE)
         self.assertEqual(len(copper_layers), 6)
-        self.assertGreaterEqual(board.count("(footprint "), 17)
+        self.assertGreaterEqual(board.count("(footprint "), 19)
+        self.assertGreaterEqual(board.count("(segment"), 134)
+        for signal in ["SPI_SCLK", "MOTOR_ENABLE", "MOTOR_CS5", "I2C_SDA", "ESTOP_SENSE", "MCU_RESET"]:
+            self.assertIn(signal, board)
+        for isolated_net in ["5V_CAN_ISO", "GND_CAN_ISO", "CAN_TX", "CAN_RX"]:
+            self.assertIn(isolated_net, board)
+        self.assertIn('property "Reference" "J4"', board)
+        self.assertIn('property "Reference" "U7"', board)
+
+    def test_official_sources_and_interface_freeze_states_are_explicit(self) -> None:
+        baseline = json.loads((ROOT / "hardware/pcb/source-baseline.json").read_text(encoding="utf-8"))
+        self.assertEqual(baseline["maturity"], "EVT_REVIEWABLE_NOT_PRODUCTION_RELEASED")
+        self.assertGreaterEqual(len(baseline["sources"]), 6)
+        self.assertTrue(all(item["url"].startswith("https://") for item in baseline["sources"]))
+        required = {"confidence", "freeze_status", "owner"}
+        self.assertTrue(all(required <= item.keys() for item in baseline["sources"]))
+        self.assertTrue(all(required <= item.keys() for item in baseline["controlled_assumptions"]))
 
     def test_kicad_cli_release_reports_are_clean_and_fabrication_exists(self) -> None:
         pcb = ROOT / "hardware/pcb"
@@ -110,6 +136,7 @@ class TaskPacketTests(unittest.TestCase):
         packet = json.loads(
             (ROOT / "docs/task_packets/hardware-engineering-019-021-023.json").read_text(encoding="utf-8")
         )
+        self.assertEqual(packet["issue"], "19,21,23")
         self.assertEqual(packet["issues"], [19, 21, 23])
         self.assertIn("robot/control/**", packet["forbidden"])
         self.assertIn("firmware/**", packet["forbidden"])

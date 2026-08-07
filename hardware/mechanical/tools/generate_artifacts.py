@@ -20,6 +20,8 @@ def analyse() -> dict[str, object]:
     tip_angle = math.degrees(math.atan2(half_support, cg[2]))
     drop_energy = total * 9.80665 * SPEC["impact"]["drop_height_m"]
     stop_distance = drop_energy / (total * SPEC["impact"]["design_deceleration_g"] * 9.80665) * 1000
+    tray = SPEC["electronics_tray"]
+    pcb_width, pcb_depth, _ = tray["pcb_envelope"]
     return {
         "status": "ANALYTICAL_ONLY_PHYSICAL_VALIDATION_REQUIRED",
         "mass_kg": round(total, 3),
@@ -35,7 +37,9 @@ def analyse() -> dict[str, object]:
             "outlet_area_at_least_inlet": SPEC["ventilation"]["outlet_area_mm2"]
             >= SPEC["ventilation"]["inlet_area_mm2"],
             "absorber_at_least_derived_stroke": SPEC["impact"]["effective_absorber_stroke_mm"] >= stop_distance,
+            "pcb_fits_electronics_tray": pcb_width <= tray["width"] and pcb_depth <= tray["depth"],
         },
+        "pcb_tray_margin_mm": [tray["width"] - pcb_width, tray["depth"] - pcb_depth],
     }
 
 
@@ -144,7 +148,7 @@ def export_cad_package() -> bool:
         .box(220, 170, 3)
         .faces(">Z")
         .workplane()
-        .rect(195, 145, forConstruction=True)
+        .rect(*SPEC["electronics_tray"]["pcb_mount_pattern"], forConstruction=True)
         .vertices()
         .hole(3.4)
         .translate((0, 0, 43))

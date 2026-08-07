@@ -1,16 +1,105 @@
 {
   "status": "DESIGN_CHECK_ONLY_LAB_VALIDATION_REQUIRED",
-  "rail_results": {
-    "12V_ISO": {
-      "capacity_w": 144,
-      "demand_w": 120.0,
-      "margin_over_demand_percent": 20.0,
+  "load_cases": {
+    "JETSON_15W": {
+      "jetson_w": 15,
+      "rail_results": {
+        "12V_ISO": {
+          "capacity_w": 240,
+          "demand_w": 139.52,
+          "margin_over_demand_percent": 72.0,
+          "pass": true
+        },
+        "JETSON_12V": {
+          "capacity_w": 60,
+          "demand_w": 15.0,
+          "margin_over_demand_percent": 300.0,
+          "pass": true
+        },
+        "3V3_LOGIC": {
+          "capacity_w": 16.5,
+          "demand_w": 4.0,
+          "margin_over_demand_percent": 312.5,
+          "pass": true
+        }
+      },
+      "input_currents_a": {
+        "36V": 4.17,
+        "48V": 3.13,
+        "60V": 2.5
+      },
       "pass": true
     },
-    "5V_JETSON": {
-      "capacity_w": 50,
+    "JETSON_25W": {
+      "jetson_w": 25,
+      "rail_results": {
+        "12V_ISO": {
+          "capacity_w": 240,
+          "demand_w": 149.57,
+          "margin_over_demand_percent": 60.5,
+          "pass": true
+        },
+        "JETSON_12V": {
+          "capacity_w": 60,
+          "demand_w": 25.0,
+          "margin_over_demand_percent": 140.0,
+          "pass": true
+        },
+        "3V3_LOGIC": {
+          "capacity_w": 16.5,
+          "demand_w": 4.0,
+          "margin_over_demand_percent": 312.5,
+          "pass": true
+        }
+      },
+      "input_currents_a": {
+        "36V": 4.47,
+        "48V": 3.35,
+        "60V": 2.68
+      },
+      "pass": true
+    },
+    "JETSON_40W_MAXN": {
+      "jetson_w": 40,
+      "rail_results": {
+        "12V_ISO": {
+          "capacity_w": 240,
+          "demand_w": 164.65,
+          "margin_over_demand_percent": 45.8,
+          "pass": true
+        },
+        "JETSON_12V": {
+          "capacity_w": 60,
+          "demand_w": 40.0,
+          "margin_over_demand_percent": 50.0,
+          "pass": true
+        },
+        "3V3_LOGIC": {
+          "capacity_w": 16.5,
+          "demand_w": 4.0,
+          "margin_over_demand_percent": 312.5,
+          "pass": true
+        }
+      },
+      "input_currents_a": {
+        "36V": 4.92,
+        "48V": 3.69,
+        "60V": 2.95
+      },
+      "pass": true
+    }
+  },
+  "rail_results": {
+    "12V_ISO": {
+      "capacity_w": 240,
+      "demand_w": 164.65,
+      "margin_over_demand_percent": 45.8,
+      "pass": true
+    },
+    "JETSON_12V": {
+      "capacity_w": 60,
       "demand_w": 40.0,
-      "margin_over_demand_percent": 25.0,
+      "margin_over_demand_percent": 50.0,
       "pass": true
     },
     "3V3_LOGIC": {
@@ -20,15 +109,20 @@
       "pass": true
     }
   },
-  "maximum_documented_load_w": 164.0,
-  "input_current_at_36v_a": 5.06,
-  "estimated_conversion_loss_w": 18.2,
+  "maximum_documented_load_w": 164.65,
+  "input_current_at_36v_a": 4.92,
+  "input_corner_currents_a": {
+    "36V": 4.92,
+    "48V": 3.69,
+    "60V": 2.95
+  },
   "checks": {
-    "all_rails_have_20_percent_headroom": true,
+    "all_load_cases_have_20_percent_headroom": true,
     "input_current_below_fuse": true,
     "input_max_below_80v_components": true,
     "isolation_creepage_at_least_8mm": true,
-    "can_has_120ohm_termination": true
+    "can_has_120ohm_termination": true,
+    "all_rails_derated_from_rating": true
   },
   "pass": true
 }

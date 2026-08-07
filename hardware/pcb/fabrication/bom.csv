@@ -3,12 +3,13 @@ J1,1,48V input,10A keyed 4-pin industrial header,THT 4-pin,AVL_OWNER_APPROVAL
 F1,1,input fuse,10A time-delay replaceable fuse,THT carrier,AVL_OWNER_APPROVAL
 U1,1,48V hot-swap and UV/OV,LM5069MM-2/NOPB,MSOP-10 carrier,AVL_OWNER_APPROVAL
 U2,1,isolated 48V to 12V 240W,Vicor DCM 36-60V input 12V-class output,DCM carrier,AVL_OWNER_APPROVAL
-U3,1,12V to 5V 10A synchronous buck,PI3546-class module,power module carrier,AVL_OWNER_APPROVAL
+U3,1,protected 12V Jetson developer-kit branch,6A minimum e-fuse/load switch,power switch carrier,AVL_OWNER_APPROVAL
 U4,1,12V to 3.3V 5A synchronous buck,6A minimum module,power module carrier,AVL_OWNER_APPROVAL
 U5,1,real-time controller,CH32V307VCT6 carrier,LQFP100 carrier,AVL_OWNER_APPROVAL
 U6,1,reinforced isolated CAN FD,ISO1042DW,SOIC-16W carrier,AVL_OWNER_APPROVAL
+U7,1,isolated CAN-side power,3.3V-to-5V reinforced isolated 1W module,isolation module carrier,AVL_OWNER_APPROVAL
 J2,1,12V output,16A keyed 4-pin header,THT 4-pin,AVL_OWNER_APPROVAL
-J3,1,Jetson 5V output,12A keyed 4-pin header,THT 4-pin,AVL_OWNER_APPROVAL
+J3,1,Jetson developer-kit 12V output,5A keyed 4-pin header,THT 4-pin,AVL_OWNER_APPROVAL
 J5 J6,2,CAN connectors,shielded keyed 4-pin header,THT 4-pin,AVL_OWNER_APPROVAL
 J10,1,hardwired E-stop loop,red keyed 4-pin header,THT 4-pin,AVL_OWNER_APPROVAL
 H1 H2 H3 H4,4,mounting,M3 insulated standoff,3.2mm NPTH,APPROVED

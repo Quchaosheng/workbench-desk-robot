@@ -1,4 +1,5 @@
 {
+  "issue": "19,21,23",
   "issues": [19, 21, 23],
   "human_owner": "Quchaosheng",
   "objective": "Create a reproducible mechanical, PCB, and manufacturing engineering package for the desk robot.",
@@ -28,6 +29,8 @@
   "evidence": [
     "hardware/mechanical/generated/analysis.json",
     "hardware/pcb/generated/electrical_report.json",
+    "hardware/pcb/source-baseline.json",
+    "hardware/pcb/interface-control.md",
     "unit test output"
   ],
   "stop_conditions": [

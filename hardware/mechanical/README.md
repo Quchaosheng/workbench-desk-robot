@@ -41,6 +41,7 @@ remain controlled by the injection-moulding supplier after DFM review.
 | Ground clearance | 18 mm |
 | Shell nominal wall | 2.5 mm |
 | Electronics tray | 220 x 170 mm |
+| Controller PCB / mount pattern | 160 x 130 / 152 x 122 mm |
 | Estimated mass | 6.42 kg |
 | Estimated CG from floor | 101.9 mm |
 | Static tip angle | 45.9 deg |
@@ -52,3 +53,6 @@ MECH1-10 and MECH15 have reproducible design evidence in this package. MECH11-14
 and MECH16 have controlled execution/acceptance definitions but require the actual
 prototype, drop video, fit inspection, toolmaker data, and approved production BOM.
 Generated analysis is not represented as physical test evidence.
+The electronics tray now uses the controller PCB's actual 152 x 122 mm mounting
+pattern and provides 60 x 40 mm total planar margin. Cable bend radius, connector
+access and the 32 mm vertical envelope remain physical fit-check items.

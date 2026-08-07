@@ -96,22 +96,14 @@ jobs:
             echo "::notice title=MCU firmware not implemented yet::firmware/mcu/core/ has no .c sources. Skipping the QEMU suite. Expected until task FW1/FW3 lands."
           fi
 
-      - name: Install RISC-V toolchain, QEMU and can-utils
+      - name: Install RISC-V toolchain and QEMU
         if: steps.probe.outputs.present == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            gcc-riscv64-unknown-elf qemu-system-misc can-utils
+            gcc-riscv64-unknown-elf qemu-system-misc
           riscv64-unknown-elf-gcc --version | head -1
           qemu-system-riscv32 --version | head -1
-
-      - name: Bring up a virtual CAN interface
-        if: steps.probe.outputs.present == 'true'
-        run: |
-          sudo modprobe vcan
-          sudo ip link add dev vcan0 type vcan
-          sudo ip link set up vcan0
-          ip -details link show vcan0
 
       - name: Build for host and run fast logic tests
         if: steps.probe.outputs.present == 'true'

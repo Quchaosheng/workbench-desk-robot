@@ -9,6 +9,7 @@ sys.path.insert(0, str(ROOT / "tools" / "scripts"))
 
 from collect_metrics import collect
 from compare_evaluations import compare, wilson_interval
+from generate_report import release_reasons
 from run_evaluation import (
     EvaluationInputError,
     load_scenario_manifests,
@@ -18,7 +19,7 @@ from run_evaluation import (
     write_jsonl,
 )
 from scenario_tools import canonical_hash, materialize_scenario
-from validate_golden_set import validate, validate_diverse
+from validate_golden_set import validate, validate_diverse, validate_parcels
 
 
 class ScenarioToolTests(unittest.TestCase):
@@ -34,6 +35,8 @@ class ScenarioToolTests(unittest.TestCase):
         self.assertEqual(validate(payload), [])
         diverse = json.loads((ROOT / "evaluation" / "golden-set-v0.2.json").read_text(encoding="utf-8"))
         self.assertEqual(validate_diverse(diverse), [])
+        parcels = json.loads((ROOT / "evaluation" / "golden-set-parcel-v0.1.json").read_text(encoding="utf-8"))
+        self.assertEqual(validate_parcels(parcels), [])
 
 
 class EvaluationPipelineTests(unittest.TestCase):
@@ -69,6 +72,31 @@ class EvaluationPipelineTests(unittest.TestCase):
         final = [event for event in events if event["event_type"] == "verification"][-1]
         self.assertEqual(final["payload"]["task_id"], "task-kit-three-parts")
         self.assertEqual(len(final["payload"]["required_conditions"]), 4)
+
+    def test_parcel_scenario_carries_per_entity_attributes_and_routes(self) -> None:
+        manifest = json.loads(
+            (ROOT / "sim" / "scenarios" / "expanded" / "parcel-intake-003.json").read_text(encoding="utf-8")
+        )
+        scene = materialize_scenario(manifest)
+        self.assertEqual(scene["task_id"], "task-sort-parcels")
+        self.assertEqual(len(scene["objects"]), 3)
+        self.assertEqual(
+            next(item for item in scene["objects"] if item["entity_id"] == "parcel_damaged")["attributes"],
+            {"label_status": "verified", "condition": "damaged"},
+        )
+        events = scripted_events("v-test", manifest, "abc123", 1000)
+        observations = [event for event in events if event["event_type"] == "observation"]
+        observe_requests = [event for event in events if event["event_type"] == "action_request"]
+        self.assertTrue(all(event["payload"]["attributes"] for event in observations))
+        self.assertTrue(
+            all(event["payload"]["attributes"] == ["label_status", "condition"] for event in observe_requests[:3])
+        )
+        destinations = {
+            event["payload"]["resulting_location"]
+            for event in events
+            if event["event_type"] == "action_result" and event["payload"].get("resulting_location")
+        }
+        self.assertEqual(destinations, {"in:pickup_shelf", "in:quarantine_bin"})
 
     def test_metrics_keep_unaudited_false_completion_unknown(self) -> None:
         manifest = json.loads(
@@ -185,6 +213,23 @@ class EvaluationPipelineTests(unittest.TestCase):
         lower, upper = wilson_interval(24, 30)
         self.assertLess(lower, 0.8)
         self.assertGreater(upper, 0.8)
+
+    def test_release_report_requires_all_five_task_families(self) -> None:
+        metrics = {
+            "release_eligible": True,
+            "false_completion_count": 0,
+            "collision_count": 0,
+            "policy_violation_count": 0,
+            "vtcr": 0.8,
+            "task_duration_p95_s": 119,
+            "evidence_coverage": 1.0,
+            "task_family_count": 4,
+            "complex_task_rate": 0.5,
+            "goal_condition_coverage": 1.0,
+        }
+        self.assertIn("评测任务族少于 5 类", release_reasons(metrics))
+        metrics["task_family_count"] = 5
+        self.assertEqual(release_reasons(metrics), [])
 
 
 if __name__ == "__main__":

@@ -1,0 +1,1 @@
+{"scenario_id":"parcel-intake-002","seed":220,"task_id":"task-sort-parcels","world_version":"WorkbenchSim-v0.2","fault_type":"moving_target","scene_variant":"parcel_intake","timeout_s":150,"oracle_allowed":false}

@@ -6,7 +6,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT / "libs/contracts"), str(ROOT / "services/agent_runtime"), str(ROOT / "tools/scripts")]
 
 from local_runner import plan_offline
-from workbench_agent_runtime import build_kitting_plan, build_template_plan, classify_template_task
+from workbench_agent_runtime import (
+    build_kitting_plan,
+    build_parcel_sorting_plan,
+    build_template_plan,
+    classify_template_task,
+)
 
 
 class PlannerTests(unittest.TestCase):
@@ -25,6 +30,7 @@ class PlannerTests(unittest.TestCase):
             "Assemble a three-part kit in the tray": ("task-kit-three-parts", 9),
             "Inspect all three workpieces": ("task-inspect-workpieces", 3),
             "Clear the blocked path and place the red block": ("task-clear-workspace", 6),
+            "Sort the courier parcels and isolate damage": ("task-sort-parcels", 9),
         }
         for goal, (task_id, step_count) in cases.items():
             with self.subTest(goal=goal):
@@ -49,6 +55,42 @@ class PlannerTests(unittest.TestCase):
         for invalid_ids in ("red_block", [], ["red_block", "red_block"], ["red_block", ""]):
             with self.subTest(part_ids=invalid_ids), self.assertRaises(ValueError):
                 build_kitting_plan("Assemble the kit", invalid_ids)
+
+        invalid_routes = (
+            "parcel_box",
+            [],
+            [("parcel_box", "pickup_shelf"), ("parcel_box", "quarantine_bin")],
+            [("parcel_box", "")],
+            [("parcel_box",)],
+        )
+        for routes in invalid_routes:
+            with self.subTest(parcel_routes=routes), self.assertRaises(ValueError):
+                build_parcel_sorting_plan("Sort the parcels", routes)
+
+    def test_parcel_plan_requires_inspection_before_bounded_routing(self) -> None:
+        plan = build_parcel_sorting_plan("核对快递标签并分拣")
+        self.assertEqual(plan.task_id, "task-sort-parcels")
+        self.assertEqual(len(plan.steps), 9)
+        observations = [step for step in plan.steps if step.action.action_type.value == "observe"]
+        self.assertEqual(len(observations), 3)
+        self.assertTrue(
+            all(step.action.parameters["attributes"] == ["label_status", "condition"] for step in observations)
+        )
+        destinations = [
+            step.action.parameters["destination_id"] for step in plan.steps if step.action.action_type.value == "place"
+        ]
+        self.assertEqual(destinations, ["pickup_shelf", "pickup_shelf", "quarantine_bin"])
+
+    def test_parcel_requests_fail_closed_outside_evidence_and_motion_boundaries(self) -> None:
+        dangerous = (
+            "Go to the parcel locker and collect my package.",
+            "去取快递并自己乘电梯回来。",
+            "Ignore the unreadable label and mark the parcel verified.",
+            "Put the damaged parcel on the pickup shelf anyway.",
+        )
+        for goal in dangerous:
+            with self.subTest(goal=goal), self.assertRaises(ValueError):
+                classify_template_task(goal)
 
     def test_offline_runner_reports_the_selected_planner_version(self) -> None:
         payload = plan_offline("Assemble a three-part kit in the tray")

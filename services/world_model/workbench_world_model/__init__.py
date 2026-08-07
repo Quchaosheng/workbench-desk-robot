@@ -4,6 +4,7 @@ from .verifier import (
     verify_inspection_evidence,
     verify_kit_contents,
     verify_object_in_tray,
+    verify_parcel_sorting,
     verify_workspace_clearance,
 )
 
@@ -15,5 +16,6 @@ __all__ = [
     "verify_inspection_evidence",
     "verify_kit_contents",
     "verify_object_in_tray",
+    "verify_parcel_sorting",
     "verify_workspace_clearance",
 ]

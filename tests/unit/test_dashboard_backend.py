@@ -83,11 +83,16 @@ class ReadModelTests(unittest.TestCase):
         self.assertEqual(final["status"], "confirmed")
         self.assertEqual(final["recovery_count"], 1)
 
-    def test_dashboard_fixtures_cover_kitting_inspection_and_clearance(self) -> None:
+    def test_dashboard_fixtures_cover_kitting_inspection_clearance_and_parcels(self) -> None:
         summaries = {summary["run_id"]: summary for summary in self.model.list_runs()}
         self.assertEqual(
             {summary["task_id"] for summary in summaries.values()},
-            {"task-kit-three-parts", "task-inspect-workpieces", "task-clear-workspace"},
+            {
+                "task-kit-three-parts",
+                "task-inspect-workpieces",
+                "task-clear-workspace",
+                "task-sort-parcels",
+            },
         )
 
         kit_events = self.model.list_events("run-confirmed")
@@ -109,6 +114,20 @@ class ReadModelTests(unittest.TestCase):
         }
         self.assertTrue({"in:staging_bin", "in:tray"}.issubset(resulting_locations))
 
+        parcel_events = self.model.list_events("dashboard-parcel--parcel-intake-003")
+        parcel_observations = [event for event in parcel_events if event["event_type"] == "observation"]
+        self.assertEqual(
+            {event["payload"]["entity_id"] for event in parcel_observations},
+            {"parcel_box", "parcel_envelope", "parcel_damaged"},
+        )
+        self.assertTrue(all(event["payload"].get("attributes") for event in parcel_observations))
+        parcel_locations = {
+            event["payload"].get("resulting_location")
+            for event in parcel_events
+            if event["event_type"] == "action_result"
+        }
+        self.assertTrue({"in:pickup_shelf", "in:quarantine_bin"}.issubset(parcel_locations))
+
     def test_dashboard_map_uses_event_driven_multi_entity_layer(self) -> None:
         dashboard = ROOT / "apps" / "dashboard"
         markup = (dashboard / "index.html").read_text(encoding="utf-8")
@@ -120,6 +139,10 @@ class ReadModelTests(unittest.TestCase):
         self.assertIn('data-left="${position.left}"', script)
         self.assertNotIn('style="left:${position.left}', script)
         self.assertIn('payload.status === "succeeded" && payload.resulting_location', script)
+        self.assertIn('"task-sort-parcels"', script)
+        self.assertIn("pickup_shelf", script)
+        self.assertIn("quarantine_bin", script)
+        self.assertIn("map-entity-envelope", script + (dashboard / "styles.css").read_text(encoding="utf-8"))
 
     def test_event_cache_reuses_parse_and_invalidates_on_file_change(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

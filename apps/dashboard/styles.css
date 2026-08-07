@@ -967,6 +967,29 @@ svg {
   color: #6f511d;
 }
 
+.map-zone-pickup_shelf {
+  top: 22px;
+  right: 22px;
+  width: 124px;
+  height: 58px;
+  border-width: 3px;
+  border-color: #39787e;
+  background: rgba(218, 244, 243, 0.48);
+  color: #285e64;
+}
+
+.map-zone-quarantine_bin {
+  top: auto;
+  right: 22px;
+  bottom: 12px;
+  width: 124px;
+  height: 58px;
+  border-width: 3px;
+  border-color: #9b5b31;
+  background: rgba(255, 232, 214, 0.64);
+  color: #813f20;
+}
+
 .map-entity {
   position: absolute;
   z-index: 3;
@@ -1007,6 +1030,33 @@ svg {
 .map-entity-object {
   border-color: #53656d;
   background: #768b93;
+}
+
+.map-entity-parcel {
+  width: 48px;
+  height: 30px;
+  border-color: #8b5a2b;
+  border-radius: 3px;
+  background: #c99555;
+  color: #3f2815;
+  box-shadow: inset 0 4px 0 rgba(255, 255, 255, 0.22), 0 4px 8px rgba(80, 49, 22, 0.2);
+  font-size: 8px;
+}
+
+.map-entity-envelope {
+  width: 48px;
+  height: 28px;
+  border-color: #7b8790;
+  border-radius: 3px;
+  background: #f5f1e9;
+  color: #4f5d63;
+  box-shadow: 0 4px 8px rgba(65, 70, 69, 0.18);
+  font-size: 8px;
+}
+
+.map-entity-parcel[data-opacity="0.35"],
+.map-entity-envelope[data-opacity="0.35"] {
+  filter: saturate(0.7);
 }
 
 .map-empty {

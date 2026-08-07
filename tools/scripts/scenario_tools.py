@@ -11,7 +11,7 @@ FROZEN_DISTRIBUTION = {
     "occlusion": 3,
 }
 
-P2_SCENE_VARIANTS = {"path_blocked", "low_light", "multi_object"}
+P2_SCENE_VARIANTS = {"path_blocked", "low_light", "multi_object", "parcel_intake"}
 P2_FAULT_TYPES = {
     "actuator_timeout",
     "camera_dropout",
@@ -25,6 +25,7 @@ SCENE_TASKS = {
     "low_light": "task-inspect-workpieces",
     "multi_object": "task-kit-three-parts",
     "path_blocked": "task-clear-workspace",
+    "parcel_intake": "task-sort-parcels",
 }
 
 TASK_PROFILES: dict[str, dict[str, Any]] = {
@@ -73,12 +74,38 @@ TASK_PROFILES: dict[str, dict[str, Any]] = {
         "claim": "obstacle cleared and red_block in tray",
         "required_conditions": ("blue_cylinder in:staging_bin", "red_block in:tray"),
     },
+    "task-sort-parcels": {
+        "goal": "Sort verified parcels to pickup and isolate the damaged parcel",
+        "goal_zh": "核对快递标签与外观,正常件入取件架,破损件进入异常隔离",
+        "entities": ("parcel_box", "parcel_envelope", "parcel_damaged"),
+        "operations": (
+            ("parcel_box", "pickup_shelf"),
+            ("parcel_envelope", "pickup_shelf"),
+            ("parcel_damaged", "quarantine_bin"),
+        ),
+        "attributes": {
+            "parcel_box": {"label_status": "verified", "condition": "intact"},
+            "parcel_envelope": {"label_status": "verified", "condition": "intact"},
+            "parcel_damaged": {"label_status": "verified", "condition": "damaged"},
+        },
+        "claim": "verified parcels routed to pickup and damaged parcel isolated",
+        "required_conditions": (
+            "parcel_box in:pickup_shelf",
+            "parcel_envelope in:pickup_shelf",
+            "parcel_damaged in:quarantine_bin",
+            "all parcel labels verified",
+            "damaged parcel isolated",
+        ),
+    },
 }
 
 ENTITY_APPEARANCE = {
     "red_block": {"entity_type": "block", "colour": "red"},
     "blue_cylinder": {"entity_type": "cylinder", "colour": "blue"},
     "green_gear": {"entity_type": "gear", "colour": "green"},
+    "parcel_box": {"entity_type": "parcel", "colour": "kraft"},
+    "parcel_envelope": {"entity_type": "envelope", "colour": "white"},
+    "parcel_damaged": {"entity_type": "parcel", "colour": "orange"},
 }
 
 
@@ -111,6 +138,7 @@ def materialize_scenario(manifest: dict[str, Any]) -> dict[str, Any]:
             {
                 "entity_id": entity_id,
                 **ENTITY_APPEARANCE[entity_id],
+                "attributes": dict(profile.get("attributes", {}).get(entity_id, {})),
                 "x": round(rng.uniform(-0.18, 0.18), 6),
                 "y": round(rng.uniform(-0.12, 0.12), 6),
                 "yaw": round(rng.uniform(-3.141593, 3.141593), 6),

@@ -6,6 +6,7 @@ class WorldState(BaseModel):
     run_id: str
     entity_locations: dict[str, str] = Field(default_factory=dict)
     entity_confidence: dict[str, float] = Field(default_factory=dict)
+    entity_attributes: dict[str, dict[str, str]] = Field(default_factory=dict)
     entity_evidence_refs: dict[str, list[str]] = Field(default_factory=dict)
     evidence_refs: list[str] = Field(default_factory=list)
     applied_event_ids: list[str] = Field(default_factory=list)
@@ -33,6 +34,11 @@ def apply_event(state: WorldState, event: WorldEvent) -> WorldState:
             if location:
                 next_state.entity_locations[normalized_entity_id] = str(location)
             next_state.entity_confidence[normalized_entity_id] = float(event.payload.get("confidence", 0.0))
+            attributes = event.payload.get("attributes")
+            if isinstance(attributes, dict):
+                next_state.entity_attributes[normalized_entity_id] = {
+                    str(key): str(value) for key, value in attributes.items()
+                }
             _append_entity_evidence(next_state, normalized_entity_id, event.evidence_refs)
 
     elif event.event_type is WorldEventType.ACTION_RESULT and event.payload.get("outcome") == "completed":

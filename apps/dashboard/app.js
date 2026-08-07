@@ -59,6 +59,9 @@ const entityLabels = {
   red_block: "红块",
   blue_cylinder: "蓝柱",
   green_gear: "绿齿轮",
+  parcel_box: "纸箱快递",
+  parcel_envelope: "信封快递",
+  parcel_damaged: "破损快递",
 };
 
 const taskZones = {
@@ -68,6 +71,10 @@ const taskZones = {
   "task-clear-workspace": [
     { id: "tray", label: "目标托盘" },
     { id: "staging_bin", label: "障碍暂存" },
+  ],
+  "task-sort-parcels": [
+    { id: "pickup_shelf", label: "取件架 · 完好件" },
+    { id: "quarantine_bin", label: "异常隔离 · 破损件" },
   ],
 };
 
@@ -206,7 +213,7 @@ function clamp(value, minimum, maximum) {
 }
 
 function entityType(payload) {
-  const supported = new Set(["block", "cylinder", "gear"]);
+  const supported = new Set(["block", "cylinder", "gear", "parcel", "envelope"]);
   return supported.has(payload?.entity_type) ? payload.entity_type : "object";
 }
 
@@ -234,6 +241,14 @@ function destinationPosition(location, index) {
     "in:staging_bin": [
       { left: 70, top: 80 },
       { left: 80, top: 80 },
+    ],
+    "in:pickup_shelf": [
+      { left: 69, top: 28 },
+      { left: 81, top: 28 },
+    ],
+    "in:quarantine_bin": [
+      { left: 77, top: 79 },
+      { left: 88, top: 79 },
     ],
   };
   const candidates = slots[location];
@@ -590,7 +605,11 @@ async function initialize() {
     const payload = await response.json();
     state.runs = payload.runs;
     renderRunList();
-    const initial = state.runs.find((run) => run.status === "insufficient_evidence") || state.runs[0];
+    const requestedRun = new URLSearchParams(window.location.search).get("run");
+    const initial =
+      state.runs.find((run) => run.run_id === requestedRun) ||
+      state.runs.find((run) => run.status === "insufficient_evidence") ||
+      state.runs[0];
     if (initial) await selectRun(initial.run_id);
   } catch (error) {
     showToast(`服务未就绪：${error.message}`);

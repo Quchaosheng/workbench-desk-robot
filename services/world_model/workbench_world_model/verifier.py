@@ -1,10 +1,22 @@
+import math
 import uuid
+from collections.abc import Mapping
 
 from workbench_contracts import ReasonCode, RecoveryHint, VerificationResult, VerificationStatus
 
 from .reducer import WorldState
 
 NO_EVIDENCE_REF = "system://world-state/no-evidence"
+DEFAULT_PARCEL_ROUTES = {
+    "parcel_box": "pickup_shelf",
+    "parcel_envelope": "pickup_shelf",
+    "parcel_damaged": "quarantine_bin",
+}
+DEFAULT_PARCEL_ATTRIBUTES = {
+    "parcel_box": {"label_status": "verified", "condition": "intact"},
+    "parcel_envelope": {"label_status": "verified", "condition": "intact"},
+    "parcel_damaged": {"label_status": "verified", "condition": "damaged"},
+}
 
 
 def _unique_evidence(state: WorldState) -> list[str]:
@@ -181,3 +193,84 @@ def verify_workspace_clearance(state: WorldState, task_id: str) -> VerificationR
     else:
         outcome = (VerificationStatus.CONFIRMED, ReasonCode.GOAL_SATISFIED, RecoveryHint.NONE)
     return _result(state, task_id, claim, *outcome, "workspace-clearance-v1")
+
+
+def verify_parcel_sorting(
+    state: WorldState,
+    task_id: str,
+    parcel_routes: dict[str, str] | None = None,
+    expected_attributes: dict[str, dict[str, str]] | None = None,
+    confidence_threshold: float = 0.8,
+) -> VerificationResult:
+    route_input = DEFAULT_PARCEL_ROUTES if parcel_routes is None else parcel_routes
+    if not isinstance(route_input, Mapping):
+        raise ValueError("parcel sorting routes must be a mapping")
+    routes = dict(route_input)
+    required = _required_entity_set(list(routes), "parcel sorting")
+    if any(not isinstance(destination, str) or not destination.strip() for destination in routes.values()):
+        raise ValueError("parcel sorting requires non-empty destinations")
+    attributes = DEFAULT_PARCEL_ATTRIBUTES if expected_attributes is None else expected_attributes
+    if not isinstance(attributes, Mapping):
+        raise ValueError("parcel attribute requirements must be a mapping")
+    if set(attributes) != required:
+        raise ValueError("parcel attribute requirements must match routed parcels")
+    if any(
+        not isinstance(requirements, Mapping)
+        or not requirements
+        or any(
+            not isinstance(key, str) or not key.strip() or not isinstance(value, str) or not value.strip()
+            for key, value in requirements.items()
+        )
+        for requirements in attributes.values()
+    ):
+        raise ValueError("each parcel requires non-empty string attribute requirements")
+    _validate_confidence_threshold(confidence_threshold)
+
+    unobserved = sorted(parcel_id for parcel_id in required if parcel_id not in state.entity_locations)
+    low_confidence = sorted(
+        parcel_id
+        for parcel_id in required
+        if not math.isfinite(state.entity_confidence.get(parcel_id, 0.0))
+        or state.entity_confidence.get(parcel_id, 0.0) < confidence_threshold
+    )
+    missing_evidence = _missing_entity_evidence(state, required)
+    missing_attributes: list[str] = []
+    attribute_mismatches: list[str] = []
+    for parcel_id in sorted(required):
+        observed = state.entity_attributes.get(parcel_id, {})
+        for key, expected_value in attributes[parcel_id].items():
+            if key not in observed:
+                missing_attributes.append(f"{parcel_id}.{key}")
+            elif observed[key] != expected_value:
+                attribute_mismatches.append(f"{parcel_id}.{key}={observed[key]}")
+    misrouted = sorted(
+        f"{parcel_id}->{destination}"
+        for parcel_id, destination in routes.items()
+        if parcel_id in state.entity_locations and state.entity_locations[parcel_id] != f"in:{destination}"
+    )
+    managed_locations = {f"in:{destination}" for destination in routes.values()}
+    extras = sorted(
+        entity_id
+        for entity_id, location in state.entity_locations.items()
+        if location in managed_locations and entity_id not in required
+    )
+    claim = (
+        f"parcel sorting: unobserved={unobserved}; low_confidence={low_confidence}; "
+        f"missing_evidence={missing_evidence}; missing_attributes={missing_attributes}; "
+        f"attribute_mismatches={attribute_mismatches}; misrouted={misrouted}; extras={extras}"
+    )
+    if unobserved:
+        outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.TARGET_NOT_OBSERVED, RecoveryHint.RE_OBSERVE)
+    elif low_confidence:
+        outcome = (
+            VerificationStatus.INSUFFICIENT_EVIDENCE,
+            ReasonCode.CONFIDENCE_BELOW_THRESHOLD,
+            RecoveryHint.RE_OBSERVE,
+        )
+    elif missing_evidence or missing_attributes:
+        outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.EVIDENCE_MISSING, RecoveryHint.RE_OBSERVE)
+    elif attribute_mismatches or misrouted or extras:
+        outcome = (VerificationStatus.REFUTED, ReasonCode.GOAL_NOT_SATISFIED, RecoveryHint.RETRY_ACTION)
+    else:
+        outcome = (VerificationStatus.CONFIRMED, ReasonCode.GOAL_SATISFIED, RecoveryHint.NONE)
+    return _result(state, task_id, claim, *outcome, "parcel-sorting-v1")

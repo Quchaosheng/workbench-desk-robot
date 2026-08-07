@@ -18,7 +18,7 @@ Most demos can't tell these apart. This one tries to.
 
 ## What it does
 
-Single arm, table, simulation. The red-block task remains a frozen regression baseline; the v0.2 benchmark also covers three-part kitting, multi-workpiece inspection, and obstacle-clearance recovery. You give it a bounded goal in plain text, it:
+Single arm, table, simulation. The red-block task remains a frozen regression baseline; the v0.2 benchmark also covers three-part kitting, multi-workpiece inspection, obstacle-clearance recovery, and evidence-first parcel intake. You give it a bounded goal in plain text, it:
 
 - Looks at every required entity in the scene
 - Routes the goal to a bounded semantic plan (`observe`, `grasp`, `place`)
@@ -36,12 +36,12 @@ The model picks a goal, but cannot send joint positions or velocities. That boun
 **Works today:**
 - Contract definitions (11 JSON schemas)
 - Event store with replay
-- Template planner for four task families (no model needed)
-- Task-specific verification for placement, exact kit contents, inspection confidence and workspace clearance
+- Template planner for five task families (no model needed)
+- Task-specific verification for placement, exact kit contents, inspection confidence, workspace clearance, and parcel label/condition routing
 - Read-only multi-entity dashboard with ordered replay, recovery history and evidence inspection
 - Offline container, health endpoints, structured logs and release/SBOM workflow
-- 12 frozen v0.1 baselines plus 18 expanded v0.2 scenarios with deterministic seed checks
-- 44 golden task requests across four families plus 22 dangerous requests that must fail closed
+- 12 frozen v0.1 baselines plus 24 expanded v0.2 scenarios with deterministic seed checks
+- 50 golden task requests across five families plus 26 dangerous requests that must fail closed
 - CI running lint, contracts, evaluation fixtures, offline demo and container smoke checks
 
 **Not built yet:**
@@ -154,7 +154,7 @@ Rule: new capability arrives as a new implementation behind an existing contract
 v0.1 is deliberately small so verification can be proven correct before stacking on it. v0.2 broadens the offline evaluation surface without pretending scripted evidence is simulator or hardware evidence.
 
 - **v0.1** — frozen one-arm, one-task regression baseline
-- **v0.2** — four task families and richer failure handling (scripted pipeline implemented; Gazebo pending)
+- **v0.2** — five task families and richer failure handling (scripted pipeline implemented; Gazebo pending)
 - **v0.3** — real hardware behind the same contracts
 - **later** — mobile base (verifier generalizes to nav goals), multi-arm
 
@@ -180,7 +180,7 @@ Numbers v0.1 aims to hit. Ones marked **0** are release blockers.
 | Verified task completion rate | ≥ 80% |
 | Recovery after first failure | ≥ 70% |
 | Task time P95 | < 120s |
-| Evaluated task families | ≥ 4 |
+| Evaluated task families | ≥ 5 |
 | Complex-task share | ≥ 50% |
 | Goal-condition coverage | 100% |
 
@@ -212,6 +212,8 @@ Simulation only. Being clear about the boundary is part of the point.
 Software safe-stop ≠ hardware emergency stop. Gazebo numbers don't transfer to real grippers without re-validation.
 
 Scripted evaluation fixtures also do not prove Gazebo performance. They exercise event ordering, evidence coverage, replay and reporting, and are marked `release_eligible: false`. See [documented fixture failures](docs/evaluation/failure-cases.md) and the [container runbook](docs/deployment/container.md).
+
+Parcel handling is intentionally limited to parcels already on the tabletop intake area. It verifies readable labels and package condition, routes intact parcels to the pickup shelf, and isolates damaged parcels. The current arm has no mobile base, elevator, or parcel-locker access; those requests fail closed instead of being simulated as completed.
 
 ---
 

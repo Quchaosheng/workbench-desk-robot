@@ -5,6 +5,11 @@ from workbench_contracts import ActionType, SemanticAction, TaskGraph, TaskStep
 
 DEFAULT_KIT_PARTS = ("red_block", "blue_cylinder", "green_gear")
 DEFAULT_INSPECTION_ENTITIES = ("red_block", "blue_cylinder", "green_gear")
+DEFAULT_PARCEL_ROUTES = (
+    ("parcel_box", "pickup_shelf"),
+    ("parcel_envelope", "pickup_shelf"),
+    ("parcel_damaged", "quarantine_bin"),
+)
 
 
 def _matches_task_keyword(text: str, english: tuple[str, ...], chinese: tuple[str, ...]) -> bool:
@@ -35,6 +40,35 @@ def classify_template_task(goal: str) -> str:
     normalized = goal.strip().lower()
     if not normalized:
         raise ValueError("task goal must not be empty")
+    mobile_delivery = any(
+        re.search(pattern, normalized)
+        for pattern in (
+            r"\b(go|walk|travel|navigate|drive|head)\b.*\b(parcel|package|courier|delivery|locker|lobby|downstairs)\b",
+            r"\b(collect|retrieve|pick up|get)\b.*\b(parcel|package|delivery)\b.*\b(from|at)\b.*"
+            r"\b(locker|lobby|downstairs|front desk)\b",
+        )
+    ) or any(token in normalized for token in ("去取快递", "下楼取", "快递柜取", "去拿包裹", "乘电梯取"))
+    if mobile_delivery:
+        raise ValueError("mobile parcel pickup requires navigation and is outside the tabletop robot boundary")
+    fabricated_verification = (
+        any(token in normalized for token in ("ignore", "skip", "忽略", "跳过"))
+        and any(token in normalized for token in ("unreadable", "unknown label", "无法读取", "看不清"))
+        and any(token in normalized for token in ("verified", "verification", "核验", "已验证"))
+    )
+    quarantine_bypass = bool(
+        re.search(r"\b(damaged|broken)\s+(parcel|package)\b.*\b(on|to|into|in)\b.*\bpickup shelf\b", normalized)
+        or re.search(r"破损.{0,10}(取件架|正常区)", normalized)
+    )
+    if fabricated_verification:
+        raise ValueError("parcel labels must be readable evidence before they can be marked verified")
+    if quarantine_bypass:
+        raise ValueError("damaged parcels must be isolated and cannot be routed to pickup")
+    if _matches_task_keyword(
+        normalized,
+        ("parcel", "parcels", "courier", "delivery", "shipment"),
+        ("快递", "包裹", "分拣", "入库", "取件架"),
+    ):
+        return "task-sort-parcels"
     if _matches_task_keyword(
         normalized,
         ("clear", "clearance", "blocked", "obstacle"),
@@ -51,7 +85,7 @@ def classify_template_task(goal: str) -> str:
         return "task-inspect-workpieces"
     if _matches_task_keyword(normalized, ("red",), ("红",)):
         return "task-place-red-block"
-    raise ValueError("template planner supports place, kitting, inspection, and clear-workspace tasks")
+    raise ValueError("template planner supports place, kitting, inspection, clearance, and parcel-sorting tasks")
 
 
 def build_place_plan(goal: str, block_id: str = "red_block", tray_id: str = "tray") -> TaskGraph:
@@ -206,6 +240,62 @@ def build_clear_workspace_plan(
     return TaskGraph(task_id="task-clear-workspace", goal=goal, steps=steps, planner="template-v2")
 
 
+def build_parcel_sorting_plan(
+    goal: str,
+    parcel_routes: Sequence[tuple[str, str]] = DEFAULT_PARCEL_ROUTES,
+) -> TaskGraph:
+    if isinstance(parcel_routes, str):
+        raise ValueError("parcel routing must be a sequence of entity/destination pairs")
+    routes = tuple(parcel_routes)
+    if not routes or any(not isinstance(route, tuple | list) or len(route) != 2 for route in routes):
+        raise ValueError("parcel routing requires entity/destination pairs")
+    parcel_ids = _validate_entity_ids(tuple(route[0] for route in routes), "parcel sorting")
+    destinations = tuple(_validate_identifier(route[1], "destination_id") for route in routes)
+    steps: list[TaskStep] = []
+    action_index = 1
+    for parcel_id, destination_id in zip(parcel_ids, destinations, strict=True):
+        suffix = parcel_id.replace("_", "-")
+        observe_step = f"inspect-{suffix}"
+        grasp_step = f"grasp-{suffix}"
+        steps.extend(
+            [
+                TaskStep(
+                    step_id=observe_step,
+                    action=SemanticAction(
+                        action_id=f"act-{action_index:03d}",
+                        action_type=ActionType.OBSERVE,
+                        target_id=parcel_id,
+                        parameters={
+                            "attributes": ["label_status", "condition"],
+                            "required_confidence": 0.8,
+                        },
+                    ),
+                ),
+                TaskStep(
+                    step_id=grasp_step,
+                    action=SemanticAction(
+                        action_id=f"act-{action_index + 1:03d}",
+                        action_type=ActionType.GRASP,
+                        target_id=parcel_id,
+                    ),
+                    depends_on=[observe_step],
+                ),
+                TaskStep(
+                    step_id=f"route-{suffix}",
+                    action=SemanticAction(
+                        action_id=f"act-{action_index + 2:03d}",
+                        action_type=ActionType.PLACE,
+                        target_id=parcel_id,
+                        parameters={"destination_id": destination_id},
+                    ),
+                    depends_on=[grasp_step],
+                ),
+            ]
+        )
+        action_index += 3
+    return TaskGraph(task_id="task-sort-parcels", goal=goal, steps=steps, planner="template-v2")
+
+
 def build_template_plan(goal: str, block_id: str = "red_block", tray_id: str = "tray") -> TaskGraph:
     """Route a bounded offline goal to semantic actions; never emit joint or firmware commands."""
     task_id = classify_template_task(goal)
@@ -215,4 +305,6 @@ def build_template_plan(goal: str, block_id: str = "red_block", tray_id: str = "
         return build_inspection_plan(goal)
     if task_id == "task-clear-workspace":
         return build_clear_workspace_plan(goal)
+    if task_id == "task-sort-parcels":
+        return build_parcel_sorting_plan(goal)
     return build_place_plan(goal, block_id, tray_id)

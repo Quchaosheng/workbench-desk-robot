@@ -37,8 +37,12 @@ def main() -> int:
 
     expanded = [manifest for path, manifest in manifests if path.parent.name == "expanded"]
     if expanded:
-        if len(frozen) + len(expanded) != 30:
-            raise RuntimeError(f"P2 must contain 30 total scenarios, found {len(frozen) + len(expanded)}")
+        expected_total = len(frozen) + 6 * len(SCENE_TASKS)
+        if len(frozen) + len(expanded) != expected_total:
+            raise RuntimeError(
+                f"expanded benchmark must contain {expected_total} total scenarios, "
+                f"found {len(frozen) + len(expanded)}"
+            )
         variants = {manifest.get("scene_variant") for manifest in expanded}
         if not P2_SCENE_VARIANTS.issubset(variants):
             raise RuntimeError(f"P2 scene variants missing: {sorted(P2_SCENE_VARIANTS - variants)}")

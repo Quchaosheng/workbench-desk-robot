@@ -12,6 +12,7 @@ from workbench_world_model import (
     verify_inspection_evidence,
     verify_kit_contents,
     verify_object_in_tray,
+    verify_parcel_sorting,
     verify_workspace_clearance,
 )
 from workbench_world_model.reducer import WorldState
@@ -30,6 +31,27 @@ def placed_event() -> WorldEvent:
 
 
 class WorldModelTests(unittest.TestCase):
+    def parcel_state(self) -> WorldState:
+        return WorldState(
+            run_id="parcel-run",
+            entity_locations={
+                "parcel_box": "in:pickup_shelf",
+                "parcel_envelope": "in:pickup_shelf",
+                "parcel_damaged": "in:quarantine_bin",
+            },
+            entity_confidence={"parcel_box": 0.96, "parcel_envelope": 0.93, "parcel_damaged": 0.91},
+            entity_attributes={
+                "parcel_box": {"label_status": "verified", "condition": "intact"},
+                "parcel_envelope": {"label_status": "verified", "condition": "intact"},
+                "parcel_damaged": {"label_status": "verified", "condition": "damaged"},
+            },
+            entity_evidence_refs={
+                "parcel_box": ["frame://parcel/box", "motion-log://parcel/box"],
+                "parcel_envelope": ["frame://parcel/envelope", "motion-log://parcel/envelope"],
+                "parcel_damaged": ["frame://parcel/damaged", "motion-log://parcel/damaged"],
+            },
+        )
+
     def test_event_is_idempotent(self) -> None:
         state = WorldState(run_id="run-001")
         once = apply_event(state, placed_event())
@@ -118,6 +140,84 @@ class WorldModelTests(unittest.TestCase):
         self.assertTrue(verify_workspace_clearance(clearance, "task-clear-workspace").completed)
         clearance.entity_evidence_refs.pop("red_block")
         self.assertFalse(verify_workspace_clearance(clearance, "task-clear-workspace").completed)
+
+    def test_observation_reducer_preserves_parcel_attributes(self) -> None:
+        event = WorldEvent(
+            event_id="evt-parcel-observe",
+            run_id="parcel-run",
+            sequence_no=0,
+            event_type=WorldEventType.OBSERVATION,
+            occurred_at="2026-08-07T00:00:00Z",
+            payload={
+                "entity_id": "parcel_damaged",
+                "location": "on:intake_table",
+                "confidence": 0.92,
+                "attributes": {"label_status": "verified", "condition": "damaged"},
+            },
+            evidence_refs=["frame://parcel/damaged"],
+        )
+        state = reduce_events("parcel-run", [event])
+        self.assertEqual(
+            state.entity_attributes["parcel_damaged"],
+            {"label_status": "verified", "condition": "damaged"},
+        )
+
+    def test_parcel_verifier_checks_attributes_routes_extras_and_evidence(self) -> None:
+        state = self.parcel_state()
+        result = verify_parcel_sorting(state, "task-sort-parcels")
+        self.assertEqual(result.status, VerificationStatus.CONFIRMED)
+
+        state.entity_attributes["parcel_box"].pop("label_status")
+        result = verify_parcel_sorting(state, "task-sort-parcels")
+        self.assertEqual(result.status, VerificationStatus.INSUFFICIENT_EVIDENCE)
+        self.assertIn("parcel_box.label_status", result.claim)
+
+        state = self.parcel_state()
+        state.entity_attributes["parcel_damaged"]["condition"] = "intact"
+        result = verify_parcel_sorting(state, "task-sort-parcels")
+        self.assertEqual(result.status, VerificationStatus.REFUTED)
+
+        state = self.parcel_state()
+        state.entity_locations["parcel_damaged"] = "in:pickup_shelf"
+        result = verify_parcel_sorting(state, "task-sort-parcels")
+        self.assertEqual(result.status, VerificationStatus.REFUTED)
+
+        state = self.parcel_state()
+        state.entity_locations["unregistered_parcel"] = "in:pickup_shelf"
+        result = verify_parcel_sorting(state, "task-sort-parcels")
+        self.assertEqual(result.status, VerificationStatus.REFUTED)
+        self.assertIn("unregistered_parcel", result.claim)
+
+        state = self.parcel_state()
+        state.entity_evidence_refs.pop("parcel_envelope")
+        self.assertEqual(
+            verify_parcel_sorting(state, "task-sort-parcels").status,
+            VerificationStatus.INSUFFICIENT_EVIDENCE,
+        )
+
+        state = self.parcel_state()
+        state.entity_confidence["parcel_box"] = float("nan")
+        self.assertEqual(
+            verify_parcel_sorting(state, "task-sort-parcels").reason_code,
+            ReasonCode.CONFIDENCE_BELOW_THRESHOLD,
+        )
+
+    def test_parcel_verifier_rejects_malformed_requirements(self) -> None:
+        state = self.parcel_state()
+        with self.assertRaises(ValueError):
+            verify_parcel_sorting(state, "task-sort-parcels", parcel_routes=[])
+        with self.assertRaises(ValueError):
+            verify_parcel_sorting(state, "task-sort-parcels", expected_attributes={})
+        with self.assertRaises(ValueError):
+            verify_parcel_sorting(
+                state,
+                "task-sort-parcels",
+                expected_attributes={
+                    "parcel_box": {},
+                    "parcel_envelope": {"label_status": "verified"},
+                    "parcel_damaged": {"label_status": "verified"},
+                },
+            )
 
 
 if __name__ == "__main__":

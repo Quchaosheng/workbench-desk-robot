@@ -177,6 +177,15 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
     recoverable_fault = fault_type in {"grasp_failure", "actuator_timeout"}
     evidence: list[str] = []
     recovery_injected = False
+    observation_attributes = (
+        ["label_status", "condition"]
+        if profile.get("attributes")
+        else [
+            "presence",
+            "identity",
+            "orientation",
+        ]
+    )
 
     for object_index, scene_object in enumerate(scene["objects"]):
         entity_id = scene_object["entity_id"]
@@ -187,7 +196,7 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
                 "action_id": observe_action_id,
                 "action_type": "observe",
                 "target_id": entity_id,
-                "attributes": ["presence", "identity", "orientation"],
+                "attributes": observation_attributes,
             },
         )
         if not profile["operations"] and recoverable_fault and object_index == 0:
@@ -205,6 +214,7 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
                     "action_id": observe_action_id,
                     "action_type": "observe",
                     "target_id": entity_id,
+                    "attributes": observation_attributes,
                     "attempt": 2,
                 },
             )
@@ -222,6 +232,7 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
                 "entity_id": entity_id,
                 "entity_type": scene_object["entity_type"],
                 "colour": scene_object["colour"],
+                "attributes": scene_object.get("attributes", {}),
                 "location": "on:table",
                 "pose": {
                     "frame_id": "world",

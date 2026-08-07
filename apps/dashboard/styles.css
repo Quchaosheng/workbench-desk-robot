@@ -1103,6 +1103,30 @@ svg {
   white-space: nowrap;
 }
 
+.route-decision-row strong {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.route-priority {
+  flex: 0 0 auto;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.route-priority-0 {
+  color: var(--red);
+}
+
+.route-priority-1 {
+  color: var(--amber);
+}
+
+.route-priority-2 {
+  color: var(--green);
+}
+
 .route-decision-row small {
   color: var(--muted);
 }

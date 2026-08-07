@@ -92,10 +92,20 @@ class EvaluationPipelineTests(unittest.TestCase):
         observations = [event for event in events if event["event_type"] == "observation"]
         observe_requests = [event for event in events if event["event_type"] == "action_request"]
         graph = next(event for event in events if event["event_type"] == "task_graph")["payload"]
-        self.assertEqual(graph["planner"], "parcel-policy-v1")
+        self.assertEqual(graph["planner"], "parcel-policy-v2")
         self.assertTrue(graph["observation_barrier"])
         self.assertTrue(graph["manipulation_serial"])
         self.assertEqual(graph["routing_policy"], "verified_intact_only")
+        self.assertEqual(graph["destination_capacities"], {"pickup_shelf": 4, "quarantine_bin": 4})
+        self.assertEqual(graph["destination_occupancy"], {"pickup_shelf": 0, "quarantine_bin": 0})
+        self.assertEqual(
+            graph["routing_priorities"],
+            {
+                "parcel_box": "standard",
+                "parcel_unreadable": "label_exception",
+                "parcel_damaged": "condition_exception",
+            },
+        )
         self.assertEqual(
             graph["actions"][0:3],
             [
@@ -104,7 +114,7 @@ class EvaluationPipelineTests(unittest.TestCase):
                 "observe:parcel_damaged",
             ],
         )
-        self.assertEqual(graph["actions"][3], "grasp:parcel_unreadable")
+        self.assertEqual(graph["actions"][3], "grasp:parcel_damaged")
         self.assertTrue(all(event["payload"]["attributes"] for event in observations))
         self.assertTrue(
             all(event["payload"]["attributes"] == ["label_status", "condition"] for event in observe_requests[:3])

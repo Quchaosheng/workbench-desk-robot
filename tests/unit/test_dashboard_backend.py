@@ -143,6 +143,8 @@ class ReadModelTests(unittest.TestCase):
         self.assertIn("pickup_shelf", script)
         self.assertIn("quarantine_bin", script)
         self.assertIn("renderParcelDecisions", script)
+        self.assertIn("destination_capacities", script)
+        self.assertIn("route-priority", script)
         self.assertIn('id="parcel-decisions"', markup)
         self.assertIn("map-entity-envelope", script + (dashboard / "styles.css").read_text(encoding="utf-8"))
 

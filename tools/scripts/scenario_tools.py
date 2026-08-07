@@ -78,11 +78,8 @@ TASK_PROFILES: dict[str, dict[str, Any]] = {
         "goal": "Scan the parcel batch, route verified intact parcels to pickup, and isolate exceptions",
         "goal_zh": "先扫描整批快递,完好核验件入取件架,标签异常或破损件进入隔离",
         "entities": ("parcel_box", "parcel_unreadable", "parcel_damaged"),
-        "operations": (
-            ("parcel_unreadable", "quarantine_bin"),
-            ("parcel_damaged", "quarantine_bin"),
-            ("parcel_box", "pickup_shelf"),
-        ),
+        # The evaluator derives parcel operations from the production policy planner.
+        "operations": (),
         "attributes": {
             "parcel_box": {"label_status": "verified", "condition": "intact"},
             "parcel_unreadable": {"label_status": "unreadable", "condition": "intact"},

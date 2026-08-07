@@ -98,10 +98,69 @@ class PlannerTests(unittest.TestCase):
             [step.action.parameters["destination_id"] for step in places],
             ["quarantine_bin", "quarantine_bin", "pickup_shelf"],
         )
-        self.assertEqual(places[0].action.parameters["routing_reason"], "label_unreadable")
+        self.assertEqual([step.action.target_id for step in places], ["box-c", "box-b", "box-a"])
+        self.assertEqual(places[0].action.parameters["routing_reason"], "condition_damaged")
+        self.assertEqual(places[0].action.parameters["routing_priority"], "condition_exception")
+        self.assertEqual(places[1].action.parameters["routing_priority"], "label_exception")
+        self.assertEqual(places[2].action.parameters["routing_priority"], "standard")
+        self.assertTrue(all(step.action.parameters["policy_version"] == "parcel-routing-v2" for step in places))
         grasps = [step for step in plan.steps if step.action.action_type.value == "grasp"]
         self.assertEqual(set(grasps[0].depends_on), {"inspect-box-a", "inspect-box-b", "inspect-box-c"})
-        self.assertIn("route-box-b", grasps[1].depends_on)
+        self.assertIn("route-box-c", grasps[1].depends_on)
+
+    def test_parcel_plan_preflights_capacity_before_emitting_any_actions(self) -> None:
+        attributes = {
+            "safe": {"label_status": "verified", "condition": "intact"},
+            "damaged": {"label_status": "verified", "condition": "damaged"},
+            "unreadable": {"label_status": "unreadable", "condition": "intact"},
+        }
+        plan = build_policy_routed_parcel_plan(
+            "Route a capacity-bounded batch",
+            attributes,
+            destination_capacities={"pickup_shelf": 2, "quarantine_bin": 3},
+            destination_occupancy={"pickup_shelf": 1, "quarantine_bin": 1},
+        )
+        places = [step for step in plan.steps if step.action.action_type.value == "place"]
+        self.assertEqual(
+            [step.action.parameters["destination_remaining_after"] for step in places],
+            [1, 0, 0],
+        )
+        self.assertEqual([step.action.parameters["destination_capacity"] for step in places], [3, 3, 2])
+
+        with self.assertRaisesRegex(ValueError, "quarantine_bin needs 2 slots but 1 are available"):
+            build_policy_routed_parcel_plan(
+                "Reject an over-capacity batch",
+                attributes,
+                destination_capacities={"pickup_shelf": 2, "quarantine_bin": 1},
+            )
+
+    def test_parcel_capacity_snapshots_and_colliding_ids_fail_closed_or_stay_unique(self) -> None:
+        attributes = {
+            "box_a": {"label_status": "verified", "condition": "intact"},
+            "box-a": {"label_status": "unreadable", "condition": "intact"},
+        }
+        plan = build_policy_routed_parcel_plan("Route IDs that normalize alike", attributes)
+        step_ids = [step.step_id for step in plan.steps]
+        self.assertEqual(len(step_ids), len(set(step_ids)))
+        self.assertTrue(all(dependency in step_ids for step in plan.steps for dependency in step.depends_on))
+
+        invalid_capacity_inputs = (
+            ({"pickup_shelf": 1}, None),
+            ({"pickup_shelf": True, "quarantine_bin": 1}, None),
+            (None, {"pickup_shelf": 0, "quarantine_bin": 0}),
+            (
+                {"pickup_shelf": 1, "quarantine_bin": 1},
+                {"pickup_shelf": 2, "quarantine_bin": 0},
+            ),
+        )
+        for capacities, occupancy in invalid_capacity_inputs:
+            with self.subTest(capacities=capacities, occupancy=occupancy), self.assertRaises(ValueError):
+                build_policy_routed_parcel_plan(
+                    "Reject an invalid capacity snapshot",
+                    attributes,
+                    destination_capacities=capacities,
+                    destination_occupancy=occupancy,
+                )
 
     def test_parcel_requests_fail_closed_outside_evidence_and_motion_boundaries(self) -> None:
         dangerous = (

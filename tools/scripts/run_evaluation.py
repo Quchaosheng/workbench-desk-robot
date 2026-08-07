@@ -17,6 +17,7 @@ enable_local_packages()
 
 from pydantic import ValidationError
 from scenario_tools import TASK_PROFILES, materialize_scenario
+from workbench_agent_runtime import build_policy_routed_parcel_plan
 from workbench_contracts import ScenarioManifest
 
 SAFE_LABEL = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
@@ -92,6 +93,19 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
     if profile is None:
         raise EvaluationInputError(f"unsupported scripted task_id: {task_id}")
     scene = materialize_scenario(manifest)
+    operations = tuple(profile["operations"])
+    policy_plan = None
+    if task_id == "task-sort-parcels":
+        policy_plan = build_policy_routed_parcel_plan(
+            profile["goal"],
+            {item["entity_id"]: item["attributes"] for item in scene["objects"]},
+            destination_capacities={"pickup_shelf": 4, "quarantine_bin": 4},
+        )
+        operations = tuple(
+            (step.action.target_id, step.action.parameters["destination_id"])
+            for step in policy_plan.steps
+            if step.action.action_type.value == "place"
+        )
     run_id = f"{version}--{scenario_id}"
     effective_seed = seed_base + manifest["seed"]
     start = datetime(2026, 1, 1, tzinfo=UTC) + timedelta(seconds=effective_seed % TIMESTAMP_WINDOW_SECONDS)
@@ -155,12 +169,21 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
             "required_entities": list(profile["entities"]),
         },
     )
-    graph_actions = [f"observe:{entity_id}" for entity_id in profile["entities"]]
-    graph_actions.extend(
-        action
-        for entity_id, destination_id in profile["operations"]
-        for action in (f"grasp:{entity_id}", f"place:{entity_id}->{destination_id}")
+    graph_actions = (
+        [
+            f"{step.action.action_type.value}:{step.action.target_id}"
+            + (f"->{step.action.parameters['destination_id']}" if step.action.action_type.value == "place" else "")
+            for step in policy_plan.steps
+        ]
+        if policy_plan is not None
+        else [f"observe:{entity_id}" for entity_id in profile["entities"]]
     )
+    if policy_plan is None:
+        graph_actions.extend(
+            action
+            for entity_id, destination_id in operations
+            for action in (f"grasp:{entity_id}", f"place:{entity_id}->{destination_id}")
+        )
     append(
         "task_graph",
         {
@@ -168,7 +191,7 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
             "planner": (
                 "template-v1"
                 if task_id == "task-place-red-block"
-                else "parcel-policy-v1"
+                else policy_plan.planner
                 if task_id == "task-sort-parcels"
                 else "template-v2"
             ),
@@ -178,6 +201,17 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
             "observation_barrier": task_id == "task-sort-parcels",
             "manipulation_serial": task_id == "task-sort-parcels",
             "routing_policy": "verified_intact_only" if task_id == "task-sort-parcels" else None,
+            "routing_priorities": (
+                {
+                    step.action.target_id: step.action.parameters["routing_priority"]
+                    for step in policy_plan.steps
+                    if step.action.action_type.value == "place"
+                }
+                if policy_plan is not None
+                else None
+            ),
+            "destination_capacities": ({"pickup_shelf": 4, "quarantine_bin": 4} if policy_plan is not None else None),
+            "destination_occupancy": ({"pickup_shelf": 0, "quarantine_bin": 0} if policy_plan is not None else None),
         },
     )
 
@@ -208,7 +242,7 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
                 "attributes": observation_attributes,
             },
         )
-        if not profile["operations"] and recoverable_fault and object_index == 0:
+        if not operations and recoverable_fault and object_index == 0:
             failure_ref = f"sensor-log://{run_id}/{entity_id}/attempt-1"
             append(
                 "action_result",
@@ -259,7 +293,7 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
         )
 
     operation_failed = False
-    for operation_index, (entity_id, destination_id) in enumerate(profile["operations"]):
+    for operation_index, (entity_id, destination_id) in enumerate(operations):
         grasp_action_id = next_action_id()
         append(
             "action_request",

@@ -1,4 +1,5 @@
 import re
+from collections import Counter
 from collections.abc import Mapping, Sequence
 
 from workbench_contracts import ActionType, SemanticAction, TaskGraph, TaskStep
@@ -17,7 +18,7 @@ DEFAULT_PARCEL_ATTRIBUTES = {
     "parcel_unreadable": {"label_status": "unreadable", "condition": "intact"},
     "parcel_damaged": {"label_status": "verified", "condition": "damaged"},
 }
-PARCEL_POLICY_VERSION = "parcel-routing-v1"
+PARCEL_POLICY_VERSION = "parcel-routing-v2"
 
 
 def _matches_task_keyword(text: str, english: tuple[str, ...], chinese: tuple[str, ...]) -> bool:
@@ -40,6 +41,22 @@ def _validate_entity_ids(values: Sequence[str], label: str) -> tuple[str, ...]:
     if len(normalized) != len(set(normalized)):
         raise ValueError(f"{label} requires unique entity IDs")
     return normalized
+
+
+def _unique_step_tokens(entity_ids: Sequence[str]) -> dict[str, str]:
+    """Create readable, deterministic tokens without collapsing distinct IDs."""
+    tokens: dict[str, str] = {}
+    used: set[str] = set()
+    for index, entity_id in enumerate(entity_ids, start=1):
+        base = re.sub(r"[^a-z0-9]+", "-", entity_id.lower()).strip("-") or f"entity-{index}"
+        token = base
+        suffix = 2
+        while token in used:
+            token = f"{base}-{suffix}"
+            suffix += 1
+        tokens[entity_id] = token
+        used.add(token)
+    return tokens
 
 
 def classify_template_task(goal: str) -> str:
@@ -251,6 +268,7 @@ def build_clear_workspace_plan(
 def build_parcel_sorting_plan(
     goal: str,
     parcel_routes: Sequence[tuple[str, str]] = DEFAULT_PARCEL_ROUTES,
+    observation_order: Sequence[str] | None = None,
 ) -> TaskGraph:
     if isinstance(parcel_routes, str):
         raise ValueError("parcel routing must be a sequence of entity/destination pairs")
@@ -258,12 +276,18 @@ def build_parcel_sorting_plan(
     if not routes or any(not isinstance(route, tuple | list) or len(route) != 2 for route in routes):
         raise ValueError("parcel routing requires entity/destination pairs")
     parcel_ids = _validate_entity_ids(tuple(route[0] for route in routes), "parcel sorting")
+    observed_parcel_ids = (
+        parcel_ids if observation_order is None else _validate_entity_ids(observation_order, "parcel observation order")
+    )
+    if set(observed_parcel_ids) != set(parcel_ids):
+        raise ValueError("parcel observation order must contain exactly the routed parcels")
     destinations = tuple(_validate_identifier(route[1], "destination_id") for route in routes)
+    step_tokens = _unique_step_tokens(observed_parcel_ids)
     steps: list[TaskStep] = []
     observe_steps: list[str] = []
     action_index = 1
-    for parcel_id in parcel_ids:
-        suffix = parcel_id.replace("_", "-")
+    for parcel_id in observed_parcel_ids:
+        suffix = step_tokens[parcel_id]
         observe_step = f"inspect-{suffix}"
         observe_steps.append(observe_step)
         steps.append(
@@ -284,7 +308,7 @@ def build_parcel_sorting_plan(
 
     previous_route_step: str | None = None
     for parcel_id, destination_id in zip(parcel_ids, destinations, strict=True):
-        suffix = parcel_id.replace("_", "-")
+        suffix = step_tokens[parcel_id]
         grasp_step = f"grasp-{suffix}"
         route_step = f"route-{suffix}"
         dependencies = list(observe_steps)
@@ -322,7 +346,7 @@ def _parcel_policy_decision(
     attributes: Mapping[str, str],
     pickup_shelf_id: str,
     quarantine_bin_id: str,
-) -> tuple[str, str]:
+) -> tuple[str, str, str, int]:
     if not isinstance(attributes, Mapping):
         raise ValueError("parcel attributes must be a mapping")
     values: dict[str, str] = {}
@@ -332,13 +356,30 @@ def _parcel_policy_decision(
             raise ValueError(f"parcel policy requires a non-empty {key}")
         values[key] = value.strip().lower()
     if values["label_status"] == "verified" and values["condition"] == "intact":
-        return pickup_shelf_id, "verified_intact"
+        return pickup_shelf_id, "verified_intact", "standard", 2
     reasons = []
     if values["label_status"] != "verified":
         reasons.append(f"label_{values['label_status']}")
     if values["condition"] != "intact":
         reasons.append(f"condition_{values['condition']}")
-    return quarantine_bin_id, "+".join(reasons)
+    priority = "condition_exception" if values["condition"] != "intact" else "label_exception"
+    rank = 0 if priority == "condition_exception" else 1
+    return quarantine_bin_id, "+".join(reasons), priority, rank
+
+
+def _validate_destination_counts(
+    values: Mapping[str, int],
+    label: str,
+    destination_ids: tuple[str, str],
+) -> dict[str, int]:
+    if not isinstance(values, Mapping):
+        raise ValueError(f"{label} must be a mapping")
+    if set(values) != set(destination_ids):
+        raise ValueError(f"{label} must contain exactly the pickup and quarantine destinations")
+    counts = dict(values)
+    if any(isinstance(value, bool) or not isinstance(value, int) or value < 0 for value in counts.values()):
+        raise ValueError(f"{label} values must be non-negative integers")
+    return counts
 
 
 def build_policy_routed_parcel_plan(
@@ -346,6 +387,8 @@ def build_policy_routed_parcel_plan(
     parcel_attributes: Mapping[str, Mapping[str, str]],
     pickup_shelf_id: str = "pickup_shelf",
     quarantine_bin_id: str = "quarantine_bin",
+    destination_capacities: Mapping[str, int] | None = None,
+    destination_occupancy: Mapping[str, int] | None = None,
 ) -> TaskGraph:
     pickup_shelf_id = _validate_identifier(pickup_shelf_id, "pickup_shelf_id")
     quarantine_bin_id = _validate_identifier(quarantine_bin_id, "quarantine_bin_id")
@@ -354,25 +397,73 @@ def build_policy_routed_parcel_plan(
     if not isinstance(parcel_attributes, Mapping):
         raise ValueError("parcel_attributes must be a mapping")
     parcel_ids = _validate_entity_ids(tuple(parcel_attributes), "parcel policy")
-    decisions = []
+    destinations = (pickup_shelf_id, quarantine_bin_id)
+    capacities: dict[str, int] | None = None
+    occupancy: dict[str, int] = {destination_id: 0 for destination_id in destinations}
+    if destination_capacities is None:
+        if destination_occupancy is not None:
+            raise ValueError("destination_occupancy requires destination_capacities")
+    else:
+        capacities = _validate_destination_counts(destination_capacities, "destination_capacities", destinations)
+        if destination_occupancy is not None:
+            occupancy = _validate_destination_counts(destination_occupancy, "destination_occupancy", destinations)
+        overfilled = [
+            destination_id for destination_id in destinations if occupancy[destination_id] > capacities[destination_id]
+        ]
+        if overfilled:
+            raise ValueError(f"destination occupancy exceeds capacity: {', '.join(sorted(overfilled))}")
+
+    decisions: list[tuple[str, str, int]] = []
     reasons: dict[str, str] = {}
+    priorities: dict[str, str] = {}
     for parcel_id in parcel_ids:
-        destination_id, reason = _parcel_policy_decision(
+        destination_id, reason, priority, rank = _parcel_policy_decision(
             parcel_attributes[parcel_id], pickup_shelf_id, quarantine_bin_id
         )
-        decisions.append((parcel_id, destination_id))
+        decisions.append((parcel_id, destination_id, rank))
         reasons[parcel_id] = reason
-    decisions.sort(key=lambda item: (item[1] != quarantine_bin_id, item[0]))
-    plan = build_parcel_sorting_plan(goal, decisions)
+        priorities[parcel_id] = priority
+    decisions.sort(key=lambda item: (item[2], item[0]))
+
+    demand = Counter(destination_id for _, destination_id, _ in decisions)
+    if capacities is not None:
+        deficits = [
+            f"{destination_id} needs {demand[destination_id]} slots but "
+            f"{capacities[destination_id] - occupancy[destination_id]} are available"
+            for destination_id in destinations
+            if demand[destination_id] > capacities[destination_id] - occupancy[destination_id]
+        ]
+        if deficits:
+            raise ValueError(f"parcel capacity preflight failed: {'; '.join(deficits)}")
+
+    plan = build_parcel_sorting_plan(
+        goal,
+        [(parcel_id, destination_id) for parcel_id, destination_id, _ in decisions],
+        observation_order=parcel_ids,
+    )
+    projected_occupancy = occupancy.copy()
     for step in plan.steps:
         if step.action.action_type is ActionType.PLACE:
+            destination_id = step.action.parameters["destination_id"]
             step.action.parameters.update(
                 {
                     "routing_reason": reasons[step.action.target_id],
+                    "routing_priority": priorities[step.action.target_id],
                     "policy_version": PARCEL_POLICY_VERSION,
                 }
             )
-    return plan.model_copy(update={"planner": "parcel-policy-v1"})
+            if capacities is not None:
+                projected_occupancy[destination_id] += 1
+                step.action.parameters.update(
+                    {
+                        "destination_capacity": capacities[destination_id],
+                        "destination_occupancy_after": projected_occupancy[destination_id],
+                        "destination_remaining_after": (
+                            capacities[destination_id] - projected_occupancy[destination_id]
+                        ),
+                    }
+                )
+    return plan.model_copy(update={"planner": "parcel-policy-v2"})
 
 
 def build_template_plan(goal: str, block_id: str = "red_block", tray_id: str = "tray") -> TaskGraph:

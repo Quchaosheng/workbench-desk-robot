@@ -259,6 +259,7 @@ function destinationPosition(location, index) {
 function buildWorkbenchState(events, cursor) {
   const visible = cursor < 0 ? [] : events.slice(0, cursor + 1);
   const accepted = visible.find((event) => event.event_type === "task_accepted");
+  const taskGraph = visible.find((event) => event.event_type === "task_graph");
   const actionTargets = new Map();
   const entities = new Map();
   visible.forEach((event) => {
@@ -286,7 +287,11 @@ function buildWorkbenchState(events, cursor) {
       }
     }
   });
-  return { taskId: accepted?.payload?.task_id || "task-place-red-block", entities: [...entities.values()] };
+  return {
+    taskId: accepted?.payload?.task_id || "task-place-red-block",
+    taskGraph: taskGraph?.payload || {},
+    entities: [...entities.values()],
+  };
 }
 
 function entityVisual(entity, index, extraClass = "") {
@@ -326,7 +331,13 @@ function parcelDecision(entity) {
     : `隔离：${labelStatus !== "verified" ? `标签${labelDisplay}` : ""}${labelStatus !== "verified" && condition !== "intact" ? " · " : ""}${condition !== "intact" ? `外观${conditionDisplay}` : ""}`;
   const actual = entity.location || "pending";
   const result = actual === destination ? "confirmed" : actual === "pending" ? "pending" : "refuted";
-  return { condition: conditionDisplay, destination, labelStatus: labelDisplay, reason, result };
+  const priority =
+    condition !== "intact"
+      ? { label: "P0 状态异常", rank: 0 }
+      : labelStatus !== "verified"
+        ? { label: "P1 标签异常", rank: 1 }
+        : { label: "P2 正常入架", rank: 2 };
+  return { condition: conditionDisplay, destination, labelStatus: labelDisplay, priority, reason, result };
 }
 
 function renderParcelDecisions(workbench) {
@@ -336,16 +347,34 @@ function renderParcelDecisions(workbench) {
     panel.innerHTML = "";
     return;
   }
+  const decisions = workbench.entities
+    .map((entity) => ({ decision: parcelDecision(entity), entity }))
+    .sort(
+      (left, right) =>
+        left.decision.priority.rank - right.decision.priority.rank ||
+        String(left.entity.entity_id).localeCompare(String(right.entity.entity_id)),
+    );
+  const capacities = workbench.taskGraph.destination_capacities || {};
+  const initialOccupancy = workbench.taskGraph.destination_occupancy || {};
+  const capacitySummary = [
+    ["取件", "pickup_shelf", "in:pickup_shelf", capacities.pickup_shelf],
+    ["隔离", "quarantine_bin", "in:quarantine_bin", capacities.quarantine_bin],
+  ]
+    .filter(([, , , capacity]) => Number.isInteger(capacity))
+    .map(([label, destination, location, capacity]) => {
+      const placed = workbench.entities.filter((entity) => entity.location === location).length;
+      return `${label} ${(Number(initialOccupancy[destination]) || 0) + placed}/${capacity}`;
+    })
+    .join(" · ");
   panel.hidden = false;
   panel.innerHTML = `
-    <div class="route-decision-head"><span>逐件路由决策</span><small>属性先于动作</small></div>
+    <div class="route-decision-head"><span>逐件路由决策</span><small>${escapeHtml(capacitySummary || "属性先于动作")}</small></div>
     <div class="route-decision-table" role="table" aria-label="快递逐件路由决策">
-      ${workbench.entities
-        .map((entity) => {
-          const decision = parcelDecision(entity);
+      ${decisions
+        .map(({ decision, entity }) => {
           const destination = decision.destination === "in:pickup_shelf" ? "取件架" : "异常隔离";
           return `<div class="route-decision-row route-decision-${decision.result}" role="row">
-            <strong>${escapeHtml(entityLabels[entity.entity_id] || entity.entity_id)}</strong>
+            <strong>${escapeHtml(entityLabels[entity.entity_id] || entity.entity_id)}<b class="route-priority route-priority-${decision.priority.rank}">${escapeHtml(decision.priority.label)}</b></strong>
             <span>${escapeHtml(decision.labelStatus)} · ${escapeHtml(decision.condition)}</span>
             <span class="route-destination">${escapeHtml(destination)}</span>
             <small>${escapeHtml(decision.reason)}</small>

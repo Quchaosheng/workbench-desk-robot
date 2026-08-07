@@ -41,11 +41,11 @@ all: host qemu
 host:
 	@if [ -z "$(wildcard tests/*.c)" ]; then \
 	  echo "tests/ is empty - host tests arrive with FW3. Nothing to build."; \
-	  exit 0; \
+	else \
+	  mkdir -p $(BUILD)/host; \
+	  $(HOSTCC) $(HOSTFLAGS) $(CORE) $(wildcard hal/host/*.c) \
+	    $(wildcard tests/*.c) -o $(BUILD)/host/test-runner; \
 	fi
-	@mkdir -p $(BUILD)/host
-	$(HOSTCC) $(HOSTFLAGS) $(CORE) $(wildcard hal/host/*.c) $(wildcard tests/*.c) \
-	  -o $(BUILD)/host/test-runner
 
 test-host: host
 	@if [ -x $(BUILD)/host/test-runner ]; then $(BUILD)/host/test-runner; \

@@ -50,6 +50,8 @@ by U7; neither is tied to logic ground in the board database.
 The E-stop path now has distinct `MOTOR_ENABLE_REQ` and `MOTOR_ENABLE_SAFE`
 nets, a dual-channel J10 loop, a U8 safety-gate carrier, and J11 gated output.
 `connector-pinout.csv` freezes the current EVT pin mapping.
+`component-selection-matrix.csv` tracks every active module, the source-backed
+candidate or class, verification method, owner and procurement status.
 
 Run `python hardware/pcb/tools/release_readiness.py` before sharing an order
 package. It intentionally reports `ORDER_RELEASE_BLOCKED` until the component-level

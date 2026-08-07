@@ -105,6 +105,12 @@ class PcbPackageTests(unittest.TestCase):
         self.assertEqual(len([row for row in rows if row["reference"] == "J4"]), 20)
         self.assertEqual(len([row for row in rows if row["reference"] == "J10"]), 4)
         self.assertEqual(len([row for row in rows if row["reference"] == "J11"]), 4)
+        self.assertEqual(len([row for row in rows if row["reference"] == "J2"]), 4)
+        self.assertEqual(len([row for row in rows if row["reference"] == "J5"]), 4)
+        self.assertEqual(len([row for row in rows if row["reference"] == "J6"]), 4)
+        with (ROOT / "hardware/pcb/component-selection-matrix.csv").open(newline="", encoding="utf-8") as handle:
+            components = list(csv.DictReader(handle))
+        self.assertEqual({row["reference"] for row in components}, {"U1", "U2", "U3", "U4", "U5", "U6", "U7", "U8"})
 
     def test_official_sources_and_interface_freeze_states_are_explicit(self) -> None:
         baseline = json.loads((ROOT / "hardware/pcb/source-baseline.json").read_text(encoding="utf-8"))

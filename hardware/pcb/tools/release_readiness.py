@@ -15,6 +15,7 @@ def read_csv(name: str) -> list[dict[str, str]]:
 
 def audit() -> dict[str, object]:
     pinout = read_csv("connector-pinout.csv")
+    component_matrix = read_csv("component-selection-matrix.csv")
     bom = read_csv("fabrication/bom.csv")
     schematic = (ROOT / "kicad/controller.kicad_sch").read_text(encoding="utf-8")
     board = (ROOT / "kicad/controller.kicad_pcb").read_text(encoding="utf-8")
@@ -32,12 +33,17 @@ def audit() -> dict[str, object]:
         for reference in {row["reference"] for row in pinout}
     }
     duplicate_pins = len({(row["reference"], row["pin"]) for row in pinout}) != len(pinout)
+    required_populated = {"J1", "J2", "J3", "J4", "J5", "J6", "J10", "J11"}
     procurement_holds = [row["reference"] for row in bom if row["procurement_gate"] != "APPROVED"]
 
     engineering_checks = {
         "drc_clean": "Found 0 DRC violations" in drc and "Found 0 unconnected pads" in drc,
         "erc_clean": "0  Errors 0  Warnings" in erc,
         "controlled_pinout_complete": pin_counts.get("J4") == 20
+        and required_populated <= set(pin_counts)
+        and pin_counts.get("J2") == 4
+        and pin_counts.get("J5") == 4
+        and pin_counts.get("J6") == 4
         and pin_counts.get("J10") == 4
         and pin_counts.get("J11") == 4
         and not duplicate_pins,
@@ -49,6 +55,8 @@ def audit() -> dict[str, object]:
             for row in safety_truth_table
         ),
         "harness_engineering_pass": harness_report["engineering_package_pass"],
+        "component_matrix_covers_all_active_modules": {row["reference"] for row in component_matrix}
+        >= {"U1", "U2", "U3", "U4", "U5", "U6", "U7", "U8"},
     }
     order_release_checks = {
         "detailed_schematic_has_symbols": "(symbol " in schematic,
@@ -57,6 +65,7 @@ def audit() -> dict[str, object]:
         "safety_analysis_approved": False,
         "supplier_dfm_closed": False,
         "harness_release_checks_closed": all(harness_report["release_checks"].values()),
+        "component_mpn_and_avl_closed": all(row["procurement_status"] == "APPROVED" for row in component_matrix),
     }
     return {
         "status": "ORDER_RELEASE_BLOCKED" if not all(order_release_checks.values()) else "ORDER_RELEASED",

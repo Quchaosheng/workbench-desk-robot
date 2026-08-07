@@ -9,7 +9,8 @@
     "stackup_matches_current_rails": true,
     "software_enable_is_not_safety_output": true,
     "safety_truth_table_covers_channel_discrepancy": true,
-    "harness_engineering_pass": true
+    "harness_engineering_pass": true,
+    "component_matrix_covers_all_active_modules": true
   },
   "order_release_checks": {
     "detailed_schematic_has_symbols": false,
@@ -17,7 +18,8 @@
     "physical_bringup_evidence_attached": false,
     "safety_analysis_approved": false,
     "supplier_dfm_closed": false,
-    "harness_release_checks_closed": false
+    "harness_release_checks_closed": false,
+    "component_mpn_and_avl_closed": false
   },
   "procurement_hold_references": [
     "J1",
@@ -36,6 +38,6 @@
     "J10",
     "J11"
   ],
-  "blocker_count": 6,
+  "blocker_count": 7,
   "note": "Clean ERC on the architecture sheet is not evidence of a detailed component-level schematic."
 }

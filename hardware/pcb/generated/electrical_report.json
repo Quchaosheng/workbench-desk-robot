@@ -122,7 +122,8 @@
     "input_max_below_80v_components": true,
     "isolation_creepage_at_least_8mm": true,
     "can_has_120ohm_termination": true,
-    "all_rails_derated_from_rating": true
+    "all_rails_derated_from_rating": true,
+    "input_protection_domains_are_distinct": true
   },
   "pass": true
 }

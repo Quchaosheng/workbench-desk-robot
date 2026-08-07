@@ -27,6 +27,7 @@ def audit() -> dict[str, object]:
     harness_report = json.loads(
         (ROOT.parent / "manufacturing/generated/harness_report.json").read_text(encoding="utf-8")
     )
+    connectivity_report = json.loads((ROOT / "generated/connectivity_report.json").read_text(encoding="utf-8"))
 
     pin_counts = {
         reference: len([row for row in pinout if row["reference"] == reference])
@@ -57,6 +58,7 @@ def audit() -> dict[str, object]:
         "harness_engineering_pass": harness_report["engineering_package_pass"],
         "component_matrix_covers_all_active_modules": {row["reference"] for row in component_matrix}
         >= {"U1", "U2", "U3", "U4", "U5", "U6", "U7", "U8"},
+        "board_connectivity_audit_pass": connectivity_report["pass"],
     }
     order_release_checks = {
         "detailed_schematic_has_symbols": "(symbol " in schematic,

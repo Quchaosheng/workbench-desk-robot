@@ -73,7 +73,7 @@ class PcbPackageTests(unittest.TestCase):
         copper_layers = re.findall(r'^\s*\(\d+ "(?:F|B|In\d+)\.Cu" signal\)$', board, flags=re.MULTILINE)
         self.assertEqual(len(copper_layers), 6)
         self.assertGreaterEqual(board.count("(footprint "), 21)
-        self.assertGreaterEqual(board.count("(segment"), 166)
+        self.assertGreaterEqual(board.count("(segment"), 160)
         self.assertGreaterEqual(board.count("(via"), 8)
         for signal in [
             "SPI_SCLK",
@@ -111,6 +111,11 @@ class PcbPackageTests(unittest.TestCase):
         with (ROOT / "hardware/pcb/component-selection-matrix.csv").open(newline="", encoding="utf-8") as handle:
             components = list(csv.DictReader(handle))
         self.assertEqual({row["reference"] for row in components}, {"U1", "U2", "U3", "U4", "U5", "U6", "U7", "U8"})
+        connectivity = json.loads(
+            (ROOT / "hardware/pcb/generated/connectivity_report.json").read_text(encoding="utf-8")
+        )
+        self.assertTrue(connectivity["pass"])
+        self.assertEqual(connectivity["checked_pin_count"], 50)
 
     def test_official_sources_and_interface_freeze_states_are_explicit(self) -> None:
         baseline = json.loads((ROOT / "hardware/pcb/source-baseline.json").read_text(encoding="utf-8"))

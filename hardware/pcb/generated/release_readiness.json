@@ -10,7 +10,8 @@
     "software_enable_is_not_safety_output": true,
     "safety_truth_table_covers_channel_discrepancy": true,
     "harness_engineering_pass": true,
-    "component_matrix_covers_all_active_modules": true
+    "component_matrix_covers_all_active_modules": true,
+    "board_connectivity_audit_pass": true
   },
   "order_release_checks": {
     "detailed_schematic_has_symbols": false,

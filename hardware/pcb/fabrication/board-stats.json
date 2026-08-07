@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "date": "2026-08-07T17:01:34",
+    "date": "2026-08-07T17:54:49",
     "generator": "KiCad 10.0.5",
     "project": "controller",
     "board_name": "controller"
@@ -12,7 +12,7 @@
     "area": "20800.00 mm²",
     "front_component_density": "3.08",
     "back_component_density": "3.08",
-    "front_copper_area": "1013.106 mm²",
+    "front_copper_area": "888.692 mm²",
     "back_copper_area": "1859.114 mm²",
     "min_track_clearance": "0.9117 mm",
     "min_track_width": "0.2500 mm",

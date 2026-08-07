@@ -60,6 +60,8 @@ def calculate() -> dict[str, object]:
         "isolation_creepage_at_least_8mm": SPEC["dfm"]["isolation_creepage_mm"] >= 8,
         "can_has_120ohm_termination": SPEC["can"]["termination_ohm"] == 120,
         "all_rails_derated_from_rating": all(rail["continuous_a"] <= rail["rated_a"] for rail in rails.values()),
+        "input_protection_domains_are_distinct": SPEC["protection"]["input_net_sequence"]
+        == ["VBAT_RAW", "VBAT_FUSED", "VBAT_PROTECTED"],
     }
     return {
         "status": "DESIGN_CHECK_ONLY_LAB_VALIDATION_REQUIRED",

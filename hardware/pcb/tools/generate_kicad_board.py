@@ -227,7 +227,9 @@ def build_board():
     ]
     nets = {}
     for name in [
+        "VBAT_RAW",
         "VBAT_FUSED",
+        "VBAT_PROTECTED",
         "GND_PWR",
         "12V_ISO",
         "JETSON_12V",
@@ -269,13 +271,17 @@ def build_board():
                 netpads[name].append(pad)
         return pads
 
-    fp("J1", "48V_INPUT_10A", 30, 35, ["VBAT_FUSED", "VBAT_FUSED", "GND_PWR", "GND_PWR"])
-    fp("F1", "FUSE_10A", 48, 35, ["VBAT_FUSED", "VBAT_FUSED"])
-    fp("U1", "LM5069_HOTSWAP", 68, 35, ["VBAT_FUSED", "GND_PWR", "VBAT_FUSED", "GND_PWR"])
+    fp("J1", "48V_INPUT_10A", 30, 35, ["VBAT_RAW", "VBAT_RAW", "GND_PWR", "GND_PWR"])
+    fp("F1", "FUSE_10A", 48, 35, ["VBAT_RAW", "VBAT_FUSED"])
+    fp("U1", "LM5069_HOTSWAP", 68, 35, ["VBAT_FUSED", "GND_PWR", "VBAT_PROTECTED", "GND_PWR"])
     u2pads = add_isolated_module(
-        board, "U2", "DCM3623_48V_12V_240W", 35, [nets["VBAT_FUSED"], nets["GND_PWR"], nets["12V_ISO"], nets["GND"]]
+        board,
+        "U2",
+        "DCM3623_48V_12V_240W",
+        35,
+        [nets["VBAT_PROTECTED"], nets["GND_PWR"], nets["12V_ISO"], nets["GND"]],
     )
-    for name, pad in zip(["VBAT_FUSED", "GND_PWR", "12V_ISO", "GND"], u2pads, strict=True):
+    for name, pad in zip(["VBAT_PROTECTED", "GND_PWR", "12V_ISO", "GND"], u2pads, strict=True):
         netpads[name].append(pad)
     j2pads = fp("J2", "12V_OUTPUT_16A", 106, 82, ["12V_ISO", "12V_ISO", "GND", "GND"])
     fp("U3", "JETSON_12V_EFUSE_5A", 112, 42, ["12V_ISO", "GND", "JETSON_12V", "GND"])
@@ -377,7 +383,9 @@ def build_board():
     }
 
     routing = {
-        "VBAT_FUSED": (pcbnew.F_Cu, 2.0, 27),
+        "VBAT_RAW": (pcbnew.F_Cu, 2.0, 27),
+        "VBAT_FUSED": (pcbnew.F_Cu, 2.0, 29),
+        "VBAT_PROTECTED": (pcbnew.F_Cu, 2.0, 31),
         "GND_PWR": (pcbnew.In1_Cu, 2.0, 31),
         "12V_ISO": (pcbnew.In2_Cu, 2.0, 76),
         "JETSON_12V": (pcbnew.In3_Cu, 2.0, 37),

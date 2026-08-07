@@ -1,6 +1,6 @@
 reference,pin,net,direction,domain,freeze_status,verification
-J1,1,VBAT_FUSED,power_in,36-60V,OWNER_CONFIRMATION_REQUIRED,polarity_and_hipot
-J1,2,VBAT_FUSED,power_in,36-60V,OWNER_CONFIRMATION_REQUIRED,polarity_and_hipot
+J1,1,VBAT_RAW,power_in,36-60V,OWNER_CONFIRMATION_REQUIRED,polarity_and_hipot
+J1,2,VBAT_RAW,power_in,36-60V,OWNER_CONFIRMATION_REQUIRED,polarity_and_hipot
 J1,3,GND_PWR,power_return,primary,OWNER_CONFIRMATION_REQUIRED,polarity_and_hipot
 J1,4,GND_PWR,power_return,primary,OWNER_CONFIRMATION_REQUIRED,polarity_and_hipot
 J3,1,JETSON_12V,power_out,SELV,DEVKIT_REVISION_CONFIRMATION_REQUIRED,loaded_voltage

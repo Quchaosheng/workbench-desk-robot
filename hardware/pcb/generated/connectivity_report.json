@@ -1,0 +1,24 @@
+{
+  "status": "CONNECTIVITY_PASS",
+  "checked_references": [
+    "F1",
+    "J1",
+    "J10",
+    "J11",
+    "U1",
+    "U2",
+    "U6",
+    "U7",
+    "U8"
+  ],
+  "checked_pin_count": 50,
+  "domain_checks": {
+    "input_protection_stages_are_distinct": true,
+    "can_isolated_ground_is_distinct": true,
+    "can_isolated_supply_is_distinct": true,
+    "software_request_is_not_safe_output": true,
+    "both_estop_channels_are_independent": true
+  },
+  "mismatches": [],
+  "pass": true
+}

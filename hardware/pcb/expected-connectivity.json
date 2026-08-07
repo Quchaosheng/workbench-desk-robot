@@ -1,0 +1,11 @@
+{
+  "J1": {"1": "VBAT_RAW", "2": "VBAT_RAW", "3": "GND_PWR", "4": "GND_PWR"},
+  "F1": {"1": "VBAT_RAW", "2": "VBAT_FUSED"},
+  "U1": {"1": "VBAT_FUSED", "2": "GND_PWR", "3": "VBAT_PROTECTED", "4": "GND_PWR"},
+  "U2": {"1": "VBAT_PROTECTED", "2": "GND_PWR", "3": "12V_ISO", "4": "GND"},
+  "U6": {"1": "5V_CAN_ISO", "2": "GND_CAN_ISO", "3": "CANH", "4": "CANL", "5": "3V3_LOGIC", "6": "GND", "7": "CAN_TX", "8": "CAN_RX"},
+  "U7": {"1": "5V_CAN_ISO", "2": "GND_CAN_ISO", "3": null, "4": null, "5": "3V3_LOGIC", "6": "GND", "7": null, "8": null},
+  "U8": {"1": "12V_ISO", "2": "GND", "3": "MOTOR_ENABLE_REQ", "4": "MOTOR_ENABLE_SAFE", "5": "ESTOP_SENSE", "6": "ESTOP_CH_A_OUT", "7": "ESTOP_CH_A_RETURN", "8": "ESTOP_CH_B_OUT", "9": "ESTOP_CH_B_RETURN", "10": "GND", "11": "3V3_LOGIC", "12": null},
+  "J10": {"1": "ESTOP_CH_A_OUT", "2": "ESTOP_CH_A_RETURN", "3": "ESTOP_CH_B_OUT", "4": "ESTOP_CH_B_RETURN"},
+  "J11": {"1": "MOTOR_ENABLE_SAFE", "2": "ESTOP_SENSE", "3": "GND", "4": null}
+}

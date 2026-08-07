@@ -12,7 +12,7 @@ python hardware/pcb/tools/electrical_checks.py
 
 The report is written to `generated/electrical_report.json`. Open
 `kicad/controller.kicad_pro` with KiCad 10. The generated EVT companion board has
-21 footprints/interfaces, 168 routed tracks across six copper layers, four
+29 footprints/interfaces including eight SMT test pads, 176 routed tracks across six copper layers, four
 M3 mounting holes, and a physical 8 mm isolation-barrier region. Reproduce it with:
 
 ```bash
@@ -53,7 +53,9 @@ nets, a dual-channel J10 loop, a U8 safety-gate carrier, and J11 gated output.
 `component-selection-matrix.csv` tracks every active module, the source-backed
 candidate or class, verification method, owner and procurement status.
 `expected-connectivity.json` and `generated/connectivity_report.json` independently
-check 50 critical pins across the input protection, CAN isolation and safety gate.
+check 58 critical pins across the input protection, CAN isolation, safety gate and test access.
+`testpoint-coverage.csv` defines the measurement, limit, instrument and required
+evidence for every physical test pad.
 
 Run `python hardware/pcb/tools/release_readiness.py` before sharing an order
 package. It intentionally reports `ORDER_RELEASE_BLOCKED` until the component-level

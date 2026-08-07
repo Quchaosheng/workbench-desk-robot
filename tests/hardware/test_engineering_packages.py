@@ -72,8 +72,8 @@ class PcbPackageTests(unittest.TestCase):
         board = (ROOT / "hardware/pcb/kicad/controller.kicad_pcb").read_text(encoding="utf-8")
         copper_layers = re.findall(r'^\s*\(\d+ "(?:F|B|In\d+)\.Cu" signal\)$', board, flags=re.MULTILINE)
         self.assertEqual(len(copper_layers), 6)
-        self.assertGreaterEqual(board.count("(footprint "), 21)
-        self.assertGreaterEqual(board.count("(segment"), 160)
+        self.assertGreaterEqual(board.count("(footprint "), 29)
+        self.assertGreaterEqual(board.count("(segment"), 168)
         self.assertGreaterEqual(board.count("(via"), 8)
         for signal in [
             "SPI_SCLK",
@@ -115,7 +115,9 @@ class PcbPackageTests(unittest.TestCase):
             (ROOT / "hardware/pcb/generated/connectivity_report.json").read_text(encoding="utf-8")
         )
         self.assertTrue(connectivity["pass"])
-        self.assertEqual(connectivity["checked_pin_count"], 50)
+        self.assertEqual(connectivity["checked_pin_count"], 58)
+        board = (ROOT / "hardware/pcb/kicad/controller.kicad_pcb").read_text(encoding="utf-8")
+        self.assertTrue(all(f"TP{index}" in board for index in range(1, 9)))
 
     def test_official_sources_and_interface_freeze_states_are_explicit(self) -> None:
         baseline = json.loads((ROOT / "hardware/pcb/source-baseline.json").read_text(encoding="utf-8"))

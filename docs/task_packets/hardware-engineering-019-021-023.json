@@ -36,6 +36,7 @@
     "hardware/pcb/generated/connectivity_report.json",
     "hardware/pcb/source-baseline.json",
     "hardware/pcb/interface-control.md",
+    "hardware/pcb/testpoint-coverage.csv",
     "hardware/manufacturing/generated/harness_report.json",
     "unit test output"
   ],

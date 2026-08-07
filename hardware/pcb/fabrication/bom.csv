@@ -14,4 +14,5 @@ J3,1,Jetson developer-kit 12V output,5A keyed 4-pin header,THT 4-pin,AVL_OWNER_A
 J5 J6,2,CAN connectors,shielded keyed 4-pin header,THT 4-pin,AVL_OWNER_APPROVAL
 J10,1,dual-channel hardwired E-stop loop,red keyed 4-pin header,THT 4-pin,SAFETY_OWNER_APPROVAL
 J11,1,safety-gated motor-enable output,keyed 4-pin header,THT 4-pin,SAFETY_OWNER_APPROVAL
+TP1-TP8,8,controlled electrical test access,1.5x1.0mm probe pad,SMT test pad,APPROVED
 H1 H2 H3 H4,4,mounting,M3 insulated standoff,3.2mm NPTH,APPROVED

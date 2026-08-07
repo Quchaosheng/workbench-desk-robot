@@ -7,7 +7,7 @@
 | PCB3 | 5 kVrms isolated CAN FD, routed 8 mm barrier, choke/TVS/termination plan | ENGINEERING COMPLETE; surge test external |
 | PCB4 | fuse, reverse protection, hot-swap UV/OV/inrush, E-stop sequence | DESIGN COMPLETE; bench trip-time test pending |
 | PCB5 | `connectors.csv`, `connector-pinout.csv`, request/safe enable separation | EVT INTERFACE BASELINE COMPLETE; owner pin-mux sign-off required |
-| PCB6 | six-layer 160 x 130 mm board, 21 footprints, 168 tracks, Gerber/drill/IPC-D-356 | COMPLETE; DRC 0/unconnected 0 |
+| PCB6 | six-layer 160 x 130 mm board, 29 footprints, 176 tracks, 8 SMT test pads, Gerber/drill/IPC-D-356 | COMPLETE; DRC 0/unconnected 0 |
 | PCB7 | review checklist and signed AVL/CTO gate | PACKAGE COMPLETE; human review required |
 | PCB8 | CAN rules, stackup and routed layers | DESIGN COMPLETE; fabricator impedance coupon external |
 | PCB9 | thermal plan and acceptance limits | ANALYTICAL; chamber test required |

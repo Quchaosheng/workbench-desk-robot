@@ -273,7 +273,7 @@ def build_board():
 
     fp("J1", "48V_INPUT_10A", 30, 35, ["VBAT_RAW", "VBAT_RAW", "GND_PWR", "GND_PWR"])
     fp("F1", "FUSE_10A", 48, 35, ["VBAT_RAW", "VBAT_FUSED"])
-    fp("U1", "LM5069_HOTSWAP", 68, 35, ["VBAT_FUSED", "GND_PWR", "VBAT_PROTECTED", "GND_PWR"])
+    u1pads = fp("U1", "LM5069_HOTSWAP", 68, 35, ["VBAT_FUSED", "GND_PWR", "VBAT_PROTECTED", "GND_PWR"])
     u2pads = add_isolated_module(
         board,
         "U2",
@@ -285,8 +285,8 @@ def build_board():
         netpads[name].append(pad)
     j2pads = fp("J2", "12V_OUTPUT_16A", 106, 82, ["12V_ISO", "12V_ISO", "GND", "GND"])
     fp("U3", "JETSON_12V_EFUSE_5A", 112, 42, ["12V_ISO", "GND", "JETSON_12V", "GND"])
-    fp("J3", "JETSON_DEVKIT_12V_5A", 125, 42, ["JETSON_12V", "JETSON_12V", "GND", "GND"])
-    fp("U4", "BUCK_12V_3V3_5A", 112, 64, ["12V_ISO", "GND", "3V3_LOGIC", "GND"])
+    j3pads = fp("J3", "JETSON_DEVKIT_12V_5A", 125, 42, ["JETSON_12V", "JETSON_12V", "GND", "GND"])
+    u4pads = fp("U4", "BUCK_12V_3V3_5A", 112, 64, ["12V_ISO", "GND", "3V3_LOGIC", "GND"])
     backplane_pinout = ["3V3_LOGIC", "GND", "3V3_LOGIC", "GND", *signal_names]
     mcu_pinout = [*backplane_pinout, "CAN_TX", "CAN_RX"]
     u5pads = fp("U5", "CH32V307_CARRIER", 145, 110, mcu_pinout, pitch=2.75)
@@ -321,7 +321,7 @@ def build_board():
     ):
         if name is not None:
             netpads[name].append(pad)
-    fp("J5", "CAN_A", 145, 55, ["CANH", "CANL", "GND_CAN_ISO", None])
+    j5pads = fp("J5", "CAN_A", 145, 55, ["CANH", "CANL", "GND_CAN_ISO", None])
     fp("J6", "CAN_B", 165, 55, ["CANH", "CANL", "GND_CAN_ISO", None])
     u8pads = fp(
         "U8",
@@ -381,6 +381,41 @@ def build_board():
         index: add_via(board, nets[name], j11pads[index].GetPosition())
         for index, name in [(1, "ESTOP_SENSE"), (2, "GND")]
     }
+    testpoints = [
+        ("TP1", "VBAT_PROTECTED", 69.5, 42, u1pads[2]),
+        ("TP2", "12V_ISO", 101.5, 88, j2pads[0]),
+        ("TP3", "JETSON_12V", 120.5, 48, j3pads[0]),
+        ("TP4", "3V3_LOGIC", 113.5, 70, u4pads[2]),
+        ("TP5", "GND", 116.5, 70, u4pads[3]),
+        ("TP6", "CANH", 140.5, 48, j5pads[0]),
+        ("TP7", "CANL", 143.5, 48, j5pads[1]),
+        ("TP8", "MCU_RESET", pcbnew.ToMM(u5pads[19].GetPosition().x), 103, u5pads[19]),
+    ]
+    testpoint_links = []
+    for reference, name, x, y, anchor in testpoints:
+        ref_x = (
+            x - 2
+            if reference == "TP6"
+            else x + 2
+            if reference == "TP7"
+            else 111
+            if reference == "TP4"
+            else 119
+            if reference == "TP5"
+            else x
+        )
+        ref_y = 74 if reference in {"TP4", "TP5"} else y - 3
+        pad = add_footprint(
+            board,
+            reference,
+            name,
+            x,
+            y,
+            [nets[name]],
+            pth=False,
+            reference_position=(ref_x, ref_y),
+        )[0]
+        testpoint_links.append((pad, anchor, name))
 
     routing = {
         "VBAT_RAW": (pcbnew.F_Cu, 2.0, 27),
@@ -459,6 +494,9 @@ def build_board():
         add_track(board, nets[name], start_lane, end_lane, layer, 0.5)
         add_track(board, nets[name], end_lane, end, layer, 0.5)
 
+    for testpoint, anchor, name in testpoint_links:
+        add_track(board, nets[name], testpoint.GetPosition(), anchor.GetPosition(), pcbnew.F_Cu, 0.3)
+
     for index, (x, y) in enumerate([(24, 24), (176, 24), (176, 146), (24, 146)], start=1):
         add_mounting_hole(board, f"H{index}", x, y)
 
@@ -470,7 +508,7 @@ def build_board():
     add_label(board, "8 mm ISOLATION BARRIER", 70, 70)
     add_silk_line(board, (130, 73), (176, 73))
     add_silk_line(board, (130, 81), (176, 81))
-    add_label(board, "CAN ISOLATION", 112, 70, 1.0)
+    add_label(board, "CAN ISOLATION", 100, 68, 1.0)
     add_label(board, "LOGIC / INTERFACES", 142, 146)
     board.Save(str(OUTPUT))
     return board

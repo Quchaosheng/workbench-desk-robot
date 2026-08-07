@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "date": "2026-08-07T17:54:49",
+    "date": "2026-08-07T18:21:47",
     "generator": "KiCad 10.0.5",
     "project": "controller",
     "board_name": "controller"
@@ -12,7 +12,7 @@
     "area": "20800.00 mm²",
     "front_component_density": "3.08",
     "back_component_density": "3.08",
-    "front_copper_area": "888.692 mm²",
+    "front_copper_area": "916.511 mm²",
     "back_copper_area": "1859.114 mm²",
     "min_track_clearance": "0.9117 mm",
     "min_track_width": "0.2500 mm",
@@ -25,7 +25,7 @@
   },
   "pads": {
     "通孔": 100,
-    "贴片": 16,
+    "贴片": 24,
     "连接器": 0,
     "非电镀孔_(npth)": 4,
     "半孔": 0,
@@ -46,14 +46,14 @@
       "total": 0
     },
     "未指定": {
-      "front": 21,
+      "front": 29,
       "back": 0,
-      "total": 21
+      "total": 29
     },
     "total": {
-      "front": 21,
+      "front": 29,
       "back": 0,
-      "total": 21
+      "total": 29
     }
   },
   "drill_holes": [

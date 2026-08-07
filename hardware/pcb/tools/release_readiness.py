@@ -16,6 +16,7 @@ def read_csv(name: str) -> list[dict[str, str]]:
 def audit() -> dict[str, object]:
     pinout = read_csv("connector-pinout.csv")
     component_matrix = read_csv("component-selection-matrix.csv")
+    testpoint_coverage = read_csv("testpoint-coverage.csv")
     bom = read_csv("fabrication/bom.csv")
     schematic = (ROOT / "kicad/controller.kicad_sch").read_text(encoding="utf-8")
     board = (ROOT / "kicad/controller.kicad_pcb").read_text(encoding="utf-8")
@@ -59,6 +60,8 @@ def audit() -> dict[str, object]:
         "component_matrix_covers_all_active_modules": {row["reference"] for row in component_matrix}
         >= {"U1", "U2", "U3", "U4", "U5", "U6", "U7", "U8"},
         "board_connectivity_audit_pass": connectivity_report["pass"],
+        "eight_testpoints_have_measurement_coverage": len(testpoint_coverage) == 8
+        and {row["reference"] for row in testpoint_coverage} == {f"TP{index}" for index in range(1, 9)},
     }
     order_release_checks = {
         "detailed_schematic_has_symbols": "(symbol " in schematic,

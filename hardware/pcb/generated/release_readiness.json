@@ -11,7 +11,8 @@
     "safety_truth_table_covers_channel_discrepancy": true,
     "harness_engineering_pass": true,
     "component_matrix_covers_all_active_modules": true,
-    "board_connectivity_audit_pass": true
+    "board_connectivity_audit_pass": true,
+    "eight_testpoints_have_measurement_coverage": true
   },
   "order_release_checks": {
     "detailed_schematic_has_symbols": false,

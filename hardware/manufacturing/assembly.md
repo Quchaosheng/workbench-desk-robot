@@ -30,7 +30,7 @@ supplement the drawing and never override a drawing tolerance or safety requirem
    do not hand-edit placements without an ECN. Segregate the first article for AOI.
 3. **PCBA inspect / test:** inspect polarity, bridges, tombstones, void-sensitive
    power pads, and 8 mm isolation barrier. Test behind a shield with current-limited
-   36 V input, then measure 12 V, 5 V, 3.3 V, ripple, isolation, E-stop input, and CAN.
+   36 V input, then measure 12V_ISO, JETSON_12V, 3.3 V, ripple, isolation, E-stop input, and CAN.
 4. **Chassis:** install motor brackets loosely, reference the datum fixture, torque
    M3 steel fasteners to 0.55 N m and marked plastic fasteners to 0.25 N m unless the
    drawing states otherwise. Apply witness mark after calibrated torque is recorded.
@@ -39,7 +39,8 @@ supplement the drawing and never override a drawing tolerance or safety requirem
    compensation. No harness may be trapped under the PCB or touch a sharp edge.
 6. **Harness:** mate only matching keyed connectors; verify two-stage latch engagement.
    Maintain 5 mm edge clearance, bend-radius rules, service loops, and separation of
-   48 V, switch nodes, CAN, and ADC wiring. Fit strain relief before continuity test.
+   48 V, switch nodes, CAN, and ADC wiring. Use `harness-spec.csv` for wire gauge,
+   length, color, shielding and bend radius. Fit strain relief before continuity test.
 7. **Shell / display:** clean the display window, attach its bracket at the 8 degree
    datum, perform gap/flush inspection, install the TPU bumper, and confirm that vents
    are unobstructed. Do not use adhesive outside the controlled dispense drawing.

@@ -21,6 +21,8 @@ Generated controlled records and drawings include:
 - `generated/line-layout.svg`: one-way U-cell with fenced MRB/quarantine.
 - `generated/fixture-drawings.svg`: datum nest and guarded electrical fixture dimensions.
 - `generated/packaging-drawing.svg`: transit-pack section and protection requirements.
+- `harness-spec.csv`: controlled battery, rail, data, CAN and safety harness envelope.
+- `generated/harness_report.json`: calculated voltage drop, current density, bend-radius and release gates.
 
 MFG1-8 and MFG10-14 have complete reproducible engineering documents. MFG9 has
 a serialized traveller, pilot log, defect taxonomy and analysis method, but cannot

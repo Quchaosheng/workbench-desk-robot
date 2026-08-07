@@ -142,6 +142,14 @@ class ManufacturingPackageTests(unittest.TestCase):
         self.assertTrue(report["pass"])
         self.assertEqual(report["operation_count"], 14)
 
+    def test_harness_spec_has_calculated_drop_and_release_holds(self) -> None:
+        module = load_module("harness_checks", ROOT / "hardware/manufacturing/tools/validate_harnesses.py")
+        report = module.validate()
+        self.assertTrue(report["engineering_package_pass"])
+        self.assertEqual(report["status"], "HARNESS_RELEASE_BLOCKED")
+        self.assertEqual(len(report["results"]), 8)
+        self.assertTrue(all(item["drop_pass"] for item in report["results"]))
+
     def test_pilot_template_does_not_claim_units_were_built(self) -> None:
         pilot = (ROOT / "hardware/manufacturing/pilot-and-release.md").read_text(encoding="utf-8")
         self.assertIn("NOT BUILT", pilot)

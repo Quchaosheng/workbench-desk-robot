@@ -23,6 +23,9 @@ def audit() -> dict[str, object]:
     bringup = (ROOT / "fabrication/bringup-test-plan.csv").read_text(encoding="utf-8")
     stackup = (ROOT / "fabrication/stackup.csv").read_text(encoding="utf-8")
     safety_truth_table = read_csv("safety-gate-truth-table.csv")
+    harness_report = json.loads(
+        (ROOT.parent / "manufacturing/generated/harness_report.json").read_text(encoding="utf-8")
+    )
 
     pin_counts = {
         reference: len([row for row in pinout if row["reference"] == reference])
@@ -45,6 +48,7 @@ def audit() -> dict[str, object]:
             row["channel_a_closed"] != row["channel_b_closed"] and row["motor_enable_safe"] == "0"
             for row in safety_truth_table
         ),
+        "harness_engineering_pass": harness_report["engineering_package_pass"],
     }
     order_release_checks = {
         "detailed_schematic_has_symbols": "(symbol " in schematic,
@@ -52,6 +56,7 @@ def audit() -> dict[str, object]:
         "physical_bringup_evidence_attached": False,
         "safety_analysis_approved": False,
         "supplier_dfm_closed": False,
+        "harness_release_checks_closed": all(harness_report["release_checks"].values()),
     }
     return {
         "status": "ORDER_RELEASE_BLOCKED" if not all(order_release_checks.values()) else "ORDER_RELEASED",

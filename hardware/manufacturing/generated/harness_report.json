@@ -1,0 +1,99 @@
+{
+  "status": "HARNESS_RELEASE_BLOCKED",
+  "engineering_package_pass": true,
+  "engineering_checks": {
+    "eight_controlled_harnesses": true,
+    "unique_harness_ids": true,
+    "all_voltage_drops_within_3_percent": true,
+    "all_current_density_within_6a_per_mm2": true,
+    "all_bend_radii_fit_20mm_service_margin": true,
+    "signal_and_safety_harness_shields_defined": true
+  },
+  "release_checks": {
+    "all_mating_parts_approved": false,
+    "physical_continuity_and_pull_test_attached": false,
+    "installed_length_and_chafe_check_attached": false
+  },
+  "results": [
+    {
+      "harness_id": "H01",
+      "voltage_drop_v": 0.048,
+      "voltage_drop_percent": 0.1,
+      "current_density_a_per_mm2": 3.05,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H02",
+      "voltage_drop_v": 0.08,
+      "voltage_drop_percent": 0.67,
+      "current_density_a_per_mm2": 3.82,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H03",
+      "voltage_drop_v": 0.025,
+      "voltage_drop_percent": 0.21,
+      "current_density_a_per_mm2": 2.03,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H04",
+      "voltage_drop_v": 0.013,
+      "voltage_drop_percent": 0.39,
+      "current_density_a_per_mm2": 1.22,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H05",
+      "voltage_drop_v": 0.014,
+      "voltage_drop_percent": 0.27,
+      "current_density_a_per_mm2": 0.49,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H06",
+      "voltage_drop_v": 0.014,
+      "voltage_drop_percent": 0.27,
+      "current_density_a_per_mm2": 0.49,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H07",
+      "voltage_drop_v": 0.021,
+      "voltage_drop_percent": 0.18,
+      "current_density_a_per_mm2": 0.61,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H08",
+      "voltage_drop_v": 0.013,
+      "voltage_drop_percent": 0.39,
+      "current_density_a_per_mm2": 0.61,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    }
+  ]
+}

@@ -8,14 +8,16 @@
     "jetson_test_plan_uses_12v": true,
     "stackup_matches_current_rails": true,
     "software_enable_is_not_safety_output": true,
-    "safety_truth_table_covers_channel_discrepancy": true
+    "safety_truth_table_covers_channel_discrepancy": true,
+    "harness_engineering_pass": true
   },
   "order_release_checks": {
     "detailed_schematic_has_symbols": false,
     "all_bom_lines_approved": false,
     "physical_bringup_evidence_attached": false,
     "safety_analysis_approved": false,
-    "supplier_dfm_closed": false
+    "supplier_dfm_closed": false,
+    "harness_release_checks_closed": false
   },
   "procurement_hold_references": [
     "J1",
@@ -34,6 +36,6 @@
     "J10",
     "J11"
   ],
-  "blocker_count": 5,
+  "blocker_count": 6,
   "note": "Clean ERC on the architecture sheet is not evidence of a detailed component-level schematic."
 }

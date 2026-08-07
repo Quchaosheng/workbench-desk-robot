@@ -53,7 +53,7 @@ def main() -> int:
             "evt-003",
             3,
             WorldEventType.ACTION_RESULT,
-            {"status": "succeeded", "entity_id": "red_block", "resulting_location": "in:tray"},
+            {"outcome": "completed", "entity_id": "red_block", "resulting_location": "in:tray"},
             ["action-result-003"],
         ),
     ]

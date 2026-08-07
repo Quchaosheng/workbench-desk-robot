@@ -9,6 +9,7 @@ from local_runner import plan_offline
 from workbench_agent_runtime import (
     build_kitting_plan,
     build_parcel_sorting_plan,
+    build_policy_routed_parcel_plan,
     build_template_plan,
     classify_template_task,
 )
@@ -30,7 +31,7 @@ class PlannerTests(unittest.TestCase):
             "Assemble a three-part kit in the tray": ("task-kit-three-parts", 9),
             "Inspect all three workpieces": ("task-inspect-workpieces", 3),
             "Clear the blocked path and place the red block": ("task-clear-workspace", 6),
-            "Sort the courier parcels and isolate damage": ("task-sort-parcels", 9),
+            "Sort the courier parcels and isolate damage": ("task-sort-parcels", 12),
         }
         for goal, (task_id, step_count) in cases.items():
             with self.subTest(goal=goal):
@@ -70,16 +71,37 @@ class PlannerTests(unittest.TestCase):
     def test_parcel_plan_requires_inspection_before_bounded_routing(self) -> None:
         plan = build_parcel_sorting_plan("核对快递标签并分拣")
         self.assertEqual(plan.task_id, "task-sort-parcels")
-        self.assertEqual(len(plan.steps), 9)
+        self.assertEqual(len(plan.steps), 12)
         observations = [step for step in plan.steps if step.action.action_type.value == "observe"]
-        self.assertEqual(len(observations), 3)
+        self.assertEqual(len(observations), 4)
         self.assertTrue(
             all(step.action.parameters["attributes"] == ["label_status", "condition"] for step in observations)
         )
         destinations = [
             step.action.parameters["destination_id"] for step in plan.steps if step.action.action_type.value == "place"
         ]
-        self.assertEqual(destinations, ["pickup_shelf", "pickup_shelf", "quarantine_bin"])
+        self.assertEqual(destinations, ["pickup_shelf", "pickup_shelf", "quarantine_bin", "quarantine_bin"])
+
+    def test_policy_route_scans_batch_then_isolates_exceptions_first(self) -> None:
+        plan = build_policy_routed_parcel_plan(
+            "Scan and route the parcel batch",
+            {
+                "box-a": {"label_status": "verified", "condition": "intact"},
+                "box-b": {"label_status": "unreadable", "condition": "intact"},
+                "box-c": {"label_status": "verified", "condition": "damaged"},
+            },
+        )
+        self.assertEqual(len(plan.steps), 9)
+        self.assertEqual([step.action.action_type.value for step in plan.steps[:3]], ["observe"] * 3)
+        places = [step for step in plan.steps if step.action.action_type.value == "place"]
+        self.assertEqual(
+            [step.action.parameters["destination_id"] for step in places],
+            ["quarantine_bin", "quarantine_bin", "pickup_shelf"],
+        )
+        self.assertEqual(places[0].action.parameters["routing_reason"], "label_unreadable")
+        grasps = [step for step in plan.steps if step.action.action_type.value == "grasp"]
+        self.assertEqual(set(grasps[0].depends_on), {"inspect-box-a", "inspect-box-b", "inspect-box-c"})
+        self.assertIn("route-box-b", grasps[1].depends_on)
 
     def test_parcel_requests_fail_closed_outside_evidence_and_motion_boundaries(self) -> None:
         dangerous = (

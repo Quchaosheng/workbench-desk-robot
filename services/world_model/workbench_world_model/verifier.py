@@ -274,3 +274,96 @@ def verify_parcel_sorting(
     else:
         outcome = (VerificationStatus.CONFIRMED, ReasonCode.GOAL_SATISFIED, RecoveryHint.NONE)
     return _result(state, task_id, claim, *outcome, "parcel-sorting-v1")
+
+
+def verify_parcel_policy(
+    state: WorldState,
+    task_id: str,
+    parcel_ids: list[str],
+    pickup_shelf_id: str = "pickup_shelf",
+    quarantine_bin_id: str = "quarantine_bin",
+    confidence_threshold: float = 0.8,
+) -> VerificationResult:
+    """Verify routes derived from observed parcel attributes, never caller claims."""
+    required = _required_entity_set(parcel_ids, "parcel policy")
+    if not isinstance(pickup_shelf_id, str) or not pickup_shelf_id.strip():
+        raise ValueError("pickup_shelf_id must be non-empty")
+    if not isinstance(quarantine_bin_id, str) or not quarantine_bin_id.strip():
+        raise ValueError("quarantine_bin_id must be non-empty")
+    if pickup_shelf_id == quarantine_bin_id:
+        raise ValueError("pickup and quarantine destinations must be different")
+    _validate_confidence_threshold(confidence_threshold)
+
+    unobserved = sorted(parcel_id for parcel_id in required if parcel_id not in state.entity_locations)
+    low_confidence = sorted(
+        parcel_id
+        for parcel_id in required
+        if not math.isfinite(state.entity_confidence.get(parcel_id, 0.0))
+        or state.entity_confidence.get(parcel_id, 0.0) < confidence_threshold
+    )
+    missing_evidence = _missing_entity_evidence(state, required)
+    missing_attributes: list[str] = []
+    decisions: dict[str, str] = {}
+    decision_reasons: dict[str, str] = {}
+    for parcel_id in sorted(required):
+        observed = state.entity_attributes.get(parcel_id, {})
+        if not isinstance(observed, Mapping):
+            missing_attributes.extend([f"{parcel_id}.label_status", f"{parcel_id}.condition"])
+            continue
+        label_status = observed.get("label_status")
+        condition = observed.get("condition")
+        if not isinstance(label_status, str) or not label_status.strip():
+            missing_attributes.append(f"{parcel_id}.label_status")
+        if not isinstance(condition, str) or not condition.strip():
+            missing_attributes.append(f"{parcel_id}.condition")
+        if (
+            not isinstance(label_status, str)
+            or not label_status.strip()
+            or not isinstance(condition, str)
+            or not condition.strip()
+        ):
+            continue
+        label_status = label_status.strip().lower()
+        condition = condition.strip().lower()
+        if label_status == "verified" and condition == "intact":
+            decisions[parcel_id] = f"in:{pickup_shelf_id}"
+            decision_reasons[parcel_id] = "verified_intact"
+        else:
+            decisions[parcel_id] = f"in:{quarantine_bin_id}"
+            reasons = []
+            if label_status != "verified":
+                reasons.append(f"label_{label_status}")
+            if condition != "intact":
+                reasons.append(f"condition_{condition}")
+            decision_reasons[parcel_id] = "+".join(reasons)
+    misrouted = sorted(
+        f"{parcel_id}->{expected_location}"
+        for parcel_id, expected_location in decisions.items()
+        if state.entity_locations.get(parcel_id) != expected_location
+    )
+    managed_locations = {f"in:{pickup_shelf_id}", f"in:{quarantine_bin_id}"}
+    extras = sorted(
+        entity_id
+        for entity_id, location in state.entity_locations.items()
+        if location in managed_locations and entity_id not in required
+    )
+    claim = (
+        f"parcel policy: decisions={decisions}; reasons={decision_reasons}; unobserved={unobserved}; "
+        f"low_confidence={low_confidence}; missing_evidence={missing_evidence}; "
+        f"missing_attributes={missing_attributes}; misrouted={misrouted}; extras={extras}"
+    )
+    if unobserved:
+        outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.TARGET_NOT_OBSERVED, RecoveryHint.RE_OBSERVE)
+    elif low_confidence:
+        outcome = (
+            VerificationStatus.INSUFFICIENT_EVIDENCE,
+            ReasonCode.CONFIDENCE_BELOW_THRESHOLD,
+            RecoveryHint.RE_OBSERVE,
+        )
+    elif missing_evidence or missing_attributes:
+        outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.EVIDENCE_MISSING, RecoveryHint.RE_OBSERVE)
+    elif misrouted or extras:
+        outcome = (VerificationStatus.REFUTED, ReasonCode.GOAL_NOT_SATISFIED, RecoveryHint.RETRY_ACTION)
+    else:
+        outcome = (VerificationStatus.CONFIRMED, ReasonCode.GOAL_SATISFIED, RecoveryHint.NONE)
+    return _result(state, task_id, claim, *outcome, "parcel-policy-v1")

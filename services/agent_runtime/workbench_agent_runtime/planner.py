@@ -1,5 +1,5 @@
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 from workbench_contracts import ActionType, SemanticAction, TaskGraph, TaskStep
 
@@ -8,8 +8,16 @@ DEFAULT_INSPECTION_ENTITIES = ("red_block", "blue_cylinder", "green_gear")
 DEFAULT_PARCEL_ROUTES = (
     ("parcel_box", "pickup_shelf"),
     ("parcel_envelope", "pickup_shelf"),
+    ("parcel_unreadable", "quarantine_bin"),
     ("parcel_damaged", "quarantine_bin"),
 )
+DEFAULT_PARCEL_ATTRIBUTES = {
+    "parcel_box": {"label_status": "verified", "condition": "intact"},
+    "parcel_envelope": {"label_status": "verified", "condition": "intact"},
+    "parcel_unreadable": {"label_status": "unreadable", "condition": "intact"},
+    "parcel_damaged": {"label_status": "verified", "condition": "damaged"},
+}
+PARCEL_POLICY_VERSION = "parcel-routing-v1"
 
 
 def _matches_task_keyword(text: str, english: tuple[str, ...], chinese: tuple[str, ...]) -> bool:
@@ -252,38 +260,51 @@ def build_parcel_sorting_plan(
     parcel_ids = _validate_entity_ids(tuple(route[0] for route in routes), "parcel sorting")
     destinations = tuple(_validate_identifier(route[1], "destination_id") for route in routes)
     steps: list[TaskStep] = []
+    observe_steps: list[str] = []
     action_index = 1
-    for parcel_id, destination_id in zip(parcel_ids, destinations, strict=True):
+    for parcel_id in parcel_ids:
         suffix = parcel_id.replace("_", "-")
         observe_step = f"inspect-{suffix}"
+        observe_steps.append(observe_step)
+        steps.append(
+            TaskStep(
+                step_id=observe_step,
+                action=SemanticAction(
+                    action_id=f"act-{action_index:03d}",
+                    action_type=ActionType.OBSERVE,
+                    target_id=parcel_id,
+                    parameters={
+                        "attributes": ["label_status", "condition"],
+                        "required_confidence": 0.8,
+                    },
+                ),
+            )
+        )
+        action_index += 1
+
+    previous_route_step: str | None = None
+    for parcel_id, destination_id in zip(parcel_ids, destinations, strict=True):
+        suffix = parcel_id.replace("_", "-")
         grasp_step = f"grasp-{suffix}"
+        route_step = f"route-{suffix}"
+        dependencies = list(observe_steps)
+        if previous_route_step is not None:
+            dependencies.append(previous_route_step)
         steps.extend(
             [
                 TaskStep(
-                    step_id=observe_step,
-                    action=SemanticAction(
-                        action_id=f"act-{action_index:03d}",
-                        action_type=ActionType.OBSERVE,
-                        target_id=parcel_id,
-                        parameters={
-                            "attributes": ["label_status", "condition"],
-                            "required_confidence": 0.8,
-                        },
-                    ),
-                ),
-                TaskStep(
                     step_id=grasp_step,
                     action=SemanticAction(
-                        action_id=f"act-{action_index + 1:03d}",
+                        action_id=f"act-{action_index:03d}",
                         action_type=ActionType.GRASP,
                         target_id=parcel_id,
                     ),
-                    depends_on=[observe_step],
+                    depends_on=dependencies,
                 ),
                 TaskStep(
-                    step_id=f"route-{suffix}",
+                    step_id=route_step,
                     action=SemanticAction(
-                        action_id=f"act-{action_index + 2:03d}",
+                        action_id=f"act-{action_index + 1:03d}",
                         action_type=ActionType.PLACE,
                         target_id=parcel_id,
                         parameters={"destination_id": destination_id},
@@ -292,8 +313,66 @@ def build_parcel_sorting_plan(
                 ),
             ]
         )
-        action_index += 3
-    return TaskGraph(task_id="task-sort-parcels", goal=goal, steps=steps, planner="template-v2")
+        previous_route_step = route_step
+        action_index += 2
+    return TaskGraph(task_id="task-sort-parcels", goal=goal, steps=steps, planner="template-v3")
+
+
+def _parcel_policy_decision(
+    attributes: Mapping[str, str],
+    pickup_shelf_id: str,
+    quarantine_bin_id: str,
+) -> tuple[str, str]:
+    if not isinstance(attributes, Mapping):
+        raise ValueError("parcel attributes must be a mapping")
+    values: dict[str, str] = {}
+    for key in ("label_status", "condition"):
+        value = attributes.get(key)
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"parcel policy requires a non-empty {key}")
+        values[key] = value.strip().lower()
+    if values["label_status"] == "verified" and values["condition"] == "intact":
+        return pickup_shelf_id, "verified_intact"
+    reasons = []
+    if values["label_status"] != "verified":
+        reasons.append(f"label_{values['label_status']}")
+    if values["condition"] != "intact":
+        reasons.append(f"condition_{values['condition']}")
+    return quarantine_bin_id, "+".join(reasons)
+
+
+def build_policy_routed_parcel_plan(
+    goal: str,
+    parcel_attributes: Mapping[str, Mapping[str, str]],
+    pickup_shelf_id: str = "pickup_shelf",
+    quarantine_bin_id: str = "quarantine_bin",
+) -> TaskGraph:
+    pickup_shelf_id = _validate_identifier(pickup_shelf_id, "pickup_shelf_id")
+    quarantine_bin_id = _validate_identifier(quarantine_bin_id, "quarantine_bin_id")
+    if pickup_shelf_id == quarantine_bin_id:
+        raise ValueError("pickup and quarantine destinations must be different")
+    if not isinstance(parcel_attributes, Mapping):
+        raise ValueError("parcel_attributes must be a mapping")
+    parcel_ids = _validate_entity_ids(tuple(parcel_attributes), "parcel policy")
+    decisions = []
+    reasons: dict[str, str] = {}
+    for parcel_id in parcel_ids:
+        destination_id, reason = _parcel_policy_decision(
+            parcel_attributes[parcel_id], pickup_shelf_id, quarantine_bin_id
+        )
+        decisions.append((parcel_id, destination_id))
+        reasons[parcel_id] = reason
+    decisions.sort(key=lambda item: (item[1] != quarantine_bin_id, item[0]))
+    plan = build_parcel_sorting_plan(goal, decisions)
+    for step in plan.steps:
+        if step.action.action_type is ActionType.PLACE:
+            step.action.parameters.update(
+                {
+                    "routing_reason": reasons[step.action.target_id],
+                    "policy_version": PARCEL_POLICY_VERSION,
+                }
+            )
+    return plan.model_copy(update={"planner": "parcel-policy-v1"})
 
 
 def build_template_plan(goal: str, block_id: str = "red_block", tray_id: str = "tray") -> TaskGraph:
@@ -306,5 +385,5 @@ def build_template_plan(goal: str, block_id: str = "red_block", tray_id: str = "
     if task_id == "task-clear-workspace":
         return build_clear_workspace_plan(goal)
     if task_id == "task-sort-parcels":
-        return build_parcel_sorting_plan(goal)
+        return build_policy_routed_parcel_plan(goal, DEFAULT_PARCEL_ATTRIBUTES)
     return build_place_plan(goal, block_id, tray_id)

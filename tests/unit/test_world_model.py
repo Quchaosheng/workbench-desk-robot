@@ -12,6 +12,7 @@ from workbench_world_model import (
     verify_inspection_evidence,
     verify_kit_contents,
     verify_object_in_tray,
+    verify_parcel_policy,
     verify_parcel_sorting,
     verify_workspace_clearance,
 )
@@ -218,6 +219,45 @@ class WorldModelTests(unittest.TestCase):
                     "parcel_damaged": {"label_status": "verified"},
                 },
             )
+
+    def test_parcel_policy_derives_exception_destinations_from_observations(self) -> None:
+        state = WorldState(
+            run_id="parcel-policy-run",
+            entity_locations={
+                "box-a": "in:pickup_shelf",
+                "box-b": "in:quarantine_bin",
+                "box-c": "in:quarantine_bin",
+            },
+            entity_confidence={"box-a": 0.95, "box-b": 0.94, "box-c": 0.93},
+            entity_attributes={
+                "box-a": {"label_status": "verified", "condition": "intact"},
+                "box-b": {"label_status": "unreadable", "condition": "intact"},
+                "box-c": {"label_status": "verified", "condition": "damaged"},
+            },
+            entity_evidence_refs={
+                "box-a": ["frame://policy/a"],
+                "box-b": ["frame://policy/b"],
+                "box-c": ["frame://policy/c"],
+            },
+        )
+        result = verify_parcel_policy(state, "task-sort-parcels", ["box-a", "box-b", "box-c"])
+        self.assertEqual(result.status, VerificationStatus.CONFIRMED)
+        self.assertIn("box-b", result.claim)
+        self.assertIn("label_unreadable", result.claim)
+
+        state.entity_locations["box-b"] = "in:pickup_shelf"
+        result = verify_parcel_policy(state, "task-sort-parcels", ["box-a", "box-b", "box-c"])
+        self.assertEqual(result.status, VerificationStatus.REFUTED)
+        self.assertIn("box-b->in:quarantine_bin", result.claim)
+
+        state.entity_locations["box-b"] = "in:quarantine_bin"
+        state.entity_attributes["box-c"].pop("condition")
+        result = verify_parcel_policy(state, "task-sort-parcels", ["box-a", "box-b", "box-c"])
+        self.assertEqual(result.status, VerificationStatus.INSUFFICIENT_EVIDENCE)
+        self.assertIn("box-c.condition", result.claim)
+
+        with self.assertRaises(ValueError):
+            verify_parcel_policy(state, "task-sort-parcels", ["box-a"], "same", "same")
 
 
 if __name__ == "__main__":

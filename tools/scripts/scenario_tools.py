@@ -75,26 +75,26 @@ TASK_PROFILES: dict[str, dict[str, Any]] = {
         "required_conditions": ("blue_cylinder in:staging_bin", "red_block in:tray"),
     },
     "task-sort-parcels": {
-        "goal": "Sort verified parcels to pickup and isolate the damaged parcel",
-        "goal_zh": "核对快递标签与外观,正常件入取件架,破损件进入异常隔离",
-        "entities": ("parcel_box", "parcel_envelope", "parcel_damaged"),
+        "goal": "Scan the parcel batch, route verified intact parcels to pickup, and isolate exceptions",
+        "goal_zh": "先扫描整批快递,完好核验件入取件架,标签异常或破损件进入隔离",
+        "entities": ("parcel_box", "parcel_unreadable", "parcel_damaged"),
         "operations": (
-            ("parcel_box", "pickup_shelf"),
-            ("parcel_envelope", "pickup_shelf"),
+            ("parcel_unreadable", "quarantine_bin"),
             ("parcel_damaged", "quarantine_bin"),
+            ("parcel_box", "pickup_shelf"),
         ),
         "attributes": {
             "parcel_box": {"label_status": "verified", "condition": "intact"},
-            "parcel_envelope": {"label_status": "verified", "condition": "intact"},
+            "parcel_unreadable": {"label_status": "unreadable", "condition": "intact"},
             "parcel_damaged": {"label_status": "verified", "condition": "damaged"},
         },
-        "claim": "verified parcels routed to pickup and damaged parcel isolated",
+        "claim": "verified intact parcels routed to pickup and all exceptions isolated",
         "required_conditions": (
             "parcel_box in:pickup_shelf",
-            "parcel_envelope in:pickup_shelf",
+            "parcel_unreadable in:quarantine_bin",
             "parcel_damaged in:quarantine_bin",
-            "all parcel labels verified",
-            "damaged parcel isolated",
+            "full batch observed before manipulation",
+            "all non-verified or non-intact parcels isolated",
         ),
     },
 }
@@ -105,6 +105,7 @@ ENTITY_APPEARANCE = {
     "green_gear": {"entity_type": "gear", "colour": "green"},
     "parcel_box": {"entity_type": "parcel", "colour": "kraft"},
     "parcel_envelope": {"entity_type": "envelope", "colour": "white"},
+    "parcel_unreadable": {"entity_type": "parcel", "colour": "grey"},
     "parcel_damaged": {"entity_type": "parcel", "colour": "orange"},
 }
 

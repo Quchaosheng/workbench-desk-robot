@@ -84,9 +84,27 @@ class EvaluationPipelineTests(unittest.TestCase):
             next(item for item in scene["objects"] if item["entity_id"] == "parcel_damaged")["attributes"],
             {"label_status": "verified", "condition": "damaged"},
         )
+        self.assertEqual(
+            next(item for item in scene["objects"] if item["entity_id"] == "parcel_unreadable")["attributes"],
+            {"label_status": "unreadable", "condition": "intact"},
+        )
         events = scripted_events("v-test", manifest, "abc123", 1000)
         observations = [event for event in events if event["event_type"] == "observation"]
         observe_requests = [event for event in events if event["event_type"] == "action_request"]
+        graph = next(event for event in events if event["event_type"] == "task_graph")["payload"]
+        self.assertEqual(graph["planner"], "parcel-policy-v1")
+        self.assertTrue(graph["observation_barrier"])
+        self.assertTrue(graph["manipulation_serial"])
+        self.assertEqual(graph["routing_policy"], "verified_intact_only")
+        self.assertEqual(
+            graph["actions"][0:3],
+            [
+                "observe:parcel_box",
+                "observe:parcel_unreadable",
+                "observe:parcel_damaged",
+            ],
+        )
+        self.assertEqual(graph["actions"][3], "grasp:parcel_unreadable")
         self.assertTrue(all(event["payload"]["attributes"] for event in observations))
         self.assertTrue(
             all(event["payload"]["attributes"] == ["label_status", "condition"] for event in observe_requests[:3])

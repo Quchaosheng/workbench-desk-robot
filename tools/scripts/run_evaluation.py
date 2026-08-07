@@ -165,10 +165,19 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
         "task_graph",
         {
             "task_id": task_id,
-            "planner": "template-v1" if task_id == "task-place-red-block" else "template-v2",
+            "planner": (
+                "template-v1"
+                if task_id == "task-place-red-block"
+                else "parcel-policy-v1"
+                if task_id == "task-sort-parcels"
+                else "template-v2"
+            ),
             "model_route": "template",
             "actions": graph_actions,
             "parallel_branches": len(profile["entities"]),
+            "observation_barrier": task_id == "task-sort-parcels",
+            "manipulation_serial": task_id == "task-sort-parcels",
+            "routing_policy": "verified_intact_only" if task_id == "task-sort-parcels" else None,
         },
     )
 

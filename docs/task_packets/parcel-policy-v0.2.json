@@ -1,0 +1,44 @@
+{
+  "issue": "PARCEL-POLICY-v0.2",
+  "human_owner": "Quchaosheng",
+  "objective": "Upgrade tabletop parcel intake from fixed routes to evidence-derived batch policy with explainable decisions.",
+  "allowed_paths": [
+    "services/agent_runtime/**",
+    "services/world_model/**",
+    "tasks/parcels/**",
+    "sim/scenarios/**",
+    "tools/scripts/**",
+    "apps/dashboard/**",
+    "tests/**",
+    "docs/task_packets/**",
+    "README.md",
+    "README.zh-CN.md"
+  ],
+  "read_only_paths": ["interfaces/**", "libs/contracts/**"],
+  "forbidden": ["robot/control/**", "firmware/**", "hardware/safety/**"],
+  "acceptance": [
+    "planner accepts any non-empty parcel batch and scans the complete batch before grasping",
+    "only verified intact parcels route to pickup while every observed exception routes to quarantine",
+    "quarantine work is ordered before pickup and all single-arm manipulation is serialized",
+    "world-model verification independently derives destinations from observed attributes",
+    "dashboard explains label, condition, expected route, and actual routing outcome per parcel"
+  ],
+  "commands": [
+    "python -m ruff check .",
+    "python -m pytest tests/ -q",
+    "python tools/scripts/validate_scenarios.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/parcel-policy-v0.2.json",
+    "docker compose up -d --build"
+  ],
+  "evidence": [
+    "planner ordering and arbitrary-batch tests",
+    "policy-verifier adversarial routing tests",
+    "108-run scripted evaluation metrics",
+    "desktop and mobile parcel-decision dashboard screenshots"
+  ],
+  "stop_conditions": [
+    "conditional execution would require a new contract",
+    "mobile navigation or parcel-locker access is requested",
+    "scripted observations would be presented as physical sensor evidence"
+  ]
+}

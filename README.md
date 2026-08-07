@@ -37,7 +37,7 @@ The model picks a goal, but cannot send joint positions or velocities. That boun
 - Contract definitions (11 JSON schemas)
 - Event store with replay
 - Template planner for five task families (no model needed)
-- Task-specific verification for placement, exact kit contents, inspection confidence, workspace clearance, and parcel label/condition routing
+- Task-specific verification for placement, exact kit contents, inspection confidence, workspace clearance, and policy-derived parcel routing
 - Read-only multi-entity dashboard with ordered replay, recovery history and evidence inspection
 - Offline container, health endpoints, structured logs and release/SBOM workflow
 - 12 frozen v0.1 baselines plus 24 expanded v0.2 scenarios with deterministic seed checks
@@ -213,7 +213,7 @@ Software safe-stop ≠ hardware emergency stop. Gazebo numbers don't transfer to
 
 Scripted evaluation fixtures also do not prove Gazebo performance. They exercise event ordering, evidence coverage, replay and reporting, and are marked `release_eligible: false`. See [documented fixture failures](docs/evaluation/failure-cases.md) and the [container runbook](docs/deployment/container.md).
 
-Parcel handling is intentionally limited to parcels already on the tabletop intake area. It verifies readable labels and package condition, routes intact parcels to the pickup shelf, and isolates damaged parcels. The current arm has no mobile base, elevator, or parcel-locker access; those requests fail closed instead of being simulated as completed.
+Parcel handling is intentionally limited to parcels already on the tabletop intake area. It scans the complete batch before manipulation, routes only verified intact parcels to the pickup shelf, and isolates damaged, unreadable, or otherwise unverified parcels first. The current arm has no mobile base, elevator, or parcel-locker access; those requests fail closed instead of being simulated as completed.
 
 ---
 

@@ -61,6 +61,7 @@ const entityLabels = {
   green_gear: "绿齿轮",
   parcel_box: "纸箱快递",
   parcel_envelope: "信封快递",
+  parcel_unreadable: "标签不可读",
   parcel_damaged: "破损快递",
 };
 
@@ -247,8 +248,8 @@ function destinationPosition(location, index) {
       { left: 81, top: 28 },
     ],
     "in:quarantine_bin": [
-      { left: 77, top: 79 },
-      { left: 88, top: 79 },
+      { left: 70, top: 79 },
+      { left: 87, top: 79 },
     ],
   };
   const candidates = slots[location];
@@ -270,6 +271,7 @@ function buildWorkbenchState(events, cursor) {
         entity_id: payload.entity_id,
         entity_type: entityType(payload),
         pose: payload.pose,
+        attributes: payload.attributes && typeof payload.attributes === "object" ? { ...payload.attributes } : {},
         confidence: Number.isFinite(rawConfidence) ? clamp(rawConfidence, 0, 1) : null,
       });
     }
@@ -296,6 +298,63 @@ function entityVisual(entity, index, extraClass = "") {
     title="${escapeHtml(label)}${entity.location ? ` · ${escapeHtml(entity.location)}` : ""}">${escapeHtml(label)}</span>`;
 }
 
+function parcelDecision(entity) {
+  const attributes = entity.attributes || {};
+  const labelStatus = String(attributes.label_status || "missing").toLowerCase();
+  const condition = String(attributes.condition || "missing").toLowerCase();
+  const safe = labelStatus === "verified" && condition === "intact";
+  const destination = safe ? "in:pickup_shelf" : "in:quarantine_bin";
+  const labelText = {
+    verified: "已核验",
+    unreadable: "不可读",
+    unverified: "未核验",
+    mismatch: "不匹配",
+    missing: "缺失",
+  };
+  const conditionText = {
+    intact: "完好",
+    damaged: "破损",
+    opened: "已拆封",
+    wet: "受潮",
+    unknown: "未知",
+    missing: "缺失",
+  };
+  const labelDisplay = labelText[labelStatus] || labelStatus;
+  const conditionDisplay = conditionText[condition] || condition;
+  const reason = safe
+    ? "标签已核验 · 外观完好"
+    : `隔离：${labelStatus !== "verified" ? `标签${labelDisplay}` : ""}${labelStatus !== "verified" && condition !== "intact" ? " · " : ""}${condition !== "intact" ? `外观${conditionDisplay}` : ""}`;
+  const actual = entity.location || "pending";
+  const result = actual === destination ? "confirmed" : actual === "pending" ? "pending" : "refuted";
+  return { condition: conditionDisplay, destination, labelStatus: labelDisplay, reason, result };
+}
+
+function renderParcelDecisions(workbench) {
+  const panel = get("parcel-decisions");
+  if (workbench.taskId !== "task-sort-parcels") {
+    panel.hidden = true;
+    panel.innerHTML = "";
+    return;
+  }
+  panel.hidden = false;
+  panel.innerHTML = `
+    <div class="route-decision-head"><span>逐件路由决策</span><small>属性先于动作</small></div>
+    <div class="route-decision-table" role="table" aria-label="快递逐件路由决策">
+      ${workbench.entities
+        .map((entity) => {
+          const decision = parcelDecision(entity);
+          const destination = decision.destination === "in:pickup_shelf" ? "取件架" : "异常隔离";
+          return `<div class="route-decision-row route-decision-${decision.result}" role="row">
+            <strong>${escapeHtml(entityLabels[entity.entity_id] || entity.entity_id)}</strong>
+            <span>${escapeHtml(decision.labelStatus)} · ${escapeHtml(decision.condition)}</span>
+            <span class="route-destination">${escapeHtml(destination)}</span>
+            <small>${escapeHtml(decision.reason)}</small>
+          </div>`;
+        })
+        .join("")}
+    </div>`;
+}
+
 function applyEntityPositions(container) {
   container.querySelectorAll(".map-entity").forEach((entity) => {
     entity.style.left = `${entity.dataset.left}%`;
@@ -314,6 +373,7 @@ function renderWorkbench(events, cursor) {
     ? workbench.entities.map((entity, index) => entityVisual(entity, index)).join("")
     : '<span class="map-empty">等待实体观测</span>';
   applyEntityPositions(get("map-entities"));
+  renderParcelDecisions(workbench);
 
   const confidences = workbench.entities
     .map((entity) => entity.confidence)

@@ -118,7 +118,7 @@ class ReadModelTests(unittest.TestCase):
         parcel_observations = [event for event in parcel_events if event["event_type"] == "observation"]
         self.assertEqual(
             {event["payload"]["entity_id"] for event in parcel_observations},
-            {"parcel_box", "parcel_envelope", "parcel_damaged"},
+            {"parcel_box", "parcel_unreadable", "parcel_damaged"},
         )
         self.assertTrue(all(event["payload"].get("attributes") for event in parcel_observations))
         parcel_locations = {
@@ -142,6 +142,8 @@ class ReadModelTests(unittest.TestCase):
         self.assertIn('"task-sort-parcels"', script)
         self.assertIn("pickup_shelf", script)
         self.assertIn("quarantine_bin", script)
+        self.assertIn("renderParcelDecisions", script)
+        self.assertIn('id="parcel-decisions"', markup)
         self.assertIn("map-entity-envelope", script + (dashboard / "styles.css").read_text(encoding="utf-8"))
 
     def test_event_cache_reuses_parse_and_invalidates_on_file_change(self) -> None:

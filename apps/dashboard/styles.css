@@ -1054,9 +1054,76 @@ svg {
   font-size: 8px;
 }
 
+.parcel-decisions {
+  margin: 0 16px 16px;
+  border-top: 1px solid var(--line);
+}
+
+.route-decision-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 12px 0 8px;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.route-decision-head small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.route-decision-table {
+  display: grid;
+  gap: 5px;
+}
+
+.route-decision-row {
+  display: grid;
+  align-items: center;
+  padding: 7px 8px;
+  border-left: 3px solid #7d9299;
+  background: var(--surface-subtle);
+  grid-template-columns: minmax(82px, 1.1fr) minmax(92px, 1fr) 64px minmax(0, 1.25fr);
+  gap: 7px;
+  font-size: 9px;
+}
+
+.route-decision-row strong,
+.route-decision-row span,
+.route-decision-row small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-decision-row small {
+  color: var(--muted);
+}
+
+.route-decision-confirmed {
+  border-left-color: var(--green);
+}
+
+.route-decision-pending {
+  border-left-color: var(--amber);
+}
+
+.route-decision-refuted {
+  border-left-color: var(--red);
+}
+
+.route-destination {
+  color: var(--ink);
+  font-weight: 800;
+}
+
 .map-entity-parcel[data-opacity="0.35"],
 .map-entity-envelope[data-opacity="0.35"] {
-  filter: saturate(0.7);
+  filter: saturate(0.7) grayscale(0.25);
 }
 
 .map-empty {

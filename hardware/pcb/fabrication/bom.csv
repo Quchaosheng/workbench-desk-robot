@@ -8,8 +8,10 @@ U4,1,12V to 3.3V 5A synchronous buck,6A minimum module,power module carrier,AVL_
 U5,1,real-time controller,CH32V307VCT6 carrier,LQFP100 carrier,AVL_OWNER_APPROVAL
 U6,1,reinforced isolated CAN FD,ISO1042DW,SOIC-16W carrier,AVL_OWNER_APPROVAL
 U7,1,isolated CAN-side power,3.3V-to-5V reinforced isolated 1W module,isolation module carrier,AVL_OWNER_APPROVAL
+U8,1,dual-channel E-stop safety gate,diagnostic safety relay or safety-controller circuit,safety-gate carrier,SAFETY_OWNER_APPROVAL
 J2,1,12V output,16A keyed 4-pin header,THT 4-pin,AVL_OWNER_APPROVAL
 J3,1,Jetson developer-kit 12V output,5A keyed 4-pin header,THT 4-pin,AVL_OWNER_APPROVAL
 J5 J6,2,CAN connectors,shielded keyed 4-pin header,THT 4-pin,AVL_OWNER_APPROVAL
-J10,1,hardwired E-stop loop,red keyed 4-pin header,THT 4-pin,AVL_OWNER_APPROVAL
+J10,1,dual-channel hardwired E-stop loop,red keyed 4-pin header,THT 4-pin,SAFETY_OWNER_APPROVAL
+J11,1,safety-gated motor-enable output,keyed 4-pin header,THT 4-pin,SAFETY_OWNER_APPROVAL
 H1 H2 H3 H4,4,mounting,M3 insulated standoff,3.2mm NPTH,APPROVED

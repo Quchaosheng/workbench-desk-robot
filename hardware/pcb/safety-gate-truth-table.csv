@@ -1,0 +1,8 @@
+channel_a_closed,channel_b_closed,reset_complete,motor_enable_req,motor_enable_safe,estop_sense_healthy,fault_latched,required_behavior
+1,1,1,0,0,1,0,healthy_but_not_requested
+1,1,1,1,1,1,0,healthy_and_requested
+0,0,0,0,0,0,1,estop_pressed_both_channels
+0,1,0,0,0,0,1,channel_discrepancy_a_open
+1,0,0,0,0,0,1,channel_discrepancy_b_open
+1,1,0,0,0,1,1,loop_restored_wait_for_physical_reset
+1,1,0,1,0,1,1,software_request_cannot_clear_latch

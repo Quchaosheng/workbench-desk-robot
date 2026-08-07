@@ -15,3 +15,8 @@ This package is suitable for supplier DFM quotation and bare-board fabrication
 review. Component purchase remains blocked until the system owner signs the AVL
 candidate column in `bom.csv`; this respects issue #19's ownership boundary for
 component selection.
+
+Do not place a PCB or assembly order from this directory. The checked-in schematic
+is an architecture sheet rather than a component-level circuit. Run
+`python hardware/pcb/tools/release_readiness.py`; the expected current result is
+`ORDER_RELEASE_BLOCKED` until its human and physical gates are closed.

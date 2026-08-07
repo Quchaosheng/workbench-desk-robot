@@ -12,13 +12,17 @@
        -> 3.3 V / 5 A synchronous buck -> MCU, sensors, isolated CAN logic
 
 CH32V307 <-> reinforced digital isolation <-> CAN FD transceiver
-Hardwired E-stop loop -> driver-enable gate; MCU only observes state
+Dual-channel E-stop -> U8 safety gate -> MOTOR_ENABLE_SAFE;
+MCU supplies MOTOR_ENABLE_REQ and observes state but cannot bypass U8
 ```
 
 Power-good sequencing is `12V_ISO` then `JETSON_12V` then `3V3_LOGIC` with 10 ms
-minimum spacing. Any input UV/OV, hot-swap fault, or E-stop assertion disables motor
-driver enable within 1 ms while logic rails remain up long enough to record the fault.
+minimum spacing. Any input UV/OV, hot-swap fault, channel discrepancy, or E-stop
+assertion disables `MOTOR_ENABLE_SAFE` within 1 ms while logic rails remain up.
 Recovery from E-stop requires loop restoration plus a separate physical reset.
+U8 remains an interface carrier: order release is blocked until the Safety Owner
+freezes the safety architecture, diagnostic coverage, reset circuit, implementation,
+and failure-mode analysis.
 
 ## Signal integrity and grounding
 

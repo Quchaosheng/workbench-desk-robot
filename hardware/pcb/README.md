@@ -12,7 +12,7 @@ python hardware/pcb/tools/electrical_checks.py
 
 The report is written to `generated/electrical_report.json`. Open
 `kicad/controller.kicad_pro` with KiCad 10. The generated EVT companion board has
-19 footprints/interfaces, 134 routed track segments across six copper layers, four
+21 footprints/interfaces, 174 routed track segments across six copper layers, four
 M3 mounting holes, and a physical 8 mm isolation-barrier region. Reproduce it with:
 
 ```bash
@@ -47,6 +47,13 @@ owners, and freeze gates. J4 is populated on this board; J7-J9 describe downstre
 harness or daughterboard endpoints and are not populated in revision A.
 The ISO1042 bus side uses distinct `5V_CAN_ISO` and `GND_CAN_ISO` nets supplied
 by U7; neither is tied to logic ground in the board database.
+The E-stop path now has distinct `MOTOR_ENABLE_REQ` and `MOTOR_ENABLE_SAFE`
+nets, a dual-channel J10 loop, a U8 safety-gate carrier, and J11 gated output.
+`connector-pinout.csv` freezes the current EVT pin mapping.
+
+Run `python hardware/pcb/tools/release_readiness.py` before sharing an order
+package. It intentionally reports `ORDER_RELEASE_BLOCKED` until the component-level
+schematic, AVL, physical bring-up, safety analysis, and supplier DFM gates close.
 
 ## Release status
 

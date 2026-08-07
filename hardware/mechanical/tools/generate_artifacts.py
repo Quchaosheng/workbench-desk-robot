@@ -22,6 +22,7 @@ def analyse() -> dict[str, object]:
     stop_distance = drop_energy / (total * SPEC["impact"]["design_deceleration_g"] * 9.80665) * 1000
     tray = SPEC["electronics_tray"]
     pcb_width, pcb_depth, _ = tray["pcb_envelope"]
+    service_margin = [(tray["width"] - pcb_width) / 2, (tray["depth"] - pcb_depth) / 2]
     return {
         "status": "ANALYTICAL_ONLY_PHYSICAL_VALIDATION_REQUIRED",
         "mass_kg": round(total, 3),
@@ -38,8 +39,10 @@ def analyse() -> dict[str, object]:
             >= SPEC["ventilation"]["inlet_area_mm2"],
             "absorber_at_least_derived_stroke": SPEC["impact"]["effective_absorber_stroke_mm"] >= stop_distance,
             "pcb_fits_electronics_tray": pcb_width <= tray["width"] and pcb_depth <= tray["depth"],
+            "pcb_edge_service_margin_met": min(service_margin) >= tray["minimum_edge_service_margin"],
         },
         "pcb_tray_margin_mm": [tray["width"] - pcb_width, tray["depth"] - pcb_depth],
+        "pcb_edge_service_margin_mm": service_margin,
     }
 
 

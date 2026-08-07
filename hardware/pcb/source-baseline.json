@@ -92,6 +92,13 @@
       "confidence": "ENGINEERING_ENVELOPE",
       "freeze_status": "ORDERABLE_MPN_REQUIRED",
       "owner": "Electrical and Procurement Owners"
+    },
+    {
+      "interface": "functional_safety",
+      "envelope": "dual-channel E-stop, independent gated motor-enable output, 1 ms disable target",
+      "confidence": "ENGINEERING_ARCHITECTURE",
+      "freeze_status": "SAFETY_ANALYSIS_AND_MPN_REQUIRED",
+      "owner": "Safety Owner"
     }
   ]
 }

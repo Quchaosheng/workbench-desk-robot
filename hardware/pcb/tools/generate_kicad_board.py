@@ -111,6 +111,8 @@ def add_isolation_bridge(board, ref: str, value: str, x: float, y: float, nets: 
 
 
 def add_track(board, net, start, end, layer: int, width: float):
+    if start == end:
+        return
     track = pcbnew.PCB_TRACK(board)
     track.SetNet(net)
     track.SetStart(start)
@@ -118,6 +120,16 @@ def add_track(board, net, start, end, layer: int, width: float):
     track.SetLayer(layer)
     track.SetWidth(pcbnew.FromMM(width))
     board.Add(track)
+
+
+def add_via(board, net, position):
+    via = pcbnew.PCB_VIA(board)
+    via.SetNet(net)
+    via.SetPosition(position)
+    via.SetWidth(pcbnew.FromMM(0.8))
+    via.SetDrill(pcbnew.FromMM(0.4))
+    board.Add(via)
+    return via
 
 
 def add_mounting_hole(board, ref: str, x: float, y: float):
@@ -199,7 +211,7 @@ def build_board():
         "SPI_SCLK",
         "SPI_MOSI",
         "SPI_MISO",
-        "MOTOR_ENABLE",
+        "MOTOR_ENABLE_REQ",
         "MOTOR_CS0",
         "MOTOR_CS1",
         "MOTOR_CS2",
@@ -227,6 +239,11 @@ def build_board():
         "CAN_RX",
         "5V_CAN_ISO",
         "GND_CAN_ISO",
+        "MOTOR_ENABLE_SAFE",
+        "ESTOP_CH_A_OUT",
+        "ESTOP_CH_A_RETURN",
+        "ESTOP_CH_B_OUT",
+        "ESTOP_CH_B_RETURN",
         *signal_names,
     ]:
         net = pcbnew.NETINFO_ITEM(board, name)
@@ -260,7 +277,7 @@ def build_board():
     )
     for name, pad in zip(["VBAT_FUSED", "GND_PWR", "12V_ISO", "GND"], u2pads, strict=True):
         netpads[name].append(pad)
-    fp("J2", "12V_OUTPUT_16A", 106, 82, ["12V_ISO", "12V_ISO", "GND", "GND"])
+    j2pads = fp("J2", "12V_OUTPUT_16A", 106, 82, ["12V_ISO", "12V_ISO", "GND", "GND"])
     fp("U3", "JETSON_12V_EFUSE_5A", 112, 42, ["12V_ISO", "GND", "JETSON_12V", "GND"])
     fp("J3", "JETSON_DEVKIT_12V_5A", 125, 42, ["JETSON_12V", "JETSON_12V", "GND", "GND"])
     fp("U4", "BUCK_12V_3V3_5A", 112, 64, ["12V_ISO", "GND", "3V3_LOGIC", "GND"])
@@ -300,7 +317,64 @@ def build_board():
             netpads[name].append(pad)
     fp("J5", "CAN_A", 145, 55, ["CANH", "CANL", "GND_CAN_ISO", None])
     fp("J6", "CAN_B", 165, 55, ["CANH", "CANL", "GND_CAN_ISO", None])
-    fp("J10", "ESTOP_RED_KEYED", 70, 140, [None, None, None, None])
+    u8pads = fp(
+        "U8",
+        "DUAL_CHANNEL_SAFETY_GATE_CARRIER",
+        110,
+        125,
+        [
+            "12V_ISO",
+            "GND",
+            "MOTOR_ENABLE_REQ",
+            "MOTOR_ENABLE_SAFE",
+            "ESTOP_SENSE",
+            "ESTOP_CH_A_OUT",
+            "ESTOP_CH_A_RETURN",
+            "ESTOP_CH_B_OUT",
+            "ESTOP_CH_B_RETURN",
+            "GND",
+            "3V3_LOGIC",
+            None,
+        ],
+        pth=False,
+        pitch=2.0,
+        reference_position=(110, 121),
+    )
+    j10pads = fp(
+        "J10",
+        "ESTOP_RED_KEYED_DUAL_CHANNEL",
+        108,
+        140,
+        ["ESTOP_CH_A_OUT", "ESTOP_CH_A_RETURN", "ESTOP_CH_B_OUT", "ESTOP_CH_B_RETURN"],
+    )
+    j11pads = fp(
+        "J11",
+        "SAFETY_GATE_OUTPUT",
+        135,
+        92,
+        ["MOTOR_ENABLE_SAFE", "ESTOP_SENSE", "GND", None],
+        pth=False,
+        pitch=2.0,
+    )
+    for index, name in [(0, "12V_ISO"), (1, "GND"), (9, "GND"), (10, "3V3_LOGIC")]:
+        netpads[name].remove(u8pads[index])
+    netpads["GND"].remove(j11pads[2])
+    u8vias = {
+        index: add_via(board, nets[name], u8pads[index].GetPosition())
+        for index, name in [
+            (0, "12V_ISO"),
+            (1, "GND"),
+            (2, "MOTOR_ENABLE_REQ"),
+            (4, "ESTOP_SENSE"),
+            (10, "3V3_LOGIC"),
+        ]
+    }
+    u8_gnd_aux_via = add_via(board, nets["GND"], point(121, 130))
+    add_track(board, nets["GND"], u8pads[9].GetPosition(), u8_gnd_aux_via.GetPosition(), pcbnew.F_Cu, 0.5)
+    j11vias = {
+        index: add_via(board, nets[name], j11pads[index].GetPosition())
+        for index, name in [(1, "ESTOP_SENSE"), (2, "GND")]
+    }
 
     routing = {
         "VBAT_FUSED": (pcbnew.F_Cu, 2.0, 27),
@@ -335,6 +409,47 @@ def build_board():
 
     for index, name in enumerate(signal_names, start=4):
         add_track(board, nets[name], u5pads[index].GetPosition(), j4pads[index].GetPosition(), pcbnew.F_Cu, 0.25)
+
+    safety_links = [
+        (u8vias[2], u5pads[7], "MOTOR_ENABLE_REQ", pcbnew.In1_Cu, 102),
+        (u8vias[4], u5pads[16], "ESTOP_SENSE", pcbnew.In2_Cu, 104),
+        (u8pads[3], j11pads[0], "MOTOR_ENABLE_SAFE", pcbnew.F_Cu, 98),
+        (u8vias[4], j11vias[1], "ESTOP_SENSE", pcbnew.In2_Cu, 96),
+    ]
+    for start_pad, end_pad, name, layer, lane_y in safety_links:
+        start, end = start_pad.GetPosition(), end_pad.GetPosition()
+        start_lane = point(pcbnew.ToMM(start.x), lane_y)
+        end_lane = point(pcbnew.ToMM(end.x), lane_y)
+        add_track(board, nets[name], start, start_lane, layer, 0.25)
+        add_track(board, nets[name], start_lane, end_lane, layer, 0.25)
+        add_track(board, nets[name], end_lane, end, layer, 0.25)
+
+    for u8_index, j10_index, name in [
+        (5, 0, "ESTOP_CH_A_OUT"),
+        (6, 1, "ESTOP_CH_A_RETURN"),
+        (7, 2, "ESTOP_CH_B_OUT"),
+        (8, 3, "ESTOP_CH_B_RETURN"),
+    ]:
+        add_track(board, nets[name], u8pads[u8_index].GetPosition(), j10pads[j10_index].GetPosition(), pcbnew.F_Cu, 0.3)
+
+    power_links = [
+        (u8vias[0], j2pads[0], "12V_ISO", pcbnew.In2_Cu, 88),
+        (u8_gnd_aux_via, u5pads[1], "GND", pcbnew.B_Cu, 116),
+        (u8vias[10], u5pads[2], "3V3_LOGIC", pcbnew.In4_Cu, 118),
+        (j11vias[2], u5pads[1], "GND", pcbnew.B_Cu, 106),
+    ]
+    start = u8vias[1].GetPosition()
+    end = u8_gnd_aux_via.GetPosition()
+    add_track(board, nets["GND"], start, point(pcbnew.ToMM(start.x), 132), pcbnew.B_Cu, 0.5)
+    add_track(board, nets["GND"], point(pcbnew.ToMM(start.x), 132), point(pcbnew.ToMM(end.x), 132), pcbnew.B_Cu, 0.5)
+    add_track(board, nets["GND"], point(pcbnew.ToMM(end.x), 132), end, pcbnew.B_Cu, 0.5)
+    for start_pad, end_pad, name, layer, lane_y in power_links:
+        start, end = start_pad.GetPosition(), end_pad.GetPosition()
+        start_lane = point(pcbnew.ToMM(start.x), lane_y)
+        end_lane = point(pcbnew.ToMM(end.x), lane_y)
+        add_track(board, nets[name], start, start_lane, layer, 0.5)
+        add_track(board, nets[name], start_lane, end_lane, layer, 0.5)
+        add_track(board, nets[name], end_lane, end, layer, 0.5)
 
     for index, (x, y) in enumerate([(24, 24), (176, 24), (176, 146), (24, 146)], start=1):
         add_mounting_hole(board, f"H{index}", x, y)

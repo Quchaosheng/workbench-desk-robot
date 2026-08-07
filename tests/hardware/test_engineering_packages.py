@@ -45,7 +45,9 @@ class MechanicalPackageTests(unittest.TestCase):
         module = load_module("mechanical_generator_fit", ROOT / "hardware/mechanical/tools/generate_artifacts.py")
         report = module.analyse()
         self.assertTrue(report["checks"]["pcb_fits_electronics_tray"])
+        self.assertTrue(report["checks"]["pcb_edge_service_margin_met"])
         self.assertEqual(report["pcb_tray_margin_mm"], [60, 40])
+        self.assertEqual(report["pcb_edge_service_margin_mm"], [30, 20])
         spec = json.loads((ROOT / "hardware/mechanical/design-spec.json").read_text(encoding="utf-8"))
         self.assertEqual(spec["electronics_tray"]["pcb_mount_pattern"], [152, 122])
 
@@ -70,14 +72,39 @@ class PcbPackageTests(unittest.TestCase):
         board = (ROOT / "hardware/pcb/kicad/controller.kicad_pcb").read_text(encoding="utf-8")
         copper_layers = re.findall(r'^\s*\(\d+ "(?:F|B|In\d+)\.Cu" signal\)$', board, flags=re.MULTILINE)
         self.assertEqual(len(copper_layers), 6)
-        self.assertGreaterEqual(board.count("(footprint "), 19)
-        self.assertGreaterEqual(board.count("(segment"), 134)
-        for signal in ["SPI_SCLK", "MOTOR_ENABLE", "MOTOR_CS5", "I2C_SDA", "ESTOP_SENSE", "MCU_RESET"]:
+        self.assertGreaterEqual(board.count("(footprint "), 21)
+        self.assertGreaterEqual(board.count("(segment"), 166)
+        self.assertGreaterEqual(board.count("(via"), 8)
+        for signal in [
+            "SPI_SCLK",
+            "MOTOR_ENABLE_REQ",
+            "MOTOR_ENABLE_SAFE",
+            "MOTOR_CS5",
+            "I2C_SDA",
+            "ESTOP_SENSE",
+            "MCU_RESET",
+        ]:
             self.assertIn(signal, board)
         for isolated_net in ["5V_CAN_ISO", "GND_CAN_ISO", "CAN_TX", "CAN_RX"]:
             self.assertIn(isolated_net, board)
         self.assertIn('property "Reference" "J4"', board)
         self.assertIn('property "Reference" "U7"', board)
+        self.assertIn('property "Reference" "U8"', board)
+        self.assertIn('property "Reference" "J11"', board)
+
+    def test_pinout_and_release_audit_prevent_unsafe_order_release(self) -> None:
+        module = load_module("release_readiness", ROOT / "hardware/pcb/tools/release_readiness.py")
+        report = module.audit()
+        self.assertTrue(report["engineering_package_pass"])
+        self.assertEqual(report["status"], "ORDER_RELEASE_BLOCKED")
+        self.assertFalse(report["order_release_checks"]["detailed_schematic_has_symbols"])
+        self.assertFalse(report["order_release_checks"]["safety_analysis_approved"])
+        self.assertTrue(report["engineering_checks"]["safety_truth_table_covers_channel_discrepancy"])
+        with (ROOT / "hardware/pcb/connector-pinout.csv").open(newline="", encoding="utf-8") as handle:
+            rows = list(csv.DictReader(handle))
+        self.assertEqual(len([row for row in rows if row["reference"] == "J4"]), 20)
+        self.assertEqual(len([row for row in rows if row["reference"] == "J10"]), 4)
+        self.assertEqual(len([row for row in rows if row["reference"] == "J11"]), 4)
 
     def test_official_sources_and_interface_freeze_states_are_explicit(self) -> None:
         baseline = json.loads((ROOT / "hardware/pcb/source-baseline.json").read_text(encoding="utf-8"))

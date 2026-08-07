@@ -21,6 +21,7 @@
   "commands": [
     "python hardware/mechanical/tools/generate_artifacts.py",
     "python hardware/pcb/tools/electrical_checks.py",
+    "python hardware/pcb/tools/release_readiness.py",
     "<kicad>/bin/python hardware/pcb/tools/generate_kicad_board.py",
     "python hardware/pcb/tools/export_fabrication.py",
     "python hardware/manufacturing/tools/validate_route.py",
@@ -29,6 +30,7 @@
   "evidence": [
     "hardware/mechanical/generated/analysis.json",
     "hardware/pcb/generated/electrical_report.json",
+    "hardware/pcb/generated/release_readiness.json",
     "hardware/pcb/source-baseline.json",
     "hardware/pcb/interface-control.md",
     "unit test output"

@@ -14,7 +14,7 @@
   (text "CH32V307 <-> REINFORCED ISOLATION <-> CAN FD + CMC + TVS"
     (exclude_from_sim no) (at 105 75 0)
     (effects (font (size 1.5 1.5) (thickness 0.25)) (justify bottom)))
-  (text "HARDWIRED ESTOP GATES DRIVER ENABLE; MCU OBSERVES ONLY"
+  (text "DUAL-CHANNEL ESTOP GATES MOTOR_ENABLE_SAFE; MCU REQUESTS AND OBSERVES ONLY"
     (exclude_from_sim no) (at 105 90 0)
     (effects (font (size 1.5 1.5) (thickness 0.25)) (justify bottom)))
   (text "AVL OWNER SIGN-OFF AND PHYSICAL BRING-UP REQUIRED BEFORE POPULATED-BOARD RELEASE"

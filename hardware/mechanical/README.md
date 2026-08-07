@@ -55,4 +55,5 @@ prototype, drop video, fit inspection, toolmaker data, and approved production B
 Generated analysis is not represented as physical test evidence.
 The electronics tray now uses the controller PCB's actual 152 x 122 mm mounting
 pattern and provides 60 x 40 mm total planar margin. Cable bend radius, connector
-access and the 32 mm vertical envelope remain physical fit-check items.
+access and the 32 mm vertical envelope remain physical fit-check items. The digital
+fit check also enforces 30 mm side and 20 mm front/rear service margins around the PCB.

@@ -18,7 +18,7 @@
     {"name": "motor driver auxiliaries", "rail": "12V_ISO", "maximum_w": 120}
   ],
   "can": {"transceiver_class": "reinforced isolated CAN FD", "isolation_vrms": 5000, "bus_fault_v": 70, "termination_ohm": 120, "common_mode_choke": true, "tvs": "bidirectional CAN-rated"},
-  "protection": {"input_tvs_standoff_v": 58, "ov_trip_v": 62, "uv_trip_v": 34, "inrush_limit_a": 8, "reverse_polarity": "back-to-back 80 V MOSFET", "estop": "hardwired active-low loop"},
+  "protection": {"input_tvs_standoff_v": 58, "ov_trip_v": 62, "uv_trip_v": 34, "inrush_limit_a": 8, "reverse_polarity": "back-to-back 80 V MOSFET", "estop": "dual-channel loop into independent safety gate; MOTOR_ENABLE_REQ cannot drive MOTOR_ENABLE_SAFE directly"},
   "stackup": [
     {"layer": "L1", "function": "components and controlled signals", "copper_oz": 2},
     {"layer": "L2", "function": "solid signal ground", "copper_oz": 1},

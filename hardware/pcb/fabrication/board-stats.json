@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "date": "2026-08-07T16:25:33",
+    "date": "2026-08-07T17:01:34",
     "generator": "KiCad 10.0.5",
     "project": "controller",
     "board_name": "controller"
@@ -12,11 +12,11 @@
     "area": "20800.00 mm²",
     "front_component_density": "3.08",
     "back_component_density": "3.08",
-    "front_copper_area": "948.337 mm²",
-    "back_copper_area": "1810.447 mm²",
-    "min_track_clearance": "2.4885 mm",
+    "front_copper_area": "1013.106 mm²",
+    "back_copper_area": "1859.114 mm²",
+    "min_track_clearance": "0.9117 mm",
     "min_track_width": "0.2500 mm",
-    "min_drill_diameter": "1.1000 mm",
+    "min_drill_diameter": "0.4000 mm",
     "board_thickness": "1.6000 mm",
     "front_footprint_area": "640.138 mm²",
     "back_footprint_area": "640.138 mm²",
@@ -25,7 +25,7 @@
   },
   "pads": {
     "通孔": 100,
-    "贴片": 0,
+    "贴片": 16,
     "连接器": 0,
     "非电镀孔_(npth)": 4,
     "半孔": 0,
@@ -46,14 +46,14 @@
       "total": 0
     },
     "未指定": {
-      "front": 19,
+      "front": 21,
       "back": 0,
-      "total": 19
+      "total": 21
     },
     "total": {
-      "front": 19,
+      "front": 21,
       "back": 0,
-      "total": 19
+      "total": 21
     }
   },
   "drill_holes": [
@@ -64,6 +64,16 @@
       "y_size": "1.1000 mm",
       "plated": true,
       "source": "焊盘",
+      "start_layer": "F.Cu",
+      "stop_layer": "B.Cu"
+    },
+    {
+      "count": 8,
+      "shape": "圆形",
+      "x_size": "0.4000 mm",
+      "y_size": "0.4000 mm",
+      "plated": true,
+      "source": "过孔",
       "start_layer": "F.Cu",
       "stop_layer": "B.Cu"
     },

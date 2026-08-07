@@ -1,0 +1,7 @@
+# colcon / ament build artifacts (also covered globally, kept here for clarity)
+build/
+install/
+log/
+.venv/
+# uv.lock IS committed: package-local lock for reproducibility. Only a
+# root-level uv.lock needs Linux/Integration sign-off (PLAN.md stop condition).

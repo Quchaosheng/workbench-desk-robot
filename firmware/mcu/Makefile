@@ -19,7 +19,7 @@ CORE    := $(wildcard core/*.c)
 
 # rv32imac: no FPU. -mabi=ilp32 (not ilp32f/d) so a stray double is a link error
 # rather than silently pulling in soft-float.
-RVARCH  := -march=rv32imac -mabi=ilp32
+RVARCH  := -march=rv32imac_zicsr -mabi=ilp32
 RVFLAGS := $(RVARCH) -Os -g -ffreestanding -nostdlib -nostartfiles \
            -ffunction-sections -fdata-sections -Wl,--gc-sections \
            -Wall -Wextra -Werror -Icore

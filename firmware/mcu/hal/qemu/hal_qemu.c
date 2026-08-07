@@ -72,18 +72,32 @@ void hal_report_trap(uint32_t mcause, uint32_t mepc)
     *finisher = 0x3333u | (99u << 16);
 }
 
-/* mtime is 10 MHz on this machine, so microseconds = ticks / 10.
- *
- * Written as a divide by 10 on purpose. The obvious form,
- *   (CLINT_MTIME * 1000000ull) / MTIME_HZ
- * is a 64-by-64 divide, which rv32 has no instruction for: it links against
- * __udivdi3 in libgcc. We build -nostdlib, so that is an undefined reference
- * at best and a surprise dependency at worst. Dividing by the constant 10
- * lets the compiler use shifts and a multiply instead.
+/* Divide a 64-bit timer value without pulling __udivdi3 into the freestanding
+ * rv32 image. Each half is processed with 32-bit shifts only.
  */
+static uint64_t divide_u64_by_10(uint64_t value)
+{
+    uint32_t words[2] = {(uint32_t)(value >> 32), (uint32_t)value};
+    uint32_t quotient[2] = {0, 0};
+    uint32_t remainder = 0;
+
+    for (unsigned word = 0; word < 2; word++) {
+        for (int bit = 31; bit >= 0; bit--) {
+            remainder = (remainder << 1) | ((words[word] >> bit) & 1u);
+            if (remainder >= 10u) {
+                remainder -= 10u;
+                quotient[word] |= 1u << bit;
+            }
+        }
+    }
+
+    return ((uint64_t)quotient[0] << 32) | quotient[1];
+}
+
+/* mtime is 10 MHz on this machine, so microseconds = ticks / 10. */
 uint64_t hal_now_us(void)
 {
-    return CLINT_MTIME / (MTIME_HZ / 1000000ull);
+    return divide_u64_by_10(CLINT_MTIME);
 }
 
 void hal_timer_arm_us(uint64_t deadline_us)

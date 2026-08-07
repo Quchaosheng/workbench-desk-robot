@@ -145,6 +145,8 @@ class ReadModelTests(unittest.TestCase):
         self.assertIn("renderParcelDecisions", script)
         self.assertIn("destination_capacities", script)
         self.assertIn("route-priority", script)
+        self.assertIn("reverse().find", script)
+        self.assertIn("configuredPriorities", script)
         self.assertIn('id="parcel-decisions"', markup)
         self.assertIn("map-entity-envelope", script + (dashboard / "styles.css").read_text(encoding="utf-8"))
 

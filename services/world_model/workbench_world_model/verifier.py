@@ -17,6 +17,7 @@ DEFAULT_PARCEL_ATTRIBUTES = {
     "parcel_envelope": {"label_status": "verified", "condition": "intact"},
     "parcel_damaged": {"label_status": "verified", "condition": "damaged"},
 }
+PARCEL_IDENTITY_KEYS = ("tracking_id", "barcode", "parcel_uid")
 
 
 def _unique_evidence(state: WorldState) -> list[str]:
@@ -303,6 +304,8 @@ def verify_parcel_policy(
     )
     missing_evidence = _missing_entity_evidence(state, required)
     missing_attributes: list[str] = []
+    duplicate_identities: list[str] = []
+    seen_identities: dict[tuple[str, str], str] = {}
     decisions: dict[str, str] = {}
     decision_reasons: dict[str, str] = {}
     for parcel_id in sorted(required):
@@ -325,6 +328,19 @@ def verify_parcel_policy(
             continue
         label_status = label_status.strip().lower()
         condition = condition.strip().lower()
+        for identity_key in PARCEL_IDENTITY_KEYS:
+            identity_value = observed.get(identity_key)
+            if identity_value is None:
+                continue
+            if not isinstance(identity_value, str) or not identity_value.strip():
+                missing_attributes.append(f"{parcel_id}.{identity_key}")
+                continue
+            identity = (identity_key, identity_value.strip().casefold())
+            previous = seen_identities.get(identity)
+            if previous is not None and previous != parcel_id:
+                duplicate_identities.append(f"{identity_key}={identity_value.strip()} ({previous},{parcel_id})")
+            else:
+                seen_identities[identity] = parcel_id
         if label_status == "verified" and condition == "intact":
             decisions[parcel_id] = f"in:{pickup_shelf_id}"
             decision_reasons[parcel_id] = "verified_intact"
@@ -350,7 +366,8 @@ def verify_parcel_policy(
     claim = (
         f"parcel policy: decisions={decisions}; reasons={decision_reasons}; unobserved={unobserved}; "
         f"low_confidence={low_confidence}; missing_evidence={missing_evidence}; "
-        f"missing_attributes={missing_attributes}; misrouted={misrouted}; extras={extras}"
+        f"missing_attributes={missing_attributes}; duplicate_identities={duplicate_identities}; "
+        f"misrouted={misrouted}; extras={extras}"
     )
     if unobserved:
         outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.TARGET_NOT_OBSERVED, RecoveryHint.RE_OBSERVE)
@@ -362,7 +379,7 @@ def verify_parcel_policy(
         )
     elif missing_evidence or missing_attributes:
         outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.EVIDENCE_MISSING, RecoveryHint.RE_OBSERVE)
-    elif misrouted or extras:
+    elif duplicate_identities or misrouted or extras:
         outcome = (VerificationStatus.REFUTED, ReasonCode.GOAL_NOT_SATISFIED, RecoveryHint.RETRY_ACTION)
     else:
         outcome = (VerificationStatus.CONFIRMED, ReasonCode.GOAL_SATISFIED, RecoveryHint.NONE)

@@ -15,6 +15,11 @@ mixed upstream naming styles cannot create duplicate graph steps. Capacity,
 projected occupancy, policy version, priority, and routing reason are retained
 in semantic action parameters for audit and replay.
 
+When perception supplies a `tracking_id`, `barcode`, or `parcel_uid`, the batch
+preflight rejects duplicate identities case-insensitively. The verifier repeats
+that guard from world-state attributes, so a repeated scan cannot be accepted
+as two separately handled parcels.
+
 The verifier requires per-parcel confidence and evidence, exact destinations,
 verified labels, the expected condition, a policy-derived destination, and no
 extra parcel in either managed zone. Missing label or condition evidence is

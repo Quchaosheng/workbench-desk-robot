@@ -259,7 +259,7 @@ function destinationPosition(location, index) {
 function buildWorkbenchState(events, cursor) {
   const visible = cursor < 0 ? [] : events.slice(0, cursor + 1);
   const accepted = visible.find((event) => event.event_type === "task_accepted");
-  const taskGraph = visible.find((event) => event.event_type === "task_graph");
+  const taskGraph = [...visible].reverse().find((event) => event.event_type === "task_graph");
   const actionTargets = new Map();
   const entities = new Map();
   visible.forEach((event) => {
@@ -303,7 +303,7 @@ function entityVisual(entity, index, extraClass = "") {
     title="${escapeHtml(label)}${entity.location ? ` · ${escapeHtml(entity.location)}` : ""}">${escapeHtml(label)}</span>`;
 }
 
-function parcelDecision(entity) {
+function parcelDecision(entity, configuredPriorities = {}) {
   const attributes = entity.attributes || {};
   const labelStatus = String(attributes.label_status || "missing").toLowerCase();
   const condition = String(attributes.condition || "missing").toLowerCase();
@@ -331,12 +331,18 @@ function parcelDecision(entity) {
     : `隔离：${labelStatus !== "verified" ? `标签${labelDisplay}` : ""}${labelStatus !== "verified" && condition !== "intact" ? " · " : ""}${condition !== "intact" ? `外观${conditionDisplay}` : ""}`;
   const actual = entity.location || "pending";
   const result = actual === destination ? "confirmed" : actual === "pending" ? "pending" : "refuted";
-  const priority =
+  const fallbackPriority =
     condition !== "intact"
       ? { label: "P0 状态异常", rank: 0 }
       : labelStatus !== "verified"
         ? { label: "P1 标签异常", rank: 1 }
         : { label: "P2 正常入架", rank: 2 };
+  const configuredPriority = {
+    condition_exception: { label: "P0 状态异常", rank: 0 },
+    label_exception: { label: "P1 标签异常", rank: 1 },
+    standard: { label: "P2 正常入架", rank: 2 },
+  }[configuredPriorities[entity.entity_id]];
+  const priority = configuredPriority || fallbackPriority;
   return { condition: conditionDisplay, destination, labelStatus: labelDisplay, priority, reason, result };
 }
 
@@ -348,7 +354,7 @@ function renderParcelDecisions(workbench) {
     return;
   }
   const decisions = workbench.entities
-    .map((entity) => ({ decision: parcelDecision(entity), entity }))
+    .map((entity) => ({ decision: parcelDecision(entity, workbench.taskGraph.routing_priorities), entity }))
     .sort(
       (left, right) =>
         left.decision.priority.rank - right.decision.priority.rank ||

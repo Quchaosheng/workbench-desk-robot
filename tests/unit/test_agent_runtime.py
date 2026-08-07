@@ -104,6 +104,9 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual(places[1].action.parameters["routing_priority"], "label_exception")
         self.assertEqual(places[2].action.parameters["routing_priority"], "standard")
         self.assertTrue(all(step.action.parameters["policy_version"] == "parcel-routing-v2" for step in places))
+        self.assertTrue(
+            all(step.action.parameters["identity_guard"] == "duplicate_identity_rejected" for step in places)
+        )
         grasps = [step for step in plan.steps if step.action.action_type.value == "grasp"]
         self.assertEqual(set(grasps[0].depends_on), {"inspect-box-a", "inspect-box-b", "inspect-box-c"})
         self.assertIn("route-box-c", grasps[1].depends_on)
@@ -161,6 +164,15 @@ class PlannerTests(unittest.TestCase):
                     destination_capacities=capacities,
                     destination_occupancy=occupancy,
                 )
+
+        with self.assertRaisesRegex(ValueError, "duplicate parcel identity tracking_id"):
+            build_policy_routed_parcel_plan(
+                "Reject a duplicate tracking identity",
+                {
+                    "first": {"label_status": "verified", "condition": "intact", "tracking_id": "TRK-7"},
+                    "second": {"label_status": "verified", "condition": "intact", "tracking_id": "trk-7"},
+                },
+            )
 
     def test_parcel_requests_fail_closed_outside_evidence_and_motion_boundaries(self) -> None:
         dangerous = (

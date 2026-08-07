@@ -19,6 +19,7 @@ DEFAULT_PARCEL_ATTRIBUTES = {
     "parcel_damaged": {"label_status": "verified", "condition": "damaged"},
 }
 PARCEL_POLICY_VERSION = "parcel-routing-v2"
+PARCEL_IDENTITY_KEYS = ("tracking_id", "barcode", "parcel_uid")
 
 
 def _matches_task_keyword(text: str, english: tuple[str, ...], chinese: tuple[str, ...]) -> bool:
@@ -382,6 +383,24 @@ def _validate_destination_counts(
     return counts
 
 
+def _validate_unique_parcel_identities(parcel_attributes: Mapping[str, Mapping[str, str]]) -> None:
+    seen: dict[tuple[str, str], str] = {}
+    for parcel_id, attributes in parcel_attributes.items():
+        if not isinstance(attributes, Mapping):
+            raise ValueError("parcel attributes must be mappings")
+        for key in PARCEL_IDENTITY_KEYS:
+            value = attributes.get(key)
+            if value is None:
+                continue
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"parcel identity {key} must be a non-empty string when provided")
+            identity = (key, value.strip().casefold())
+            previous = seen.get(identity)
+            if previous is not None and previous != parcel_id:
+                raise ValueError(f"duplicate parcel identity {key}={value.strip()!r}: {previous} and {parcel_id}")
+            seen[identity] = parcel_id
+
+
 def build_policy_routed_parcel_plan(
     goal: str,
     parcel_attributes: Mapping[str, Mapping[str, str]],
@@ -397,6 +416,7 @@ def build_policy_routed_parcel_plan(
     if not isinstance(parcel_attributes, Mapping):
         raise ValueError("parcel_attributes must be a mapping")
     parcel_ids = _validate_entity_ids(tuple(parcel_attributes), "parcel policy")
+    _validate_unique_parcel_identities(parcel_attributes)
     destinations = (pickup_shelf_id, quarantine_bin_id)
     capacities: dict[str, int] | None = None
     occupancy: dict[str, int] = {destination_id: 0 for destination_id in destinations}
@@ -450,6 +470,7 @@ def build_policy_routed_parcel_plan(
                     "routing_reason": reasons[step.action.target_id],
                     "routing_priority": priorities[step.action.target_id],
                     "policy_version": PARCEL_POLICY_VERSION,
+                    "identity_guard": "duplicate_identity_rejected",
                 }
             )
             if capacities is not None:

@@ -256,6 +256,13 @@ class WorldModelTests(unittest.TestCase):
         self.assertEqual(result.status, VerificationStatus.INSUFFICIENT_EVIDENCE)
         self.assertIn("box-c.condition", result.claim)
 
+        state.entity_attributes["box-c"]["condition"] = "damaged"
+        state.entity_attributes["box-b"]["tracking_id"] = "trk-duplicate"
+        state.entity_attributes["box-c"]["tracking_id"] = "TRK-DUPLICATE"
+        result = verify_parcel_policy(state, "task-sort-parcels", ["box-a", "box-b", "box-c"])
+        self.assertEqual(result.status, VerificationStatus.REFUTED)
+        self.assertIn("duplicate_identities", result.claim)
+
         with self.assertRaises(ValueError):
             verify_parcel_policy(state, "task-sort-parcels", ["box-a"], "same", "same")
 

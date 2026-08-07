@@ -119,6 +119,14 @@ class EvaluationPipelineTests(unittest.TestCase):
         self.assertTrue(
             all(event["payload"]["attributes"] == ["label_status", "condition"] for event in observe_requests[:3])
         )
+        parcel_place_request = next(
+            event
+            for event in observe_requests
+            if event["payload"].get("action_type") == "place" and event["payload"].get("target_id") == "parcel_damaged"
+        )
+        self.assertEqual(parcel_place_request["payload"]["identity_guard"], "duplicate_identity_rejected")
+        self.assertEqual(parcel_place_request["payload"]["routing_priority"], "condition_exception")
+        self.assertEqual(parcel_place_request["payload"]["destination_remaining_after"], 3)
         destinations = {
             event["payload"]["resulting_location"]
             for event in events

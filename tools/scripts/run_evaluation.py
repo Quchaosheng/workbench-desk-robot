@@ -95,6 +95,7 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
     scene = materialize_scenario(manifest)
     operations = tuple(profile["operations"])
     policy_plan = None
+    policy_place_parameters: dict[str, dict[str, Any]] = {}
     if task_id == "task-sort-parcels":
         policy_plan = build_policy_routed_parcel_plan(
             profile["goal"],
@@ -106,6 +107,11 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
             for step in policy_plan.steps
             if step.action.action_type.value == "place"
         )
+        policy_place_parameters = {
+            step.action.target_id: dict(step.action.parameters)
+            for step in policy_plan.steps
+            if step.action.action_type.value == "place"
+        }
     run_id = f"{version}--{scenario_id}"
     effective_seed = seed_base + manifest["seed"]
     start = datetime(2026, 1, 1, tzinfo=UTC) + timedelta(seconds=effective_seed % TIMESTAMP_WINDOW_SECONDS)
@@ -343,6 +349,7 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
                 "action_type": "place",
                 "target_id": entity_id,
                 "destination_id": destination_id,
+                **policy_place_parameters.get(entity_id, {}),
             },
         )
         if operation_index == 0 and fault_type == "actuator_timeout":
@@ -363,6 +370,7 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
                     "target_id": entity_id,
                     "destination_id": destination_id,
                     "attempt": 2,
+                    **policy_place_parameters.get(entity_id, {}),
                 },
             )
             recovery_injected = True

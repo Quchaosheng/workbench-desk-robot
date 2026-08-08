@@ -1,0 +1,44 @@
+{
+  "issue": "kernel-event-store-checkpoints",
+  "human_owner": "Quchaosheng",
+  "objective": "Keep append-only event checkpoints correct across process restarts and reject unsafe replay boundaries.",
+  "allowed_paths": [
+    "libs/kernel/workbench/kernel/event_store.py",
+    "libs/kernel/tests/test_k1_k10.py",
+    "tests/unit/test_kernel_event_store.py",
+    "docs/task_packets/kernel-event-store-checkpoints.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "AGENTS.md"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "interfaces/**"
+  ],
+  "acceptance": [
+    "a checkpoint created after reopening a log equals the persisted event count",
+    "replay from the current checkpoint returns no historical events",
+    "negative, boolean, and out-of-range checkpoints are rejected",
+    "malformed and non-object log records fail closed",
+    "repository lint and tests pass"
+  ],
+  "commands": [
+    "python libs/kernel/tests/test_k1_k10.py",
+    "python -m pytest tests/unit/test_kernel_event_store.py -q",
+    "python -m ruff check .",
+    "python -m pytest tests/ -q"
+  ],
+  "evidence": [
+    "restart checkpoint regression assertions",
+    "corrupt-log failure assertions",
+    "K1-K10 integration test output",
+    "repository test output"
+  ],
+  "stop_conditions": [
+    "event schema changes are required",
+    "cross-process locking is required",
+    "robot-control or firmware changes are required"
+  ]
+}

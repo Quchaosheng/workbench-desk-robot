@@ -73,6 +73,11 @@ def test_all():
         replayed = store.replay(from_checkpoint=0)
         assert len(replayed) == 10
         assert store.verify_integrity()
+        reopened = EventStore(log)
+        reopened.append({"id": 10})
+        restart_checkpoint = reopened.create_checkpoint()
+        assert restart_checkpoint == 11
+        assert reopened.replay(from_checkpoint=restart_checkpoint) == []
         print("[PASS] K6-K7 Event Store")
 
         # K8: Lifecycle

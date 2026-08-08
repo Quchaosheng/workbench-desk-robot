@@ -1,0 +1,21 @@
+{
+  "blocked_by": [
+    "dated supplier quotes",
+    "AVL approval",
+    "incoming inspection evidence"
+  ],
+  "bom_line_count": 10,
+  "checks": {
+    "all_bom_rows_have_owner_and_source": true,
+    "bom_has_unique_ids": true,
+    "critical_items_have_two_quote_channels": true,
+    "no_unquoted_price_is_present": true,
+    "po_checklist_has_stop_gates": true,
+    "scorecard_totals_are_reproducible": true
+  },
+  "package": "procurement",
+  "pass": true,
+  "quote_request_count": 15,
+  "status": "ORDER_RELEASE_BLOCKED",
+  "supplier_count": 3
+}

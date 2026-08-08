@@ -1,0 +1,4 @@
+supplier_id,supplier_name,scope,quality_score_0_5,lead_time_score_0_5,cost_score_0_5,technical_score_0_5,total_score,status,evidence
+SUP-A,Pending supplier nomination,PCB assembly,0,0,0,0,0,UNASSESSED,quote+quality questionnaire
+SUP-B,Pending supplier nomination,mechanical fabrication,0,0,0,0,0,UNASSESSED,quote+DFM review
+SUP-C,Pending supplier nomination,harness assembly,0,0,0,0,0,UNASSESSED,quote+capability audit

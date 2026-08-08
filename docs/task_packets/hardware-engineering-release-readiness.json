@@ -1,0 +1,39 @@
+{
+  "issue": "19,22,23,24,28-release",
+  "issues": [19, 22, 23, 24, 28],
+  "human_owner": "Quchaosheng",
+  "objective": "Unify the hardware engineering, procurement, quality, manufacturing, and field-validation evidence into a deterministic release-readiness gate.",
+  "allowed_paths": [
+    "hardware/release/**",
+    "hardware/README.md",
+    "tests/hardware/**",
+    "docs/task_packets/hardware-engineering-release-readiness.json"
+  ],
+  "read_only_paths": [
+    "hardware/pcb/**",
+    "hardware/procurement/**",
+    "hardware/qa/**",
+    "hardware/manufacturing/**",
+    "hardware/validation/**"
+  ],
+  "forbidden": ["robot/control/**", "firmware/**", "services/**", "interfaces/**"],
+  "acceptance": [
+    "release gate register covers engineering, commercial, physical, quality, compliance, and field evidence",
+    "validator cross-checks all referenced repository evidence and never promotes NOT_EXECUTED or ORDER_RELEASE_BLOCKED to PASS",
+    "deterministic release report and hardware tests pass"
+  ],
+  "commands": [
+    "python hardware/release/tools/check_release_readiness.py",
+    "python -m unittest discover -s tests/hardware -v"
+  ],
+  "evidence": [
+    "hardware/release/generated/release_readiness_report.json",
+    "hardware/release/evidence-register.csv",
+    "hardware package unit-test output"
+  ],
+  "stop_conditions": [
+    "physical, supplier, lab, or certification evidence is unavailable",
+    "a gate would require changing a producer-owned path",
+    "an external record is missing a serial, revision, date, operator, or raw evidence reference"
+  ]
+}

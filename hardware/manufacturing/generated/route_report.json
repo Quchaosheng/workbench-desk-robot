@@ -1,0 +1,13 @@
+{
+  "operation_count": 14,
+  "total_touch_minutes": 103,
+  "ideal_units_per_8h_shift": 48.0,
+  "checks": {
+    "operations_are_unique_and_ordered": true,
+    "each_operation_is_5_to_10_minutes": true,
+    "each_operation_has_unique_quality_gate": true,
+    "each_operation_has_record": true,
+    "safety_test_exists": true
+  },
+  "pass": true
+}

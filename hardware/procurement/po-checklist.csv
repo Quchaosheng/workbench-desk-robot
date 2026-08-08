@@ -1,0 +1,9 @@
+gate_id,gate,required_evidence,owner,status,stop_if_missing
+PO-01,controlled revision matches BOM,approved BOM revision,Procurement Owner,OPEN,yes
+PO-02,AVL owner approved candidate MPN,signed AVL or approval record,Electrical Owner,OPEN,yes
+PO-03,dated supplier quote received,quote reference and validity date,Procurement Owner,OPEN,yes
+PO-04,lead-time risk accepted,dated supplier commitment and alternate,Project Owner,OPEN,yes
+PO-05,incoming inspection defined,inspection plan and acceptance limits,Quality Owner,OPEN,yes
+PO-06,lot traceability confirmed,CoC/lot/serial requirement,Quality Owner,OPEN,yes
+PO-07,spares quantity approved,spares rationale,Manufacturing Owner,OPEN,no
+PO-08,release decision recorded,signed GO/NO-GO,Project Owner,OPEN,yes

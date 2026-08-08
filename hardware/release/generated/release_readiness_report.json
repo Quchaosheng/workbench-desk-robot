@@ -1,0 +1,31 @@
+{
+  "blocker_count": 12,
+  "blockers": [
+    "REL-004",
+    "REL-005",
+    "REL-006",
+    "REL-007",
+    "REL-008",
+    "REL-009",
+    "REL-010",
+    "REL-011",
+    "REL-012",
+    "REL-013",
+    "REL-014",
+    "REL-015"
+  ],
+  "checks": {
+    "all_blockers_are_explicit": true,
+    "all_gates_have_owner_and_next_action": true,
+    "blocked_gates_are_not_pass": true,
+    "evidence_references_exist": true,
+    "gate_ids_are_unique": true,
+    "statuses_are_controlled": true,
+    "upstream_reports_remain_fail_closed": true
+  },
+  "gate_count": 15,
+  "note": "PASS means repository evidence is present; it never substitutes for external physical or commercial evidence.",
+  "package": "hardware-release-readiness",
+  "pass": true,
+  "status": "RELEASE_BLOCKED"
+}

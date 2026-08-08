@@ -1,0 +1,16 @@
+item_id,quote_request_id,supplier_channel,request_date,quote_reference,currency,unit_price,moq,lead_time_days,valid_until,status,requested_evidence
+PCB-U2,QR-001,Mouser or authorized module distributor,,,,,,,REQUEST_REQUIRED,manufacturer authorization+CoC
+PCB-U2,QR-002,Digi-Key or authorized module distributor,,,,,,,REQUEST_REQUIRED,manufacturer authorization+CoC
+PCB-U2,QR-003,LCSC or approved equivalent channel,,,,,,,REQUEST_REQUIRED,manufacturer authorization+CoC
+PCB-U3,QR-004,Mouser or authorized e-fuse distributor,,,,,,,REQUEST_REQUIRED,datasheet+lot traceability
+PCB-U3,QR-005,Digi-Key or authorized e-fuse distributor,,,,,,,REQUEST_REQUIRED,datasheet+lot traceability
+PCB-U4,QR-006,Mouser or authorized regulator distributor,,,,,,,REQUEST_REQUIRED,datasheet+PCN policy
+PCB-U4,QR-007,Digi-Key or authorized regulator distributor,,,,,,,REQUEST_REQUIRED,datasheet+PCN policy
+PCB-U7,QR-008,Mouser or authorized isolation distributor,,,,,,,REQUEST_REQUIRED,reinforced-isolation certificate
+PCB-U7,QR-009,Digi-Key or authorized isolation distributor,,,,,,,REQUEST_REQUIRED,reinforced-isolation certificate
+PCB-PCBA,QR-010,PCB assembler A,,,,,,,REQUEST_REQUIRED,DFM response+process capability
+PCB-PCBA,QR-011,PCB assembler B,,,,,,,REQUEST_REQUIRED,DFM response+process capability
+MECH-ENC,QR-012,mechanical supplier A,,,,,,,REQUEST_REQUIRED,material+DFM response
+MECH-ENC,QR-013,mechanical supplier B,,,,,,,REQUEST_REQUIRED,material+DFM response
+HARNESS-CTRL,QR-014,harness supplier A,,,,,,,REQUEST_REQUIRED,continuity+pull-test capability
+HARNESS-CTRL,QR-015,harness supplier B,,,,,,,REQUEST_REQUIRED,continuity+pull-test capability

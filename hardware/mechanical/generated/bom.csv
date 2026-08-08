@@ -1,0 +1,9 @@
+part_number,description,material,quantity
+ME-001,Lower chassis,5052-H32 aluminium,1
+ME-002,Upper shell,PC-ABS FR,1
+ME-003,Impact bumper,TPU 95A,1
+ME-004,Electronics tray,5052-H32 aluminium,1
+ISO4762-M3x8,Socket screw,A2-70 stainless,16
+DIN934-M3,Hex nut,A2 stainless,16
+ME-005,Motor bracket,6061-T6 aluminium,2
+ME-006,Display bracket,PC-ABS FR,1

@@ -1,0 +1,41 @@
+{
+  "issue": "kernel-schema-compiler-correctness",
+  "human_owner": "Quchaosheng",
+  "objective": "Generate syntactically valid and minimally typed Python and TypeScript models from object-shaped JSON Schema files.",
+  "allowed_paths": [
+    "libs/kernel/workbench/kernel/schema_compiler.py",
+    "libs/kernel/tests/test_k1_k10.py",
+    "tests/unit/test_kernel_schema_compiler.py",
+    "docs/task_packets/kernel-schema-compiler-correctness.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "AGENTS.md"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "interfaces/**"
+  ],
+  "acceptance": [
+    "schema suffixes do not leak into generated identifiers",
+    "generated Python compiles and produces an instantiable Pydantic model",
+    "generated TypeScript has a valid interface declaration and typed fields",
+    "repository lint and tests pass"
+  ],
+  "commands": [
+    "python libs/kernel/tests/test_k1_k10.py",
+    "python -m ruff check libs/kernel",
+    "python -m pytest tests/ -q"
+  ],
+  "evidence": [
+    "generated-model compile and instantiation assertions",
+    "K1-K10 integration test output",
+    "repository test output"
+  ],
+  "stop_conditions": [
+    "interface schema changes are required",
+    "generated models would replace the canonical contracts package",
+    "robot-control or firmware changes are required"
+  ]
+}

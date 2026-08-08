@@ -101,6 +101,19 @@ def test_all():
         # K9-K10: Bootstrap
         bootstrapper = SystemBootstrapper(tmp_path / "config")
         assert bootstrapper.bootstrap()
+        (tmp_path / "config").mkdir()
+        (tmp_path / "config" / "bootstrap.json").write_text(
+            json.dumps(
+                {
+                    "schemas": ["action"],
+                    "nodes": ["kernel"],
+                    "version": "1.0.0",
+                    "checks": {"event_store_ready": False},
+                }
+            ),
+            encoding="utf-8",
+        )
+        assert not SystemBootstrapper(tmp_path / "config").bootstrap()
         print("[PASS] K9-K10 Bootstrap")
 
         print("\n" + "=" * 50)

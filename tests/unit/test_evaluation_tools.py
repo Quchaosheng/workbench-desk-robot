@@ -82,20 +82,23 @@ class EvaluationPipelineTests(unittest.TestCase):
         self.assertEqual(len(scene["objects"]), 3)
         self.assertEqual(
             next(item for item in scene["objects"] if item["entity_id"] == "parcel_damaged")["attributes"],
-            {"label_status": "verified", "condition": "damaged"},
+            {"label_status": "verified", "condition": "damaged", "barcode": "WBX-DMG-20260807"},
         )
         self.assertEqual(
             next(item for item in scene["objects"] if item["entity_id"] == "parcel_unreadable")["attributes"],
-            {"label_status": "unreadable", "condition": "intact"},
+            {"label_status": "unreadable", "condition": "intact", "parcel_uid": "WBX-UNK-20260807"},
         )
         events = scripted_events("v-test", manifest, "abc123", 1000)
         observations = [event for event in events if event["event_type"] == "observation"]
         observe_requests = [event for event in events if event["event_type"] == "action_request"]
         graph = next(event for event in events if event["event_type"] == "task_graph")["payload"]
-        self.assertEqual(graph["planner"], "parcel-policy-v2")
+        self.assertEqual(graph["planner"], "parcel-policy-v3")
         self.assertTrue(graph["observation_barrier"])
         self.assertTrue(graph["manipulation_serial"])
-        self.assertEqual(graph["routing_policy"], "verified_intact_only")
+        self.assertEqual(graph["routing_policy"], "manifest_matched_verified_intact_only")
+        self.assertEqual(graph["policy_version"], "parcel-routing-v3")
+        self.assertEqual(graph["manifest_id"], "WB-INBOUND-20260807-003")
+        self.assertEqual(set(graph["manifest_statuses"].values()), {"matched"})
         self.assertEqual(graph["destination_capacities"], {"pickup_shelf": 4, "quarantine_bin": 4})
         self.assertEqual(graph["destination_occupancy"], {"pickup_shelf": 0, "quarantine_bin": 0})
         self.assertEqual(
@@ -117,14 +120,19 @@ class EvaluationPipelineTests(unittest.TestCase):
         self.assertEqual(graph["actions"][3], "grasp:parcel_damaged")
         self.assertTrue(all(event["payload"]["attributes"] for event in observations))
         self.assertTrue(
-            all(event["payload"]["attributes"] == ["label_status", "condition"] for event in observe_requests[:3])
+            all(
+                event["payload"]["attributes"] == ["label_status", "condition", "tracking_id", "barcode", "parcel_uid"]
+                for event in observe_requests[:3]
+            )
         )
         parcel_place_request = next(
             event
             for event in observe_requests
             if event["payload"].get("action_type") == "place" and event["payload"].get("target_id") == "parcel_damaged"
         )
-        self.assertEqual(parcel_place_request["payload"]["identity_guard"], "duplicate_identity_rejected")
+        self.assertEqual(parcel_place_request["payload"]["identity_guard"], "unique_across_supported_fields")
+        self.assertEqual(parcel_place_request["payload"]["manifest_guard"], "matched")
+        self.assertEqual(parcel_place_request["payload"]["manifest_id"], "WB-INBOUND-20260807-003")
         self.assertEqual(parcel_place_request["payload"]["routing_priority"], "condition_exception")
         self.assertEqual(parcel_place_request["payload"]["destination_remaining_after"], 3)
         destinations = {

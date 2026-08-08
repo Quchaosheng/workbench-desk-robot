@@ -1,4 +1,5 @@
 import re
+import unicodedata
 from collections import Counter
 from collections.abc import Mapping, Sequence
 
@@ -13,12 +14,12 @@ DEFAULT_PARCEL_ROUTES = (
     ("parcel_damaged", "quarantine_bin"),
 )
 DEFAULT_PARCEL_ATTRIBUTES = {
-    "parcel_box": {"label_status": "verified", "condition": "intact"},
-    "parcel_envelope": {"label_status": "verified", "condition": "intact"},
-    "parcel_unreadable": {"label_status": "unreadable", "condition": "intact"},
-    "parcel_damaged": {"label_status": "verified", "condition": "damaged"},
+    "parcel_box": {"label_status": "verified", "condition": "intact", "tracking_id": "WBX-BOX-001"},
+    "parcel_envelope": {"label_status": "verified", "condition": "intact", "tracking_id": "WBX-ENV-002"},
+    "parcel_unreadable": {"label_status": "unreadable", "condition": "intact", "parcel_uid": "WBX-UNK-003"},
+    "parcel_damaged": {"label_status": "verified", "condition": "damaged", "barcode": "WBX-DMG-004"},
 }
-PARCEL_POLICY_VERSION = "parcel-routing-v2"
+PARCEL_POLICY_VERSION = "parcel-routing-v3"
 PARCEL_IDENTITY_KEYS = ("tracking_id", "barcode", "parcel_uid")
 
 
@@ -383,22 +384,76 @@ def _validate_destination_counts(
     return counts
 
 
-def _validate_unique_parcel_identities(parcel_attributes: Mapping[str, Mapping[str, str]]) -> None:
-    seen: dict[tuple[str, str], str] = {}
+def _normalize_parcel_identity(value: object, label: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"parcel identity {label} must be a non-empty string when provided")
+    normalized = unicodedata.normalize("NFKC", value).casefold()
+    normalized = re.sub(r"[\s-]+", "", normalized)
+    if not normalized:
+        raise ValueError(f"parcel identity {label} must contain readable characters")
+    return normalized
+
+
+def _parcel_identity_values(attributes: Mapping[str, str]) -> dict[str, str]:
+    if not isinstance(attributes, Mapping):
+        raise ValueError("parcel attributes must be mappings")
+    return {
+        key: _normalize_parcel_identity(attributes[key], key)
+        for key in PARCEL_IDENTITY_KEYS
+        if attributes.get(key) is not None
+    }
+
+
+def _validate_unique_parcel_identities(
+    parcel_attributes: Mapping[str, Mapping[str, str]],
+) -> dict[str, dict[str, str]]:
+    seen: dict[str, tuple[str, str]] = {}
+    identities: dict[str, dict[str, str]] = {}
     for parcel_id, attributes in parcel_attributes.items():
-        if not isinstance(attributes, Mapping):
-            raise ValueError("parcel attributes must be mappings")
-        for key in PARCEL_IDENTITY_KEYS:
-            value = attributes.get(key)
-            if value is None:
-                continue
-            if not isinstance(value, str) or not value.strip():
-                raise ValueError(f"parcel identity {key} must be a non-empty string when provided")
-            identity = (key, value.strip().casefold())
+        identities[parcel_id] = _parcel_identity_values(attributes)
+        for key, identity in identities[parcel_id].items():
             previous = seen.get(identity)
-            if previous is not None and previous != parcel_id:
-                raise ValueError(f"duplicate parcel identity {key}={value.strip()!r}: {previous} and {parcel_id}")
-            seen[identity] = parcel_id
+            if previous is not None and previous[0] != parcel_id:
+                raw_value = attributes[key].strip()
+                raise ValueError(
+                    f"duplicate parcel identity {key}={raw_value!r}: "
+                    f"{previous[0]}.{previous[1]} and {parcel_id}.{key}"
+                )
+            seen[identity] = (parcel_id, key)
+    return identities
+
+
+def _validate_parcel_manifest(
+    parcel_attributes: Mapping[str, Mapping[str, str]],
+    parcel_manifest: Mapping[str, Mapping[str, str]] | None,
+    manifest_id: str | None,
+) -> tuple[str | None, dict[str, str]]:
+    if parcel_manifest is None:
+        if manifest_id is not None:
+            raise ValueError("manifest_id requires parcel_manifest")
+        return None, {parcel_id: "not_checked" for parcel_id in parcel_attributes}
+    normalized_manifest_id = _validate_identifier(manifest_id, "manifest_id").strip()
+    if not isinstance(parcel_manifest, Mapping):
+        raise ValueError("parcel_manifest must be a mapping")
+    if set(parcel_manifest) != set(parcel_attributes):
+        raise ValueError("parcel_manifest must contain exactly the planned parcel IDs")
+
+    manifest_identities = _validate_unique_parcel_identities(parcel_manifest)
+    statuses: dict[str, str] = {}
+    for parcel_id, expected in parcel_manifest.items():
+        unsupported = set(expected) - set(PARCEL_IDENTITY_KEYS)
+        if unsupported:
+            raise ValueError(f"parcel manifest contains unsupported identity keys: {', '.join(sorted(unsupported))}")
+        expected_values = set(manifest_identities[parcel_id].values())
+        if not expected_values:
+            raise ValueError(f"parcel manifest requires an identity for {parcel_id}")
+        observed_values = set(_parcel_identity_values(parcel_attributes[parcel_id]).values())
+        if not observed_values:
+            raise ValueError(f"parcel {parcel_id} has no readable identity for manifest {normalized_manifest_id}")
+        if expected_values.isdisjoint(observed_values):
+            raise ValueError(f"parcel {parcel_id} identity does not match manifest {normalized_manifest_id}")
+        statuses[parcel_id] = "matched"
+    return normalized_manifest_id, statuses
 
 
 def build_policy_routed_parcel_plan(
@@ -408,6 +463,8 @@ def build_policy_routed_parcel_plan(
     quarantine_bin_id: str = "quarantine_bin",
     destination_capacities: Mapping[str, int] | None = None,
     destination_occupancy: Mapping[str, int] | None = None,
+    parcel_manifest: Mapping[str, Mapping[str, str]] | None = None,
+    manifest_id: str | None = None,
 ) -> TaskGraph:
     pickup_shelf_id = _validate_identifier(pickup_shelf_id, "pickup_shelf_id")
     quarantine_bin_id = _validate_identifier(quarantine_bin_id, "quarantine_bin_id")
@@ -416,7 +473,10 @@ def build_policy_routed_parcel_plan(
     if not isinstance(parcel_attributes, Mapping):
         raise ValueError("parcel_attributes must be a mapping")
     parcel_ids = _validate_entity_ids(tuple(parcel_attributes), "parcel policy")
-    _validate_unique_parcel_identities(parcel_attributes)
+    observed_identities = _validate_unique_parcel_identities(parcel_attributes)
+    normalized_manifest_id, manifest_statuses = _validate_parcel_manifest(
+        parcel_attributes, parcel_manifest, manifest_id
+    )
     destinations = (pickup_shelf_id, quarantine_bin_id)
     capacities: dict[str, int] | None = None
     occupancy: dict[str, int] = {destination_id: 0 for destination_id in destinations}
@@ -461,6 +521,9 @@ def build_policy_routed_parcel_plan(
         [(parcel_id, destination_id) for parcel_id, destination_id, _ in decisions],
         observation_order=parcel_ids,
     )
+    for step in plan.steps:
+        if step.action.action_type is ActionType.OBSERVE:
+            step.action.parameters["attributes"] = ["label_status", "condition", *PARCEL_IDENTITY_KEYS]
     projected_occupancy = occupancy.copy()
     for step in plan.steps:
         if step.action.action_type is ActionType.PLACE:
@@ -470,9 +533,16 @@ def build_policy_routed_parcel_plan(
                     "routing_reason": reasons[step.action.target_id],
                     "routing_priority": priorities[step.action.target_id],
                     "policy_version": PARCEL_POLICY_VERSION,
-                    "identity_guard": "duplicate_identity_rejected",
+                    "identity_guard": (
+                        "unique_across_supported_fields"
+                        if observed_identities[step.action.target_id]
+                        else "not_available"
+                    ),
+                    "manifest_guard": manifest_statuses[step.action.target_id],
                 }
             )
+            if normalized_manifest_id is not None:
+                step.action.parameters["manifest_id"] = normalized_manifest_id
             if capacities is not None:
                 projected_occupancy[destination_id] += 1
                 step.action.parameters.update(
@@ -484,7 +554,7 @@ def build_policy_routed_parcel_plan(
                         ),
                     }
                 )
-    return plan.model_copy(update={"planner": "parcel-policy-v2"})
+    return plan.model_copy(update={"planner": "parcel-policy-v3"})
 
 
 def build_template_plan(goal: str, block_id: str = "red_block", tray_id: str = "tray") -> TaskGraph:

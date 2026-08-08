@@ -42,9 +42,13 @@ class WorldModelTests(unittest.TestCase):
             },
             entity_confidence={"parcel_box": 0.96, "parcel_envelope": 0.93, "parcel_damaged": 0.91},
             entity_attributes={
-                "parcel_box": {"label_status": "verified", "condition": "intact"},
-                "parcel_envelope": {"label_status": "verified", "condition": "intact"},
-                "parcel_damaged": {"label_status": "verified", "condition": "damaged"},
+                "parcel_box": {"label_status": "verified", "condition": "intact", "tracking_id": "TRK-BOX"},
+                "parcel_envelope": {
+                    "label_status": "verified",
+                    "condition": "intact",
+                    "parcel_uid": "TRK-ENV",
+                },
+                "parcel_damaged": {"label_status": "verified", "condition": "damaged", "barcode": "TRK-DMG"},
             },
             entity_evidence_refs={
                 "parcel_box": ["frame://parcel/box", "motion-log://parcel/box"],
@@ -221,6 +225,11 @@ class WorldModelTests(unittest.TestCase):
             )
 
     def test_parcel_policy_derives_exception_destinations_from_observations(self) -> None:
+        manifest = {
+            "box-a": {"tracking_id": "TRACK-A"},
+            "box-b": {"parcel_uid": "TRACK-B"},
+            "box-c": {"tracking_id": "TRACK-C"},
+        }
         state = WorldState(
             run_id="parcel-policy-run",
             entity_locations={
@@ -230,9 +239,9 @@ class WorldModelTests(unittest.TestCase):
             },
             entity_confidence={"box-a": 0.95, "box-b": 0.94, "box-c": 0.93},
             entity_attributes={
-                "box-a": {"label_status": "verified", "condition": "intact"},
-                "box-b": {"label_status": "unreadable", "condition": "intact"},
-                "box-c": {"label_status": "verified", "condition": "damaged"},
+                "box-a": {"label_status": "verified", "condition": "intact", "tracking_id": "track a"},
+                "box-b": {"label_status": "unreadable", "condition": "intact", "parcel_uid": "TRACK-B"},
+                "box-c": {"label_status": "verified", "condition": "damaged", "barcode": "TRACK-C"},
             },
             entity_evidence_refs={
                 "box-a": ["frame://policy/a"],
@@ -240,28 +249,77 @@ class WorldModelTests(unittest.TestCase):
                 "box-c": ["frame://policy/c"],
             },
         )
-        result = verify_parcel_policy(state, "task-sort-parcels", ["box-a", "box-b", "box-c"])
+        result = verify_parcel_policy(
+            state,
+            "task-sort-parcels",
+            ["box-a", "box-b", "box-c"],
+            parcel_manifest=manifest,
+            manifest_id="manifest-7",
+        )
         self.assertEqual(result.status, VerificationStatus.CONFIRMED)
+        self.assertEqual(result.rule_version, "parcel-policy-v2")
+        self.assertIn("manifest_id=manifest-7", result.claim)
         self.assertIn("box-b", result.claim)
         self.assertIn("label_unreadable", result.claim)
 
         state.entity_locations["box-b"] = "in:pickup_shelf"
-        result = verify_parcel_policy(state, "task-sort-parcels", ["box-a", "box-b", "box-c"])
+        result = verify_parcel_policy(
+            state,
+            "task-sort-parcels",
+            ["box-a", "box-b", "box-c"],
+            parcel_manifest=manifest,
+            manifest_id="manifest-7",
+        )
         self.assertEqual(result.status, VerificationStatus.REFUTED)
         self.assertIn("box-b->in:quarantine_bin", result.claim)
 
         state.entity_locations["box-b"] = "in:quarantine_bin"
         state.entity_attributes["box-c"].pop("condition")
-        result = verify_parcel_policy(state, "task-sort-parcels", ["box-a", "box-b", "box-c"])
+        result = verify_parcel_policy(
+            state,
+            "task-sort-parcels",
+            ["box-a", "box-b", "box-c"],
+            parcel_manifest=manifest,
+            manifest_id="manifest-7",
+        )
         self.assertEqual(result.status, VerificationStatus.INSUFFICIENT_EVIDENCE)
         self.assertIn("box-c.condition", result.claim)
 
         state.entity_attributes["box-c"]["condition"] = "damaged"
-        state.entity_attributes["box-b"]["tracking_id"] = "trk-duplicate"
-        state.entity_attributes["box-c"]["tracking_id"] = "TRK-DUPLICATE"
-        result = verify_parcel_policy(state, "task-sort-parcels", ["box-a", "box-b", "box-c"])
+        state.entity_attributes["box-b"]["tracking_id"] = "\uff34\uff32\uff2b\uff0d duplicate"
+        state.entity_attributes["box-c"]["barcode"] = "TRKDUPLICATE"
+        result = verify_parcel_policy(
+            state,
+            "task-sort-parcels",
+            ["box-a", "box-b", "box-c"],
+            parcel_manifest=manifest,
+            manifest_id="manifest-7",
+        )
         self.assertEqual(result.status, VerificationStatus.REFUTED)
         self.assertIn("duplicate_identities", result.claim)
+
+        state.entity_attributes["box-c"]["barcode"] = "TRACK-C"
+        state.entity_attributes["box-b"] = {"label_status": "unreadable", "condition": "intact"}
+        result = verify_parcel_policy(
+            state,
+            "task-sort-parcels",
+            ["box-a", "box-b", "box-c"],
+            parcel_manifest=manifest,
+            manifest_id="manifest-7",
+        )
+        self.assertEqual(result.status, VerificationStatus.INSUFFICIENT_EVIDENCE)
+        self.assertIn("missing_manifest_identities=['box-b']", result.claim)
+
+        state.entity_attributes["box-b"]["tracking_id"] = "NOT-TRACK-B"
+        result = verify_parcel_policy(
+            state,
+            "task-sort-parcels",
+            ["box-a", "box-b", "box-c"],
+            parcel_manifest=manifest,
+            manifest_id="manifest-7",
+        )
+        self.assertEqual(result.status, VerificationStatus.REFUTED)
+        self.assertIn("manifest_mismatches=['box-b']", result.claim)
 
         with self.assertRaises(ValueError):
             verify_parcel_policy(state, "task-sort-parcels", ["box-a"], "same", "same")

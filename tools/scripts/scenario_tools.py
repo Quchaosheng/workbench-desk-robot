@@ -81,9 +81,27 @@ TASK_PROFILES: dict[str, dict[str, Any]] = {
         # The evaluator derives parcel operations from the production policy planner.
         "operations": (),
         "attributes": {
-            "parcel_box": {"label_status": "verified", "condition": "intact"},
-            "parcel_unreadable": {"label_status": "unreadable", "condition": "intact"},
-            "parcel_damaged": {"label_status": "verified", "condition": "damaged"},
+            "parcel_box": {
+                "label_status": "verified",
+                "condition": "intact",
+                "tracking_id": "WBX-BOX-20260807",
+            },
+            "parcel_unreadable": {
+                "label_status": "unreadable",
+                "condition": "intact",
+                "parcel_uid": "WBX-UNK-20260807",
+            },
+            "parcel_damaged": {
+                "label_status": "verified",
+                "condition": "damaged",
+                "barcode": "WBX-DMG-20260807",
+            },
+        },
+        "manifest_id": "WB-INBOUND-20260807-003",
+        "parcel_manifest": {
+            "parcel_box": {"tracking_id": "WBX BOX 20260807"},
+            "parcel_unreadable": {"parcel_uid": "WBX-UNK-20260807"},
+            "parcel_damaged": {"tracking_id": "WBX-DMG-20260807"},
         },
         "claim": "verified intact parcels routed to pickup and all exceptions isolated",
         "required_conditions": (

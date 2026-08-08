@@ -1,4 +1,6 @@
 import math
+import re
+import unicodedata
 import uuid
 from collections.abc import Mapping
 
@@ -42,6 +44,57 @@ def _required_entity_set(entity_ids: list[str], label: str) -> set[str]:
 def _validate_confidence_threshold(value: float) -> None:
     if isinstance(value, bool) or not isinstance(value, int | float) or not 0.0 <= value <= 1.0:
         raise ValueError("confidence_threshold must be between 0 and 1")
+
+
+def _normalize_parcel_identity(value: object, label: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"parcel identity {label} must be a non-empty string")
+    normalized = unicodedata.normalize("NFKC", value).casefold()
+    normalized = re.sub(r"[\s-]+", "", normalized)
+    if not normalized:
+        raise ValueError(f"parcel identity {label} must contain readable characters")
+    return normalized
+
+
+def _validate_parcel_manifest(
+    required: set[str],
+    parcel_manifest: Mapping[str, Mapping[str, str]] | None,
+    manifest_id: str | None,
+) -> tuple[str | None, dict[str, set[str]]]:
+    if parcel_manifest is None:
+        if manifest_id is not None:
+            raise ValueError("manifest_id requires parcel_manifest")
+        return None, {}
+    if not isinstance(manifest_id, str) or not manifest_id.strip():
+        raise ValueError("manifest_id must be a non-empty string")
+    if not isinstance(parcel_manifest, Mapping):
+        raise ValueError("parcel_manifest must be a mapping")
+    if set(parcel_manifest) != required:
+        raise ValueError("parcel_manifest must contain exactly the required parcel IDs")
+
+    expected_identities: dict[str, set[str]] = {}
+    seen: dict[str, tuple[str, str]] = {}
+    for parcel_id, attributes in parcel_manifest.items():
+        if not isinstance(attributes, Mapping):
+            raise ValueError("parcel manifest entries must be mappings")
+        unsupported = set(attributes) - set(PARCEL_IDENTITY_KEYS)
+        if unsupported:
+            raise ValueError(f"parcel manifest contains unsupported identity keys: {', '.join(sorted(unsupported))}")
+        expected_identities[parcel_id] = set()
+        for key in PARCEL_IDENTITY_KEYS:
+            if attributes.get(key) is None:
+                continue
+            identity = _normalize_parcel_identity(attributes[key], key)
+            previous = seen.get(identity)
+            if previous is not None and previous[0] != parcel_id:
+                raise ValueError(
+                    f"duplicate parcel manifest identity: {previous[0]}.{previous[1]} and {parcel_id}.{key}"
+                )
+            seen[identity] = (parcel_id, key)
+            expected_identities[parcel_id].add(identity)
+        if not expected_identities[parcel_id]:
+            raise ValueError(f"parcel manifest requires an identity for {parcel_id}")
+    return manifest_id.strip(), expected_identities
 
 
 def _result(
@@ -284,6 +337,8 @@ def verify_parcel_policy(
     pickup_shelf_id: str = "pickup_shelf",
     quarantine_bin_id: str = "quarantine_bin",
     confidence_threshold: float = 0.8,
+    parcel_manifest: Mapping[str, Mapping[str, str]] | None = None,
+    manifest_id: str | None = None,
 ) -> VerificationResult:
     """Verify routes derived from observed parcel attributes, never caller claims."""
     required = _required_entity_set(parcel_ids, "parcel policy")
@@ -294,6 +349,7 @@ def verify_parcel_policy(
     if pickup_shelf_id == quarantine_bin_id:
         raise ValueError("pickup and quarantine destinations must be different")
     _validate_confidence_threshold(confidence_threshold)
+    normalized_manifest_id, expected_identities = _validate_parcel_manifest(required, parcel_manifest, manifest_id)
 
     unobserved = sorted(parcel_id for parcel_id in required if parcel_id not in state.entity_locations)
     low_confidence = sorted(
@@ -304,14 +360,18 @@ def verify_parcel_policy(
     )
     missing_evidence = _missing_entity_evidence(state, required)
     missing_attributes: list[str] = []
+    missing_manifest_identities: list[str] = []
+    manifest_mismatches: list[str] = []
     duplicate_identities: list[str] = []
-    seen_identities: dict[tuple[str, str], str] = {}
+    seen_identities: dict[str, tuple[str, str]] = {}
     decisions: dict[str, str] = {}
     decision_reasons: dict[str, str] = {}
     for parcel_id in sorted(required):
         observed = state.entity_attributes.get(parcel_id, {})
         if not isinstance(observed, Mapping):
             missing_attributes.extend([f"{parcel_id}.label_status", f"{parcel_id}.condition"])
+            if normalized_manifest_id is not None:
+                missing_manifest_identities.append(parcel_id)
             continue
         label_status = observed.get("label_status")
         condition = observed.get("condition")
@@ -319,6 +379,29 @@ def verify_parcel_policy(
             missing_attributes.append(f"{parcel_id}.label_status")
         if not isinstance(condition, str) or not condition.strip():
             missing_attributes.append(f"{parcel_id}.condition")
+        observed_identities: set[str] = set()
+        for identity_key in PARCEL_IDENTITY_KEYS:
+            identity_value = observed.get(identity_key)
+            if identity_value is None:
+                continue
+            try:
+                identity = _normalize_parcel_identity(identity_value, identity_key)
+            except ValueError:
+                missing_attributes.append(f"{parcel_id}.{identity_key}")
+                continue
+            observed_identities.add(identity)
+            previous = seen_identities.get(identity)
+            if previous is not None and previous[0] != parcel_id:
+                duplicate_identities.append(
+                    f"{previous[0]}.{previous[1]}={parcel_id}.{identity_key} ({str(identity_value).strip()})"
+                )
+            else:
+                seen_identities[identity] = (parcel_id, identity_key)
+        if normalized_manifest_id is not None:
+            if not observed_identities:
+                missing_manifest_identities.append(parcel_id)
+            elif expected_identities[parcel_id].isdisjoint(observed_identities):
+                manifest_mismatches.append(parcel_id)
         if (
             not isinstance(label_status, str)
             or not label_status.strip()
@@ -328,19 +411,6 @@ def verify_parcel_policy(
             continue
         label_status = label_status.strip().lower()
         condition = condition.strip().lower()
-        for identity_key in PARCEL_IDENTITY_KEYS:
-            identity_value = observed.get(identity_key)
-            if identity_value is None:
-                continue
-            if not isinstance(identity_value, str) or not identity_value.strip():
-                missing_attributes.append(f"{parcel_id}.{identity_key}")
-                continue
-            identity = (identity_key, identity_value.strip().casefold())
-            previous = seen_identities.get(identity)
-            if previous is not None and previous != parcel_id:
-                duplicate_identities.append(f"{identity_key}={identity_value.strip()} ({previous},{parcel_id})")
-            else:
-                seen_identities[identity] = parcel_id
         if label_status == "verified" and condition == "intact":
             decisions[parcel_id] = f"in:{pickup_shelf_id}"
             decision_reasons[parcel_id] = "verified_intact"
@@ -364,9 +434,11 @@ def verify_parcel_policy(
         if location in managed_locations and entity_id not in required
     )
     claim = (
-        f"parcel policy: decisions={decisions}; reasons={decision_reasons}; unobserved={unobserved}; "
+        f"parcel policy: manifest_id={normalized_manifest_id}; decisions={decisions}; "
+        f"reasons={decision_reasons}; unobserved={unobserved}; "
         f"low_confidence={low_confidence}; missing_evidence={missing_evidence}; "
-        f"missing_attributes={missing_attributes}; duplicate_identities={duplicate_identities}; "
+        f"missing_attributes={missing_attributes}; missing_manifest_identities={missing_manifest_identities}; "
+        f"manifest_mismatches={manifest_mismatches}; duplicate_identities={duplicate_identities}; "
         f"misrouted={misrouted}; extras={extras}"
     )
     if unobserved:
@@ -377,10 +449,10 @@ def verify_parcel_policy(
             ReasonCode.CONFIDENCE_BELOW_THRESHOLD,
             RecoveryHint.RE_OBSERVE,
         )
-    elif missing_evidence or missing_attributes:
+    elif missing_evidence or missing_attributes or missing_manifest_identities:
         outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.EVIDENCE_MISSING, RecoveryHint.RE_OBSERVE)
-    elif duplicate_identities or misrouted or extras:
+    elif manifest_mismatches or duplicate_identities or misrouted or extras:
         outcome = (VerificationStatus.REFUTED, ReasonCode.GOAL_NOT_SATISFIED, RecoveryHint.RETRY_ACTION)
     else:
         outcome = (VerificationStatus.CONFIRMED, ReasonCode.GOAL_SATISFIED, RecoveryHint.NONE)
-    return _result(state, task_id, claim, *outcome, "parcel-policy-v1")
+    return _result(state, task_id, claim, *outcome, "parcel-policy-v2")

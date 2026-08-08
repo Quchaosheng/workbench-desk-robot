@@ -303,10 +303,18 @@ function entityVisual(entity, index, extraClass = "") {
     title="${escapeHtml(label)}${entity.location ? ` · ${escapeHtml(entity.location)}` : ""}">${escapeHtml(label)}</span>`;
 }
 
-function parcelDecision(entity, configuredPriorities = {}) {
+function parcelIdentityLabel(attributes) {
+  const raw = String(attributes.tracking_id || attributes.barcode || attributes.parcel_uid || "").trim();
+  if (!raw) return "无可读身份";
+  return raw.length <= 6 ? `身份 ${raw}` : `身份 …${raw.slice(-6)}`;
+}
+
+function parcelDecision(entity, configuredPriorities = {}, manifestStatuses = {}) {
   const attributes = entity.attributes || {};
   const labelStatus = String(attributes.label_status || "missing").toLowerCase();
   const condition = String(attributes.condition || "missing").toLowerCase();
+  const identity = parcelIdentityLabel(attributes);
+  const manifestStatus = manifestStatuses[entity.entity_id] || "not_checked";
   const safe = labelStatus === "verified" && condition === "intact";
   const destination = safe ? "in:pickup_shelf" : "in:quarantine_bin";
   const labelText = {
@@ -326,9 +334,16 @@ function parcelDecision(entity, configuredPriorities = {}) {
   };
   const labelDisplay = labelText[labelStatus] || labelStatus;
   const conditionDisplay = conditionText[condition] || condition;
-  const reason = safe
+  const routeReason = safe
     ? "标签已核验 · 外观完好"
     : `隔离：${labelStatus !== "verified" ? `标签${labelDisplay}` : ""}${labelStatus !== "verified" && condition !== "intact" ? " · " : ""}${condition !== "intact" ? `外观${conditionDisplay}` : ""}`;
+  const manifestText = {
+    matched: "清单已匹配",
+    mismatch: "清单不匹配",
+    missing: "清单身份缺失",
+    not_checked: "未接入清单",
+  }[manifestStatus] || manifestStatus;
+  const reason = `${manifestText} · ${identity} · ${routeReason}`;
   const actual = entity.location || "pending";
   const result = actual === destination ? "confirmed" : actual === "pending" ? "pending" : "refuted";
   const fallbackPriority =
@@ -343,7 +358,15 @@ function parcelDecision(entity, configuredPriorities = {}) {
     standard: { label: "P2 正常入架", rank: 2 },
   }[configuredPriorities[entity.entity_id]];
   const priority = configuredPriority || fallbackPriority;
-  return { condition: conditionDisplay, destination, labelStatus: labelDisplay, priority, reason, result };
+  return {
+    condition: conditionDisplay,
+    destination,
+    labelStatus: labelDisplay,
+    manifestStatus,
+    priority,
+    reason,
+    result,
+  };
 }
 
 function renderParcelDecisions(workbench) {
@@ -354,7 +377,14 @@ function renderParcelDecisions(workbench) {
     return;
   }
   const decisions = workbench.entities
-    .map((entity) => ({ decision: parcelDecision(entity, workbench.taskGraph.routing_priorities), entity }))
+    .map((entity) => ({
+      decision: parcelDecision(
+        entity,
+        workbench.taskGraph.routing_priorities,
+        workbench.taskGraph.manifest_statuses,
+      ),
+      entity,
+    }))
     .sort(
       (left, right) =>
         left.decision.priority.rank - right.decision.priority.rank ||
@@ -372,9 +402,15 @@ function renderParcelDecisions(workbench) {
       return `${label} ${(Number(initialOccupancy[destination]) || 0) + placed}/${capacity}`;
     })
     .join(" · ");
+  const auditSummary = [
+    workbench.taskGraph.manifest_id ? `清单 ${workbench.taskGraph.manifest_id}` : "",
+    capacitySummary,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   panel.hidden = false;
   panel.innerHTML = `
-    <div class="route-decision-head"><span>逐件路由决策</span><small>${escapeHtml(capacitySummary || "属性先于动作")}</small></div>
+    <div class="route-decision-head"><span>逐件路由决策</span><small>${escapeHtml(auditSummary || "属性先于动作")}</small></div>
     <div class="route-decision-table" role="table" aria-label="快递逐件路由决策">
       ${decisions
         .map(({ decision, entity }) => {

@@ -37,7 +37,7 @@ The model picks a goal, but cannot send joint positions or velocities. That boun
 - Contract definitions (11 JSON schemas)
 - Event store with replay
 - Template planner for five task families (no model needed)
-- Task-specific verification for placement, exact kit contents, inspection confidence, workspace clearance, and policy-derived parcel routing
+- Task-specific verification for placement, exact kit contents, inspection confidence, workspace clearance, and manifest-reconciled parcel routing
 - Read-only multi-entity dashboard with ordered replay, recovery history and evidence inspection
 - Offline container, health endpoints, structured logs and release/SBOM workflow
 - 12 frozen v0.1 baselines plus 24 expanded v0.2 scenarios with deterministic seed checks

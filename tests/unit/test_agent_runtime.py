@@ -86,10 +86,16 @@ class PlannerTests(unittest.TestCase):
         plan = build_policy_routed_parcel_plan(
             "Scan and route the parcel batch",
             {
-                "box-a": {"label_status": "verified", "condition": "intact"},
-                "box-b": {"label_status": "unreadable", "condition": "intact"},
-                "box-c": {"label_status": "verified", "condition": "damaged"},
+                "box-a": {"label_status": "verified", "condition": "intact", "tracking_id": "TRK-A"},
+                "box-b": {"label_status": "unreadable", "condition": "intact", "parcel_uid": "TRK-B"},
+                "box-c": {"label_status": "verified", "condition": "damaged", "barcode": "TRK-C"},
             },
+            parcel_manifest={
+                "box-a": {"tracking_id": "trk a"},
+                "box-b": {"parcel_uid": "TRK-B"},
+                "box-c": {"tracking_id": "trk-c"},
+            },
+            manifest_id="inbound-20260807",
         )
         self.assertEqual(len(plan.steps), 9)
         self.assertEqual([step.action.action_type.value for step in plan.steps[:3]], ["observe"] * 3)
@@ -103,9 +109,19 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual(places[0].action.parameters["routing_priority"], "condition_exception")
         self.assertEqual(places[1].action.parameters["routing_priority"], "label_exception")
         self.assertEqual(places[2].action.parameters["routing_priority"], "standard")
-        self.assertTrue(all(step.action.parameters["policy_version"] == "parcel-routing-v2" for step in places))
+        self.assertTrue(all(step.action.parameters["policy_version"] == "parcel-routing-v3" for step in places))
         self.assertTrue(
-            all(step.action.parameters["identity_guard"] == "duplicate_identity_rejected" for step in places)
+            all(step.action.parameters["identity_guard"] == "unique_across_supported_fields" for step in places)
+        )
+        self.assertTrue(all(step.action.parameters["manifest_guard"] == "matched" for step in places))
+        self.assertTrue(all(step.action.parameters["manifest_id"] == "inbound-20260807" for step in places))
+        observations = [step for step in plan.steps if step.action.action_type.value == "observe"]
+        self.assertTrue(
+            all(
+                step.action.parameters["attributes"]
+                == ["label_status", "condition", "tracking_id", "barcode", "parcel_uid"]
+                for step in observations
+            )
         )
         grasps = [step for step in plan.steps if step.action.action_type.value == "grasp"]
         self.assertEqual(set(grasps[0].depends_on), {"inspect-box-a", "inspect-box-b", "inspect-box-c"})
@@ -165,13 +181,48 @@ class PlannerTests(unittest.TestCase):
                     destination_occupancy=occupancy,
                 )
 
-        with self.assertRaisesRegex(ValueError, "duplicate parcel identity tracking_id"):
+        with self.assertRaisesRegex(ValueError, "duplicate parcel identity barcode"):
             build_policy_routed_parcel_plan(
-                "Reject a duplicate tracking identity",
+                "Reject a normalized cross-field identity",
                 {
-                    "first": {"label_status": "verified", "condition": "intact", "tracking_id": "TRK-7"},
-                    "second": {"label_status": "verified", "condition": "intact", "tracking_id": "trk-7"},
+                    "first": {
+                        "label_status": "verified",
+                        "condition": "intact",
+                        "tracking_id": "\uff34\uff32\uff2b\uff0d 7",
+                    },
+                    "second": {"label_status": "verified", "condition": "intact", "barcode": "trk7"},
                 },
+            )
+
+        manifest = {
+            "first": {"tracking_id": "EXPECTED-1"},
+            "second": {"barcode": "EXPECTED-2"},
+        }
+        observed = {
+            "first": {"label_status": "verified", "condition": "intact", "tracking_id": "EXPECTED-1"},
+            "second": {"label_status": "verified", "condition": "intact", "barcode": "WRONG-2"},
+        }
+        with self.assertRaisesRegex(ValueError, "second identity does not match manifest"):
+            build_policy_routed_parcel_plan(
+                "Reject a parcel that is not on the inbound manifest",
+                observed,
+                parcel_manifest=manifest,
+                manifest_id="manifest-7",
+            )
+        observed["second"].pop("barcode")
+        with self.assertRaisesRegex(ValueError, "second has no readable identity"):
+            build_policy_routed_parcel_plan(
+                "Reject a parcel whose manifest identity is missing",
+                observed,
+                parcel_manifest=manifest,
+                manifest_id="manifest-7",
+            )
+        with self.assertRaisesRegex(ValueError, "exactly the planned parcel IDs"):
+            build_policy_routed_parcel_plan(
+                "Reject an incomplete inbound manifest",
+                observed,
+                parcel_manifest={"first": manifest["first"]},
+                manifest_id="manifest-7",
             )
 
     def test_parcel_requests_fail_closed_outside_evidence_and_motion_boundaries(self) -> None:

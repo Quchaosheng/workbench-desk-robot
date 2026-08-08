@@ -16,9 +16,18 @@ projected occupancy, policy version, priority, and routing reason are retained
 in semantic action parameters for audit and replay.
 
 When perception supplies a `tracking_id`, `barcode`, or `parcel_uid`, the batch
-preflight rejects duplicate identities case-insensitively. The verifier repeats
-that guard from world-state attributes, so a repeated scan cannot be accepted
-as two separately handled parcels.
+preflight normalizes compatibility characters, case, whitespace, and hyphens,
+then rejects a repeated value even when it moves between identity fields. The
+verifier repeats that guard from world-state attributes, so scanner formatting
+differences cannot turn one parcel into two separately handled parcels.
+
+An optional inbound manifest can bind every planned parcel to one or more of
+those non-personal identity values. Planning fails before manipulation when the
+manifest is incomplete, an observed identity is missing, or no observed value
+matches the expected entry. The independent verifier treats a missing observed
+identity as `insufficient_evidence` and a contradictory identity as `refuted`.
+Manifest IDs and per-parcel match outcomes remain in the action and replay
+metadata; recipient names and addresses are deliberately out of scope.
 
 The verifier requires per-parcel confidence and evidence, exact destinations,
 verified labels, the expected condition, a policy-derived destination, and no

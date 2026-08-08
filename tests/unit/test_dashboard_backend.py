@@ -147,6 +147,9 @@ class ReadModelTests(unittest.TestCase):
         self.assertIn("route-priority", script)
         self.assertIn("reverse().find", script)
         self.assertIn("configuredPriorities", script)
+        self.assertIn("manifest_statuses", script)
+        self.assertIn("清单已匹配", script)
+        self.assertIn("function parcelIdentityLabel", script)
         self.assertIn('id="parcel-decisions"', markup)
         self.assertIn("map-entity-envelope", script + (dashboard / "styles.css").read_text(encoding="utf-8"))
 

@@ -1067,15 +1067,20 @@ svg {
   align-items: baseline;
   justify-content: space-between;
   padding: 12px 0 8px;
+  gap: 6px 12px;
   color: var(--ink);
   font-size: 11px;
   font-weight: 800;
+  flex-wrap: wrap;
 }
 
 .route-decision-head small {
+  max-width: 100%;
   color: var(--muted);
   font-size: 9px;
   font-weight: 500;
+  overflow-wrap: anywhere;
+  text-align: right;
 }
 
 .route-decision-table {

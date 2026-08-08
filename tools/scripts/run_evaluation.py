@@ -96,11 +96,14 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
     operations = tuple(profile["operations"])
     policy_plan = None
     policy_place_parameters: dict[str, dict[str, Any]] = {}
+    policy_manifest_statuses: dict[str, str] = {}
     if task_id == "task-sort-parcels":
         policy_plan = build_policy_routed_parcel_plan(
             profile["goal"],
             {item["entity_id"]: item["attributes"] for item in scene["objects"]},
             destination_capacities={"pickup_shelf": 4, "quarantine_bin": 4},
+            parcel_manifest=profile["parcel_manifest"],
+            manifest_id=profile["manifest_id"],
         )
         operations = tuple(
             (step.action.target_id, step.action.parameters["destination_id"])
@@ -111,6 +114,9 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
             step.action.target_id: dict(step.action.parameters)
             for step in policy_plan.steps
             if step.action.action_type.value == "place"
+        }
+        policy_manifest_statuses = {
+            entity_id: parameters["manifest_guard"] for entity_id, parameters in policy_place_parameters.items()
         }
     run_id = f"{version}--{scenario_id}"
     effective_seed = seed_base + manifest["seed"]
@@ -206,7 +212,10 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
             "parallel_branches": len(profile["entities"]),
             "observation_barrier": task_id == "task-sort-parcels",
             "manipulation_serial": task_id == "task-sort-parcels",
-            "routing_policy": "verified_intact_only" if task_id == "task-sort-parcels" else None,
+            "routing_policy": "manifest_matched_verified_intact_only" if task_id == "task-sort-parcels" else None,
+            "policy_version": "parcel-routing-v3" if task_id == "task-sort-parcels" else None,
+            "manifest_id": profile.get("manifest_id"),
+            "manifest_statuses": policy_manifest_statuses or None,
             "routing_priorities": (
                 {
                     step.action.target_id: step.action.parameters["routing_priority"]
@@ -227,8 +236,12 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
     evidence: list[str] = []
     recovery_injected = False
     observation_attributes = (
-        ["label_status", "condition"]
-        if profile.get("attributes")
+        next(
+            list(step.action.parameters["attributes"])
+            for step in policy_plan.steps
+            if step.action.action_type.value == "observe"
+        )
+        if policy_plan is not None
         else [
             "presence",
             "identity",
@@ -423,6 +436,8 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
             "evaluated_conditions": required_conditions,
             "satisfied_conditions": satisfied_conditions,
             "recovery_performed": recovery_injected,
+            "manifest_id": profile.get("manifest_id"),
+            "manifest_statuses": policy_manifest_statuses or None,
             "evidence_refs": evidence,
         },
         evidence,

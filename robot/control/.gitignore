@@ -5,3 +5,10 @@ log/
 .venv/
 # uv.lock IS committed: package-local lock for reproducibility. Only a
 # root-level uv.lock needs Linux/Integration sign-off (PLAN.md stop condition).
+
+# Motion internal planning — kept local, not in public repo.
+PLAN.md
+
+# Local private planning notes — do not commit.
+05-机械臂资产.md
+06-抓取与恢复.md

@@ -31,9 +31,6 @@ docs/superpowers/
 # schedule or the org chart.
 docs/product/
 
-# Motion internal planning —施工图，不进仓库
-robot/control/PLAN.md
-
 # Local run artifacts
 data/raw/
 data/processed/

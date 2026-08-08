@@ -1,9 +1,10 @@
 {
-  "issue": 0,
+  "issue": 3,
   "human_owner": "cyathea152-bit",
-  "objective": "Motion phase 0: scaffold the workbench_motion ROS 2 package (package.xml/setup, source dir, config/, launch/, test/), uv environment, unified logging_setup, and the evidence.py EvidenceSink interface + FakeEvidenceSink. No arm, no MoveIt, no grasp logic yet.",
+  "objective": "Motion phase 0: scaffold the workbench_motion ROS 2 package (package.xml/setup, source dir, launch/, test/), uv environment, unified logging_setup, and the evidence.py EvidenceSink interface + FakeEvidenceSink. No arm, no MoveIt, no grasp logic yet.",
   "allowed_paths": [
-    "robot/control/**"
+    "robot/control/**",
+    "docs/task_packets/motion-000-phase0-scaffold.json"
   ],
   "read_only_paths": [
     "interfaces/**",

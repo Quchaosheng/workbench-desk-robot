@@ -1,0 +1,42 @@
+{
+  "issue": "github-actions-pinning",
+  "human_owner": "Quchaosheng",
+  "objective": "Pin every third-party GitHub Action used by repository workflows to an immutable commit SHA while retaining a human-readable release comment.",
+  "allowed_paths": [
+    ".github/workflows/ci.yml",
+    ".github/workflows/nightly-regression.yml",
+    ".github/workflows/release-image.yml",
+    "docs/task_packets/github-actions-pinning.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "AGENTS.md"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "interfaces/**",
+    ".github/workflows/** outside the listed files"
+  ],
+  "acceptance": [
+    "all third-party uses references in the listed workflows are 40-character commit SHAs",
+    "each pinned action retains a version comment",
+    "workflow YAML remains parseable",
+    "repository lint and tests pass"
+  ],
+  "commands": [
+    "python -m pytest tests/ -q",
+    "python -m ruff check .",
+    "python -m ruff format --check ."
+  ],
+  "evidence": [
+    "workflow reference audit output",
+    "repository test output",
+    "Ruff output"
+  ],
+  "stop_conditions": [
+    "an action tag cannot be resolved to a commit",
+    "workflow behavior changes are required",
+    "robot-control or firmware changes are required"
+  ]
+}

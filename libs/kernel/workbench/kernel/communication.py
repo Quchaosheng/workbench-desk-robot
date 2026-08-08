@@ -14,13 +14,20 @@ class Message:
     actor: str
 
     @property
-    def checksum(self):
-        content = json.dumps(self.payload, sort_keys=True)
-        return hashlib.sha256(content.encode()).hexdigest()[:16]
+    def checksum(self) -> str:
+        envelope = {
+            "actor": self.actor,
+            "message_type": self.message_type,
+            "payload": self.payload,
+            "version": self.version,
+        }
+        content = json.dumps(envelope, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         return {
             **self.payload,
+            "_message_type": self.message_type,
             "_version": self.version,
             "_checksum": self.checksum,
             "_actor": self.actor,

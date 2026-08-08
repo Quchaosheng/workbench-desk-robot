@@ -28,6 +28,18 @@ class LifecycleNode:
             return True
         return False
 
+    def deactivate(self):
+        if self.state == LifecycleState.ACTIVE:
+            self.state = LifecycleState.DEACTIVATED
+            return True
+        return False
+
+    def finalize(self):
+        if self.state == LifecycleState.DEACTIVATED:
+            self.state = LifecycleState.FINALIZED
+            return True
+        return False
+
     def get_state(self):
         return self.state
 
@@ -37,6 +49,8 @@ class LifecycleManager:
         self.nodes = {}
 
     def create_node(self, node_name):
+        if node_name in self.nodes:
+            raise ValueError(f"node already exists: {node_name}")
         node = LifecycleNode(node_name)
         self.nodes[node_name] = node
         return node

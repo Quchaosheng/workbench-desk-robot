@@ -1,0 +1,13 @@
+{
+  "method": "energy and equivalent-static screening; nonlinear FEA and physical drop remain required",
+  "drop_force_n_at_35g": 2203.6,
+  "drop_energy_j": 47.2,
+  "effective_stroke_mm": 24,
+  "estimated_bumper_contact_area_mm2": 18000,
+  "estimated_average_compressive_stress_mpa": 0.122,
+  "acceptance": {
+    "peak_deceleration_g": 35,
+    "no_battery_contact": true,
+    "no_sharp_shell_fracture": true
+  }
+}

@@ -1,0 +1,9 @@
+reference,net,measurement,acceptance,instrument,evidence
+TP1,VBAT_PROTECTED,protected battery voltage,34V to 62V operating window and no hot-swap latch,DMM and oscilloscope,scope capture
+TP2,12V_ISO,isolated main rail,11.7V to 12.3V and below 120mVpp,DMM and oscilloscope,scope capture
+TP3,JETSON_12V,protected Jetson branch,11.7V to 12.3V under 40W load,DMM and electronic load,load record
+TP4,3V3_LOGIC,logic rail,3.20V to 3.40V and below 50mVpp,DMM and oscilloscope,scope capture
+TP5,GND,logic reference,below 50mV offset to fixture reference,four-wire meter,fixture record
+TP6,CANH,CAN dominant and recessive levels,ISO1042 datasheet limits at 1Mbps and 5Mbps FD,oscilloscope and CAN analyser,CAN log
+TP7,CANL,CAN dominant and recessive levels,ISO1042 datasheet limits at 1Mbps and 5Mbps FD,oscilloscope and CAN analyser,CAN log
+TP8,MCU_RESET,reset pulse and release,low pulse detected then stable 3.3V release,logic analyser,logic capture

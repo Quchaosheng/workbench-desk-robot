@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="420" viewBox="0 0 1100 420">
+<style>text{font-family:Arial,sans-serif}.box{fill:#eef3f6;stroke:#222;stroke-width:2}.flow{stroke:#00897b;stroke-width:12;fill:none;marker-end:url(#arrow)}</style>
+<defs><marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 z" fill="#00897b"/></marker></defs>
+<text x="30" y="45" font-size="28" font-weight="bold">Thermal Airflow and Conduction Path</text>
+<rect class="box" x="60" y="145" width="180" height="120"/><text x="95" y="210" font-size="22">1800 mm2 inlet</text>
+<rect class="box" x="430" y="120" width="220" height="170"/><text x="485" y="190" font-size="22">Jetson 40 W</text><text x="470" y="225" font-size="18">pad -> chassis</text>
+<rect class="box" x="820" y="145" width="200" height="120"/><text x="850" y="210" font-size="22">2200 mm2 outlet</text>
+<path class="flow" d="M240 205 C330 205 345 185 430 185"/><path class="flow" d="M650 185 C735 185 745 205 820 205"/>
+<text x="360" y="350" font-size="20">60 mm fan; lower-front to upper-rear; outlet/inlet area ratio 1.22</text>
+</svg>

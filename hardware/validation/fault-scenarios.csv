@@ -1,0 +1,21 @@
+scenario_id,fault_injection,expected_observation,diagnostic_action,recovery_or_safe_state,evidence,status
+VAL5-01,CAN trunk open,bus-off or missing heartbeat,scope and termination check,stop and isolate bus,CAN trace+event log,NOT_EXECUTED
+VAL5-02,single joint harness open,one channel unavailable,continuity and connector retention check,degraded mode or stop,harness record+event log,NOT_EXECUTED
+VAL5-03,input undervoltage,power warning and controlled stop,measure input and rail sequence,safe stop,brownout trace,NOT_EXECUTED
+VAL5-04,input overvoltage,protection trip and no enable,measure input and fuse state,remain disabled,trip trace,NOT_EXECUTED
+VAL5-05,sensor disconnected,diagnostic fault and no false success,check sensor supply and signal,uncertain state,diagnostic log,NOT_EXECUTED
+VAL5-06,over-temperature,thermal warning or frequency reduction,measure hotspot and current,controlled stop or derate,thermal trace,NOT_EXECUTED
+VAL5-07,E-stop channel A open,safe gate opens,run truth-table check,disable motor enable,dual-channel timing record,NOT_EXECUTED
+VAL5-08,E-stop channel B open,safe gate opens,run truth-table check,disable motor enable,dual-channel timing record,NOT_EXECUTED
+VAL5-09,E-stop channel discrepancy,mismatch is detected,inspect U8/J10/J11 path,latch fault,truth-table record,NOT_EXECUTED
+VAL5-10,MCU reset,heartbeat loss and outputs safe,inspect reset cause,restart only after operator clear,serial log,NOT_EXECUTED
+VAL5-11,Jetson process crash,command source disappears,check watchdog and process log,MCU safe state,watchdog record,NOT_EXECUTED
+VAL5-12,CAN frame corruption,CRC/error counter rises,CAN analyzer capture,discard frame and hold safe,CAN capture,NOT_EXECUTED
+VAL5-13,stuck actuator command,command timeout,compare requested and measured state,stop and require re-arm,trace+event log,NOT_EXECUTED
+VAL5-14,temperature sensor implausible,range/plausibility fault,compare redundant/ambient reading,derate or stop,sensor log,NOT_EXECUTED
+VAL5-15,mechanical collision,force/limit event,inspect bumper and force signal,stop and inspect,video+force trace,NOT_EXECUTED
+VAL5-16,intermittent harness,heartbeat drops under movement,wiggle test under controlled power,quarantine harness,continuity trace,NOT_EXECUTED
+VAL5-17,loss of isolated CAN supply,CAN side brownout,measure 5V_CAN_ISO and ground isolation,disable bus,scope+hipot record,NOT_EXECUTED
+VAL5-18,thermal interface detached,rapid hotspot rise,inspect interface and measure temperature,stop and quarantine,thermal record,NOT_EXECUTED
+VAL5-19,wrong firmware/config hash,release mismatch at boot,verify manifest/hash,refuse execution,boot log,NOT_EXECUTED
+VAL5-20,packaging or connector damage,visual defect or loose connection,incoming/field inspection,quarantine and defect record,photos+defect ID,NOT_EXECUTED

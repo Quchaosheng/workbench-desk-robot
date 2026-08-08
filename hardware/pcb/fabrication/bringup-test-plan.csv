@@ -1,0 +1,11 @@
+step,input_limit,measurement,acceptance,evidence
+1,0V continuity only,VBAT-to-ground resistance,greater than 10kohm,DMM record
+2,36V 0.25A,hot-swap output and inrush,no current-limit latch,scope capture
+3,36V 1A,12V rail,11.7V to 12.3V and less than 120mVpp,scope capture
+4,36V 2A,Jetson protected 12V branch,11.7V to 12.3V and less than 120mVpp,scope capture
+5,36V 2A,3.3V rail,3.20V to 3.40V and less than 50mVpp,scope capture
+6,36V 2A,power-good sequence,12V_ISO then JETSON_12V then 3.3V separated by at least 10ms,scope capture
+7,36V 2A,dual-channel E-stop assertion,MOTOR_ENABLE_SAFE removed within 1ms and reset latched while request remains asserted,logic-analyser capture
+8,36V 2A,CAN loop at 1Mbps and 5Mbps FD,zero error frames for 10min,CAN log
+9,48V rated load,thermal soak 30min,Jetson below 80C and converters below 110C,thermal log
+10,36V 2A,all populated interfaces,J4 GPIO SPI I2C UART plus J10 J11 continuity and levels,fixture JSON

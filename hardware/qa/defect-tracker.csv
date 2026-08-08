@@ -1,0 +1,2 @@
+defect_id,discovered_at,unit_or_lot,defect_code,description,containment,root_cause,corrective_action,verification_evidence,status,owner
+DEF-0001,NOT_EXECUTED,UNASSIGNED,UNASSIGNED,Template row; replace with first observed defect,QUARANTINE,,,,OPEN,Quality Owner

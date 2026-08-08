@@ -1,0 +1,48 @@
+{
+  "issue": "19,21,23",
+  "issues": [19, 21, 23],
+  "human_owner": "Quchaosheng",
+  "objective": "Create a reproducible mechanical, PCB, and manufacturing engineering package for the desk robot.",
+  "allowed_paths": [
+    "hardware/mechanical/**",
+    "hardware/pcb/**",
+    "hardware/manufacturing/**",
+    "tests/hardware/**",
+    "docs/task_packets/hardware-engineering-019-021-023.json"
+  ],
+  "read_only_paths": ["interfaces/**"],
+  "forbidden": ["robot/control/**", "firmware/**"],
+  "acceptance": [
+    "mechanical sources generate a STEP envelope and quantified stability report",
+    "PCB package documents power, isolation, protection, interfaces, stackup, and DFM rules",
+    "manufacturing package defines assembly, test, quality, rework, EHS, packaging, and release gates",
+    "automated hardware package tests pass"
+  ],
+  "commands": [
+    "python hardware/mechanical/tools/generate_artifacts.py",
+    "python hardware/pcb/tools/electrical_checks.py",
+    "<kicad>/bin/python hardware/pcb/tools/generate_kicad_board.py",
+    "python hardware/pcb/tools/export_fabrication.py",
+    "python hardware/pcb/tools/audit_connectivity.py",
+    "python hardware/manufacturing/tools/validate_harnesses.py",
+    "python hardware/manufacturing/tools/validate_route.py",
+    "python hardware/pcb/tools/release_readiness.py",
+    "python -m unittest discover -s tests/hardware -v"
+  ],
+  "evidence": [
+    "hardware/mechanical/generated/analysis.json",
+    "hardware/pcb/generated/electrical_report.json",
+    "hardware/pcb/generated/release_readiness.json",
+    "hardware/pcb/generated/connectivity_report.json",
+    "hardware/pcb/source-baseline.json",
+    "hardware/pcb/interface-control.md",
+    "hardware/pcb/testpoint-coverage.csv",
+    "hardware/manufacturing/generated/harness_report.json",
+    "unit test output"
+  ],
+  "stop_conditions": [
+    "physical prototype measurements are required",
+    "certification laboratory evidence is required",
+    "a selected component differs from the system-owned approved vendor list"
+  ]
+}

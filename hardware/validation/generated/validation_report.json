@@ -1,0 +1,17 @@
+{
+  "checks": {
+    "fault_library_has_twenty_scenarios": true,
+    "faults_have_recovery_and_evidence": true,
+    "first_batch_has_ten_units": true,
+    "results_are_explicitly_statused": true,
+    "sim2real_matrix_has_required_dimensions": true,
+    "template_does_not_claim_builds": true
+  },
+  "fault_scenario_count": 20,
+  "first_batch_unit_count": 10,
+  "package": "validation",
+  "pass": true,
+  "physical_results": "NOT_EXECUTED",
+  "sim2real_dimension_count": 8,
+  "status": "PHYSICAL_EXECUTION_REQUIRED"
+}

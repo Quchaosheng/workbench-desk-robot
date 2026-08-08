@@ -1,0 +1,9 @@
+reference,function,primary_candidate,alternate_or_class,source_id,key_constraints,verification,procurement_status,owner
+U1,input hot-swap and UV/OV,LM5069MM-2/NOPB,9-80V hot-swap controller,SRC-TI-LM5069,36-60V input and 8A limit,bench trip and inrush,OWNER_APPROVAL_REQUIRED,Electrical Owner
+U2,isolated 48V to 12V,Vicor DCM 36-60V input 12V-class 240W module,approved isolated 240W module class,SRC-NVIDIA-POWER,240W class and thermal derating,load and isolation soak,ORDERABLE_MPN_REQUIRED,Electrical Owner
+U3,Jetson protected branch,6A minimum 12V e-fuse/load switch,protected 12V branch module,class plus owner AVL,12V 5A continuous and short-circuit limit,loaded voltage and fault trip,ORDERABLE_MPN_REQUIRED,Electrical Owner
+U4,logic buck,12V to 3.3V 6A synchronous buck,approved 20W regulator module,class plus owner AVL,5A continuous and ripple limit,load transient and thermal,ORDERABLE_MPN_REQUIRED,Electrical Owner
+U5,MCU,CH32V307VCT6,approved CH32V307 package,SRC-WCH-CH32V307,144MHz class and pin mux,programming and interface loopback,OWNER_APPROVAL_REQUIRED,Firmware and Electrical Owners
+U6,isolated CAN FD,ISO1042DW,approved isolated CAN FD transceiver,SRC-TI-ISO1042,5kVrms class and 70V bus fault,CAN FD and isolation test,OWNER_APPROVAL_REQUIRED,Electrical Owner
+U7,CAN-side isolated power,3.3V-to-5V reinforced isolated 1W module,approved isolated 5V module,class plus owner AVL,5V_CAN_ISO and creepage,loaded voltage and isolation,ORDERABLE_MPN_REQUIRED,Electrical Owner
+U8,safety gate,dual-channel safety controller or force-guided relay,approved safety-rated implementation,class plus safety review,truth table and 1ms disable,SAFETY_OWNER_APPROVAL_REQUIRED,Safety Owner

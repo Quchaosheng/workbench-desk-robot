@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="760" viewBox="0 0 1400 760">
+<style>text{font-family:Arial,sans-serif}.s{fill:#e8edf2;stroke:#17202a;stroke-width:3}.q{fill:#ffe0b2;stroke:#e65100;stroke-width:3}.a{stroke:#00897b;stroke-width:8;fill:none;marker-end:url(#m)}</style>
+<defs><marker id="m" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#00897b"/></marker></defs>
+<text x="40" y="45" font-size="30" font-weight="bold">Workbench-1 U-cell Layout - minimum aisle 1.2 m</text>
+<rect class="s" x="70" y="120" width="190" height="110"/><text x="105" y="180" font-size="22">Receive / Kit</text>
+<rect class="s" x="350" y="120" width="190" height="110"/><text x="395" y="180" font-size="22">SMT / AOI</text>
+<rect class="q" x="630" y="120" width="190" height="110"/><text x="660" y="180" font-size="22">Guarded PCBA Test</text>
+<rect class="s" x="910" y="120" width="190" height="110"/><text x="950" y="180" font-size="22">Mechanical Cell</text>
+<rect class="q" x="910" y="430" width="190" height="110"/><text x="935" y="490" font-size="22">Safety / Functional</text>
+<rect class="s" x="630" y="430" width="190" height="110"/><text x="680" y="490" font-size="22">Final / Pack</text>
+<rect fill="#ffcdd2" stroke="#b71c1c" stroke-width="3" x="70" y="430" width="250" height="110"/><text x="120" y="490" font-size="22">MRB / Quarantine</text>
+<path class="a" d="M260 175 H350"/><path class="a" d="M540 175 H630"/><path class="a" d="M820 175 H910"/><path class="a" d="M1005 230 V430"/><path class="a" d="M910 485 H820"/>
+<text x="410" y="670" font-size="22">Material flows one way; quarantine is fenced off the forward route.</text>
+</svg>

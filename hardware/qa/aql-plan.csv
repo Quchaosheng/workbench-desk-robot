@@ -1,0 +1,6 @@
+lot_type,inspection_level,aql_major,aql_minor,safety_rule,sample_basis,acceptance_rule,status
+incoming electronics,II,0.65,1.5,zero tolerance for safety defect,ISO 2859-1 lookup by lot size,accept/reject by code,NOT_EXECUTED
+PCBA assembly,II,0.65,1.5,zero tolerance for exposed energized defect,lot size after AOI,accept/reject by code,NOT_EXECUTED
+harnesses,II,0.65,1.5,zero tolerance for wrong pinout,lot size after continuity,accept/reject by code,NOT_EXECUTED
+mechanical enclosure,II,1.0,2.5,zero tolerance for sharp edge or crack,lot size after visual inspection,accept/reject by code,NOT_EXECUTED
+final system,100 percent,0,0,zero tolerance for E-stop/power/safety failure,each serialized unit,any safety failure rejects unit and holds lot,NOT_EXECUTED

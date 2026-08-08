@@ -1,0 +1,104 @@
+{
+  "baseline_id": "WB1-HW-ICD-REV-A",
+  "review_date": "2026-08-07",
+  "maturity": "EVT_REVIEWABLE_NOT_PRODUCTION_RELEASED",
+  "sources": [
+    {
+      "id": "SRC-NVIDIA-CARRIER",
+      "vendor": "NVIDIA",
+      "title": "Jetson Orin Nano Developer Kit Carrier Board Specification",
+      "url": "https://developer.nvidia.com/downloads/assets/embedded/secure/jetson/orin_nano/docs/jetson_orin_nano_devkit_carrier_board_specification_sp.pdf",
+      "claim": "The companion board interfaces to the developer kit, not directly to the 260-pin module connector; use the developer-kit DC input path.",
+      "confidence": "OFFICIAL_PRIMARY",
+      "freeze_status": "FROZEN_FOR_EVT",
+      "owner": "System Owner"
+    },
+    {
+      "id": "SRC-NVIDIA-THERMAL",
+      "vendor": "NVIDIA",
+      "title": "Jetson Orin NX and Orin Nano Series Thermal Design Guide",
+      "url": "https://developer.nvidia.com/downloads/jetson-orin-nx-orin-nano-series-thermal-design-guide",
+      "claim": "Thermal integration must be validated at the selected module power mode with the production enclosure closed.",
+      "confidence": "OFFICIAL_PRIMARY",
+      "freeze_status": "FROZEN_FOR_EVT",
+      "owner": "Mechanical Owner"
+    },
+    {
+      "id": "SRC-NVIDIA-POWER",
+      "vendor": "NVIDIA",
+      "title": "Jetson Orin Nano downloads and current product documentation",
+      "url": "https://developer.nvidia.com/embedded/downloads",
+      "claim": "15 W and 25 W operating cases are required; a conservative 40 W MAXN envelope is retained for Super-mode screening.",
+      "confidence": "OFFICIAL_PRIMARY",
+      "freeze_status": "FROZEN_FOR_EVT",
+      "owner": "Electrical Owner"
+    },
+    {
+      "id": "SRC-WCH-CH32V307",
+      "vendor": "WCH",
+      "title": "CH32V307 product page",
+      "url": "https://www.wch-ic.com/products/CH32V307.html",
+      "claim": "CH32V307 uses the QingKe V4F core and operates up to 144 MHz; exact package and pin mux remain an AVL and schematic-release decision.",
+      "confidence": "OFFICIAL_PRIMARY",
+      "freeze_status": "CANDIDATE_NOT_FROZEN",
+      "owner": "Firmware and Electrical Owners"
+    },
+    {
+      "id": "SRC-TI-ISO1042",
+      "vendor": "Texas Instruments",
+      "title": "ISO1042 isolated CAN transceiver",
+      "url": "https://www.ti.com/product/ISO1042",
+      "claim": "CAN FD up to 5 Mbps, 5 kVrms isolation, and 70 V bus-fault protection are supported by the selected transceiver family.",
+      "confidence": "OFFICIAL_PRIMARY",
+      "freeze_status": "CANDIDATE_NOT_FROZEN",
+      "owner": "Electrical Owner"
+    },
+    {
+      "id": "SRC-TI-LM5069",
+      "vendor": "Texas Instruments",
+      "title": "LM5069 positive high-voltage hot-swap controller",
+      "url": "https://www.ti.com/product/LM5069",
+      "claim": "The 9 V to 80 V controller class covers the documented 36 V to 60 V battery envelope.",
+      "confidence": "OFFICIAL_PRIMARY",
+      "freeze_status": "CANDIDATE_NOT_FROZEN",
+      "owner": "Electrical Owner"
+    }
+  ],
+  "controlled_assumptions": [
+    {
+      "interface": "battery",
+      "envelope": "36-60 VDC, 8 A continuous, 10 A fuse",
+      "confidence": "SYSTEM_ASSUMPTION",
+      "freeze_status": "OWNER_CONFIRMATION_REQUIRED",
+      "owner": "System Owner"
+    },
+    {
+      "interface": "motor_auxiliary",
+      "envelope": "12 V, 120 W maximum aggregate at J2",
+      "confidence": "ENGINEERING_ENVELOPE",
+      "freeze_status": "MOTOR_SELECTION_REQUIRED",
+      "owner": "Motion Owner"
+    },
+    {
+      "interface": "display",
+      "envelope": "150 x 72 mm mechanical opening; power and data connector undefined",
+      "confidence": "ENGINEERING_ENVELOPE",
+      "freeze_status": "DISPLAY_SELECTION_REQUIRED",
+      "owner": "System Owner"
+    },
+    {
+      "interface": "isolated_dc_dc",
+      "envelope": "36-60 V input, regulated 12 V, 240 W class",
+      "confidence": "ENGINEERING_ENVELOPE",
+      "freeze_status": "ORDERABLE_MPN_REQUIRED",
+      "owner": "Electrical and Procurement Owners"
+    },
+    {
+      "interface": "functional_safety",
+      "envelope": "dual-channel E-stop, independent gated motor-enable output, 1 ms disable target",
+      "confidence": "ENGINEERING_ARCHITECTURE",
+      "freeze_status": "SAFETY_ANALYSIS_AND_MPN_REQUIRED",
+      "owner": "Safety Owner"
+    }
+  ]
+}

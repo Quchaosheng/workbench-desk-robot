@@ -1,0 +1,32 @@
+[
+  {
+    "step": 10,
+    "part": "lower_chassis",
+    "fastener": "fixture datum A"
+  },
+  {
+    "step": 20,
+    "part": "motor_brackets",
+    "fastener": "8x M3x8 @ 0.55 Nm"
+  },
+  {
+    "step": 30,
+    "part": "electronics_tray",
+    "fastener": "4x M3x8 @ 0.55 Nm"
+  },
+  {
+    "step": 40,
+    "part": "display_bracket",
+    "fastener": "4x M3x6 @ 0.25 Nm"
+  },
+  {
+    "step": 50,
+    "part": "upper_shell",
+    "fastener": "8x M3x8 @ 0.25 Nm"
+  },
+  {
+    "step": 60,
+    "part": "impact_bumper",
+    "fastener": "snap + 4 retained screws"
+  }
+]

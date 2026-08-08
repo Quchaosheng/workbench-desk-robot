@@ -1,0 +1,7 @@
+requirement,scope,standard_or_basis,artifact,authority,status
+materials,PCB and mechanical parts,RoHS/REACH declarations,supplier CoC and material declaration,Quality Owner,NOT_SUBMITTED
+EMC emissions,controller and assembled robot,applicable regional EMC standard,pre-compliance scan and lab report,Quality Owner,NOT_TESTED
+EMC immunity,controller and assembled robot,applicable regional EMC standard,immunity test report,Quality Owner,NOT_TESTED
+electrical safety,48V input and isolated CAN,approved safety analysis,hipot/isolation report and signed review,Safety Owner,NOT_APPROVED
+battery transport,battery pack and packaging,carrier and dangerous-goods rules,UN38.3/MSDS and transport record,Quality Owner,NOT_SUBMITTED
+technical file,whole product,controlled configuration record,drawings+BOM+test evidence,Project Owner,INCOMPLETE

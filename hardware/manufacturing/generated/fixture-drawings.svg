@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+<style>text{font-family:Arial,sans-serif}.p{fill:#edf2f5;stroke:#111;stroke-width:3}.d{stroke:#1565c0;stroke-width:2}</style>
+<text x="35" y="45" font-size="28" font-weight="bold">FX-01 Chassis Datum Nest / FX-02 Guarded Electrical Jig</text>
+<rect class="p" x="80" y="120" width="520" height="440"/><rect x="110" y="150" width="460" height="380" fill="none" stroke="#e65100" stroke-width="4"/>
+<circle cx="130" cy="170" r="9"/><circle cx="550" cy="170" r="9"/><circle cx="130" cy="510" r="9"/><circle cx="550" cy="510" r="9"/>
+<text x="190" y="600" font-size="20">Nest 260 x 220; datum pins 230 x 190; flatness 0.20</text>
+<rect class="p" x="700" y="120" width="400" height="440"/><rect x="750" y="180" width="300" height="220" fill="#fff3e0" stroke="#e65100" stroke-width="4"/>
+<text x="785" y="290" font-size="22">DUT guarded volume</text><circle cx="770" cy="480" r="35" fill="#d32f2f"/><text x="825" y="490" font-size="22">Emergency disconnect</text>
+<text x="720" y="600" font-size="20">0-60 V / 10 A; Kelvin probes; interlocked lid</text>
+</svg>

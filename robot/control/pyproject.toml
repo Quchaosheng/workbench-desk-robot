@@ -1,0 +1,51 @@
+# Package-local uv environment for robot/control (Motion), per PLAN.md:
+# "退而把 uv 环境限定在 robot/control/ 本包内". This is NOT a distributable
+# package and NOT the ROS 2 package — the ament_python package lives in
+# workbench_motion/ and is built by colcon via its own setup.py/package.xml.
+# This file only pins the pure-Python dev toolchain (pytest) so the evidence /
+# logging modules and their tests run under `uv run` without a full ROS install.
+#
+# ROS 2 runtime deps (rclpy, launch, launch_ros, moveit2, ros2_control, ...) are
+# apt/rosdep-managed and declared in workbench_motion/package.xml — uv does not
+# manage them. When running the node, the uv venv must see /opt/ros/jazzy
+# site-packages (use --system-site-packages or point at it) so apt rclpy is
+# importable; the pure-Python tests below do not need it.
+[project]
+name = "workbench-motion-devenv"
+version = "0.0.0"
+description = "Package-local uv dev environment for the Motion (robot/control) module."
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "pytest>=8,<9",
+]
+
+[tool.uv]
+# This project is an environment, not an installable package. Do not try to
+# build robot/control as a wheel (that is colcon's job for workbench_motion).
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["workbench_motion/test"]
+# Put the ament package's inner source dir on sys.path so `import
+# workbench_motion` resolves without installing anything.
+pythonpath = ["workbench_motion"]
+python_files = ["test_*.py"]
+addopts = [
+  "-v",
+  "--tb=short",
+  # These pure-Python tests need no external pytest plugins. When a ROS 2 env is
+  # sourced, ROS's pytest11 plugins (launch_testing, launch_ros, ament_*) leak in
+  # via PYTHONPATH and fail to import (they pull in `launch`/`yaml` which are not
+  # in this isolated uv venv). Block them so `uv run pytest` works whether or not
+  # ROS is sourced. Bulletproof fallback: PYTEST_DISABLE_PLUGIN_AUTOLOAD=1.
+  "-p", "no:launch_testing",
+  "-p", "no:launch_ros",
+  "-p", "no:ament_copyright",
+  "-p", "no:ament_lint",
+  "-p", "no:ament_flake8",
+  "-p", "no:ament_xmllint",
+  "-p", "no:ament_pep257",
+]

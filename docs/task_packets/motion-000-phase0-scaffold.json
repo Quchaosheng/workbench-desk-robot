@@ -1,0 +1,43 @@
+{
+  "issue": 3,
+  "human_owner": "cyathea152-bit",
+  "objective": "Motion phase 0: scaffold the workbench_motion ROS 2 package (package.xml/setup, source dir, launch/, test/), uv environment, unified logging_setup, and the evidence.py EvidenceSink interface + FakeEvidenceSink. No arm, no MoveIt, no grasp logic yet.",
+  "allowed_paths": [
+    "robot/control/**",
+    "docs/task_packets/motion-000-phase0-scaffold.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "docs/architecture/**",
+    "AGENTS.md"
+  ],
+  "forbidden": [
+    "firmware/**",
+    "services/**",
+    "robot/description/**",
+    "interfaces/**"
+  ],
+  "acceptance": [
+    "colcon build --packages-select workbench_motion passes and ros2 pkg list shows the package",
+    "minimal node logs with unified format carrying run_id and uses no print",
+    "EvidenceSink interface defined with FakeEvidenceSink; unit test proves append() returns a stable unique reference and Motion holds no persistence impl",
+    "minimal launch brings up an empty-world self test without external bringup"
+  ],
+  "commands": [
+    "uv sync",
+    "colcon build --packages-select workbench_motion",
+    "uv run pytest robot/control",
+    "make task-check PACKET=docs/task_packets/motion-000-phase0-scaffold.json"
+  ],
+  "evidence": [
+    "colcon build output",
+    "ros2 pkg list output showing workbench_motion",
+    "unit test output for FakeEvidenceSink stable-reference behavior"
+  ],
+  "stop_conditions": [
+    "root-level uv.lock decision not yet approved by Linux/Integration Owner",
+    "production EvidenceSink adapter ownership (World Model side) unresolved",
+    "ROS Jazzy apt rclpy not visible inside the uv venv",
+    "any change would require touching a forbidden path or interfaces/"
+  ]
+}

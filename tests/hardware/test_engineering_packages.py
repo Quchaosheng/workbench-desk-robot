@@ -208,6 +208,17 @@ class ValidationPackageTests(unittest.TestCase):
         self.assertEqual(report["physical_results"], "NOT_EXECUTED")
 
 
+class ReleaseReadinessTests(unittest.TestCase):
+    def test_release_register_is_fail_closed_and_cross_package(self) -> None:
+        module = load_module("release_readiness_checks", ROOT / "hardware/release/tools/check_release_readiness.py")
+        report = module.validate()
+        self.assertTrue(report["pass"])
+        self.assertEqual(report["status"], "RELEASE_BLOCKED")
+        self.assertGreaterEqual(report["blocker_count"], 10)
+        self.assertIn("REL-004", report["blockers"])
+        self.assertIn("REL-014", report["blockers"])
+
+
 class TaskPacketTests(unittest.TestCase):
     def test_task_packet_limits_writes_to_hardware_and_tests(self) -> None:
         packet = json.loads(
@@ -227,6 +238,14 @@ class TaskPacketTests(unittest.TestCase):
         self.assertIn("hardware/qa/**", packet["allowed_paths"])
         self.assertIn("hardware/validation/**", packet["allowed_paths"])
         self.assertIn("firmware/**", packet["forbidden"])
+
+    def test_release_readiness_packet_is_bounded(self) -> None:
+        packet = json.loads(
+            (ROOT / "docs/task_packets/hardware-engineering-release-readiness.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(packet["issues"], [19, 22, 23, 24, 28])
+        self.assertIn("hardware/release/**", packet["allowed_paths"])
+        self.assertIn("interfaces/**", packet["forbidden"])
 
 
 if __name__ == "__main__":

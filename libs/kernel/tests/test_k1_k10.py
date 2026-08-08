@@ -5,6 +5,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+from pydantic import BaseModel
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from workbench.kernel.communication import Message
@@ -24,16 +26,36 @@ def test_all():
         (schema_dir / "action.schema.json").write_text(
             json.dumps(
                 {
-                    "title": "action",
-                    "properties": {"id": {"type": "string"}},
+                    "title": "Action",
+                    "type": "object",
+                    "required": ["id"],
+                    "properties": {
+                        "id": {"type": "string"},
+                        "retry_count": {"type": "integer"},
+                    },
                 }
-            )
+            ),
+            encoding="utf-8",
         )
 
         compiler = SchemaCompiler(schema_dir)
         compiler.load_schemas()
         output_dir = tmp_path / "output"
         compiler.compile_all(output_dir / "py", output_dir / "ts")
+        python_model = output_dir / "py" / "action.py"
+        typescript_model = output_dir / "ts" / "action.ts"
+        namespace = {}
+        exec(compile(python_model.read_text(encoding="utf-8"), str(python_model), "exec"), namespace)
+        action_model = namespace["Action"]
+        assert issubclass(action_model, BaseModel)
+        assert action_model(id="act-001").id == "act-001"
+        assert action_model.model_fields["id"].is_required()
+        assert action_model(id="act-001", retry_count=2).retry_count == 2
+        typescript = typescript_model.read_text(encoding="utf-8")
+        assert "export interface Action {" in typescript
+        assert '"id": string;' in typescript
+        assert '"retry_count"?: number;' in typescript
+        assert compiler.verify_type_compatibility() == {"action": True}
         print("[PASS] K1-K2 Schema compiler")
 
         # K4-K5: Communication

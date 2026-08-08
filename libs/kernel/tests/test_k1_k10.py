@@ -14,6 +14,7 @@ from workbench.kernel.event_store import EventStore
 from workbench.kernel.lifecycle import LifecycleManager
 from workbench.kernel.schema_compiler import SchemaCompiler
 from workbench.kernel.startup import SystemBootstrapper
+from workbench.kernel.version_registry import VersionRegistry
 
 
 def test_all():
@@ -62,6 +63,12 @@ def test_all():
         msg = Message(payload={"action": "grasp"}, message_type="action", version="1.0.0", actor="planner")
         assert msg.checksum
         print("[PASS] K4-K5 Communication")
+
+        # K3: Version registry
+        registry = VersionRegistry(tmp_path / "versions.json")
+        registry.register_schema("action", "1.0.0", {"type": "object"})
+        assert VersionRegistry(tmp_path / "versions.json").versions["action"]["1.0.0"]
+        print("[PASS] K3 Version registry")
 
         # K6-K7: Event Store
         log = tmp_path / "events.jsonl"

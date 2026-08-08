@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict
+
 
 class SchemaCompiler:
     """JSON Schema 编译器 - 生成类型安全的模型"""
@@ -24,7 +24,7 @@ class SchemaCompiler:
         output_py.mkdir(parents=True, exist_ok=True)
         output_ts.mkdir(parents=True, exist_ok=True)
 
-        for name, schema in self.schemas.items():
+        for name, _schema in self.schemas.items():
             # Python
             py_code = f"# {name}\nclass {name.title()}(BaseModel):\n    pass\n"
             (output_py / f"{name}.py").write_text(py_code)

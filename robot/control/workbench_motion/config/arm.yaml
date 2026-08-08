@@ -1,0 +1,55 @@
+# Arm swap surface — the ONE place arm-specific identity lives.
+#
+# Everything an adapter, launch, MoveIt config or the reachability script needs
+# to know about "which arm" is here. Adapter *logic* never hard-codes any of
+# these; it reads them. Swapping UR5e -> Panda (or UR5e -> UR10e) is an edit to
+# this file plus the matching xacro args and MoveIt config — never a code edit.
+# See docs/decisions/ADR-0004-arm-selection.md and the README swap checklist.
+#
+# The values here MUST match the defaults in config/arm_on_workbench.urdf.xacro.
+
+arm:
+  model: ur5e
+  vendor_description_pkg: ur_description
+  ur_type: ur5e            # arm_on_workbench.urdf.xacro arg: ur_type
+  tf_prefix: ""            # arm_on_workbench.urdf.xacro arg: tf_prefix
+  dof: 6
+
+  # Kinematic frames.
+  base_link: base_link     # arm root, fixed to `world`
+  flange_link: flange      # ROS-Industrial flange
+  ee_link: tool0           # all-zeros tool frame (EE reference)
+  ik_tip_link: grasp_tcp   # IK/planning tip: grasp point between the fingers
+
+  # The 6 actuated arm joints, in chain order.
+  joints:
+    - shoulder_pan_joint
+    - shoulder_lift_joint
+    - elbow_joint
+    - wrist_1_joint
+    - wrist_2_joint
+    - wrist_3_joint
+
+  # MoveIt planning-group name for the arm (must match config/moveit/*.srdf).
+  planning_group: ur_manipulator
+
+# Base mount pose in the workbench `world` frame. Arm mounts on the table
+# surface (world z = table_height = 0.75) at the back-left corner, yawed to face
+# the block + tray. Tuned against the reachability gate (>=95%); see
+# scripts/reachability_check.py and docs/evaluation/phase1-reachability.json.
+base_placement:
+  xyz: [-0.42, -0.28, 0.75]   # arm_on_workbench.urdf.xacro args: base_x/y/z
+  rpy: [0.0, 0.0, 0.52]       # arm_on_workbench.urdf.xacro arg: base_yaw (yaw only)
+
+# Gripper — UR ships none, so a Robotiq 2F-85 is added (ADR-0004).
+gripper:
+  model: robotiq_2f_85
+  vendor_description_pkg: robotiq_description
+  attach_link: tool0             # via the official ur_to_robotiq adapter
+  mount_link: gripper_mount_link
+  base_link: robotiq_85_base_link
+  # The single actuated (driver) joint; the opposite knuckle mimics it (-1).
+  driver_joint: robotiq_85_left_knuckle_joint
+  planning_group: gripper
+  # tool0 -> grasp_tcp offset along tool0 +z (arm_on_workbench.urdf.xacro arg tcp_z).
+  tcp_offset_z: 0.16

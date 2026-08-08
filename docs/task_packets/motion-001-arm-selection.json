@@ -1,0 +1,51 @@
+{
+  "issue": 5,
+  "human_owner": "cyathea152-bit",
+  "objective": "Motion phase 1: select the arm (UR5e + Robotiq 2F-85) and compose it into the workbench world. Deliver an ADR, arm_on_workbench.urdf.xacro (fixed joint from arm base_link to the workbench world link), a config-only swap surface (arm.yaml), a hand-authored MoveIt config, and a batch reachability check (>=20 poses each over the block and tray regions, >=95% IK success). No ros2_control/controller wiring (phase 2), no grasp/attach logic (phase 5), no ActionResult/interfaces changes.",
+  "allowed_paths": [
+    "robot/control/**",
+    "docs/task_packets/motion-001-arm-selection.json",
+    "docs/decisions/ADR-0004-arm-selection.md",
+    "docs/evaluation/phase1-reachability.json",
+    "THIRD_PARTY_REVIEW.md"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "robot/description/**",
+    "docs/architecture/**",
+    "AGENTS.md"
+  ],
+  "forbidden": [
+    "firmware/**",
+    "services/**",
+    "interfaces/**",
+    "robot/description/**"
+  ],
+  "acceptance": [
+    "xacro robot/control/workbench_motion/config/arm_on_workbench.urdf.xacro > /tmp/wb_arm.urdf && check_urdf /tmp/wb_arm.urdf reports no errors and a single connected tree rooted at world",
+    "arm-specific names (planning group, base/end-effector/gripper links, joint count, base placement) live in config/arm.yaml or xacro args, never hard-coded in adapter logic",
+    "batch reachability: >=20 sampled poses over the block region and >=20 over the tray region, IK success >=95% per region, numbers + seed archived in docs/evaluation/phase1-reachability.json",
+    "pure sampling/threshold logic has a unit test that runs under uv run pytest without ROS",
+    "colcon build --packages-select workbench_motion passes; root make lint/test/contract stay green (no interfaces change)"
+  ],
+  "commands": [
+    "make task-check PACKET=docs/task_packets/motion-001-arm-selection.json",
+    "xacro robot/control/workbench_motion/config/arm_on_workbench.urdf.xacro > /tmp/wb_arm.urdf && check_urdf /tmp/wb_arm.urdf",
+    "colcon build --packages-select workbench_motion",
+    "uv run pytest",
+    "ros2 launch workbench_motion move_group.launch.py (then) ros2 run workbench_motion reachability_check --seed 0 --samples 20",
+    "make lint && make test && make contract"
+  ],
+  "evidence": [
+    "check_urdf output on the composed arm+workbench URDF",
+    "docs/evaluation/phase1-reachability.json with per-region success counts and RNG seed",
+    "reachability unit test output under uv run pytest",
+    "RViz screenshot of the composed arm reaching the block and tray regions (aux)"
+  ],
+  "stop_conditions": [
+    "vendor arm package not installable under Jazzy/Harmonic or license not usable (switch model, self-decidable)",
+    "reachability below 95% after base-placement tuning (re-place base or reconsider model)",
+    "any change would require touching a forbidden path or interfaces/",
+    "bringup arm attach point conflicts with Integration once bringup exists"
+  ]
+}

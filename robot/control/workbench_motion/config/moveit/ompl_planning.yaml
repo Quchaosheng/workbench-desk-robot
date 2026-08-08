@@ -1,0 +1,34 @@
+# OMPL planning pipeline for the arm group.
+#
+# Minimal, standard OMPL setup. RRTConnect is the default because it is fast and
+# reliable for the short free-space motions phase 1 needs (home -> above block,
+# above block -> above tray). Planner tuning is not a phase-1 deliverable; this
+# is a working baseline, recorded in config rather than left implicit.
+planning_plugins:
+  - ompl_interface/OMPLPlanner
+
+request_adapters:
+  - default_planning_request_adapters/ResolveConstraintFrames
+  - default_planning_request_adapters/ValidateWorkspaceBounds
+  - default_planning_request_adapters/CheckStartStateBounds
+  - default_planning_request_adapters/CheckStartStateCollision
+
+response_adapters:
+  - default_planning_response_adapters/AddTimeOptimalParameterization
+  - default_planning_response_adapters/ValidateSolution
+  - default_planning_response_adapters/DisplayMotionPath
+
+ur_manipulator:
+  planner_configs:
+    - RRTConnectkConfigDefault
+    - RRTstarkConfigDefault
+  default_planner_config: RRTConnectkConfigDefault
+
+planner_configs:
+  RRTConnectkConfigDefault:
+    type: geometric::RRTConnect
+    range: 0.0        # 0 => auto (max motion length), OMPL default
+  RRTstarkConfigDefault:
+    type: geometric::RRTstar
+    range: 0.0
+    goal_bias: 0.05

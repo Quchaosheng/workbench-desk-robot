@@ -1,0 +1,45 @@
+# MoveIt planning-layer joint limits for the UR5e arm.
+#
+# This is the PLANNING layer (velocity/acceleration scaling MoveIt uses), which
+# per PLAN.md §阶段 2 is DISTINCT from and usually more conservative than the
+# hard URDF/ros2_control limits and the real-hardware safety override. Those two
+# other layers land in phase 2 (config/controllers.yaml, joint_limits.hw_override).
+# Do not confuse the three sources.
+#
+# Velocity limits mirror ur_description nominal UR5e values; accelerations are a
+# conservative planning choice (not published by the vendor, so chosen here and
+# recorded rather than left as magic numbers).
+default_velocity_scaling_factor: 0.1
+default_acceleration_scaling_factor: 0.1
+
+joint_limits:
+  shoulder_pan_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0943951    # rad/s (120 deg/s), UR5e nominal
+    has_acceleration_limits: true
+    max_acceleration: 5.0
+  shoulder_lift_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0943951
+    has_acceleration_limits: true
+    max_acceleration: 5.0
+  elbow_joint:
+    has_velocity_limits: true
+    max_velocity: 3.1415927    # rad/s (180 deg/s), UR5e nominal
+    has_acceleration_limits: true
+    max_acceleration: 5.0
+  wrist_1_joint:
+    has_velocity_limits: true
+    max_velocity: 3.1415927
+    has_acceleration_limits: true
+    max_acceleration: 5.0
+  wrist_2_joint:
+    has_velocity_limits: true
+    max_velocity: 3.1415927
+    has_acceleration_limits: true
+    max_acceleration: 5.0
+  wrist_3_joint:
+    has_velocity_limits: true
+    max_velocity: 3.1415927
+    has_acceleration_limits: true
+    max_acceleration: 5.0

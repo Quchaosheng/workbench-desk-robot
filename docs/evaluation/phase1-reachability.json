@@ -1,0 +1,6 @@
+{
+  "_note": "Placeholder — run `ros2 run workbench_motion reachability_check --seed 0 --samples 20` to populate with real MoveIt IK results.",
+  "seed": null,
+  "samples_per_region": null,
+  "results": {}
+}

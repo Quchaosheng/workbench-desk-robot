@@ -1,0 +1,98 @@
+# ADR-0004: Arm selection — UR5e + Robotiq 2F-85
+
+## Status
+
+Accepted for v0.1 phase 1 (Motion). Supersedes the PLAN.md leaning toward Panda;
+see "Decision" for why.
+
+## Context
+
+Phase 1 of the Motion plan (`robot/control/PLAN.md` §阶段 1) requires selecting an
+**official vendor** arm asset — explicitly *not* a self-assembled URDF — and
+composing it into the workbench world at `robot/description/workbench.urdf.xacro`.
+The task must run under Ubuntu 24.04 + ROS 2 Jazzy + Gazebo Harmonic, no GPU.
+
+PLAN.md leaned toward Franka Panda (7 DoF, richest assets) with UR5e (6 DoF) as a
+backup, but left the model choice to us pending vendor-package verification
+(`THIRD_PARTY_REVIEW.md` line). We verified availability and licensing before
+deciding, per the plan's instruction ("先验证 vendor 包再定型").
+
+## Verified facts (checked 2026-08-08, ROS 2 Jazzy)
+
+| Fact | Panda | UR5e |
+|---|---|---|
+| Official description pkg | `ros-jazzy-moveit-resources-panda-description` (test resource, not a maintained vendor line) | `ros-jazzy-ur-description` (maintained Universal Robots line) |
+| Already installed in this env | no | **yes** (`ur_description`, `robotiq_description`) |
+| MoveIt config pkg on apt | `moveit-resources-panda-moveit-config` (test-only) | `ros-jazzy-ur-moveit-config` (maintained) |
+| Gripper | integrated `franka_hand` | **none** — needs an add-on |
+| Gazebo sim helper | none first-party | `ros-jazzy-ur-simulation-gz` |
+| URDF/xacro license | Apache-2.0 (clean) | BSD-3-Clause (clean) |
+| Mesh license | BSD-ish (moveit resources) | **proprietary — "Universal Robots A/S' Terms and Conditions for Use of Graphical Documentation"** (see THIRD_PARTY_REVIEW) |
+
+## Decision
+
+Use **UR5e** as the phase-1 arm, with a **Robotiq 2F-85** parallel gripper
+(`ros-jazzy-robotiq-description`) attached at the UR `tool0` frame.
+
+Reasons, in priority order:
+
+1. **Maintained official vendor line, not a test fixture.** `ur_description` /
+   `ur_moveit_config` are the maintained Universal Robots ROS 2 packages. The
+   Panda assets on Jazzy are `moveit-resources-*` — MoveIt's own *test* fixtures,
+   not a vendor-maintained product line. The plan's intent ("官方机械臂资产,不自己
+   拼 URDF") is better served by the maintained line.
+2. **Already installed + apt-clean dependency graph.** `ur_description` and
+   `robotiq_description` are present; the rest (`ur-moveit-config`,
+   `ur-simulation-gz`, `moveit`, `trac-ik`) resolve cleanly on apt (verified with
+   `apt-get install --just-print`, exit 0). No source builds, no vendoring.
+3. **First-party Gazebo Harmonic support** via `ur-simulation-gz`, which the Panda
+   test resources lack — this de-risks phase 2 (ros2_control) and phase 5 (Gazebo
+   execution).
+4. **6 DoF is sufficient** for top-down pick-and-place of a 40 mm cube into a tray
+   on a fixed table. The 7th DoF of Panda buys redundancy we do not need for this
+   task; the plan itself notes UR5e is a valid choice.
+
+Trade-off accepted: UR5e ships **no gripper**, so we add Robotiq 2F-85. And the
+UR **meshes are under a proprietary license** — flagged in THIRD_PARTY_REVIEW with
+an exit path (primitive collision geometry / model swap), not treated as clean.
+
+## Alternatives considered
+
+- **Franka Panda.** Integrated gripper and 7 DoF are attractive, but only test-
+  fixture assets are on Jazzy apt, no first-party Gazebo helper, and it is not
+  installed here. Kept as the documented fallback if the UR mesh license blocks
+  distribution (the swap is config-only — see README swap checklist).
+- **UR3e / UR10e.** Same family; UR3e reach (0.5 m) is marginal for spanning both
+  the block start region and the tray, UR10e (1.3 m) is oversized for a 1.2 m
+  table. UR5e (0.85 m reach) fits the workspace with margin.
+- **Self-built URDF.** Explicitly rejected by the plan — tuning a home-made arm's
+  physical parameters costs an extra week and defeats "官方资产".
+
+## Consequences
+
+- Arm-specific identifiers (planning group, `base_link`, `tool0`/EE link, gripper
+  group and links, joint count, base placement pose) are isolated in
+  `robot/control/workbench_motion/config/arm.yaml` and xacro args. A later swap to
+  Panda touches configuration only, never adapter logic (phase 1 acceptance gate +
+  README swap checklist).
+- The UR mesh license is a distribution risk carried in THIRD_PARTY_REVIEW. If it
+  cannot be cleared, the exit is either primitive-only collision geometry (visual
+  meshes dropped) or the documented Panda swap.
+- Reachability is verified against UR5e's 0.85 m reach envelope; the arm base is
+  placed at a back corner of the table so both work regions fall inside it with
+  margin (see the `reachability_check` console script and `docs/evaluation/phase1-reachability.json`).
+
+## Reproduce
+
+```bash
+# vendor packages (already-installed ones omitted)
+sudo apt-get install -y ros-jazzy-moveit ros-jazzy-moveit-py \
+  ros-jazzy-trac-ik-kinematics-plugin ros-jazzy-ur-moveit-config \
+  ros-jazzy-ur-simulation-gz ros-jazzy-gz-ros2-control \
+  ros-jazzy-controller-manager ros-jazzy-joint-trajectory-controller \
+  ros-jazzy-robotiq-controllers
+
+# structural validation
+xacro robot/control/workbench_motion/config/arm_on_workbench.urdf.xacro > /tmp/wb_arm.urdf
+check_urdf /tmp/wb_arm.urdf
+```

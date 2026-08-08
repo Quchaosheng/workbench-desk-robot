@@ -1,0 +1,16 @@
+gate_id,domain,gate,owner,status,evidence_ref,next_action,release_blocker
+REL-001,engineering,mechanical analytical package,Mechanical Owner,PASS,hardware/mechanical/generated/analysis.json,complete physical stability/drop validation,no
+REL-002,engineering,PCB architecture/ERC/DRC/connectivity,Electrical Owner,PASS,hardware/pcb/generated/release_readiness.json,close component schematic and AVL,no
+REL-003,engineering,manufacturing route and controlled traveller,Manufacturing Owner,PASS,hardware/manufacturing/generated/route_report.json,run pilot units,no
+REL-004,procurement,dated quotes and approved MPNs,Procurement Owner,BLOCKED,hardware/procurement/generated/procurement_report.json,attach dated quotes and AVL approval,yes
+REL-005,commercial,PO and lead-time decision,Project Owner,BLOCKED,hardware/procurement/po-checklist.csv,complete PO checklist with sign-off,yes
+REL-006,safety,approved safety analysis and E-stop timing,Safety Owner,BLOCKED,hardware/pcb/safety-gate-truth-table.csv,attach signed safety analysis and measured trip time,yes
+REL-007,manufacturing,supplier DFM and mating-part closure,Manufacturing Owner,BLOCKED,hardware/manufacturing/generated/harness_report.json,attach supplier DFM and physical harness tests,yes
+REL-008,quality,incoming and in-process inspection execution,Quality Owner,BLOCKED,hardware/qa/generated/qa_report.json,execute inspection plan on serialized units,yes
+REL-009,quality,FMEA and defect corrective-action closure,Quality Owner,BLOCKED,hardware/qa/fmea.csv,record observed defects and verify corrective actions,yes
+REL-010,compliance,RoHS/EMC/electrical-safety technical file,Quality Owner,BLOCKED,hardware/qa/compliance-matrix.csv,attach supplier declarations and lab reports,yes
+REL-011,physical,first-batch acceptance,Validation Owner,BLOCKED,hardware/validation/first-batch-acceptance.csv,build and test ten serialized units,yes
+REL-012,field,SIM2REAL benchmark,Validation Owner,BLOCKED,hardware/validation/sim2real-matrix.csv,run paired simulation/real-machine measurements,yes
+REL-013,field,fault-injection recovery library,Validation Owner,BLOCKED,hardware/validation/fault-scenarios.csv,execute all 20 scenarios and attach logs,yes
+REL-014,reliability,48-hour continuous run,Validation Owner,BLOCKED,hardware/validation/long-run-protocol.md,execute protocol with raw event log,yes
+REL-015,release,final GO/NO-GO decision,Project Owner,BLOCKED,hardware/manufacturing/pilot-and-release.md,obtain all sign-offs and close blockers,yes

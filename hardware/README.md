@@ -16,6 +16,7 @@ hardware/
   procurement/      Controlled BOM, quote requests, supplier review and PO gates
   qa/               Inspection standards, FMEA, AQL and compliance evidence gates
   validation/       SIM2REAL, diagnostics, fault injection and field acceptance
+  release/          Cross-package release-readiness register and fail-closed gate
 ```
 
 **Rule**: every adapter here must satisfy the same contract as its simulation counterpart.

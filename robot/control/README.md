@@ -44,7 +44,7 @@ Pure-Python unit tests (no ROS needed), from `robot/control/`:
 
 ```bash
 uv sync
-uv run pytest        # -> workbench_motion/test  (10 tests)
+uv run pytest        # -> workbench_motion/test
 ```
 
 > Works whether or not a ROS 2 env is sourced. When ROS is sourced, its pytest

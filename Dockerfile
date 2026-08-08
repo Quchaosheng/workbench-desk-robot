@@ -18,10 +18,17 @@ RUN printf 'Acquire::Retries "10";\nAcquire::http::Timeout "120";\nAcquire::http
     && python3 -m venv /opt/workbench-venv
 
 WORKDIR /app
-COPY . /app
-RUN --mount=type=cache,target=/root/.cache/pip python -m pip install . \
+COPY pyproject.toml README.md README.zh-CN.md LICENSE NOTICE ./
+COPY libs/contracts ./libs/contracts
+COPY services/agent_runtime ./services/agent_runtime
+COPY services/backend ./services/backend
+COPY services/world_model ./services/world_model
+COPY firmware/virtual_mcu ./firmware/virtual_mcu
+RUN --mount=type=cache,target=/root/.cache/pip python -m pip install --no-compile . \
     && useradd --create-home --uid 10001 workbench \
     && chown -R workbench:workbench /app
+COPY . /app
+RUN chown -R workbench:workbench /app
 
 USER workbench
 EXPOSE 8080

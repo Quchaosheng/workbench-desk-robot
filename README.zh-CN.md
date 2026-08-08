@@ -40,6 +40,9 @@
 - 放置、精确齐套、检验置信度、工作区清障以及到件清单对账快递路由的专用验证器
 - 多实体只读看板、按序回放、恢复历史与证据查看
 - 断网容器、健康端点、统一 JSON 日志、镜像/SBOM 工作流
+- localhost-only Ollama Runner: 模型只做五类任务路由,语义动作由受信模板生成
+- 启动、阶段 P50/P95、CPU/RAM 和真机日志哈希校验工具
+- 控制端/仿真端分机 Compose 拓扑,远端不可达时 readiness 失败
 - 12 个冻结 v0.1 基线与 24 个扩展 v0.2 场景,含 seed 确定性检查
 - 五类共 50 条黄金任务请求,另有 26 条必须失败关闭的危险请求
 - CI 跑 lint、契约、评测 fixture、断网 demo 与容器 smoke test
@@ -48,10 +51,9 @@
 - Gazebo 世界
 - MoveIt 抓取放置
 - 真实相机(OpenCV + AprilTag)
-- 开放式自然语言 → 计划(本地模型;受限模板路由已能用)
 - Gazebo 真实评测结果(仓库内运行数据明确标为脚本化 fixture)
 
-每个没做的都有冻结的契约。你可以只做其中一个,不用等别人。
+真实相机、Gazebo 和真实硬件仍需外部设备；仓库内不会把模拟日志伪装成真机证据。
 
 ---
 
@@ -64,6 +66,7 @@ git clone https://github.com/Quchaosheng/workbench-desk-robot.git
 cd workbench-desk-robot
 make bootstrap
 make demo-scripted
+make performance-test
 ```
 
 `demo-scripted` 跑完整条链(观测 → 规划 → 验证 → 回放),纯 Python,不启动仿真器。反馈快。
@@ -96,6 +99,19 @@ make dashboard
 docker compose up --build
 curl http://127.0.0.1:8080/healthz
 ```
+
+本地模型需要先 provision 一次模型卷，然后运行时只连 internal Docker 网络：
+
+```bash
+docker compose --profile model-bootstrap run --rm model-bootstrap
+docker compose --profile model up -d
+docker compose run --rm dashboard python tools/scripts/local_runner.py \
+  --provider ollama --endpoint http://model:11434 --allow-host model \
+  --goal "处理 intake 区已经到达的快递"
+```
+
+阶段性能和分机部署见 [`docs/performance/README.md`](docs/performance/README.md) 与
+[`docs/deployment/multi-host.md`](docs/deployment/multi-host.md)。
 
 看板 API 只读。所有 HTTP 写方法都返回 `405`;这个服务里没有 ROS、运动、MCU 或急停发布器。
 

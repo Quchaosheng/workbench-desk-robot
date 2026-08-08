@@ -40,6 +40,9 @@ The model picks a goal, but cannot send joint positions or velocities. That boun
 - Task-specific verification for placement, exact kit contents, inspection confidence, workspace clearance, and manifest-reconciled parcel routing
 - Read-only multi-entity dashboard with ordered replay, recovery history and evidence inspection
 - Offline container, health endpoints, structured logs and release/SBOM workflow
+- A localhost-only Ollama runner: the model routes to five bounded families, while trusted code emits semantic actions
+- Reproducible startup, stage P50/P95, CPU/RAM and hash-bound hardware evidence tooling
+- Split-host controller/simulation Compose topology with readiness failure when the peer is unavailable
 - 12 frozen v0.1 baselines plus 24 expanded v0.2 scenarios with deterministic seed checks
 - 50 golden task requests across five families plus 26 dangerous requests that must fail closed
 - CI running lint, contracts, evaluation fixtures, offline demo and container smoke checks
@@ -48,10 +51,9 @@ The model picks a goal, but cannot send joint positions or velocities. That boun
 - Gazebo world
 - MoveIt grasp/place
 - Real camera (OpenCV + AprilTag)
-- Open-ended natural language → plan (local model; bounded template routing works today)
 - Gazebo-backed evaluation results (the committed runs are explicit scripted fixtures)
 
-Each unbuilt piece has a frozen contract. You can build one without waiting for the others.
+Real camera, Gazebo and hardware evidence still require external equipment; repository fixtures are never promoted as hardware evidence.
 
 ---
 
@@ -64,6 +66,7 @@ git clone https://github.com/Quchaosheng/workbench-desk-robot.git
 cd workbench-desk-robot
 make bootstrap
 make demo-scripted
+make performance-test
 ```
 
 `demo-scripted` runs the full chain (observe → plan → verify → replay) in pure Python, no simulator. Fast feedback loop.
@@ -96,6 +99,19 @@ Container path:
 docker compose up --build
 curl http://127.0.0.1:8080/healthz
 ```
+
+Provision the optional local model once; runtime traffic stays on an internal Docker network:
+
+```bash
+docker compose --profile model-bootstrap run --rm model-bootstrap
+docker compose --profile model up -d
+docker compose run --rm dashboard python tools/scripts/local_runner.py \
+  --provider ollama --endpoint http://model:11434 --allow-host model \
+  --goal "Handle the parcels already in the intake area"
+```
+
+See [`docs/performance/README.md`](docs/performance/README.md) and
+[`docs/deployment/multi-host.md`](docs/deployment/multi-host.md) for evidence and split-host deployment.
 
 The dashboard API is read-only. Every HTTP write method returns `405`; this service contains no ROS, motion, MCU or emergency-stop publisher.
 

@@ -86,6 +86,9 @@ def test_all():
         assert manager.startup_sequence()
         states = manager.get_all_states()
         assert states["kernel"] == "active"
+        assert manager.nodes["kernel"].deactivate()
+        assert manager.nodes["kernel"].finalize()
+        assert manager.get_all_states()["kernel"] == "finalized"
         print("[PASS] K8 Lifecycle")
 
         # K9-K10: Bootstrap

@@ -1,0 +1,9 @@
+dimension,sim_reference,real_measurement,acceptance_band,evidence,status,owner
+response_time,50 ms,NOT_EXECUTED,<20% deviation,trace with synchronized timestamps,NOT_EXECUTED,Validation Owner
+position_accuracy,+/-0.5 mm,NOT_EXECUTED,engineering target +/-2 mm,calibrated pose log,NOT_EXECUTED,Validation Owner
+grasp_success,95%,NOT_EXECUTED,report measured rate and failures,no-goal cherry picking; serialized run log,NOT_EXECUTED,Validation Owner
+motor_current,simulated model,NOT_EXECUTED,within motor and driver limits,current trace plus temperature,NOT_EXECUTED,Electrical Owner
+collision_response,10 N threshold,NOT_EXECUTED,threshold and reaction time recorded,force trace and stop record,NOT_EXECUTED,Safety Owner
+CAN latency,simulated bus timing,NOT_EXECUTED,measure P50/P95/max and loss rate,CAN capture,NOT_EXECUTED,Validation Owner
+thermal rise,simulated estimate,NOT_EXECUTED,below component and enclosure limits,thermocouple log,NOT_EXECUTED,Quality Owner
+power-up sequence,idealized sequence,NOT_EXECUTED,no unsafe enable before rails valid,scope capture,NOT_EXECUTED,Electrical Owner

@@ -1,0 +1,11 @@
+fmea_id,function,failure_mode,effect,severity_1_10,cause,occurrence_1_10,control,detection_1_10,rpn,action,owner,status
+FMEA-001,power input,reverse polarity,board damage or unsafe stop,10,incorrect battery connection,3,keying and reverse protection,4,120,bench polarity test,Electrical Owner,OPEN
+FMEA-002,power input,overvoltage,component damage,10,charger fault,3,OV cutoff and fuse,4,120,verify trip threshold,Electrical Owner,OPEN
+FMEA-003,Jetson rail,undervoltage,reset or data loss,8,converter overload,4,rail monitoring,5,160,load transient test,Electrical Owner,OPEN
+FMEA-004,CAN isolation,barrier breakdown,shock or communication fault,10,layout/assembly defect,2,creepage and hipot plan,6,120,accredited isolation test,Quality Owner,OPEN
+FMEA-005,E-stop,channel open not detected,continued motor enable,10,connector or wiring fault,3,dual-channel truth table,5,150,fault injection test,Safety Owner,OPEN
+FMEA-006,harness,wrong pinout,uncommanded or missing function,9,assembly substitution,3,keying and continuity test,4,108,automated harness fixture,Manufacturing Owner,OPEN
+FMEA-007,thermal,regulator overheat,derating or shutdown,8,insufficient copper/cooling,4,thermal plan,6,192,chamber/load test,Quality Owner,OPEN
+FMEA-008,mechanical,enclosure crack,loss of protection,7,drop or material defect,3,visual/drop screening,6,126,material and drop validation,Mechanical Owner,OPEN
+FMEA-009,firmware/config,wrong release revision,uncontrolled behavior,9,operator error,2,configuration traveller,5,90,release hash check,Runtime Owner,OPEN
+FMEA-010,packaging,ESD damage in transit,latent field failure,8,missing shielding,3,ESD packaging rule,6,144,transport validation,Quality Owner,OPEN

@@ -13,8 +13,18 @@ hardware/
   mechanical/       Parametric enclosure, chassis, impact and stability package
   pcb/              Controller/power PCB architecture and KiCad engineering package
   manufacturing/    Assembly, test, quality, rework, EHS and release process
+  procurement/      Controlled BOM, quote requests, supplier review and PO gates
+  qa/               Inspection standards, FMEA, AQL and compliance evidence gates
+  validation/       SIM2REAL, diagnostics, fault injection and field acceptance
 ```
 
 **Rule**: every adapter here must satisfy the same contract as its simulation counterpart.
 `CanMotorAdapter` must emit the same `action_result` as the virtual device.
 The verifier never knows which one is running.
+
+## Release truth
+
+The engineering packages are reproducible and testable, but they do not imply a
+physical build, supplier quote, laboratory certification, or field run. The
+procurement, QA, and validation reports deliberately keep those external gates
+blocked until dated evidence is attached.

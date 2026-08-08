@@ -1,0 +1,17 @@
+{
+  "checks": {
+    "aql_has_zero_tolerance_safety_rule": true,
+    "compliance_does_not_claim_certification": true,
+    "fmea_has_safety_failure_modes": true,
+    "fmea_rpn_is_reproducible": true,
+    "inspection_plan_is_complete": true,
+    "inspection_rows_have_explicit_status": true
+  },
+  "compliance_count": 6,
+  "fmea_count": 10,
+  "inspection_count": 10,
+  "package": "qa",
+  "pass": true,
+  "physical_results": "NOT_EXECUTED",
+  "status": "EXECUTION_REQUIRED"
+}

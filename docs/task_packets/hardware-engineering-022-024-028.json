@@ -1,0 +1,38 @@
+{
+  "issue": "22,24,28",
+  "issues": [22, 24, 28],
+  "human_owner": "Quchaosheng",
+  "objective": "Create reproducible procurement, quality, and hardware field-validation packages around the existing PCB and manufacturing engineering release.",
+  "allowed_paths": [
+    "hardware/procurement/**",
+    "hardware/qa/**",
+    "hardware/validation/**",
+    "tests/hardware/**",
+    "docs/task_packets/hardware-engineering-022-024-028.json"
+  ],
+  "read_only_paths": ["interfaces/**", "hardware/pcb/**", "hardware/manufacturing/**"],
+  "forbidden": ["robot/control/**", "firmware/**", "services/**", "interfaces/**"],
+  "acceptance": [
+    "procurement package has a controlled BOM, quote-request register, supplier scorecard, cost/lead-time model, PO checklist, and inventory policy without inventing supplier quotes",
+    "quality package has test standards, inspection plan, FMEA, defect workflow, AQL plan, compliance matrix, and explicit evidence gates",
+    "validation package has SIM2REAL matrix, diagnostic SOP, 20 fault scenarios, first-batch acceptance template, and long-run protocol with unexecuted results clearly marked",
+    "automated validators produce deterministic reports and hardware package tests pass"
+  ],
+  "commands": [
+    "python hardware/procurement/tools/validate_procurement.py",
+    "python hardware/qa/tools/validate_qa.py",
+    "python hardware/validation/tools/validate_validation.py",
+    "python -m unittest discover -s tests/hardware -v"
+  ],
+  "evidence": [
+    "hardware/procurement/generated/procurement_report.json",
+    "hardware/qa/generated/qa_report.json",
+    "hardware/validation/generated/validation_report.json",
+    "hardware package unit-test output"
+  ],
+  "stop_conditions": [
+    "supplier quotations, purchase orders, physical samples, lab certification, or real-machine measurements are external evidence and must remain blocked until supplied",
+    "any candidate component lacks an approved AVL owner",
+    "a validation result would require claiming a test was executed without a signed evidence record"
+  ]
+}

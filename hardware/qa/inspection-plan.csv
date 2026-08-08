@@ -1,0 +1,11 @@
+inspection_id,stage,characteristic,method,limit_or_rule,sample_plan,evidence,status,owner
+INSP-01,incoming,MPN/lot/date code,document review,must match PO and AVL,100% lots,receiving record,NOT_EXECUTED,Quality Owner
+INSP-02,PCBA,polarity/bridges/tombstones,AOI plus microscope,no safety or solder defect,100% boards,AOI record,NOT_EXECUTED,Quality Owner
+INSP-03,PCBA,rail voltage and ripple,calibrated scope/meter,limits from electrical report,100% boards,scope capture,NOT_EXECUTED,Electrical Owner
+INSP-04,PCBA,CAN isolation/withstand,hipot and CAN trace,per approved safety plan,100% boards,test report,NOT_EXECUTED,Quality Owner
+INSP-05,harness,continuity and pinout,automated continuity tester,all nets pass,100% harnesses,continuity CSV,NOT_EXECUTED,Manufacturing Owner
+INSP-06,harness,terminal retention,pull tester,per harness specification,first article plus lot sample,pull-test record,NOT_EXECUTED,Manufacturing Owner
+INSP-07,assembly,fastener torque,calibrated torque tool,traveller torque window,100% critical joints,torque record,NOT_EXECUTED,Manufacturing Owner
+INSP-08,system,E-stop response,hardware timer,less than 100 ms target,100% units,timed stop record,NOT_EXECUTED,Safety Owner
+INSP-09,system,thermal rise,thermocouple/IR,within component limits,engineering sample,thermal report,NOT_EXECUTED,Quality Owner
+INSP-10,system,packaging integrity,drop/transport protocol,no damage or loose parts,lot sample,transport report,NOT_EXECUTED,Manufacturing Owner

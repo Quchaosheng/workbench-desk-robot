@@ -179,6 +179,35 @@ class ManufacturingPackageTests(unittest.TestCase):
         self.assertTrue((generated / "packaging-drawing.svg").exists())
 
 
+class ProcurementPackageTests(unittest.TestCase):
+    def test_procurement_package_is_complete_without_fake_quotes(self) -> None:
+        module = load_module("procurement_checks", ROOT / "hardware/procurement/tools/validate_procurement.py")
+        report = module.validate()
+        self.assertTrue(report["pass"])
+        self.assertEqual(report["status"], "ORDER_RELEASE_BLOCKED")
+        self.assertGreaterEqual(report["quote_request_count"], 2 * 4)
+        self.assertTrue(all(row["unit_cost_usd"] == "" for row in module.read_csv("bom.csv")))
+
+
+class QualityPackageTests(unittest.TestCase):
+    def test_quality_package_has_fmea_and_explicit_execution_gates(self) -> None:
+        module = load_module("qa_checks", ROOT / "hardware/qa/tools/validate_qa.py")
+        report = module.validate()
+        self.assertTrue(report["pass"])
+        self.assertEqual(report["status"], "EXECUTION_REQUIRED")
+        self.assertEqual(report["physical_results"], "NOT_EXECUTED")
+
+
+class ValidationPackageTests(unittest.TestCase):
+    def test_validation_package_has_fault_library_and_no_fake_units(self) -> None:
+        module = load_module("validation_checks", ROOT / "hardware/validation/tools/validate_validation.py")
+        report = module.validate()
+        self.assertTrue(report["pass"])
+        self.assertEqual(report["fault_scenario_count"], 20)
+        self.assertEqual(report["first_batch_unit_count"], 10)
+        self.assertEqual(report["physical_results"], "NOT_EXECUTED")
+
+
 class TaskPacketTests(unittest.TestCase):
     def test_task_packet_limits_writes_to_hardware_and_tests(self) -> None:
         packet = json.loads(
@@ -187,6 +216,16 @@ class TaskPacketTests(unittest.TestCase):
         self.assertEqual(packet["issue"], "19,21,23")
         self.assertEqual(packet["issues"], [19, 21, 23])
         self.assertIn("robot/control/**", packet["forbidden"])
+        self.assertIn("firmware/**", packet["forbidden"])
+
+    def test_procurement_quality_validation_packet_is_bounded(self) -> None:
+        packet = json.loads(
+            (ROOT / "docs/task_packets/hardware-engineering-022-024-028.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(packet["issues"], [22, 24, 28])
+        self.assertIn("hardware/procurement/**", packet["allowed_paths"])
+        self.assertIn("hardware/qa/**", packet["allowed_paths"])
+        self.assertIn("hardware/validation/**", packet["allowed_paths"])
         self.assertIn("firmware/**", packet["forbidden"])
 
 

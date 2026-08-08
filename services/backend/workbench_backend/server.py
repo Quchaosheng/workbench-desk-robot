@@ -1,13 +1,14 @@
 import argparse
 import json
 import mimetypes
+import os
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 from .logging import StructuredLogger
-from .read_model import DashboardReadModel, ReadModelError
+from .read_model import DashboardReadModel, ReadModelError, RemoteDashboardReadModel
 
 SOURCE_ROOT = Path(__file__).resolve().parents[3]
 ROOT = Path.cwd() if (Path.cwd() / "apps" / "dashboard").is_dir() else SOURCE_ROOT
@@ -19,6 +20,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
     read_model = DashboardReadModel(DEFAULT_DATA_DIR)
     static_dir = DEFAULT_STATIC_DIR
     logger = StructuredLogger("workbench-backend")
+    data_source = "dashboard-fixtures"
     server_version = "WorkbenchBackend/0.1"
 
     def log_message(self, format: str, *args) -> None:
@@ -108,7 +110,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         if route == "/readyz":
             ready = self.read_model.ready()
             self._send_json(
-                {"status": "ready" if ready else "not_ready", "data_source": "dashboard-fixtures"},
+                {"status": "ready" if ready else "not_ready", "data_source": self.data_source},
                 HTTPStatus.OK if ready else HTTPStatus.SERVICE_UNAVAILABLE,
             )
             return
@@ -153,13 +155,17 @@ def create_server(
     *,
     data_dir: str | Path = DEFAULT_DATA_DIR,
     static_dir: str | Path = DEFAULT_STATIC_DIR,
+    event_source_url: str | None = None,
 ) -> ThreadingHTTPServer:
-    configured_read_model = DashboardReadModel(data_dir)
+    configured_read_model = (
+        RemoteDashboardReadModel(event_source_url) if event_source_url else DashboardReadModel(data_dir)
+    )
     configured_static_dir = Path(static_dir)
 
     class ConfiguredHandler(DashboardHandler):
         read_model = configured_read_model
         static_dir = configured_static_dir
+        data_source = configured_read_model.data_source if event_source_url else "dashboard-fixtures"
 
     return ThreadingHTTPServer((host, port), ConfiguredHandler)
 
@@ -169,12 +175,13 @@ def main() -> int:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
+    parser.add_argument("--event-source-url", default=os.environ.get("WORKBENCH_EVENT_SOURCE_URL"))
     args = parser.parse_args()
-    server = create_server(args.host, args.port, data_dir=args.data_dir)
+    server = create_server(args.host, args.port, data_dir=args.data_dir, event_source_url=args.event_source_url)
     DashboardHandler.logger.emit(
         "service_started",
         f"dashboard listening on http://{args.host}:{args.port}",
-        details={"offline": True, "read_only": True},
+        details={"offline": True, "read_only": True, "data_source": "remote" if args.event_source_url else "local"},
     )
     try:
         server.serve_forever()

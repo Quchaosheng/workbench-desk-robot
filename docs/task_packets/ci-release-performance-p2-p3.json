@@ -1,0 +1,68 @@
+{
+  "issue": "E7-E8/E12-E13/E16-E17/J1-J2/J4-J5",
+  "human_owner": "Quchaosheng",
+  "objective": "Automate local-model execution, split-host deployment, release evidence, and reproducible performance measurement without weakening the robot safety boundary or fabricating human and hardware evidence.",
+  "allowed_paths": [
+    "services/agent_runtime/**",
+    "services/backend/**",
+    "tools/**",
+    "tests/**",
+    "deploy/**",
+    ".github/workflows/**",
+    "Dockerfile",
+    "compose.yaml",
+    "Makefile",
+    "pyproject.toml",
+    "README.md",
+    "README.zh-CN.md",
+    "THIRD_PARTY_REVIEW.md",
+    "docs/architecture/**",
+    "docs/deployment/**",
+    "docs/evaluation/**",
+    "docs/hardware/**",
+    "docs/performance/**",
+    "docs/releases/**",
+    "docs/task_packets/**"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "apps/dashboard/**"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "hardware/safety/**"
+  ],
+  "acceptance": [
+    "a localhost-only model runner invokes a real Ollama-compatible API and validates the returned TaskGraph before use",
+    "offline template mode remains deterministic and both runner modes have behavior tests",
+    "one analysis path reports stage P50/P95 for simulation and hardware-shaped telemetry without treating fixtures as hardware evidence",
+    "startup and per-process CPU/RAM benchmarks emit machine-readable evidence with explicit environment metadata",
+    "controller and simulation services have independently deployable configurations and fail readiness when their peer is unavailable",
+    "release automation publishes an immutable image digest, SPDX SBOM, provenance manifest, and verification instructions",
+    "cold-start and hardware evidence collection is automated but remains incomplete until real participants or hardware provide records"
+  ],
+  "commands": [
+    "python tools/scripts/check_task_packet.py docs/task_packets/ci-release-performance-p2-p3.json",
+    "make check",
+    "make performance-test",
+    "docker compose up --build -d",
+    "python tools/scripts/benchmark_startup.py --compose-file compose.yaml --output runs/performance/startup.json",
+    "python tools/scripts/benchmark_resources.py --url http://127.0.0.1:8080 --output runs/performance/resources.json"
+  ],
+  "evidence": [
+    "unit and integration test output",
+    "local model response metadata and validated semantic TaskGraph",
+    "startup phase and resource JSON reports",
+    "simulation and hardware telemetry analysis reports",
+    "container health checks and split-host deployment smoke test",
+    "release manifest, image digest, SPDX SBOM and cold-start participant records"
+  ],
+  "stop_conditions": [
+    "a frozen interface or contract change is required",
+    "the model output would gain access to joint, velocity, firmware or emergency-stop commands",
+    "release credentials, a human merge decision or an external participant is required",
+    "physical hardware evidence would need to be inferred or fabricated"
+  ]
+}

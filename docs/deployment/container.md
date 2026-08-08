@@ -4,7 +4,7 @@
 
 - Ubuntu 24.04 base image;
 - Python 3.12 from Ubuntu packages;
-- no CUDA, NVIDIA runtime, model server or network dependency at runtime;
+- no CUDA or NVIDIA runtime and no model server/network dependency in the default runtime;
 - non-root UID `10001`;
 - read-only filesystem, dropped Linux capabilities and `no-new-privileges` in Compose.
 
@@ -28,6 +28,20 @@ The image default command starts the read-only dashboard backend. The offline pl
 docker run --rm workbench-1:local \
   python tools/scripts/local_runner.py --goal "Place the red block in the tray"
 ```
+
+The optional local model profile provisions Ollama once and keeps model traffic on an internal Docker network:
+
+```bash
+docker compose --profile model-bootstrap run --rm model-bootstrap
+docker compose --profile model up -d
+docker compose run --rm dashboard python tools/scripts/local_runner.py \
+  --provider ollama --endpoint http://model:11434 --allow-host model \
+  --goal "Handle the parcels already in the intake area"
+```
+
+`model-bootstrap` is the only service attached to the egress-capable bootstrap network. After the model volume is populated,
+the `model` and dashboard services use the `internal` runtime network. The template path remains fully usable with no model
+image or network.
 
 ## Build and provenance
 

@@ -1,0 +1,47 @@
+{
+  "issue": "PARCEL-MANIFEST-v0.5",
+  "human_owner": "Quchaosheng",
+  "objective": "Reconcile observed parcels against an inbound manifest and reject normalized identities reused across supported fields.",
+  "allowed_paths": [
+    "services/agent_runtime/**",
+    "services/world_model/**",
+    "tasks/parcels/**",
+    "tools/scripts/**",
+    "apps/dashboard/**",
+    "tests/**",
+    "docs/task_packets/**",
+    "docs/evaluation/screenshots/**",
+    "README.md",
+    "README.zh-CN.md"
+  ],
+  "read_only_paths": ["interfaces/**", "libs/contracts/**"],
+  "forbidden": ["robot/control/**", "firmware/**", "hardware/safety/**"],
+  "acceptance": [
+    "identity comparison normalizes case, compatibility characters, whitespace, and hyphens",
+    "the same identity reused across tracking_id, barcode, or parcel_uid fails closed",
+    "an optional inbound manifest rejects missing, unexpected, or mismatched parcels before manipulation",
+    "the independent verifier distinguishes missing manifest evidence from a manifest mismatch",
+    "place actions and dashboard replay expose manifest and identity guard outcomes without storing recipient data"
+  ],
+  "commands": [
+    "python -m ruff check .",
+    "python -m pytest tests/ -q",
+    "python tools/scripts/validate_contracts.py",
+    "python tools/scripts/validate_scenarios.py",
+    "python tools/scripts/validate_golden_set.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/parcel-manifest-v0.5.json",
+    "docker compose up -d --build"
+  ],
+  "evidence": [
+    "planner tests for cross-field duplicates and manifest mismatch",
+    "world-model tests for missing and contradictory manifest evidence",
+    "scripted parcel log with manifest guard metadata",
+    "desktop and mobile dashboard screenshots"
+  ],
+  "stop_conditions": [
+    "a manifest contains recipient names, addresses, or other unnecessary personal data",
+    "conditional execution would require a new contract",
+    "mobile navigation or parcel-locker access is requested",
+    "scripted observations would be presented as physical sensor evidence"
+  ]
+}

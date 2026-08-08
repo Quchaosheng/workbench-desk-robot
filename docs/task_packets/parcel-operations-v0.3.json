@@ -1,0 +1,45 @@
+{
+  "issue": "PARCEL-OPERATIONS-v0.3",
+  "human_owner": "Quchaosheng",
+  "objective": "Make parcel batching capacity-aware, collision-safe, risk-prioritized, and exercised by the scripted evaluation path.",
+  "allowed_paths": [
+    "services/agent_runtime/**",
+    "tasks/parcels/**",
+    "tools/scripts/**",
+    "apps/dashboard/**",
+    "tests/**",
+    "docs/task_packets/**",
+    "README.md",
+    "README.zh-CN.md"
+  ],
+  "read_only_paths": ["interfaces/**", "libs/contracts/**", "services/world_model/**"],
+  "forbidden": ["robot/control/**", "firmware/**", "hardware/safety/**"],
+  "acceptance": [
+    "distinct parcel IDs always produce distinct task step IDs",
+    "condition exceptions route before label-only exceptions and verified intact parcels",
+    "capacity and occupancy snapshots reject infeasible batches before a task graph is returned",
+    "capacity projections, priority, policy version, and route reason remain auditable on place actions",
+    "scripted parcel evaluation obtains its operation order from the production policy planner",
+    "dashboard shows route priority and current configured capacity usage"
+  ],
+  "commands": [
+    "python -m ruff check .",
+    "python -m pytest tests/ -q",
+    "python tools/scripts/validate_scenarios.py",
+    "python tools/scripts/validate_golden_set.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/parcel-operations-v0.3.json",
+    "docker compose up -d --build"
+  ],
+  "evidence": [
+    "planner capacity, priority, and identifier-collision unit tests",
+    "evaluation test proving parcel task graph planner v2 and risk order",
+    "desktop and mobile parcel dashboard screenshots",
+    "scripted evaluation logs marked release_eligible false"
+  ],
+  "stop_conditions": [
+    "capacity cannot be known before planning",
+    "conditional execution would require a new contract",
+    "mobile navigation or parcel-locker access is requested",
+    "scripted observations would be presented as physical sensor evidence"
+  ]
+}

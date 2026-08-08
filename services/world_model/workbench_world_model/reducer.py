@@ -6,8 +6,15 @@ class WorldState(BaseModel):
     run_id: str
     entity_locations: dict[str, str] = Field(default_factory=dict)
     entity_confidence: dict[str, float] = Field(default_factory=dict)
+    entity_attributes: dict[str, dict[str, str]] = Field(default_factory=dict)
+    entity_evidence_refs: dict[str, list[str]] = Field(default_factory=dict)
     evidence_refs: list[str] = Field(default_factory=list)
     applied_event_ids: list[str] = Field(default_factory=list)
+
+
+def _append_entity_evidence(state: WorldState, entity_id: str, evidence_refs: list[str]) -> None:
+    entity_evidence = state.entity_evidence_refs.setdefault(entity_id, [])
+    entity_evidence.extend(reference for reference in evidence_refs if reference not in entity_evidence)
 
 
 def apply_event(state: WorldState, event: WorldEvent) -> WorldState:
@@ -21,23 +28,27 @@ def apply_event(state: WorldState, event: WorldEvent) -> WorldState:
 
     if event.event_type is WorldEventType.OBSERVATION:
         entity_id = event.payload.get("entity_id")
-        # location is optional — an observation without a location is still valid
         location = event.payload.get("location")
-        if entity_id and location:
-            next_state.entity_locations[str(entity_id)] = str(location)
         if entity_id:
-            confidence = float(event.payload.get("confidence", 0.0))
-            next_state.entity_confidence[str(entity_id)] = confidence
+            normalized_entity_id = str(entity_id)
+            if location:
+                next_state.entity_locations[normalized_entity_id] = str(location)
+            next_state.entity_confidence[normalized_entity_id] = float(event.payload.get("confidence", 0.0))
+            attributes = event.payload.get("attributes")
+            if isinstance(attributes, dict):
+                next_state.entity_attributes[normalized_entity_id] = {
+                    str(key): str(value) for key, value in attributes.items()
+                }
+            _append_entity_evidence(next_state, normalized_entity_id, event.evidence_refs)
 
-    elif (
-        event.event_type is WorldEventType.ACTION_RESULT
-        # schema uses outcome=completed, not status=succeeded
-        and event.payload.get("outcome") == "completed"
-    ):
+    elif event.event_type is WorldEventType.ACTION_RESULT and event.payload.get("outcome") == "completed":
         entity_id = event.payload.get("entity_id")
         location = event.payload.get("resulting_location")
-        if entity_id and location:
-            next_state.entity_locations[str(entity_id)] = str(location)
+        if entity_id:
+            normalized_entity_id = str(entity_id)
+            if location:
+                next_state.entity_locations[normalized_entity_id] = str(location)
+            _append_entity_evidence(next_state, normalized_entity_id, event.evidence_refs)
 
     return next_state
 

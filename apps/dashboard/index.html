@@ -140,12 +140,13 @@
                   </div>
                   <span id="confidence-badge" class="confidence-badge">--</span>
                 </div>
-                <div class="workbench-map" aria-label="红色模块与托盘位置俯视图">
+                <div class="workbench-map" aria-label="多实体工作区位置俯视图">
                   <span class="map-camera"><i data-lucide="camera"></i></span>
-                  <span class="map-tray">托盘</span>
-                  <span id="map-block" class="map-block">红块</span>
+                  <div id="map-zones" class="map-zones"></div>
+                  <div id="map-entities" class="map-entities" aria-live="polite"></div>
                   <span class="map-arm"><i data-lucide="construction"></i></span>
                 </div>
+                <div id="parcel-decisions" class="parcel-decisions" hidden></div>
                 <div id="evidence-list" class="evidence-list"></div>
               </section>
 

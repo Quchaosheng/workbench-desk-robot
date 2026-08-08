@@ -2,7 +2,15 @@
 
 Acceptance requires at least two of three participants to reach a healthy dashboard within 60 minutes from a clean machine.
 
-## Participant record
+## Participant records
+
+Copy [`cold-start-results.template.json`](cold-start-results.template.json) to a private evidence file and fill it after each clean-machine run. Validate the completed file with:
+
+```bash
+python tools/scripts/validate_cold_start.py runs/evaluation/cold-start-results.json
+```
+
+The command intentionally fails until at least two of three real participants pass. The checked-in template is not evidence.
 
 | Field | Value |
 |---|---|

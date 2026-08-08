@@ -1,5 +1,23 @@
 from .event_store import SQLiteEventStore
 from .reducer import WorldState, apply_event, reduce_events
-from .verifier import verify_object_in_tray
+from .verifier import (
+    verify_inspection_evidence,
+    verify_kit_contents,
+    verify_object_in_tray,
+    verify_parcel_policy,
+    verify_parcel_sorting,
+    verify_workspace_clearance,
+)
 
-__all__ = ["SQLiteEventStore", "WorldState", "apply_event", "reduce_events", "verify_object_in_tray"]
+__all__ = [
+    "SQLiteEventStore",
+    "WorldState",
+    "apply_event",
+    "reduce_events",
+    "verify_inspection_evidence",
+    "verify_kit_contents",
+    "verify_object_in_tray",
+    "verify_parcel_policy",
+    "verify_parcel_sorting",
+    "verify_workspace_clearance",
+]

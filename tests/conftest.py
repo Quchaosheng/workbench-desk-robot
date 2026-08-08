@@ -2,10 +2,15 @@
 pytest 共享 fixtures,供全部测试使用。
 """
 
+import sys
 import tempfile
 from pathlib import Path
 
 import pytest
+
+SCRIPTS = Path(__file__).resolve().parents[1] / "tools" / "scripts"
+if str(SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS))
 
 
 @pytest.fixture

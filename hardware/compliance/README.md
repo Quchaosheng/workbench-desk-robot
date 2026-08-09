@@ -57,3 +57,6 @@ assessment remain required before shipment.
 
 Status: `NOT_CERTIFIED`. CE/FCC scope confirmation, supplier certificates,
 pack-level UN 38.3 evidence, formal testing, and signed declarations are blockers.
+
+`evidence-matrix.csv` is the pre-PO stop register; every row requires exact
+MPN/revision and issuing evidence before an affected order can be released.

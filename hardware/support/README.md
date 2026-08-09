@@ -65,3 +65,7 @@ incoming inspection, test coverage, manuals, training, and release decisions.
 Status: `PROCESS_DEFINED_STAFFING_REQUIRED`. Named on-call roles, contact channels,
 spares quantities, site training, diagnostic tooling, privacy controls, and drill
 evidence must be completed before production deployment.
+
+Use `case-template.csv` for the minimum evidence record and
+`escalation-matrix.csv` for response/containment ownership. The templates do not
+contain customer data or claim staffing is already in place.

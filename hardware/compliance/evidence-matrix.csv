@@ -1,0 +1,6 @@
+program,scope,evidence_required,exact_mpn_or_revision,issuer_or_lab,report_or_certificate,status,po_gate
+CE,EMC_and_product_safety,technical_file_risk_assessment_DoC,REQUIRED,REQUIRED,REQUIRED,REQUIRED,STOP
+FCC,radio_and_unintentional_radiator,grant_or_SDoC_host_conditions,REQUIRED,REQUIRED,REQUIRED,REQUIRED,STOP
+UN38.3,battery_pack_transport,T1-T8_pack_test_summary,REQUIRED,REQUIRED,REQUIRED,REQUIRED,STOP
+RoHS,restricted_substances,supplier_declaration_or_test,REQUIRED,REQUIRED,REQUIRED,REQUIRED,STOP
+WEEE,battery_and_product_marking,market_obligation_review,REQUIRED,REQUIRED,REQUIRED,REQUIRED,STOP

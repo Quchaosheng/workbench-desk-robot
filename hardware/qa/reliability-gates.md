@@ -54,3 +54,7 @@ not represented as zero risk.
 
 Status: `EXECUTION_REQUIRED`. The specification is ready; pilot, reliability,
 FMEA-action, and early-life evidence must be collected on real units.
+
+`fmea-action-register.csv` keeps high-RPN actions visible, while
+`early-failure-log.csv` is a deliberately empty execution template rather than
+a fabricated reliability result.

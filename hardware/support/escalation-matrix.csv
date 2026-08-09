@@ -1,0 +1,5 @@
+severity,trigger,ack_target_min,containment_owner,engineering_escalation,closure_evidence
+S0,injury smoke fire battery damage uncontrolled motion,15,Site Safety Lead,immediate Safety and Quality review,incident report and authority disposition
+S1,safety function unavailable or fleet stopping,60,Support Lead,1 hour Hardware and Quality review,containment plus verified corrective action
+S2,major safe workaround unavailable,240,Support Lead,next business day subsystem owner,restore test and customer confirmation
+S3,minor or cosmetic issue,1440,Support Queue,planned backlog review,case record and release reference

@@ -49,3 +49,7 @@ price. Selection records name the reviewer, date, evidence, exceptions, and expi
 
 Status: `ORDER_RELEASE_BLOCKED` until real quotes, approved MPNs, certificates,
 and buyer/engineering sign-off replace the planning assumptions.
+
+`planning-bom.csv` is the arithmetic source for the USD 5,100 allocation and
+`supplier-scorecard-planning.csv` prevents an unassessed supplier from being
+treated as approved.

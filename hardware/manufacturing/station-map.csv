@@ -1,0 +1,7 @@
+station,operation_ids,primary_fixture,cycle_target_min,quality_exit,release_status
+S1,010-020,FX-01 receiving_and_kitting,13,QG-01/QG-02,DESIGN_ONLY
+S2,030-050,FX-02 PCBA_process_and_AOI,21,QG-03/QG-04/QG-05,DESIGN_ONLY
+S3,060/090,FX-03 and FX-06 electrical_and_harness,16,QG-06/QG-09,DESIGN_ONLY
+S4,070/080/100,FX-01 mechanical_and_torque,24,QG-07/QG-08/QG-10,DESIGN_ONLY
+S5,110-120,FX-04 and FX-05 safety_and_functional,16,QG-11/QG-12,DESIGN_ONLY
+S6,130-140,FX-07 final_inspection_and_pack,13,QG-13/QG-14,DESIGN_ONLY

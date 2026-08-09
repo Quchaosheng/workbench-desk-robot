@@ -1,0 +1,4 @@
+supplier_id,scope,quality_0_5,technical_0_5,delivery_0_5,cost_0_5,compliance_0_5,weighted_score_100,status,evidence
+SUP-A,actuation,0,0,0,0,0,0,UNASSESSED,quote+capability_audit+certificates
+SUP-B,mechanical,0,0,0,0,0,0,UNASSESSED,quote+DFM+material_records
+SUP-C,PCBA_and_harness,0,0,0,0,0,0,UNASSESSED,quote+quality_questionnaire+traceability

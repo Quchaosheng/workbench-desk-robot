@@ -63,3 +63,8 @@ forbidden. Reset requires removal of the trigger and an explicit local action.
 
 Status: `DESIGN_BASELINE_ONLY`. Pack supplier data, hazard analysis, physical
 fault injection, thermal testing, and certification evidence remain release blockers.
+
+Machine-readable attachments: `bms-state-machine.csv` is the reviewable state
+transition table and `protection-thresholds.csv` is the three-level protection
+register. Threshold values intentionally remain supplier/configuration inputs
+until the exact pack revision is selected.

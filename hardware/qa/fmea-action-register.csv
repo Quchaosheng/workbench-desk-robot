@@ -1,0 +1,8 @@
+action_id,fmea_id,current_rpn,containment,owner,due_gate,verification_status
+ACT-001,FMEA-001,120,100_percent_polarity_and_keying_check,Electrical Owner,EVT,OPEN
+ACT-002,FMEA-002,120,charger_quarantine_and_OV_trip_review,Electrical Owner,EVT,OPEN
+ACT-003,FMEA-003,160,load_transient_screening_and_rail_scope,Quality Owner,EVT,OPEN
+ACT-004,FMEA-004,120,isolation_fixture_and_supplier_report,Quality Owner,EVT,OPEN
+ACT-005,FMEA-005,150,dual_channel_fault_injection_100_percent,Safety Owner,EVT,OPEN
+ACT-006,FMEA-007,192,thermal_chamber_and_derating_test,Quality Owner,EVT,OPEN
+ACT-007,FMEA-008,126,material_lot_and_drop_validation,Mechanical Owner,EVT,OPEN

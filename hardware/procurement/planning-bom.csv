@@ -1,0 +1,11 @@
+line_id,category,description,qty,unit_cost_usd,extended_cost_usd,quote_status,certificate_gate
+ARM-L,actuation,left arm and controller,1,1200,1200,PLANNING_ONLY,REQUIRED_BEFORE_PO
+ARM-R,actuation,right arm and controller,1,1200,1200,PLANNING_ONLY,REQUIRED_BEFORE_PO
+COMPUTE,compute,compute storage and networking,1,850,850,PLANNING_ONLY,REQUIRED_BEFORE_PO
+SENSORS,safety,cameras safety sensors and HMI,1,550,550,PLANNING_ONLY,REQUIRED_BEFORE_PO
+POWER,power,48 V battery BMS charger and PDU,1,450,450,PLANNING_ONLY,REQUIRED_BEFORE_PO
+FRAME,mechanical,frame covers casters and fasteners,1,300,300,PLANNING_ONLY,REQUIRED_BEFORE_PO
+HARNESS,harness,power and signal harness set,1,200,200,PLANNING_ONLY,REQUIRED_BEFORE_PO
+PCBA,electronics,controller PCB assemblies,1,150,150,PLANNING_ONLY,REQUIRED_BEFORE_PO
+PACKAGING,logistics,ESD and impact packaging,1,100,100,PLANNING_ONLY,REQUIRED_BEFORE_PO
+SPARES,service,initial fastener and service allowance,1,100,100,PLANNING_ONLY,REQUIRED_BEFORE_PO

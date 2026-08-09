@@ -44,3 +44,19 @@ def test_task_packet_is_bounded_and_fail_closed() -> None:
     assert "firmware/**" in packet["forbidden"]
     assert "interfaces/**" in packet["forbidden"]
     assert any("invented" in condition for condition in packet["stop_conditions"])
+
+
+def test_structured_evidence_attachments_are_complete() -> None:
+    report = load_validator().validate()
+    checks = report["checks"]
+    for name in (
+        "bms_has_fail_closed_states",
+        "mass_ledger_sums_to_55kg",
+        "planning_bom_rows_sum_to_5100",
+        "station_map_has_six_unique_stations",
+        "fixture_budget_rows_sum_to_4000",
+        "all_fmea_actions_are_above_rpn_threshold",
+        "compliance_matrix_has_three_required_programs",
+        "support_has_four_severity_levels",
+    ):
+        assert checks[name], name

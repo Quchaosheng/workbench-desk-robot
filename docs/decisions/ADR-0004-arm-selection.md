@@ -97,6 +97,22 @@ an exit path (primitive collision geometry / model swap), not treated as clean.
   SRDF choice is validated structurally by `check_urdf`; full confirmation needs
   a `move_group` parse once MoveIt is installed.)
 
+## Phase-1 follow-up carried into phase 3
+
+- **`camera_body` has no collision geometry.** In
+  `robot/description/workbench.urdf.xacro`, `camera_body` is a hand-written link
+  with only `<visual>` — no `<collision>` (unlike `camera_post`, which uses the
+  `static_box` macro that includes collision). MoveIt therefore does **not** see
+  the camera body as an obstacle, so a plan passing near it could clip it. Phase 1
+  is unaffected: the reachability sampling regions (block, tray) are far from the
+  camera post, and the ≥95% gate passes. But before phase-3 full collision
+  planning, `camera_body` needs a `<collision>`. That file is owned by
+  `robot/description` (Simulation/description owner), outside Motion's write
+  scope, so phase 3 must either get the owner to add it, or add a single
+  PlanningScene collision object for the camera body on our side — a deliberate,
+  documented exception to the "merged-URDF-is-the-only-collision-source" rule,
+  justified by the missing source geometry.
+
 ## Reproduce
 
 ```bash

@@ -59,7 +59,11 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     p.add_argument("--tip", default=None, help="IK tip link (default: arm.yaml ik_tip_link)")
     p.add_argument("--base-frame", default=None, help="planning/pose frame (default: arm.yaml base_placement.frame)")
     p.add_argument("--threshold", type=float, default=0.95, help="per-region pass rate")
-    p.add_argument("--timeout", type=float, default=2.0, help="per-IK timeout seconds")
+    # Default matches config/moveit/kinematics.yaml kinematics_solver_timeout
+    # (0.05 s): the TRAC-IK solver already stops at 0.05, so a larger per-request
+    # timeout would not give the solver more budget. Kept as one knob for a
+    # coherent, reproducible number recorded into the report as ik_timeout_s.
+    p.add_argument("--timeout", type=float, default=0.05, help="per-IK timeout seconds (matches solver timeout)")
     p.add_argument(
         "--output",
         default="docs/evaluation/phase1-reachability.json",
@@ -211,6 +215,7 @@ def main(argv: list[str] | None = None) -> int:
         "seed": args.seed,
         "samples_per_region": args.samples,
         "yaws_per_position": args.yaws,
+        "ik_timeout_s": args.timeout,
         "metric": "position graspable if >=1 top-down yaw is collision-free and IK-valid",
         "group": group,
         "tip_link": tip,

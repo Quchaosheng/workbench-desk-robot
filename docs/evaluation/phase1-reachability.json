@@ -1,8 +1,9 @@
 {
-  "generated_at": "2026-08-09T15:02:55+0800",
+  "generated_at": "2026-08-09T17:55:46+0800",
   "seed": 0,
   "samples_per_region": 20,
   "yaws_per_position": 12,
+  "ik_timeout_s": 0.05,
   "metric": "position graspable if >=1 top-down yaw is collision-free and IK-valid",
   "group": "ur_manipulator",
   "tip_link": "grasp_tcp",

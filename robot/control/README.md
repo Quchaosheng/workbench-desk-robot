@@ -104,10 +104,14 @@ check_urdf /tmp/wb_arm.urdf
 # Launch move_group (headless, for reachability check)
 ros2 launch workbench_motion move_group.launch.py
 
-# In another shell (after move_group is up):
+# In another shell (after move_group is up). --timeout 0.05 matches the solver
+# timeout in config/moveit/kinematics.yaml; pass an explicit absolute output path
+# so the JSON lands in the repo regardless of the shell's cwd:
 source install/setup.bash
-ros2 run workbench_motion reachability_check --seed 0 --samples 20
-# -> writes docs/evaluation/phase1-reachability.json, exits 0 if ≥95% both regions
+ros2 run workbench_motion reachability_check \
+  --seed 0 --samples 20 --yaws 12 --timeout 0.05 \
+  --output "$(git -C <path-to-repo> rev-parse --show-toplevel)/docs/evaluation/phase1-reachability.json"
+# -> exits 0 if ≥95% both regions
 ```
 
 > **Status (verified 2026-08-09, MoveIt + TRAC-IK on Jazzy):** gate PASSES.

@@ -103,13 +103,13 @@ jobs:
 
       - name: Attest published image
         if: steps.publish.outputs.digest != ''
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be  # v2.4.0
         with:
           subject-name: ghcr.io/${{ github.repository }}
           subject-digest: ${{ steps.publish.outputs.digest }}
           push-to-registry: true
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: workbench-1-release-provenance
           path: release-manifest.json

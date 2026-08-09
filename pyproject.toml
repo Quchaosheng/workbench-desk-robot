@@ -18,6 +18,10 @@ dev = [
   "ruff==0.6.9",
   "pre-commit>=3,<4",
 ]
+docs = [
+  "mkdocs>=1.6,<2",
+  "mkdocstrings[python]>=0.27,<1",
+]
 
 [tool.setuptools.packages.find]
 where = [

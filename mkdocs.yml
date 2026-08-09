@@ -1,0 +1,18 @@
+site_name: Workbench Desk Robot
+site_description: Controlled engineering and operator documentation
+docs_dir: docs
+strict: true
+theme:
+  name: mkdocs
+nav:
+  - User manual: user-guide/index.md
+  - 90-minute demo: user-guide/demo-runbook.md
+  - System architecture: architecture/system.md
+  - API reference: api.md
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths:
+            - libs/kernel

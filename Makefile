@@ -1,7 +1,7 @@
 PYTHON ?= python3
 
 .PHONY: bootstrap lint fmt test contract scenario-check golden-check evaluation-check evaluation-scripted context-check \
-	dashboard-test dashboard demo-scripted demo-offline task-check check container-smoke
+	dashboard-test dashboard demo-scripted demo-offline docs task-check check container-smoke
 
 bootstrap:
 	$(PYTHON) -m pip install --upgrade pip
@@ -53,6 +53,9 @@ dashboard-test:
 
 dashboard:
 	$(PYTHON) -m workbench_backend.server --host 127.0.0.1 --port 8080
+
+docs:
+	$(PYTHON) -m mkdocs build --strict
 
 container-smoke:
 	docker build -t workbench-1:smoke .

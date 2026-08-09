@@ -1,0 +1,59 @@
+{
+  "issue": "20-27",
+  "issues": [20, 21, 22, 23, 24, 25, 26, 27],
+  "human_owner": "Quchaosheng",
+  "objective": "Define fail-closed power, mechanical, procurement, manufacturing, quality, documentation, compliance, and field-support readiness packages.",
+  "allowed_paths": [
+    "hardware/power/**",
+    "hardware/mechanical/system-integration.md",
+    "hardware/procurement/planning-baseline.md",
+    "hardware/manufacturing/production-line.md",
+    "hardware/qa/reliability-gates.md",
+    "hardware/compliance/**",
+    "hardware/support/**",
+    "hardware/operations-readiness.json",
+    "hardware/generated/operations_readiness_report.json",
+    "hardware/tools/validate_operations_readiness.py",
+    "docs/user-guide/**",
+    "docs/api.md",
+    "mkdocs.yml",
+    ".gitignore",
+    "pyproject.toml",
+    "Makefile",
+    "tests/hardware/**",
+    "docs/task_packets/operations-readiness-020-027.json"
+  ],
+  "read_only_paths": [
+    "hardware/mechanical/generated/**",
+    "hardware/procurement/generated/**",
+    "hardware/manufacturing/generated/**",
+    "hardware/qa/generated/**"
+  ],
+  "forbidden": ["robot/control/**", "firmware/**", "interfaces/**", "services/**"],
+  "acceptance": [
+    "48 V pack topology, three protection levels, and fail-closed BMS states are explicit",
+    "55 kg design case, dual-arm interference controls, and assembly evidence gates are explicit",
+    "planning BOM totals USD 5100 without being represented as supplier quotes",
+    "six-station line, USD 4000 fixture cap, and FPY target of at least 85 percent are controlled",
+    "RPN above 100 and early failure rate above 5 percent block release",
+    "MkDocs navigation, generated API reference, user manual, and 90-minute demo route exist",
+    "CE, FCC, and UN 38.3 evidence is required before affected purchase orders",
+    "field triage, escalation, spares, rollback, and evidence capture are defined",
+    "deterministic validator and focused tests pass"
+  ],
+  "commands": [
+    "python hardware/tools/validate_operations_readiness.py",
+    "python -m pytest tests/hardware/test_operations_readiness.py -v",
+    "python -m mkdocs build --strict"
+  ],
+  "evidence": [
+    "hardware/generated/operations_readiness_report.json",
+    "focused test output",
+    "site/ strict MkDocs build output"
+  ],
+  "stop_conditions": [
+    "a certification, quote, physical test, or pilot result would need to be invented",
+    "a safety threshold needs firmware or robot-control behavior changes",
+    "an external record lacks revision, serial or lot, date, owner, and raw evidence reference"
+  ]
+}

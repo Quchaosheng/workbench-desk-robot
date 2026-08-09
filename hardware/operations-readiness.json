@@ -1,0 +1,39 @@
+{
+  "package": "operations-readiness-20-27",
+  "status": "EXTERNAL_EVIDENCE_REQUIRED",
+  "power": {
+    "nominal_pack_voltage_v": 48,
+    "protection_levels": 3,
+    "bms_fail_closed": true
+  },
+  "mechanical": {
+    "design_case_mass_kg": 55,
+    "dual_arm_interference_review": "PHYSICAL_VALIDATION_REQUIRED"
+  },
+  "procurement": {
+    "planning_bom_usd": 5100,
+    "quotes_required": true,
+    "critical_certificates_required_before_po": true
+  },
+  "manufacturing": {
+    "station_count": 6,
+    "fixture_budget_usd": 4000,
+    "minimum_fpy_percent": 85
+  },
+  "quality": {
+    "rpn_action_threshold": 100,
+    "maximum_early_failure_percent": 5
+  },
+  "documentation": {
+    "generator": "MkDocs + mkdocstrings",
+    "demo_route_minutes": 90
+  },
+  "compliance": {
+    "required_programs": ["CE", "FCC", "UN38.3"],
+    "certification_claim": "NOT_CERTIFIED"
+  },
+  "field_support": {
+    "severity_levels": 4,
+    "remote_first": true
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "issue": "container-base-digest",
+  "human_owner": "Quchaosheng",
+  "objective": "Pin runtime and development container Ubuntu bases to the verified multi-architecture 24.04 manifest digest.",
+  "allowed_paths": [
+    "Dockerfile",
+    ".devcontainer/Dockerfile",
+    "tests/unit/test_container_baseline.py",
+    "docs/task_packets/container-base-digest.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "AGENTS.md"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "interfaces/**"
+  ],
+  "acceptance": [
+    "runtime and development containers use the same immutable Ubuntu manifest digest",
+    "no Dockerfile in the allowed paths uses a mutable Ubuntu tag",
+    "repository lint and tests pass"
+  ],
+  "commands": [
+    "python -m pytest tests/unit/test_container_baseline.py -q",
+    "python -m ruff check .",
+    "python -m pytest tests/ -q"
+  ],
+  "evidence": [
+    "Dockerfile baseline assertion output",
+    "repository test output",
+    "Ruff output"
+  ],
+  "stop_conditions": [
+    "the official multi-architecture manifest cannot be resolved",
+    "container build requires a different architecture-specific base",
+    "robot-control or firmware changes are required"
+  ]
+}

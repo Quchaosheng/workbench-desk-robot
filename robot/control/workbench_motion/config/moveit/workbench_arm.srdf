@@ -58,9 +58,13 @@
   <!-- ======================================================= end effector -->
   <end_effector name="gripper_ee" parent_link="tool0" group="gripper" parent_group="ur_manipulator"/>
 
-  <!-- ================================================ virtual base joint -->
-  <!-- The arm base is fixed to the workbench `world` link. -->
-  <virtual_joint name="world_fixed" type="fixed" parent_frame="world" child_link="base_link"/>
+  <!-- No virtual_joint here on purpose. The merged URDF already fixes the arm
+       `base_link` to the workbench `world` link via the generated `base_joint`
+       (parent=world, child=base_link). Declaring an SRDF virtual_joint
+       world -> base_link on top of that is a second, redundant connection: MoveIt
+       warns about (or rejects) a virtual joint whose child link already has a
+       parent joint in the URDF. The URDF fixed joint is the single source of the
+       world attachment. -->
 
   <!-- ============================================ self-collision disables -->
   <!-- UR5e adjacent chain pairs (always in contact or never collide). -->

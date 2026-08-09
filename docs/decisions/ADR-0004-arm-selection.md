@@ -78,9 +78,19 @@ an exit path (primitive collision geometry / model swap), not treated as clean.
 - The UR mesh license is a distribution risk carried in THIRD_PARTY_REVIEW. If it
   cannot be cleared, the exit is either primitive-only collision geometry (visual
   meshes dropped) or the documented Panda swap.
-- Reachability is verified against UR5e's 0.85 m reach envelope; the arm base is
-  placed at a back corner of the table so both work regions fall inside it with
-  margin (see the `reachability_check` console script and `docs/evaluation/phase1-reachability.json`).
+- Reachability is designed against UR5e's 0.85 m reach envelope; the arm base is
+  placed at a back corner of the table so both work regions should fall inside it
+  with margin. **The ≥95% IK gate has not been run yet** — MoveIt/TRAC-IK were
+  not installed at authoring time — so the base placement is a reasoned starting
+  point, not a validated number. It must be confirmed (and re-tuned if needed) by
+  running the `reachability_check` console script; results land in
+  `docs/evaluation/phase1-reachability.json`.
+- The world attachment has exactly ONE source: the merged URDF's generated
+  `base_joint` (world → base_link). The SRDF intentionally declares no
+  `virtual_joint` for this — a second declaration is redundant and MoveIt warns
+  on / rejects a virtual joint whose child already has a URDF parent joint. (This
+  SRDF choice is validated structurally by `check_urdf`; full confirmation needs
+  a `move_group` parse once MoveIt is installed.)
 
 ## Reproduce
 
@@ -92,7 +102,8 @@ sudo apt-get install -y ros-jazzy-moveit ros-jazzy-moveit-py \
   ros-jazzy-controller-manager ros-jazzy-joint-trajectory-controller \
   ros-jazzy-robotiq-controllers
 
-# structural validation
-xacro robot/control/workbench_motion/config/arm_on_workbench.urdf.xacro > /tmp/wb_arm.urdf
+# structural validation (after colcon build + source install/setup.bash, so
+# $(find workbench_motion) resolves the vendored world)
+xacro $(ros2 pkg prefix workbench_motion)/share/workbench_motion/config/arm_on_workbench.urdf.xacro > /tmp/wb_arm.urdf
 check_urdf /tmp/wb_arm.urdf
 ```

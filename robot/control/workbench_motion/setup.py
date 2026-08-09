@@ -14,6 +14,12 @@ setup(
         ("share/" + package_name + "/launch", glob("launch/*.launch.py")),
         ("share/" + package_name + "/config", glob("config/*.yaml") + glob("config/*.xacro")),
         ("share/" + package_name + "/config/moveit", glob("config/moveit/*")),
+        # The workbench world xacro is owned by robot/description (not a ROS
+        # package, no package.xml). We *vendor a copy into our share* at build
+        # time so the composed URDF resolves via $(find workbench_motion) in BOTH
+        # source and install space. See config/arm_on_workbench.urdf.xacro for why
+        # $(find robot/description) is not an option.
+        ("share/" + package_name + "/description", ["../../description/workbench.urdf.xacro"]),
     ],
     install_requires=["setuptools"],
     zip_safe=True,

@@ -22,16 +22,16 @@
     "robot/description/**"
   ],
   "acceptance": [
-    "xacro robot/control/workbench_motion/config/arm_on_workbench.urdf.xacro > /tmp/wb_arm.urdf && check_urdf /tmp/wb_arm.urdf reports no errors and a single connected tree rooted at world",
-    "arm-specific names (planning group, base/end-effector/gripper links, joint count, base placement) live in config/arm.yaml or xacro args, never hard-coded in adapter logic",
-    "batch reachability: >=20 sampled poses over the block region and >=20 over the tray region, IK success >=95% per region, numbers + seed archived in docs/evaluation/phase1-reachability.json",
-    "pure sampling/threshold logic has a unit test that runs under uv run pytest without ROS",
+    "xacro <install-or-source>/config/arm_on_workbench.urdf.xacro > /tmp/wb_arm.urdf && check_urdf /tmp/wb_arm.urdf reports no errors and a single connected tree rooted at world (verified: passes in both install and source space via $(find workbench_motion))",
+    "arm-specific identity (planning group, ik tip, base frame) is read from config/arm.yaml by runtime Python via workbench_motion.arm_config, not hard-coded; regression-guarded in test/test_arm_config.py",
+    "batch reachability: >=20 sampled poses over the block region and >=20 over the tray region, IK success >=95% per region, numbers + seed archived in docs/evaluation/phase1-reachability.json (PENDING: requires MoveIt+TRAC-IK install; not run at authoring time)",
+    "pure sampling/threshold logic + arm.yaml loading have unit tests that run under uv run pytest without ROS",
     "colcon build --packages-select workbench_motion passes; root make lint/test/contract stay green (no interfaces change)"
   ],
   "commands": [
     "make task-check PACKET=docs/task_packets/motion-001-arm-selection.json",
-    "xacro robot/control/workbench_motion/config/arm_on_workbench.urdf.xacro > /tmp/wb_arm.urdf && check_urdf /tmp/wb_arm.urdf",
-    "colcon build --packages-select workbench_motion",
+    "colcon build --packages-select workbench_motion && source install/setup.bash",
+    "xacro $(ros2 pkg prefix workbench_motion)/share/workbench_motion/config/arm_on_workbench.urdf.xacro > /tmp/wb_arm.urdf && check_urdf /tmp/wb_arm.urdf",
     "uv run pytest",
     "ros2 launch workbench_motion move_group.launch.py (then) ros2 run workbench_motion reachability_check --seed 0 --samples 20",
     "make lint && make test && make contract"

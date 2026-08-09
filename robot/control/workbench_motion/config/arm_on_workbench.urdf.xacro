@@ -47,12 +47,13 @@
 
   <!-- Path to the workbench static-world xacro. `robot/description` is NOT a ROS
        package (no package.xml; different owner, different review path per
-       FRAMES.md), so `$(find ...)` cannot resolve it. Xacro resolves a relative
-       include against the directory of THIS file
-       (robot/control/workbench_motion/config), so the default climbs three levels
-       to robot/ and into description. Overridable for a bringup that installs the
-       world elsewhere. -->
-  <xacro:arg name="workbench_xacro" default="../../../description/workbench.urdf.xacro"/>
+       FRAMES.md), so `$(find robot_description)` cannot resolve it. Instead
+       setup.py vendors a copy of the world xacro into THIS package's share as
+       `workbench_motion/description/workbench.urdf.xacro`, so `$(find
+       workbench_motion)` resolves it identically in source and install space —
+       after `colcon build && source install/setup.bash`. Overridable for a
+       bringup that installs the world elsewhere. -->
+  <xacro:arg name="workbench_xacro" default="$(find workbench_motion)/description/workbench.urdf.xacro"/>
 
   <!-- =============================================== workbench static world -->
   <!-- The authority for table / tray / module / camera and the `world` link. -->

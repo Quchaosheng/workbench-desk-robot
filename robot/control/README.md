@@ -94,8 +94,11 @@ this package:
 colcon build --packages-select workbench_motion
 source install/setup.bash
 
-# Validate composed URDF (single tree rooted at world, no errors)
-xacro src/workbench-desk-robot/robot/control/workbench_motion/config/arm_on_workbench.urdf.xacro > /tmp/wb_arm.urdf
+# Validate composed URDF (single tree rooted at world, no errors). The composed
+# xacro finds the vendored workbench world via $(find workbench_motion), so this
+# works from either the installed share or the source tree once the workspace is
+# sourced — no --symlink-install required.
+xacro $(ros2 pkg prefix workbench_motion)/share/workbench_motion/config/arm_on_workbench.urdf.xacro > /tmp/wb_arm.urdf
 check_urdf /tmp/wb_arm.urdf
 
 # Launch move_group (headless, for reachability check)
@@ -106,6 +109,13 @@ source install/setup.bash
 ros2 run workbench_motion reachability_check --seed 0 --samples 20
 # -> writes docs/evaluation/phase1-reachability.json, exits 0 if ≥95% both regions
 ```
+
+> **Status:** the MoveIt-connected reachability gate has NOT been run yet in this
+> environment (MoveIt/TRAC-IK not installed at authoring time). `check_urdf`,
+> `colcon build`, and the pure-Python tests all pass; the ≥95% IK numbers are
+> pending a run on a host with MoveIt installed. `docs/evaluation/phase1-reachability.json`
+> stays a placeholder until then. Do not treat phase 1 as accepted until that run
+> populates it and both regions clear 95%.
 
 Phase-0 empty-world self test (still works):
 
@@ -120,10 +130,15 @@ never hard-coded in adapter logic. A later swap to Panda (or another arm) touche
 
 1. **`config/arm.yaml`**: planning group, base/ee/gripper links, joint count, base placement.
 2. **`config/arm_on_workbench.urdf.xacro`**: xacro includes + macro instantiation (UR → Panda).
-3. **`config/moveit/*.yaml`**: SRDF groups, kinematics, joint_limits (re-generate or hand-edit).
+3. **`config/moveit/*`**: SRDF groups, kinematics, joint_limits (re-generate or hand-edit).
 4. **`package.xml`**: swap `ur_description` + `robotiq_description` → `franka_description`.
 5. **Reachability re-validation**: run `reachability_check` with the new arm and verify ≥95%.
 
-Adapter logic (`reachability.py`, future motion nodes) reads `arm.yaml` at
-runtime and never imports arm-specific constants. Acceptance: the swap touches
-no `.py` files under `workbench_motion/workbench_motion/`.
+Runtime Python (`reachability_check.py` and future motion nodes) reads
+`config/arm.yaml` via `workbench_motion.arm_config.load_arm_config()` — the
+planning group, IK tip and base frame are **not** hard-coded. CLI flags can
+override for ad-hoc probing, but with no flags the values come from arm.yaml
+(regression-guarded in `test/test_arm_config.py`). Note the SRDF and the xacro
+macro instantiation are still hand-edited per arm — that is the "config edit",
+not a Python edit. Acceptance: the swap touches no `.py` files under
+`workbench_motion/workbench_motion/`.

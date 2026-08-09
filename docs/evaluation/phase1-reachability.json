@@ -1,6 +1,12 @@
 {
-  "_note": "Placeholder — run `ros2 run workbench_motion reachability_check --seed 0 --samples 20` to populate with real MoveIt IK results.",
+  "_status": "PLACEHOLDER — NOT YET RUN. The MoveIt-connected IK gate requires ros-jazzy-moveit + ros-jazzy-trac-ik-kinematics-plugin, which were not installed when phase 1 was authored. Run `ros2 run workbench_motion reachability_check --seed 0 --samples 20` (with move_group up) to populate this file with real per-region success rates. Phase 1 is NOT accepted until both regions clear 95%.",
+  "all_passed": false,
   "seed": null,
   "samples_per_region": null,
-  "results": {}
+  "group": null,
+  "tip_link": null,
+  "base_frame": null,
+  "threshold": 0.95,
+  "arm": "ur5e+robotiq_2f_85",
+  "regions": []
 }

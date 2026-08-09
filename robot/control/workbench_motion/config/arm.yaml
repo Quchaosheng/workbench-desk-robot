@@ -35,9 +35,10 @@ arm:
 
 # Base mount pose in the workbench `world` frame. Arm mounts on the table
 # surface (world z = table_height = 0.75) at the back-left corner, yawed to face
-# the block + tray. Tuned against the reachability gate (>=95%); see
-# scripts/reachability_check.py and docs/evaluation/phase1-reachability.json.
+# the block + tray. Tuned against the reachability gate (>=95%); see the
+# reachability_check console script and docs/evaluation/phase1-reachability.json.
 base_placement:
+  frame: world                # workbench root the base is fixed to (IK/planning frame)
   xyz: [-0.42, -0.28, 0.75]   # arm_on_workbench.urdf.xacro args: base_x/y/z
   rpy: [0.0, 0.0, 0.52]       # arm_on_workbench.urdf.xacro arg: base_yaw (yaw only)
 

@@ -33,7 +33,8 @@ import sys
 import time
 from pathlib import Path
 
-# The pure logic lives in the installed package; import it directly.
+# The pure logic and the arm.yaml loader live in the installed package.
+from workbench_motion.arm_config import load_arm_config
 from workbench_motion.reachability import (
     Pose,
     Region,
@@ -47,9 +48,13 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="MoveIt batch reachability check")
     p.add_argument("--seed", type=int, default=0, help="RNG seed (archived for replay)")
     p.add_argument("--samples", type=int, default=20, help="poses per region (>=20 for the gate)")
-    p.add_argument("--group", default="ur_manipulator", help="planning group (config/arm.yaml)")
-    p.add_argument("--tip", default="grasp_tcp", help="IK tip link (config/arm.yaml ik_tip_link)")
-    p.add_argument("--base-frame", default="world", help="planning/pose frame")
+    # Arm identity defaults come from config/arm.yaml, not hard-coded here. A flag
+    # left unset (None) is filled from the loaded ArmConfig in main(); passing one
+    # explicitly overrides config (useful for ad-hoc probing).
+    p.add_argument("--arm-config", default=None, help="path to arm.yaml (default: package share / in-source)")
+    p.add_argument("--group", default=None, help="planning group (default: arm.yaml planning_group)")
+    p.add_argument("--tip", default=None, help="IK tip link (default: arm.yaml ik_tip_link)")
+    p.add_argument("--base-frame", default=None, help="planning/pose frame (default: arm.yaml base_placement.frame)")
     p.add_argument("--threshold", type=float, default=0.95, help="per-region pass rate")
     p.add_argument("--timeout", type=float, default=2.0, help="per-IK timeout seconds")
     p.add_argument(
@@ -107,6 +112,13 @@ def _call_ik(node, client, req, moveit_msgs, *, wait: float) -> bool:
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
 
+    # arm.yaml is the single source of arm identity. CLI flags override it; unset
+    # flags fall back to config. No arm-specific string is hard-coded below.
+    arm = load_arm_config(args.arm_config)
+    group = args.group or arm.planning_group
+    tip = args.tip or arm.ik_tip_link
+    base_frame = args.base_frame or arm.base_frame
+
     import geometry_msgs.msg
     import moveit_msgs.msg
     import moveit_msgs.srv
@@ -140,9 +152,9 @@ def main(argv: list[str] | None = None) -> int:
                 geometry_msgs,
                 std_msgs,
                 pose=pose,
-                group=args.group,
-                tip=args.tip,
-                frame=args.base_frame,
+                group=group,
+                tip=tip,
+                frame=base_frame,
                 timeout=args.timeout,
             )
             oks.append(_call_ik(node, client, req, moveit_msgs, wait=args.timeout + 1.0))
@@ -172,11 +184,11 @@ def main(argv: list[str] | None = None) -> int:
         "generated_at": started,
         "seed": args.seed,
         "samples_per_region": args.samples,
-        "group": args.group,
-        "tip_link": args.tip,
-        "base_frame": args.base_frame,
+        "group": group,
+        "tip_link": tip,
+        "base_frame": base_frame,
         "threshold": args.threshold,
-        "arm": "ur5e+robotiq_2f_85",
+        "arm": arm.arm_label,
         "regions": region_reports,
         "all_passed": passed,
     }

@@ -6,6 +6,36 @@ A tabletop robot that verifies task completion instead of assuming it.
 
 ---
 
+## Core Contributions (Kernel Engineering)
+
+This project combines systems integration, runtime architecture, and task verification. The kernel engineering work includes:
+
+**Event Store & Replay**
+- Append-only event log with deterministic replay from any checkpoint
+- Schema-versioned events with backward compatibility and migration contracts
+- State reconstruction from event stream without external snapshot dependency
+
+**Contract-Driven Architecture** 
+- 11 JSON schemas defining all module boundaries (`interfaces/json_schema/`)
+- Fail-closed validation: off-contract requests rejected at ingress, not execution
+- Version negotiation and schema migration tooling for long-running deployments
+
+**Evidence-First Verification**
+- Three-valued logic (confirmed / refuted / insufficient_evidence) replaces boolean success
+- Verification carries structured evidence references, not just pass/fail flags
+- Same seed → same scene → same event sequence → deterministic evaluation
+
+**System Reliability**
+- Split-host controller/simulation with readiness probes and peer availability checks
+- Structured logging, health endpoints, SBOM workflow, and hash-bound hardware evidence
+- Reproducible startup P50/P95 metrics, CPU/RAM profiling, and container smoke tests
+
+**What's NOT included:** Gazebo world, MoveIt grasp/place, real camera (OpenCV + AprilTag), and Gazebo-backed evaluation results are pending. Committed fixtures are scripted pipeline tests, not hardware evidence.
+
+**Role Boundary:** Model routes to bounded semantic actions; joint control, velocities, and emergency stop remain in trusted code outside model reach.
+
+---
+
 ## Problem
 
 Tell a robot to put a block in a tray. It moves, reports success, and the block is on the floor.
@@ -149,83 +179,35 @@ Joint angles, velocities, emergency stop are outside its reach. If it returns so
 
 ---
 
-## Extending it
-
-The one-block demo is the regression floor, not the capability ceiling. The current scripted benchmark already exercises exact three-part kits, evidence-only inspection, and ordered obstacle-clearance recovery behind the same contracts.
-
-**Add a task:** Write a new verifier. The system asks "is claim X true?" 鈥?it doesn't care if X is "block in tray" or "cable seated" or "6 screws present."
-
-**Add a sensor:** Anything that outputs `observation.schema.json` is a sensor. Force sensor, depth camera, barcode reader 鈥?world model doesn't care which.
-
-**Add an arm:** Motion consumes `semantic_action`, emits `action_result`. Swap Panda for UR5e or a real arm, nothing above changes.
-
-**Add a planner:** Template planner and LLM planner already sit behind `ModelProvider`. Search-based or learned planner is a third implementation.
-
-Rule: new capability arrives as a new implementation behind an existing contract. If you need to change a schema, talk first.
-
----
-
 ## Roadmap
 
-v0.1 is deliberately small so verification can be proven correct before stacking on it. v0.2 broadens the offline evaluation surface without pretending scripted evidence is simulator or hardware evidence.
-
-- **v0.1** 鈥?frozen one-arm, one-task regression baseline
-- **v0.2** 鈥?five task families and richer failure handling (scripted pipeline implemented; Gazebo pending)
-- **v0.3** 鈥?real hardware behind the same contracts
-- **later** 鈥?mobile base (verifier generalizes to nav goals), multi-arm
-
-Two things won't change:
-- Model never controls joints/velocity/stop/completion
-- Success claims carry evidence
+v0.1 frozen regression → v0.2 five task families (scripted) → v0.3 hardware. Model boundary and evidence requirements won't change.
 
 ---
 
 ## Metrics
 
-Numbers v0.1 aims to hit. Ones marked **0** are release blockers.
+Key targets for v0.1. Safety metrics marked **0** are release blockers.
 
-| Safety | Target |
-|---|---|
-| False completion (reported done, wasn't) | **0** |
-| Collisions / joint limit violations | **0** |
-| Model emitting raw joint control | **0** |
-
-| Task | Target |
-|---|---|
-| Grasp success (scripted, no faults) | 鈮?90% |
-| Verified task completion rate | 鈮?80% |
-| Recovery after first failure | 鈮?70% |
-| Task time P95 | < 120s |
-| Evaluated task families | 鈮?5 |
-| Complex-task share | 鈮?50% |
-| Goal-condition coverage | 100% |
-
-| Evidence | Target |
-|---|---|
-| Same event log 鈫?same state | 100% |
-| Verification carries evidence refs | 100% |
-| Same seed 鈫?same scene config | 100% |
-
-| System | Target |
-|---|---|
-| Clone 鈫?running demo, no model | < 90s |
-| Clone 鈫?running demo, full stack | < 180s |
-| GPU required | no |
+| Category | Metric | Target |
+|---|---|---|
+| **Safety** | False completion (reported done, wasn't) | **0** |
+| | Collisions / joint limit violations | **0** |
+| | Model emitting raw joint control | **0** |
+| **Task** | Verified task completion rate | 鈮?80% |
+| | Recovery after first failure | 鈮?70% |
+| **Evidence** | Verification carries evidence refs | 100% |
+| | Same seed 鈫?same scene config | 100% |
+| **System** | Clone 鈫?running demo, no model | < 90s |
+| | GPU required | no |
 
 ---
 
 ## What this proves and doesn't prove
 
-Simulation only. Being clear about the boundary is part of the point.
+Simulation only. Software contracts and Gazebo behavior don't prove CAN electrical, actuator dynamics, or sensor noise. Scripted fixtures exercise event logic, not Gazebo performance.
 
-| Proven | Not proven |
-|---|---|
-| Software contracts, event integrity, replay | CAN electrical, bus timing |
-| State machine transitions | Physical actuator dynamics |
-| Verification logic, evidence chains | Sensor noise, lighting drift |
-| Grasp success in Gazebo | Grasp success on real hardware |
-
-Software safe-stop 鈮?hardware emergency stop. Gazebo numbers don't transfer to real grippers without re-validation.
+**Software safe-stop 鈮?hardware emergency stop.** Gazebo numbers don't transfer to real grippers without re-validation.
 
 Scripted evaluation fixtures also do not prove Gazebo performance. They exercise event ordering, evidence coverage, replay and reporting, and are marked `release_eligible: false`. See [documented fixture failures](docs/evaluation/failure-cases.md) and the [container runbook](docs/deployment/container.md).
 
@@ -235,24 +217,9 @@ Parcel handling is intentionally limited to parcels already on the tabletop inta
 
 ## Contributing
 
-Start with:
+Start with `AGENTS.md` (working rules) and the schema for your boundary (`interfaces/json_schema/`). Full workflow in `CONTRIBUTING.md`, architecture in `docs/architecture/system.md`.
 
-1. Read `AGENTS.md` (working rules, short)
-2. Read the schema for the boundary you're touching (`interfaces/json_schema/`)
-3. Open an issue describing the module and contract you'll satisfy
-4. One module per PR
-
-Full workflow in `CONTRIBUTING.md`, architecture in `docs/architecture/system.md`.
-
-Six rules:
-- `interfaces/` is the source of truth for module boundaries
-- Planner emits semantic actions, never joint positions
-- World model decides state meaning and task completion
-- Scenarios/seeds/faults frozen before evaluation
-- Success claims need events and reproducible evidence
-- AI tools don't merge, release, change safety config, or decide completion
-
-"Done" means: merged with CI green, a test that would catch the regression, a command someone else can run, and an evidence reference.
+Core rules: `interfaces/` defines module boundaries. Planner emits semantic actions, never joint positions. Success claims need events and reproducible evidence.
 
 ---
 

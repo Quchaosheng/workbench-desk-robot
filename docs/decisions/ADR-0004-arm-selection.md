@@ -78,13 +78,18 @@ an exit path (primitive collision geometry / model swap), not treated as clean.
 - The UR mesh license is a distribution risk carried in THIRD_PARTY_REVIEW. If it
   cannot be cleared, the exit is either primitive-only collision geometry (visual
   meshes dropped) or the documented Panda swap.
-- Reachability is designed against UR5e's 0.85 m reach envelope; the arm base is
-  placed at a back corner of the table so both work regions should fall inside it
-  with margin. **The ≥95% IK gate has not been run yet** — MoveIt/TRAC-IK were
-  not installed at authoring time — so the base placement is a reasoned starting
-  point, not a validated number. It must be confirmed (and re-tuned if needed) by
-  running the `reachability_check` console script; results land in
-  `docs/evaluation/phase1-reachability.json`.
+- Reachability is validated against UR5e's 0.85 m reach envelope. The base was
+  tuned against the ≥95% IK gate (PLAN.md §阶段1): an initial back-corner placement
+  `(-0.42, -0.28)` kinematically reached 100% of poses but left the tray at the
+  reach extreme, where every wrist yaw collided at 3/20 tray positions (85%, fail).
+  Moving the base to `(-0.30, -0.15, 0.75)`, yaw `0.36`, facing the block+tray
+  centroid, shortened the tray reach (~0.66 m → ~0.52 m) and cleared it:
+  **block 20/20, tray 20/20, both 100%**, stable across seeds 0/7/42
+  (`docs/evaluation/phase1-reachability.json`, verified 2026-08-09 with MoveIt +
+  TRAC-IK). The gate metric is position-level: a position is graspable if ≥1
+  top-down yaw is collision-free and IK-valid — a parallel-jaw grasp is symmetric
+  mod 180° and the planner chooses the yaw, so requiring a fixed random yaw (an
+  earlier mistake) measured a capability the system never uses.
 - The world attachment has exactly ONE source: the merged URDF's generated
   `base_joint` (world → base_link). The SRDF intentionally declares no
   `virtual_joint` for this — a second declaration is redundant and MoveIt warns

@@ -77,7 +77,16 @@ def _setup(context, *_args, **_kwargs) -> list[Node]:
     }
     kinematics = {"robot_description_kinematics": _load_yaml(kin)}
     joint_limits = {"robot_description_planning": _load_yaml(jl)}
-    ompl = _load_yaml(ompl_path)
+
+    # Jazzy move_group requires the pipeline to be selected at the root and the
+    # OMPL params nested under the pipeline's own namespace (`ompl`). Passing the
+    # OMPL config as root params leaves planning_plugins undefined -> SIGABRT
+    # ("Planning plugin name is empty or not defined in namespace 'move_group'").
+    planning = {
+        "planning_pipelines": ["ompl"],
+        "default_planning_pipeline": "ompl",
+        "ompl": _load_yaml(ompl_path),
+    }
 
     move_group = Node(
         package="moveit_ros_move_group",
@@ -88,7 +97,7 @@ def _setup(context, *_args, **_kwargs) -> list[Node]:
             robot_description_semantic,
             kinematics,
             joint_limits,
-            ompl,
+            planning,
             {"publish_robot_description_semantic": True},
             {"use_sim_time": False},
         ],

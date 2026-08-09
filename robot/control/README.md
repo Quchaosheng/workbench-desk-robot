@@ -110,12 +110,13 @@ ros2 run workbench_motion reachability_check --seed 0 --samples 20
 # -> writes docs/evaluation/phase1-reachability.json, exits 0 if ≥95% both regions
 ```
 
-> **Status:** the MoveIt-connected reachability gate has NOT been run yet in this
-> environment (MoveIt/TRAC-IK not installed at authoring time). `check_urdf`,
-> `colcon build`, and the pure-Python tests all pass; the ≥95% IK numbers are
-> pending a run on a host with MoveIt installed. `docs/evaluation/phase1-reachability.json`
-> stays a placeholder until then. Do not treat phase 1 as accepted until that run
-> populates it and both regions clear 95%.
+> **Status (verified 2026-08-09, MoveIt + TRAC-IK on Jazzy):** gate PASSES.
+> block 20/20 and tray 20/20 graspable (≥95%), pure-IK reach 100% both regions,
+> collision-free yaw margins block 8–11 / tray 11–12. Stable across seeds 0/7/42.
+> The metric is *position-level*: a position counts as graspable if ≥1 top-down
+> approach yaw is collision-free and IK-valid (a parallel-jaw grasp is symmetric
+> mod 180° and the planner picks the yaw). `docs/evaluation/phase1-reachability.json`
+> holds the seed-0 run. Reproduce with the two commands above.
 
 Phase-0 empty-world self test (still works):
 

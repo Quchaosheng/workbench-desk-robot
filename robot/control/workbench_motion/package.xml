@@ -21,6 +21,7 @@
 
   <!-- Phase 1: arm composition + MoveIt reachability. -->
   <exec_depend>xacro</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>joint_state_publisher</exec_depend>
   <exec_depend>ur_description</exec_depend>

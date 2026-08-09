@@ -31,13 +31,15 @@
   <xacro:arg name="tf_prefix"      default=""/>
 
   <!-- Arm base placement in the workbench `world` frame. The arm mounts on the
-       table surface (world z = table_height = 0.75) at the back-left corner,
-       yawed to face the workspace (block + tray). Tuned against the reachability
-       gate; see scripts/reachability_check.py. -->
-  <xacro:arg name="base_x"   default="-0.42"/>
-  <xacro:arg name="base_y"   default="-0.28"/>
+       table surface (world z = table_height = 0.75), offset toward -y and yawed
+       to face the block+tray centroid. Tuned against the reachability gate (the
+       reachability_check console script): this pose clears both regions at 100%,
+       whereas a farther back-corner pose left the tray at the reach extreme with
+       colliding approaches. See ADR-0004. -->
+  <xacro:arg name="base_x"   default="-0.30"/>
+  <xacro:arg name="base_y"   default="-0.15"/>
   <xacro:arg name="base_z"   default="0.75"/>
-  <xacro:arg name="base_yaw" default="0.52"/>
+  <xacro:arg name="base_yaw" default="0.36"/>
 
   <!-- Grasp TCP: the IK tip frame. Fixed to tool0, offset along tool0 +z by the
        gripper stack length so poses are specified at the grasp point between the

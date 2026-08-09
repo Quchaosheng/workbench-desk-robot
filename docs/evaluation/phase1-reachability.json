@@ -1,12 +1,65 @@
 {
-  "_status": "PLACEHOLDER — NOT YET RUN. The MoveIt-connected IK gate requires ros-jazzy-moveit + ros-jazzy-trac-ik-kinematics-plugin, which were not installed when phase 1 was authored. Run `ros2 run workbench_motion reachability_check --seed 0 --samples 20` (with move_group up) to populate this file with real per-region success rates. Phase 1 is NOT accepted until both regions clear 95%.",
-  "all_passed": false,
-  "seed": null,
-  "samples_per_region": null,
-  "group": null,
-  "tip_link": null,
-  "base_frame": null,
+  "generated_at": "2026-08-09T15:02:55+0800",
+  "seed": 0,
+  "samples_per_region": 20,
+  "yaws_per_position": 12,
+  "metric": "position graspable if >=1 top-down yaw is collision-free and IK-valid",
+  "group": "ur_manipulator",
+  "tip_link": "grasp_tcp",
+  "base_frame": "world",
   "threshold": 0.95,
   "arm": "ur5e+robotiq_2f_85",
-  "regions": []
+  "regions": [
+    {
+      "name": "block",
+      "positions": 20,
+      "graspable": 20,
+      "rate": 1.0,
+      "threshold": 0.95,
+      "passed": true,
+      "pure_reach_rate": 1.0,
+      "yaw_margin_min": 8,
+      "yaw_margin_max": 11,
+      "bounds": {
+        "x": [
+          -0.2,
+          -0.1
+        ],
+        "y": [
+          0.0,
+          0.1
+        ],
+        "z": [
+          0.8,
+          0.9
+        ]
+      }
+    },
+    {
+      "name": "tray",
+      "positions": 20,
+      "graspable": 20,
+      "rate": 1.0,
+      "threshold": 0.95,
+      "passed": true,
+      "pure_reach_rate": 1.0,
+      "yaw_margin_min": 11,
+      "yaw_margin_max": 12,
+      "bounds": {
+        "x": [
+          0.156,
+          0.284
+        ],
+        "y": [
+          -0.134,
+          -0.066
+        ],
+        "z": [
+          0.86,
+          0.92
+        ]
+      }
+    }
+  ],
+  "all_passed": true
 }

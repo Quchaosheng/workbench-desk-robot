@@ -38,8 +38,10 @@ from workbench_motion.arm_config import load_arm_config
 from workbench_motion.reachability import (
     Pose,
     Region,
+    candidate_yaws,
     default_regions,
-    sample_poses,
+    poses_at,
+    sample_positions,
     score_region,
 )
 
@@ -47,7 +49,8 @@ from workbench_motion.reachability import (
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="MoveIt batch reachability check")
     p.add_argument("--seed", type=int, default=0, help="RNG seed (archived for replay)")
-    p.add_argument("--samples", type=int, default=20, help="poses per region (>=20 for the gate)")
+    p.add_argument("--samples", type=int, default=20, help="positions per region (>=20 for the gate)")
+    p.add_argument("--yaws", type=int, default=12, help="candidate approach yaws per position (symmetric [0,pi))")
     # Arm identity defaults come from config/arm.yaml, not hard-coded here. A flag
     # left unset (None) is filled from the loaded ArmConfig in main(); passing one
     # explicitly overrides config (useful for ad-hoc probing).
@@ -75,12 +78,15 @@ def _build_ik_request(
     tip: str,
     frame: str,
     timeout: float,
+    collide: bool = True,
 ):
     req = moveit_msgs.srv.GetPositionIK.Request()
     ik = req.ik_request
     ik.group_name = group
     ik.ik_link_name = tip
-    ik.avoid_collisions = True
+    # collide=True -> collision-aware (the real gate). collide=False -> pure
+    # kinematic reach, archived alongside as a diagnostic.
+    ik.avoid_collisions = collide
     ik.timeout.sec = int(timeout)
     ik.timeout.nanosec = int((timeout - int(timeout)) * 1e9)
 
@@ -139,38 +145,58 @@ def main(argv: list[str] | None = None) -> int:
 
     rng = random.Random(args.seed)
     regions: list[Region] = default_regions()
+    yaws = candidate_yaws(args.yaws)
     started = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+
+    def _ik(pose: Pose, *, collide: bool) -> bool:
+        req = _build_ik_request(
+            moveit_msgs,
+            geometry_msgs,
+            std_msgs,
+            pose=pose,
+            group=group,
+            tip=tip,
+            frame=base_frame,
+            timeout=args.timeout,
+            collide=collide,
+        )
+        return _call_ik(node, client, req, moveit_msgs, wait=args.timeout + 1.0)
 
     region_reports = []
     results = []
     for region in regions:
-        poses = sample_poses(region, args.samples, rng)
-        oks = []
-        for pose in poses:
-            req = _build_ik_request(
-                moveit_msgs,
-                geometry_msgs,
-                std_msgs,
-                pose=pose,
-                group=group,
-                tip=tip,
-                frame=base_frame,
-                timeout=args.timeout,
-            )
-            oks.append(_call_ik(node, client, req, moveit_msgs, wait=args.timeout + 1.0))
-        res = score_region(region.name, oks, threshold=args.threshold)
+        positions = sample_positions(region, args.samples, rng)
+        # Per-position graspability (the gate): >=1 collision-free IK-valid yaw.
+        graspable: list[bool] = []
+        # Diagnostics kept visible: pure kinematic reach + collision-free yaw margin.
+        pure_reach: list[bool] = []
+        yaw_margins: list[int] = []
+        for pos in positions:
+            poses = poses_at(pos, yaws)
+            free = sum(1 for p in poses if _ik(p, collide=True))
+            yaw_margins.append(free)
+            graspable.append(free > 0)
+            # pure reach: does any yaw solve ignoring collisions (kinematics only)
+            pure_reach.append(any(_ik(p, collide=False) for p in poses))
+        res = score_region(region.name, graspable, threshold=args.threshold)
         results.append(res)
+        pure_rate = sum(pure_reach) / len(pure_reach) if pure_reach else 0.0
         node.get_logger().info(
-            f"region={res.name} success={res.successes}/{res.total} " f"rate={res.rate:.3f} pass={res.passed}"
+            f"region={res.name} graspable={res.successes}/{res.total} "
+            f"rate={res.rate:.3f} pass={res.passed} pure_reach={pure_rate:.3f} "
+            f"yaw_margin(min/median)={min(yaw_margins)}/{sorted(yaw_margins)[len(yaw_margins) // 2]}"
         )
         region_reports.append(
             {
                 "name": res.name,
-                "total": res.total,
-                "successes": res.successes,
+                "positions": res.total,
+                "graspable": res.successes,
                 "rate": round(res.rate, 4),
                 "threshold": res.threshold,
                 "passed": res.passed,
+                "pure_reach_rate": round(pure_rate, 4),
+                "yaw_margin_min": min(yaw_margins),
+                "yaw_margin_max": max(yaw_margins),
                 "bounds": {
                     "x": [region.x_min, region.x_max],
                     "y": [region.y_min, region.y_max],
@@ -184,6 +210,8 @@ def main(argv: list[str] | None = None) -> int:
         "generated_at": started,
         "seed": args.seed,
         "samples_per_region": args.samples,
+        "yaws_per_position": args.yaws,
+        "metric": "position graspable if >=1 top-down yaw is collision-free and IK-valid",
         "group": group,
         "tip_link": tip,
         "base_frame": base_frame,

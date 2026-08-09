@@ -17,40 +17,69 @@ from workbench_motion.reachability import (
     TRAY_REGION,
     Region,
     all_passed,
+    candidate_yaws,
     default_regions,
-    sample_poses,
+    poses_at,
+    sample_positions,
     score_region,
     top_down_quat,
 )
 
 
 def test_sampling_is_deterministic_for_a_seed():
-    a = sample_poses(BLOCK_REGION, 20, random.Random(0))
-    b = sample_poses(BLOCK_REGION, 20, random.Random(0))
-    assert a == b  # same seed -> identical poses (archived numbers are replayable)
+    a = sample_positions(BLOCK_REGION, 20, random.Random(0))
+    b = sample_positions(BLOCK_REGION, 20, random.Random(0))
+    assert a == b  # same seed -> identical positions (archived numbers are replayable)
 
 
 def test_different_seeds_differ():
-    a = sample_poses(BLOCK_REGION, 20, random.Random(0))
-    b = sample_poses(BLOCK_REGION, 20, random.Random(1))
+    a = sample_positions(BLOCK_REGION, 20, random.Random(0))
+    b = sample_positions(BLOCK_REGION, 20, random.Random(1))
     assert a != b
 
 
 @pytest.mark.parametrize("region", default_regions())
 def test_samples_stay_inside_region_bounds(region: Region):
-    for p in sample_poses(region, 50, random.Random(7)):
-        assert region.x_min <= p.x <= region.x_max
-        assert region.y_min <= p.y <= region.y_max
-        assert region.z_min <= p.z <= region.z_max
+    for x, y, z in sample_positions(region, 50, random.Random(7)):
+        assert region.x_min <= x <= region.x_max
+        assert region.y_min <= y <= region.y_max
+        assert region.z_min <= z <= region.z_max
 
 
 def test_sample_count_matches_request():
-    assert len(sample_poses(TRAY_REGION, 23, random.Random(3))) == 23
+    assert len(sample_positions(TRAY_REGION, 23, random.Random(3))) == 23
 
 
-def test_sample_poses_rejects_nonpositive_n():
+def test_sample_positions_rejects_nonpositive_n():
     with pytest.raises(ValueError):
-        sample_poses(BLOCK_REGION, 0, random.Random(0))
+        sample_positions(BLOCK_REGION, 0, random.Random(0))
+
+
+def test_candidate_yaws_span_symmetric_half_turn():
+    yaws = candidate_yaws(12)
+    assert len(yaws) == 12
+    assert yaws[0] == 0.0
+    # Parallel-jaw grasp is symmetric mod pi: all candidates live in [0, pi).
+    assert all(0.0 <= y < math.pi for y in yaws)
+    assert yaws == tuple(sorted(yaws))  # deterministic, ascending
+
+
+def test_candidate_yaws_rejects_nonpositive():
+    with pytest.raises(ValueError):
+        candidate_yaws(0)
+
+
+def test_poses_at_builds_one_top_down_pose_per_yaw():
+    pos = (-0.15, 0.05, 0.85)
+    yaws = candidate_yaws(6)
+    poses = poses_at(pos, yaws)
+    assert len(poses) == 6
+    for p in poses:
+        assert (p.x, p.y, p.z) == pos
+        # every pose is a unit quaternion pointing down (R[2][2] == -1)
+        assert math.isclose(p.qx**2 + p.qy**2 + p.qz**2 + p.qw**2, 1.0, rel_tol=1e-9)
+        r22 = 1.0 - 2.0 * (p.qx**2 + p.qy**2)
+        assert math.isclose(r22, -1.0, abs_tol=1e-9)
 
 
 def test_top_down_quat_is_normalised_and_points_down():

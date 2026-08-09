@@ -12,6 +12,7 @@ dist/
 *.mcap
 node_modules/
 coverage.xml
+/site/
 
 # AI tooling working directories — must stay out of history.
 # Once committed, removing these requires rewriting history and a force-push.

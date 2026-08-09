@@ -1,0 +1,35 @@
+{
+  "checks": {
+    "all_package_files_exist": true,
+    "certificates_block_po": true,
+    "certification_is_not_claimed": true,
+    "demo_route_is_90_minutes": true,
+    "early_failure_limit_is_5_percent": true,
+    "external_evidence_remains_required": true,
+    "fixture_budget_is_4000_usd": true,
+    "line_has_six_stations": true,
+    "mechanical_design_case_is_55kg": true,
+    "minimum_fpy_is_85_percent": true,
+    "planning_bom_is_5100_usd": true,
+    "power_is_48v_with_three_levels": true,
+    "required_compliance_programs_are_present": true,
+    "rpn_actions_start_above_100": true
+  },
+  "note": "A passing document check never substitutes for quotes, certificates, pilot data, or physical tests.",
+  "package": "operations-readiness-20-27",
+  "pass": true,
+  "required_files": [
+    "hardware/power/README.md",
+    "hardware/mechanical/system-integration.md",
+    "hardware/procurement/planning-baseline.md",
+    "hardware/manufacturing/production-line.md",
+    "hardware/qa/reliability-gates.md",
+    "hardware/compliance/README.md",
+    "hardware/support/README.md",
+    "docs/user-guide/index.md",
+    "docs/user-guide/demo-runbook.md",
+    "docs/api.md",
+    "mkdocs.yml"
+  ],
+  "status": "EXTERNAL_EVIDENCE_REQUIRED"
+}

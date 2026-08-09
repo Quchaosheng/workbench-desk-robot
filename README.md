@@ -1,8 +1,8 @@
-# workbench-1
+﻿# workbench-1
 
 A tabletop robot that verifies task completion instead of assuming it.
 
-[English](README.md) · [简体中文](README.zh-CN.md)
+[English](README.md) 路 [绠€浣撲腑鏂嘳(README.zh-CN.md)
 
 ---
 
@@ -69,7 +69,7 @@ make demo-scripted
 make performance-test
 ```
 
-`demo-scripted` runs the full chain (observe → plan → verify → replay) in pure Python, no simulator. Fast feedback loop.
+`demo-scripted` runs the full chain (observe 鈫?plan 鈫?verify 鈫?replay) in pure Python, no simulator. Fast feedback loop.
 
 Other commands:
 
@@ -153,9 +153,9 @@ Joint angles, velocities, emergency stop are outside its reach. If it returns so
 
 The one-block demo is the regression floor, not the capability ceiling. The current scripted benchmark already exercises exact three-part kits, evidence-only inspection, and ordered obstacle-clearance recovery behind the same contracts.
 
-**Add a task:** Write a new verifier. The system asks "is claim X true?" — it doesn't care if X is "block in tray" or "cable seated" or "6 screws present."
+**Add a task:** Write a new verifier. The system asks "is claim X true?" 鈥?it doesn't care if X is "block in tray" or "cable seated" or "6 screws present."
 
-**Add a sensor:** Anything that outputs `observation.schema.json` is a sensor. Force sensor, depth camera, barcode reader — world model doesn't care which.
+**Add a sensor:** Anything that outputs `observation.schema.json` is a sensor. Force sensor, depth camera, barcode reader 鈥?world model doesn't care which.
 
 **Add an arm:** Motion consumes `semantic_action`, emits `action_result`. Swap Panda for UR5e or a real arm, nothing above changes.
 
@@ -169,10 +169,10 @@ Rule: new capability arrives as a new implementation behind an existing contract
 
 v0.1 is deliberately small so verification can be proven correct before stacking on it. v0.2 broadens the offline evaluation surface without pretending scripted evidence is simulator or hardware evidence.
 
-- **v0.1** — frozen one-arm, one-task regression baseline
-- **v0.2** — five task families and richer failure handling (scripted pipeline implemented; Gazebo pending)
-- **v0.3** — real hardware behind the same contracts
-- **later** — mobile base (verifier generalizes to nav goals), multi-arm
+- **v0.1** 鈥?frozen one-arm, one-task regression baseline
+- **v0.2** 鈥?five task families and richer failure handling (scripted pipeline implemented; Gazebo pending)
+- **v0.3** 鈥?real hardware behind the same contracts
+- **later** 鈥?mobile base (verifier generalizes to nav goals), multi-arm
 
 Two things won't change:
 - Model never controls joints/velocity/stop/completion
@@ -192,24 +192,24 @@ Numbers v0.1 aims to hit. Ones marked **0** are release blockers.
 
 | Task | Target |
 |---|---|
-| Grasp success (scripted, no faults) | ≥ 90% |
-| Verified task completion rate | ≥ 80% |
-| Recovery after first failure | ≥ 70% |
+| Grasp success (scripted, no faults) | 鈮?90% |
+| Verified task completion rate | 鈮?80% |
+| Recovery after first failure | 鈮?70% |
 | Task time P95 | < 120s |
-| Evaluated task families | ≥ 5 |
-| Complex-task share | ≥ 50% |
+| Evaluated task families | 鈮?5 |
+| Complex-task share | 鈮?50% |
 | Goal-condition coverage | 100% |
 
 | Evidence | Target |
 |---|---|
-| Same event log → same state | 100% |
+| Same event log 鈫?same state | 100% |
 | Verification carries evidence refs | 100% |
-| Same seed → same scene config | 100% |
+| Same seed 鈫?same scene config | 100% |
 
 | System | Target |
 |---|---|
-| Clone → running demo, no model | < 90s |
-| Clone → running demo, full stack | < 180s |
+| Clone 鈫?running demo, no model | < 90s |
+| Clone 鈫?running demo, full stack | < 180s |
 | GPU required | no |
 
 ---
@@ -225,7 +225,7 @@ Simulation only. Being clear about the boundary is part of the point.
 | Verification logic, evidence chains | Sensor noise, lighting drift |
 | Grasp success in Gazebo | Grasp success on real hardware |
 
-Software safe-stop ≠ hardware emergency stop. Gazebo numbers don't transfer to real grippers without re-validation.
+Software safe-stop 鈮?hardware emergency stop. Gazebo numbers don't transfer to real grippers without re-validation.
 
 Scripted evaluation fixtures also do not prove Gazebo performance. They exercise event ordering, evidence coverage, replay and reporting, and are marked `release_eligible: false`. See [documented fixture failures](docs/evaluation/failure-cases.md) and the [container runbook](docs/deployment/container.md).
 
@@ -254,11 +254,9 @@ Six rules:
 
 "Done" means: merged with CI green, a test that would catch the regression, a command someone else can run, and an evidence reference.
 
-This project uses AI assistance. Contracts, invariants, and merge decisions are human-owned. If you contribute a module, you should be able to explain any file in it.
-
 ---
 
 ## License
 
-Apache-2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).  
+Apache-2.0 鈥?see [LICENSE](LICENSE) and [NOTICE](NOTICE).  
 Third-party asset licenses in [THIRD_PARTY_REVIEW.md](THIRD_PARTY_REVIEW.md).

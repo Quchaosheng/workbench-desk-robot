@@ -219,3 +219,35 @@ def score_region(name: str, successes: list[bool], threshold: float = 0.95) -> R
 def all_passed(results: list[RegionResult]) -> bool:
     """True only if every region met its threshold (and there is at least one)."""
     return bool(results) and all(r.passed for r in results)
+
+
+# The phase-1 acceptance gate's own parameters (PLAN.md §阶段 1): >=20 positions
+# per region and a >=95% pass threshold. A run using weaker parameters can still
+# be useful for probing, but it must NOT be presentable as a gate pass.
+GATE_MIN_SAMPLES = 20
+GATE_MIN_THRESHOLD = 0.95
+
+
+def validate_run_params(*, samples: int, yaws: int, threshold: float) -> None:
+    """Reject nonsensical parameters outright (raises ValueError).
+
+    These are hard bounds, independent of the gate: a run with these values is
+    not just weak, it is meaningless (zero/negative counts, a threshold outside
+    [0, 1]). Gate-strength is a separate, softer check — see :func:`is_gate_qualifying`.
+    """
+    if samples < 1:
+        raise ValueError(f"--samples must be >= 1, got {samples}")
+    if yaws < 1:
+        raise ValueError(f"--yaws must be >= 1, got {yaws}")
+    if not 0.0 <= threshold <= 1.0:
+        raise ValueError(f"--threshold must be in [0, 1], got {threshold}")
+
+
+def is_gate_qualifying(*, samples: int, threshold: float) -> bool:
+    """Whether a run's parameters are strong enough to count as a phase-1 gate pass.
+
+    A green result from `--samples 1 --threshold 0` is real but worthless as an
+    acceptance signal; this is the predicate that keeps such a run from being
+    stamped as gate-qualifying in the archived report.
+    """
+    return samples >= GATE_MIN_SAMPLES and threshold >= GATE_MIN_THRESHOLD

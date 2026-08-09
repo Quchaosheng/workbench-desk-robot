@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-09T17:55:46+0800",
+  "generated_at": "2026-08-09T20:30:08+0800",
   "seed": 0,
   "samples_per_region": 20,
   "yaws_per_position": 12,
@@ -10,6 +10,7 @@
   "base_frame": "world",
   "threshold": 0.95,
   "arm": "ur5e+robotiq_2f_85",
+  "gate_qualifying": true,
   "regions": [
     {
       "name": "block",

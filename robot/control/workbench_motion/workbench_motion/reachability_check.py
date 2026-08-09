@@ -40,9 +40,11 @@ from workbench_motion.reachability import (
     Region,
     candidate_yaws,
     default_regions,
+    is_gate_qualifying,
     poses_at,
     sample_positions,
     score_region,
+    validate_run_params,
 )
 
 
@@ -58,7 +60,13 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     p.add_argument("--group", default=None, help="planning group (default: arm.yaml planning_group)")
     p.add_argument("--tip", default=None, help="IK tip link (default: arm.yaml ik_tip_link)")
     p.add_argument("--base-frame", default=None, help="planning/pose frame (default: arm.yaml base_placement.frame)")
-    p.add_argument("--threshold", type=float, default=0.95, help="per-region pass rate")
+    p.add_argument("--threshold", type=float, default=0.95, help="per-region pass rate (gate needs >=0.95)")
+    p.add_argument(
+        "--probe",
+        action="store_true",
+        help="allow sub-gate params (samples<20 or threshold<0.95) for ad-hoc probing; "
+        "the report is stamped gate_qualifying=false and the process exits non-zero",
+    )
     # Default matches config/moveit/kinematics.yaml kinematics_solver_timeout
     # (0.05 s): the TRAC-IK solver already stops at 0.05, so a larger per-request
     # timeout would not give the solver more budget. Kept as one knob for a
@@ -76,11 +84,13 @@ def _build_ik_request(
     moveit_msgs,
     geometry_msgs,
     std_msgs,
+    sensor_msgs,
     *,
     pose: Pose,
     group: str,
     tip: str,
     frame: str,
+    joints: tuple[str, ...],
     timeout: float,
     collide: bool = True,
 ):
@@ -93,6 +103,16 @@ def _build_ik_request(
     ik.avoid_collisions = collide
     ik.timeout.sec = int(timeout)
     ik.timeout.nanosec = int((timeout - int(timeout)) * 1e9)
+
+    # Seed the full robot_state the GetPositionIK contract expects. Without a
+    # populated JointState, move_group logs "Found empty JointState message" for
+    # every request and falls back to the current state; supplying the arm joints
+    # at a neutral 0.0 seed satisfies the contract and makes the seed explicit and
+    # reproducible. Joint names come from arm.yaml (single source), not hard-coded.
+    js = sensor_msgs.msg.JointState()
+    js.name = list(joints)
+    js.position = [0.0] * len(joints)
+    ik.robot_state.joint_state = js
 
     ps = geometry_msgs.msg.PoseStamped()
     ps.header = std_msgs.msg.Header()
@@ -129,10 +149,26 @@ def main(argv: list[str] | None = None) -> int:
     tip = args.tip or arm.ik_tip_link
     base_frame = args.base_frame or arm.base_frame
 
+    # Hard bounds: reject meaningless params before doing any work.
+    validate_run_params(samples=args.samples, yaws=args.yaws, threshold=args.threshold)
+    # Soft gate: sub-gate params are only allowed under --probe, and never count
+    # as a gate pass. This stops `--samples 1 --threshold 0` from producing a
+    # green acceptance report.
+    gate_qualifying = is_gate_qualifying(samples=args.samples, threshold=args.threshold)
+    if not gate_qualifying and not args.probe:
+        print(
+            f"refusing sub-gate run (samples={args.samples}, threshold={args.threshold}): "
+            f"the phase-1 gate needs samples>=20 and threshold>=0.95. "
+            f"Re-run with --probe to explicitly do a non-qualifying probe.",
+            file=sys.stderr,
+        )
+        return 2
+
     import geometry_msgs.msg
     import moveit_msgs.msg
     import moveit_msgs.srv
     import rclpy
+    import sensor_msgs.msg
     import std_msgs.msg
     from rclpy.node import Node
 
@@ -157,10 +193,12 @@ def main(argv: list[str] | None = None) -> int:
             moveit_msgs,
             geometry_msgs,
             std_msgs,
+            sensor_msgs,
             pose=pose,
             group=group,
             tip=tip,
             frame=base_frame,
+            joints=arm.joints,
             timeout=args.timeout,
             collide=collide,
         )
@@ -222,6 +260,9 @@ def main(argv: list[str] | None = None) -> int:
         "base_frame": base_frame,
         "threshold": args.threshold,
         "arm": arm.arm_label,
+        # gate_qualifying=false marks a probe run whose params are too weak to be
+        # a phase-1 acceptance signal, even if all regions "passed".
+        "gate_qualifying": gate_qualifying,
         "regions": region_reports,
         "all_passed": passed,
     }
@@ -229,11 +270,15 @@ def main(argv: list[str] | None = None) -> int:
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-    node.get_logger().info(f"archived reachability report to {out} (all_passed={passed})")
+    node.get_logger().info(
+        f"archived reachability report to {out} (all_passed={passed}, gate_qualifying={gate_qualifying})"
+    )
 
     node.destroy_node()
     rclpy.shutdown()
-    return 0 if passed else 1
+    # A run only "succeeds" (rc 0) if regions passed AND the params qualify as a
+    # gate. A non-qualifying probe exits non-zero so CI can never treat it as green.
+    return 0 if (passed and gate_qualifying) else 1
 
 
 if __name__ == "__main__":

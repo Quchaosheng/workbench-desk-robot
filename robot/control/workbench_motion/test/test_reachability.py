@@ -14,15 +14,19 @@ import random
 import pytest
 from workbench_motion.reachability import (
     BLOCK_REGION,
+    GATE_MIN_SAMPLES,
+    GATE_MIN_THRESHOLD,
     TRAY_REGION,
     Region,
     all_passed,
     candidate_yaws,
     default_regions,
+    is_gate_qualifying,
     poses_at,
     sample_positions,
     score_region,
     top_down_quat,
+    validate_run_params,
 )
 
 
@@ -123,3 +127,46 @@ def test_all_passed_requires_every_region():
     assert all_passed([good])
     assert not all_passed([good, bad])
     assert not all_passed([])  # empty is not a pass
+
+
+# --- run-parameter guards (defends against weakened-green reports) ---
+
+
+def test_validate_run_params_accepts_gate_defaults():
+    validate_run_params(samples=20, yaws=12, threshold=0.95)  # no raise
+
+
+@pytest.mark.parametrize(
+    "samples,yaws,threshold",
+    [
+        (0, 12, 0.95),
+        (-1, 12, 0.95),
+        (20, 0, 0.95),
+        (20, 12, -0.01),
+        (20, 12, 1.01),
+    ],
+)
+def test_validate_run_params_rejects_nonsense(samples, yaws, threshold):
+    with pytest.raises(ValueError):
+        validate_run_params(samples=samples, yaws=yaws, threshold=threshold)
+
+
+def test_gate_qualifying_true_only_at_or_above_gate():
+    assert is_gate_qualifying(samples=GATE_MIN_SAMPLES, threshold=GATE_MIN_THRESHOLD)
+    assert is_gate_qualifying(samples=50, threshold=0.99)
+
+
+@pytest.mark.parametrize(
+    "samples,threshold",
+    [
+        (1, 0.0),  # the exact weakened-green case the reviewer flagged
+        (1, 0.95),  # too few samples
+        (20, 0.0),  # threshold too weak
+        (19, 0.95),  # one short of the sample floor
+        (20, 0.94),  # just under the threshold floor
+    ],
+)
+def test_gate_qualifying_false_for_weak_params(samples, threshold):
+    # These are valid (no raise) but must NOT count as a gate pass.
+    validate_run_params(samples=samples, yaws=12, threshold=threshold)
+    assert not is_gate_qualifying(samples=samples, threshold=threshold)

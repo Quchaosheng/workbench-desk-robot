@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import math
 import random
+from pathlib import Path
 
 import pytest
 from workbench_motion.reachability import (
@@ -170,3 +171,46 @@ def test_gate_qualifying_false_for_weak_params(samples, threshold):
     # These are valid (no raise) but must NOT count as a gate pass.
     validate_run_params(samples=samples, yaws=12, threshold=threshold)
     assert not is_gate_qualifying(samples=samples, threshold=threshold)
+
+
+# --- output-path resolution (regression: JSON must land at repo root, not cwd) --
+
+
+def test_resolve_output_anchors_relative_path_to_repo_root(tmp_path):
+    # A relative --output resolves against the git repo root, not the caller's cwd,
+    # so `ros2 run ... reachability_check` from robot/control still writes the
+    # archive to <repo>/docs/evaluation/... (regression for the cwd-relative bug).
+    from workbench_motion.reachability_check import _resolve_output_path
+
+    repo = tmp_path / "repo"
+    (repo / ".git").mkdir(parents=True)
+    subdir = repo / "robot" / "control"
+    subdir.mkdir(parents=True)
+
+    out = _resolve_output_path("docs/evaluation/phase1-reachability.json", start=subdir)
+    assert out == repo / "docs" / "evaluation" / "phase1-reachability.json"
+
+
+def test_resolve_output_keeps_absolute_path_verbatim(tmp_path):
+    from workbench_motion.reachability_check import _resolve_output_path
+
+    abs_target = tmp_path / "somewhere" / "report.json"
+    assert _resolve_output_path(str(abs_target), start=tmp_path) == abs_target
+
+
+def test_resolve_output_falls_back_to_relative_without_git(tmp_path, monkeypatch):
+    # No .git anywhere up the tree -> return the relative path unchanged
+    # (resolved against cwd by the caller), never crashing. Force every ancestor
+    # to look git-less so the test does not depend on the real fs above tmp_path.
+    from pathlib import Path as _P
+
+    from workbench_motion import reachability_check as rc
+
+    real_exists = _P.exists
+    monkeypatch.setattr(
+        rc.Path,
+        "exists",
+        lambda self: False if self.name == ".git" else real_exists(self),
+    )
+    out = rc._resolve_output_path("docs/evaluation/phase1-reachability.json", start=tmp_path)
+    assert out == Path("docs/evaluation/phase1-reachability.json")

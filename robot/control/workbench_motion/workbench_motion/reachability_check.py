@@ -48,6 +48,27 @@ from workbench_motion.reachability import (
 )
 
 
+def _resolve_output_path(output: str, start: Path | None = None) -> Path:
+    """Resolve ``--output`` against the repo root, not the caller's CWD.
+
+    The documented run happens from ``robot/control`` (after ``colcon build``),
+    but the archive belongs at ``<repo>/docs/evaluation/...``. An absolute path is
+    used verbatim; a relative one is anchored to the git repo root (the nearest
+    ancestor containing ``.git``) so the JSON always lands in the repo regardless
+    of where the console script is invoked. Falls back to the relative path
+    unchanged if no repo root is found. ``start`` defaults to CWD and exists for
+    testability.
+    """
+    p = Path(output)
+    if p.is_absolute():
+        return p
+    start = start or Path.cwd()
+    for parent in [start, *start.parents]:
+        if (parent / ".git").exists():
+            return parent / p
+    return p
+
+
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="MoveIt batch reachability check")
     p.add_argument("--seed", type=int, default=0, help="RNG seed (archived for replay)")
@@ -75,7 +96,8 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     p.add_argument(
         "--output",
         default="docs/evaluation/phase1-reachability.json",
-        help="archive path (relative to repo root)",
+        help="archive path; a relative path is anchored to the git repo root "
+        "(not the caller's cwd), an absolute path is used verbatim",
     )
     return p.parse_args(argv)
 
@@ -267,7 +289,7 @@ def main(argv: list[str] | None = None) -> int:
         "all_passed": passed,
     }
 
-    out = Path(args.output)
+    out = _resolve_output_path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     node.get_logger().info(

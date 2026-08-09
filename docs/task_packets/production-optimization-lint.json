@@ -1,0 +1,40 @@
+{
+  "issue": "production-optimization-lint",
+  "human_owner": "Quchaosheng",
+  "objective": "Restore the repository Ruff gate after the production optimization modules landed, without changing their behavior.",
+  "allowed_paths": [
+    "libs/application/workbench/application/monitoring.py",
+    "libs/application/workbench/application/system_manager_v2.py",
+    "libs/hardware/workbench/hardware/can_driver_safe.py",
+    "docs/task_packets/production-optimization-lint.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "AGENTS.md"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "interfaces/**"
+  ],
+  "acceptance": [
+    "Ruff check and format gates pass",
+    "the repository test suite passes",
+    "no production behavior is changed"
+  ],
+  "commands": [
+    "python -m ruff check .",
+    "python -m ruff format --check .",
+    "python -m pytest tests/ -q"
+  ],
+  "evidence": [
+    "Ruff output",
+    "repository test output",
+    "scoped diff"
+  ],
+  "stop_conditions": [
+    "behavioral changes are required",
+    "interface schema changes are required",
+    "robot-control or firmware changes are required"
+  ]
+}

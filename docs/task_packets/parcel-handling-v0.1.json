@@ -1,0 +1,45 @@
+{
+  "issue": "PARCEL-HANDLING-v0.1",
+  "human_owner": "Quchaosheng",
+  "objective": "Add evidence-first parcel intake and sorting at the tabletop workstation while failing closed on mobile pickup requests.",
+  "allowed_paths": [
+    "services/agent_runtime/**",
+    "services/world_model/**",
+    "tasks/parcels/**",
+    "sim/scenarios/**",
+    "evaluation/**",
+    "tools/scripts/**",
+    "apps/dashboard/**",
+    "tests/**",
+    "docs/task_packets/**",
+    "README.md",
+    "README.zh-CN.md"
+  ],
+  "read_only_paths": ["interfaces/**", "libs/contracts/**"],
+  "forbidden": ["robot/control/**", "firmware/**", "hardware/safety/**"],
+  "acceptance": [
+    "offline planner routes three workstation parcels using semantic actions only",
+    "verifier checks per-parcel label, condition, confidence, evidence, destination, and extras",
+    "mobile parcel pickup requests fail closed because navigation is unavailable",
+    "six deterministic parcel-intake scenarios extend the evaluation matrix",
+    "dashboard visibly distinguishes pickup and quarantine destinations"
+  ],
+  "commands": [
+    "make check",
+    "make evaluation-check",
+    "make evaluation-scripted",
+    "make dashboard-test",
+    "make container-smoke"
+  ],
+  "evidence": [
+    "planner and verifier unit tests",
+    "scenario and golden-set validation",
+    "108-run scripted evaluation metrics",
+    "desktop and mobile dashboard checks"
+  ],
+  "stop_conditions": [
+    "a navigation or raw motion interface change is required",
+    "firmware, CAN, emergency-stop, or mobile-base control would be introduced",
+    "scripted parcel results could be mistaken for physical pickup evidence"
+  ]
+}

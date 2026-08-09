@@ -1,0 +1,41 @@
+{
+  "issue": "PARCEL-IDENTITY-v0.4",
+  "human_owner": "Quchaosheng",
+  "objective": "Reject duplicate parcel identities during planning and independent verification, and keep replay configuration current.",
+  "allowed_paths": [
+    "services/agent_runtime/**",
+    "services/world_model/**",
+    "tasks/parcels/**",
+    "apps/dashboard/**",
+    "tests/**",
+    "docs/task_packets/**",
+    "README.md",
+    "README.zh-CN.md"
+  ],
+  "read_only_paths": ["interfaces/**", "libs/contracts/**"],
+  "forbidden": ["robot/control/**", "firmware/**", "hardware/safety/**"],
+  "acceptance": [
+    "duplicate tracking_id, barcode, or parcel_uid values fail closed before manipulation",
+    "world-model verification independently refutes duplicate parcel identities",
+    "place actions retain an identity guard marker",
+    "scripted place requests preserve policy, priority, reason, and capacity metadata",
+    "dashboard replay uses the latest visible task graph and configured priorities"
+  ],
+  "commands": [
+    "python -m ruff check .",
+    "python -m pytest tests/ -q",
+    "python tools/scripts/validate_contracts.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/parcel-identity-v0.4.json",
+    "docker compose up -d --build"
+  ],
+  "evidence": [
+    "planner duplicate-identity unit test",
+    "world-model duplicate-identity verification test",
+    "dashboard replay and priority source tests"
+  ],
+  "stop_conditions": [
+    "identity data is absent, in which case the normal evidence policy remains active",
+    "conditional execution would require a new contract",
+    "mobile navigation or parcel-locker access is requested"
+  ]
+}

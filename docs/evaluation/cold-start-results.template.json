@@ -1,0 +1,41 @@
+{
+  "protocol": "clean-machine-v1",
+  "participants": [
+    {
+      "participant_id": "participant-1",
+      "os": "fill-in",
+      "cpu_memory": "fill-in",
+      "docker_version": "fill-in",
+      "started_at": "fill-in",
+      "first_health_at": "fill-in",
+      "first_ready_at": "fill-in",
+      "elapsed_minutes": 0,
+      "result": "fail",
+      "blocking_log_reference": "fill-in"
+    },
+    {
+      "participant_id": "participant-2",
+      "os": "fill-in",
+      "cpu_memory": "fill-in",
+      "docker_version": "fill-in",
+      "started_at": "fill-in",
+      "first_health_at": "fill-in",
+      "first_ready_at": "fill-in",
+      "elapsed_minutes": 0,
+      "result": "fail",
+      "blocking_log_reference": "fill-in"
+    },
+    {
+      "participant_id": "participant-3",
+      "os": "fill-in",
+      "cpu_memory": "fill-in",
+      "docker_version": "fill-in",
+      "started_at": "fill-in",
+      "first_health_at": "fill-in",
+      "first_ready_at": "fill-in",
+      "elapsed_minutes": 0,
+      "result": "fail",
+      "blocking_log_reference": "fill-in"
+    }
+  ]
+}

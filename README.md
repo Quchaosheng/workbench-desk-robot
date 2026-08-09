@@ -18,13 +18,14 @@ Most demos can't tell these apart. This one tries to.
 
 ## What it does
 
-Single arm, table, simulation. You give it a goal in plain text, it:
+Single arm, table, simulation. The red-block task remains a frozen regression baseline; the v0.2 benchmark also covers three-part kitting, multi-workpiece inspection, obstacle-clearance recovery, and evidence-first parcel intake. You give it a bounded goal in plain text, it:
 
-- Looks at the scene
-- Plans a sequence of actions (observe, grasp, place)
+- Looks at every required entity in the scene
+- Routes the goal to a bounded semantic plan (`observe`, `grasp`, `place`)
 - Executes through MoveIt
-- **Checks afterwards**: is the block actually in the tray?
-- If unsure (camera lost track, low confidence), says "I can't confirm" instead of guessing
+- **Checks afterwards**: are all required goal conditions satisfied, with no extra kit parts?
+- If unsure (camera lost track, low confidence, stale evidence), says "I can't confirm" instead of guessing
+- Re-observes and retries recoverable failures while retaining the failed attempt in replay
 
 The model picks a goal, but cannot send joint positions or velocities. That boundary is enforced by code, not prompts.
 
@@ -35,21 +36,24 @@ The model picks a goal, but cannot send joint positions or velocities. That boun
 **Works today:**
 - Contract definitions (11 JSON schemas)
 - Event store with replay
-- Template planner (no model needed for pick-and-place)
-- Verification logic that outputs "confirmed / refuted / insufficient_evidence"
-- Read-only task dashboard with ordered replay and evidence inspection
+- Template planner for five task families (no model needed)
+- Task-specific verification for placement, exact kit contents, inspection confidence, workspace clearance, and manifest-reconciled parcel routing
+- Read-only multi-entity dashboard with ordered replay, recovery history and evidence inspection
 - Offline container, health endpoints, structured logs and release/SBOM workflow
-- 12 frozen P1 and 30 total P2 scenario manifests with deterministic seed checks
+- A localhost-only Ollama runner: the model routes to five bounded families, while trusted code emits semantic actions
+- Reproducible startup, stage P50/P95, CPU/RAM and hash-bound hardware evidence tooling
+- Split-host controller/simulation Compose topology with readiness failure when the peer is unavailable
+- 12 frozen v0.1 baselines plus 24 expanded v0.2 scenarios with deterministic seed checks
+- 50 golden task requests across five families plus 26 dangerous requests that must fail closed
 - CI running lint, contracts, evaluation fixtures, offline demo and container smoke checks
 
 **Not built yet:**
 - Gazebo world
 - MoveIt grasp/place
 - Real camera (OpenCV + AprilTag)
-- Natural language → plan (local model)
 - Gazebo-backed evaluation results (the committed runs are explicit scripted fixtures)
 
-Each unbuilt piece has a frozen contract. You can build one without waiting for the others.
+Real camera, Gazebo and hardware evidence still require external equipment; repository fixtures are never promoted as hardware evidence.
 
 ---
 
@@ -62,6 +66,7 @@ git clone https://github.com/Quchaosheng/workbench-desk-robot.git
 cd workbench-desk-robot
 make bootstrap
 make demo-scripted
+make performance-test
 ```
 
 `demo-scripted` runs the full chain (observe → plan → verify → replay) in pure Python, no simulator. Fast feedback loop.
@@ -94,6 +99,19 @@ Container path:
 docker compose up --build
 curl http://127.0.0.1:8080/healthz
 ```
+
+Provision the optional local model once; runtime traffic stays on an internal Docker network:
+
+```bash
+docker compose --profile model-bootstrap run --rm model-bootstrap
+docker compose --profile model up -d
+docker compose run --rm dashboard python tools/scripts/local_runner.py \
+  --provider ollama --endpoint http://model:11434 --allow-host model \
+  --goal "Handle the parcels already in the intake area"
+```
+
+See [`docs/performance/README.md`](docs/performance/README.md) and
+[`docs/deployment/multi-host.md`](docs/deployment/multi-host.md) for evidence and split-host deployment.
 
 The dashboard API is read-only. Every HTTP write method returns `405`; this service contains no ROS, motion, MCU or emergency-stop publisher.
 
@@ -133,7 +151,7 @@ Joint angles, velocities, emergency stop are outside its reach. If it returns so
 
 ## Extending it
 
-The demo is one block and one tray, but nothing locks you into that.
+The one-block demo is the regression floor, not the capability ceiling. The current scripted benchmark already exercises exact three-part kits, evidence-only inspection, and ordered obstacle-clearance recovery behind the same contracts.
 
 **Add a task:** Write a new verifier. The system asks "is claim X true?" — it doesn't care if X is "block in tray" or "cable seated" or "6 screws present."
 
@@ -149,10 +167,10 @@ Rule: new capability arrives as a new implementation behind an existing contract
 
 ## Roadmap
 
-v0.1 is deliberately small so verification can be proven correct before stacking on it.
+v0.1 is deliberately small so verification can be proven correct before stacking on it. v0.2 broadens the offline evaluation surface without pretending scripted evidence is simulator or hardware evidence.
 
-- **v0.1** — one arm, one task, simulation (in progress)
-- **v0.2** — multiple task types, richer failure handling
+- **v0.1** — frozen one-arm, one-task regression baseline
+- **v0.2** — five task families and richer failure handling (scripted pipeline implemented; Gazebo pending)
 - **v0.3** — real hardware behind the same contracts
 - **later** — mobile base (verifier generalizes to nav goals), multi-arm
 
@@ -178,6 +196,9 @@ Numbers v0.1 aims to hit. Ones marked **0** are release blockers.
 | Verified task completion rate | ≥ 80% |
 | Recovery after first failure | ≥ 70% |
 | Task time P95 | < 120s |
+| Evaluated task families | ≥ 5 |
+| Complex-task share | ≥ 50% |
+| Goal-condition coverage | 100% |
 
 | Evidence | Target |
 |---|---|
@@ -207,6 +228,8 @@ Simulation only. Being clear about the boundary is part of the point.
 Software safe-stop ≠ hardware emergency stop. Gazebo numbers don't transfer to real grippers without re-validation.
 
 Scripted evaluation fixtures also do not prove Gazebo performance. They exercise event ordering, evidence coverage, replay and reporting, and are marked `release_eligible: false`. See [documented fixture failures](docs/evaluation/failure-cases.md) and the [container runbook](docs/deployment/container.md).
+
+Parcel handling is intentionally limited to parcels already on the tabletop intake area. It scans the complete batch before manipulation, routes only verified intact parcels to the pickup shelf, and isolates condition exceptions before label-only exceptions. Capacity preflight rejects a batch before any manipulation if the pickup or quarantine destination cannot hold it. The current arm has no mobile base, elevator, or parcel-locker access; those requests fail closed instead of being simulated as completed.
 
 ---
 

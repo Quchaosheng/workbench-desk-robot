@@ -16,6 +16,8 @@ from _paths import enable_local_packages
 enable_local_packages()
 
 from pydantic import ValidationError
+from scenario_tools import TASK_PROFILES, materialize_scenario
+from workbench_agent_runtime import build_policy_routed_parcel_plan
 from workbench_contracts import ScenarioManifest
 
 SAFE_LABEL = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
@@ -84,12 +86,43 @@ def write_jsonl(path: Path, events: list[dict[str, Any]]) -> None:
 
 
 def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_base: int) -> list[dict[str, Any]]:
-    """Produce deterministic contract-shaped fixtures for pipeline and UI tests only."""
+    """Produce deterministic multi-task fixtures for pipeline and UI tests only."""
     scenario_id = manifest["scenario_id"]
+    task_id = manifest["task_id"]
+    profile = TASK_PROFILES.get(task_id)
+    if profile is None:
+        raise EvaluationInputError(f"unsupported scripted task_id: {task_id}")
+    scene = materialize_scenario(manifest)
+    operations = tuple(profile["operations"])
+    policy_plan = None
+    policy_place_parameters: dict[str, dict[str, Any]] = {}
+    policy_manifest_statuses: dict[str, str] = {}
+    if task_id == "task-sort-parcels":
+        policy_plan = build_policy_routed_parcel_plan(
+            profile["goal"],
+            {item["entity_id"]: item["attributes"] for item in scene["objects"]},
+            destination_capacities={"pickup_shelf": 4, "quarantine_bin": 4},
+            parcel_manifest=profile["parcel_manifest"],
+            manifest_id=profile["manifest_id"],
+        )
+        operations = tuple(
+            (step.action.target_id, step.action.parameters["destination_id"])
+            for step in policy_plan.steps
+            if step.action.action_type.value == "place"
+        )
+        policy_place_parameters = {
+            step.action.target_id: dict(step.action.parameters)
+            for step in policy_plan.steps
+            if step.action.action_type.value == "place"
+        }
+        policy_manifest_statuses = {
+            entity_id: parameters["manifest_guard"] for entity_id, parameters in policy_place_parameters.items()
+        }
     run_id = f"{version}--{scenario_id}"
     effective_seed = seed_base + manifest["seed"]
     start = datetime(2026, 1, 1, tzinfo=UTC) + timedelta(seconds=effective_seed % TIMESTAMP_WINDOW_SECONDS)
     events: list[dict[str, Any]] = []
+    action_index = 0
 
     def append(event_type: str, payload: dict[str, Any], evidence_refs: list[str] | None = None) -> None:
         sequence_no = len(events)
@@ -107,124 +140,309 @@ def scripted_events(version: str, manifest: dict[str, Any], commit: str, seed_ba
                     "scenario_id": scenario_id,
                     "seed": effective_seed,
                     "runner": "scripted",
+                    "task_id": task_id,
+                    "scene_variant": scene["scene_variant"],
                 },
             }
+        )
+
+    def next_action_id() -> str:
+        nonlocal action_index
+        action_index += 1
+        return f"act-{action_index:03d}"
+
+    def append_intermediate_failure(detail: str, evidence_refs: list[str]) -> None:
+        append(
+            "verification",
+            {
+                "verification_id": f"{run_id}-verify-recovery-{len(events):03d}",
+                "task_id": task_id,
+                "claim": profile["claim"],
+                "status": "refuted",
+                "reason_code": "attempt_failed",
+                "recovery_hint": "retry_action",
+                "missing_evidence": [],
+                "required_conditions": list(profile["required_conditions"]),
+                "evaluated_conditions": list(profile["required_conditions"]),
+                "satisfied_conditions": [],
+                "detail": detail,
+                "evidence_refs": evidence_refs,
+            },
+            evidence_refs,
         )
 
     append(
         "task_accepted",
         {
-            "task_id": manifest["task_id"],
-            "goal": "Place the red block in the tray",
+            "task_id": task_id,
+            "goal": profile["goal"],
             "version": version,
+            "mode": f"scripted · {scene['scene_variant']}",
+            "required_entities": list(profile["entities"]),
         },
     )
+    graph_actions = (
+        [
+            f"{step.action.action_type.value}:{step.action.target_id}"
+            + (f"->{step.action.parameters['destination_id']}" if step.action.action_type.value == "place" else "")
+            for step in policy_plan.steps
+        ]
+        if policy_plan is not None
+        else [f"observe:{entity_id}" for entity_id in profile["entities"]]
+    )
+    if policy_plan is None:
+        graph_actions.extend(
+            action
+            for entity_id, destination_id in operations
+            for action in (f"grasp:{entity_id}", f"place:{entity_id}->{destination_id}")
+        )
     append(
         "task_graph",
         {
-            "task_id": manifest["task_id"],
-            "planner": "template-v1",
+            "task_id": task_id,
+            "planner": (
+                "template-v1"
+                if task_id == "task-place-red-block"
+                else policy_plan.planner
+                if task_id == "task-sort-parcels"
+                else "template-v2"
+            ),
             "model_route": "template",
-            "actions": ["observe", "grasp", "place"],
+            "actions": graph_actions,
+            "parallel_branches": len(profile["entities"]),
+            "observation_barrier": task_id == "task-sort-parcels",
+            "manipulation_serial": task_id == "task-sort-parcels",
+            "routing_policy": "manifest_matched_verified_intact_only" if task_id == "task-sort-parcels" else None,
+            "policy_version": "parcel-routing-v3" if task_id == "task-sort-parcels" else None,
+            "manifest_id": profile.get("manifest_id"),
+            "manifest_statuses": policy_manifest_statuses or None,
+            "routing_priorities": (
+                {
+                    step.action.target_id: step.action.parameters["routing_priority"]
+                    for step in policy_plan.steps
+                    if step.action.action_type.value == "place"
+                }
+                if policy_plan is not None
+                else None
+            ),
+            "destination_capacities": ({"pickup_shelf": 4, "quarantine_bin": 4} if policy_plan is not None else None),
+            "destination_occupancy": ({"pickup_shelf": 0, "quarantine_bin": 0} if policy_plan is not None else None),
         },
     )
-    append(
-        "observation",
-        {
-            "observation_id": f"{run_id}-obs-001",
-            "run_id": run_id,
-            "entity_id": "red_block",
-            "entity_type": "block",
-            "pose": {"frame_id": "world", "position": {"x": 0.08, "y": -0.03, "z": 0.02}},
-            "confidence": 0.42 if manifest["fault_type"] in {"occlusion", "camera_dropout"} else 0.97,
-        },
-        [f"frame://{run_id}/001"],
-    )
-    append("action_request", {"action_id": "act-001", "action_type": "grasp", "target_id": "red_block"})
 
     fault_type = manifest["fault_type"]
-    if fault_type in {"grasp_failure", "actuator_timeout"}:
-        append(
-            "action_result",
-            {"action_id": "act-001", "status": "failed", "detail": fault_type},
-            [f"motion-log://{run_id}/attempt-1"],
+    low_evidence_fault = fault_type in {"occlusion", "camera_dropout", "stale_observation"}
+    recoverable_fault = fault_type in {"grasp_failure", "actuator_timeout"}
+    evidence: list[str] = []
+    recovery_injected = False
+    observation_attributes = (
+        next(
+            list(step.action.parameters["attributes"])
+            for step in policy_plan.steps
+            if step.action.action_type.value == "observe"
         )
+        if policy_plan is not None
+        else [
+            "presence",
+            "identity",
+            "orientation",
+        ]
+    )
+
+    for object_index, scene_object in enumerate(scene["objects"]):
+        entity_id = scene_object["entity_id"]
+        observe_action_id = next_action_id()
         append(
-            "verification",
+            "action_request",
             {
-                "verification_id": f"{run_id}-verify-001",
-                "task_id": manifest["task_id"],
-                "claim": "red_block in tray",
-                "status": "refuted",
-                "reason_code": "goal_not_satisfied",
-                "recovery_hint": "retry_action",
-                "evidence_refs": [f"motion-log://{run_id}/attempt-1"],
+                "action_id": observe_action_id,
+                "action_type": "observe",
+                "target_id": entity_id,
+                "attributes": observation_attributes,
             },
-            [f"motion-log://{run_id}/attempt-1"],
         )
-        append("action_request", {"action_id": "act-002", "action_type": "grasp", "target_id": "red_block"})
+        if not operations and recoverable_fault and object_index == 0:
+            failure_ref = f"sensor-log://{run_id}/{entity_id}/attempt-1"
+            append(
+                "action_result",
+                {"action_id": observe_action_id, "status": "failed", "detail": fault_type},
+                [failure_ref],
+            )
+            append_intermediate_failure(fault_type, [failure_ref])
+            observe_action_id = next_action_id()
+            append(
+                "action_request",
+                {
+                    "action_id": observe_action_id,
+                    "action_type": "observe",
+                    "target_id": entity_id,
+                    "attributes": observation_attributes,
+                    "attempt": 2,
+                },
+            )
+            recovery_injected = True
+        confidence = (
+            0.42 if low_evidence_fault and object_index == len(scene["objects"]) - 1 else 0.97 - 0.02 * object_index
+        )
+        frame_ref = f"frame://{run_id}/{entity_id}"
+        evidence.append(frame_ref)
+        append(
+            "observation",
+            {
+                "observation_id": f"{run_id}-obs-{object_index + 1:03d}",
+                "run_id": run_id,
+                "entity_id": entity_id,
+                "entity_type": scene_object["entity_type"],
+                "colour": scene_object["colour"],
+                "attributes": scene_object.get("attributes", {}),
+                "location": "on:table",
+                "pose": {
+                    "frame_id": "world",
+                    "position": {"x": scene_object["x"], "y": scene_object["y"], "z": 0.02},
+                    "yaw": scene_object["yaw"],
+                },
+                "confidence": confidence,
+            },
+            [frame_ref],
+        )
+        append(
+            "action_result",
+            {"action_id": observe_action_id, "status": "succeeded", "entity_id": entity_id},
+            [frame_ref],
+        )
+
+    operation_failed = False
+    for operation_index, (entity_id, destination_id) in enumerate(operations):
+        grasp_action_id = next_action_id()
+        append(
+            "action_request",
+            {"action_id": grasp_action_id, "action_type": "grasp", "target_id": entity_id},
+        )
+        should_fail_grasp = operation_index == 0 and fault_type in {"grasp_failure", "moving_target"}
+        if should_fail_grasp:
+            failure_ref = f"motion-log://{run_id}/{entity_id}/grasp-attempt-1"
+            append(
+                "action_result",
+                {
+                    "action_id": grasp_action_id,
+                    "status": "failed",
+                    "detail": "target moved" if fault_type == "moving_target" else fault_type,
+                },
+                [failure_ref],
+            )
+            evidence.append(failure_ref)
+            if fault_type == "moving_target":
+                operation_failed = True
+                break
+            append_intermediate_failure(fault_type, [failure_ref])
+            grasp_action_id = next_action_id()
+            append(
+                "action_request",
+                {
+                    "action_id": grasp_action_id,
+                    "action_type": "grasp",
+                    "target_id": entity_id,
+                    "attempt": 2,
+                },
+            )
+            recovery_injected = True
+        grasp_ref = f"motion-log://{run_id}/{entity_id}/grasp-final"
+        evidence.append(grasp_ref)
+        append(
+            "action_result",
+            {"action_id": grasp_action_id, "status": "succeeded", "entity_id": entity_id},
+            [grasp_ref],
+        )
+
+        place_action_id = next_action_id()
+        append(
+            "action_request",
+            {
+                "action_id": place_action_id,
+                "action_type": "place",
+                "target_id": entity_id,
+                "destination_id": destination_id,
+                **policy_place_parameters.get(entity_id, {}),
+            },
+        )
+        if operation_index == 0 and fault_type == "actuator_timeout":
+            failure_ref = f"motion-log://{run_id}/{entity_id}/place-attempt-1"
+            append(
+                "action_result",
+                {"action_id": place_action_id, "status": "failed", "detail": fault_type},
+                [failure_ref],
+            )
+            evidence.append(failure_ref)
+            append_intermediate_failure(fault_type, [failure_ref])
+            place_action_id = next_action_id()
+            append(
+                "action_request",
+                {
+                    "action_id": place_action_id,
+                    "action_type": "place",
+                    "target_id": entity_id,
+                    "destination_id": destination_id,
+                    "attempt": 2,
+                    **policy_place_parameters.get(entity_id, {}),
+                },
+            )
+            recovery_injected = True
+        place_ref = f"motion-log://{run_id}/{entity_id}/place-final"
+        evidence.append(place_ref)
         append(
             "action_result",
             {
-                "action_id": "act-002",
+                "action_id": place_action_id,
                 "status": "succeeded",
-                "entity_id": "red_block",
-                "resulting_location": "in:tray",
+                "entity_id": entity_id,
+                "resulting_location": f"in:{destination_id}",
             },
-            [f"motion-log://{run_id}/attempt-2"],
+            [place_ref],
         )
-        status = "confirmed"
-        reason_code = "goal_satisfied"
-        evidence = [f"frame://{run_id}/recovery", f"motion-log://{run_id}/attempt-2"]
-    elif fault_type in {"occlusion", "camera_dropout", "stale_observation"}:
-        append(
-            "action_result",
-            {"action_id": "act-001", "status": "succeeded", "detail": "dispatch is not completion"},
-            [f"motion-log://{run_id}/attempt-1"],
-        )
+
+    if low_evidence_fault:
         status = "insufficient_evidence"
         reason_code = "stale_observation" if fault_type == "stale_observation" else "confidence_below_threshold"
-        evidence = [f"frame://{run_id}/001"]
-    elif fault_type == "moving_target":
-        append(
-            "action_result",
-            {"action_id": "act-001", "status": "failed", "detail": "target moved"},
-            [f"motion-log://{run_id}/attempt-1"],
-        )
+    elif fault_type == "moving_target" or operation_failed:
         status = "refuted"
-        reason_code = "goal_not_satisfied"
-        evidence = [f"frame://{run_id}/moved", f"motion-log://{run_id}/attempt-1"]
+        reason_code = "target_changed"
     else:
-        append(
-            "action_result",
-            {
-                "action_id": "act-001",
-                "status": "succeeded",
-                "entity_id": "red_block",
-                "resulting_location": "in:tray",
-            },
-            [f"motion-log://{run_id}/attempt-1"],
-        )
         status = "confirmed"
         reason_code = "goal_satisfied"
-        evidence = [f"frame://{run_id}/final", f"motion-log://{run_id}/attempt-1"]
 
-    missing_evidence = ["fresh_camera_frame"] if status == "insufficient_evidence" else []
+    evidence = list(dict.fromkeys(evidence))
+    missing_evidence = (
+        [f"fresh_camera_frame:{profile['entities'][-1]}", "confidence>=0.8"]
+        if status == "insufficient_evidence"
+        else []
+    )
+    required_conditions = list(profile["required_conditions"])
+    satisfied_conditions = required_conditions if status == "confirmed" else required_conditions[:-1]
+    if status == "refuted":
+        satisfied_conditions = []
     append(
         "verification",
         {
             "verification_id": f"{run_id}-verify-final",
-            "task_id": manifest["task_id"],
-            "claim": "red_block in tray",
+            "task_id": task_id,
+            "claim": profile["claim"],
             "status": status,
             "reason_code": reason_code,
-            "recovery_hint": "re_observe" if status == "insufficient_evidence" else "none",
+            "recovery_hint": (
+                "re_observe" if status == "insufficient_evidence" else "none" if status == "confirmed" else "replan"
+            ),
             "missing_evidence": missing_evidence,
+            "required_conditions": required_conditions,
+            "evaluated_conditions": required_conditions,
+            "satisfied_conditions": satisfied_conditions,
+            "recovery_performed": recovery_injected,
+            "manifest_id": profile.get("manifest_id"),
+            "manifest_statuses": policy_manifest_statuses or None,
             "evidence_refs": evidence,
         },
         evidence,
     )
-    append("task_terminal", {"task_id": manifest["task_id"], "status": status}, evidence)
+    append("task_terminal", {"task_id": task_id, "status": status}, evidence)
     return events
 
 
@@ -307,6 +525,23 @@ def validate_event_log(
             or any(not isinstance(reference, str) for reference in payload_evidence)
         ):
             raise RuntimeError(f"verification without evidence_refs in {path}")
+        condition_sets: dict[str, set[str]] = {}
+        for field in ("required_conditions", "evaluated_conditions", "satisfied_conditions"):
+            values = event["payload"].get(field)
+            if (
+                not isinstance(values, list)
+                or any(not isinstance(value, str) or not value for value in values)
+                or len(values) != len(set(values))
+            ):
+                raise RuntimeError(f"verification {field} must be a unique string list in {path}")
+            condition_sets[field] = set(values)
+        required = condition_sets["required_conditions"]
+        evaluated = condition_sets["evaluated_conditions"]
+        satisfied = condition_sets["satisfied_conditions"]
+        if not required or not satisfied.issubset(evaluated) or not evaluated.issubset(required):
+            raise RuntimeError(f"verification condition accounting is inconsistent in {path}")
+        if event["payload"]["status"] == "confirmed" and satisfied != required:
+            raise RuntimeError(f"confirmed verification has unsatisfied conditions in {path}")
     terminals = [event for event in events if event.get("event_type") == "task_terminal"]
     if terminals and terminals[-1]["payload"].get("status") != verifications[-1]["payload"].get("status"):
         raise RuntimeError(f"terminal status disagrees with final verification in {path}")

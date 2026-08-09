@@ -6,4 +6,6 @@ markings, dimensional check via depth camera.
 Verifier outputs per-attribute results and an overall pass/fail.
 "Insufficient evidence" on any attribute propagates to the overall result.
 
-Not implemented yet. Waiting for v0.2.
+The v0.2 offline template observes three workpieces and requests presence,
+identity, and orientation evidence. The verifier requires every entity to be
+observed above the confidence threshold and refuses completion without evidence.

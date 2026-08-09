@@ -16,9 +16,26 @@ def read_csv(relative: str) -> list[dict[str, str]]:
 
 def validate() -> dict[str, object]:
     baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
+    mass_rows = read_csv("hardware/mechanical/mass-ledger.csv")
+    total_mass_kg = sum(float(row["mass_kg"]) for row in mass_rows)
+    center_of_gravity_mm = [
+        round(sum(float(row["mass_kg"]) * float(row[axis]) for row in mass_rows) / total_mass_kg, 1)
+        for axis in ("x_mm", "y_mm", "z_mm")
+    ]
+    bms_states = {row["state"] for row in read_csv("hardware/power/bms-state-machine.csv")}
+    bms_transitions = read_csv("hardware/power/bms-transitions.csv")
+    planning_bom_total_usd = sum(
+        float(row["extended_cost_usd"]) for row in read_csv("hardware/procurement/planning-bom.csv")
+    )
+    fixture_budget_total_usd = sum(
+        float(row["planned_cost_usd"])
+        for row in read_csv("hardware/manufacturing/fixture-budget.csv")
+        if row["fixture_id"] != "TOTAL"
+    )
     required_files = [
         "hardware/power/README.md",
         "hardware/power/bms-state-machine.csv",
+        "hardware/power/bms-transitions.csv",
         "hardware/power/protection-thresholds.csv",
         "hardware/mechanical/system-integration.md",
         "hardware/mechanical/mass-ledger.csv",
@@ -38,6 +55,10 @@ def validate() -> dict[str, object]:
         "hardware/support/case-template.csv",
         "hardware/support/escalation-matrix.csv",
         "docs/user-guide/index.md",
+        "docs/user-guide/installation.md",
+        "docs/user-guide/operation.md",
+        "docs/user-guide/maintenance.md",
+        "docs/user-guide/troubleshooting.md",
         "docs/user-guide/demo-runbook.md",
         "docs/api.md",
         "mkdocs.yml",
@@ -59,23 +80,29 @@ def validate() -> dict[str, object]:
         == {"CE", "FCC", "UN38.3"},
         "certification_is_not_claimed": baseline["compliance"]["certification_claim"] == "NOT_CERTIFIED",
         "external_evidence_remains_required": baseline["status"] == "EXTERNAL_EVIDENCE_REQUIRED",
-        "bms_has_fail_closed_states": {row["state"] for row in read_csv("hardware/power/bms-state-machine.csv")}
+        "bms_has_fail_closed_states": bms_states
         >= {"OFF", "SELF_TEST", "PRECHARGE", "RUN", "FAULT_LATCHED", "SERVICE"},
+        "bms_transition_graph_uses_known_states": all(
+            row["source_state"] in bms_states and row["target_state"] in bms_states for row in bms_transitions
+        ),
+        "bms_run_entry_requires_precharge_or_derate_recovery": all(
+            row["source_state"] in {"PRECHARGE", "DERATE"} for row in bms_transitions if row["target_state"] == "RUN"
+        ),
+        "bms_fault_transitions_open_and_latch": all(
+            row["contactor_action"] == "all_open" and row["latch"] == "yes"
+            for row in bms_transitions
+            if row["target_state"] == "FAULT_LATCHED"
+        ),
         "all_protection_levels_are_defined": {
             row["level"] for row in read_csv("hardware/power/protection-thresholds.csv")
         }
         == {"L1", "L2", "L3"},
-        "mass_ledger_sums_to_55kg": abs(
-            sum(float(row["mass_kg"]) for row in read_csv("hardware/mechanical/mass-ledger.csv")) - 55
-        )
-        < 1e-9,
+        "mass_ledger_sums_to_55kg": abs(total_mass_kg - 55) < 1e-9,
+        "mass_ledger_cg_is_calculated": center_of_gravity_mm == [0.0, -9.1, 470.0],
         "mass_ledger_has_physical_validation_status": all(
             row["status"] == "ESTIMATE" for row in read_csv("hardware/mechanical/mass-ledger.csv")
         ),
-        "planning_bom_rows_sum_to_5100": sum(
-            float(row["extended_cost_usd"]) for row in read_csv("hardware/procurement/planning-bom.csv")
-        )
-        == 5100,
+        "planning_bom_rows_sum_to_5100": planning_bom_total_usd == 5100,
         "planning_bom_has_certificate_gate": all(
             row["certificate_gate"] == "REQUIRED_BEFORE_PO" for row in read_csv("hardware/procurement/planning-bom.csv")
         ),
@@ -83,12 +110,7 @@ def validate() -> dict[str, object]:
             {row["station"] for row in read_csv("hardware/manufacturing/station-map.csv")}
         )
         == 6,
-        "fixture_budget_rows_sum_to_4000": sum(
-            float(row["planned_cost_usd"])
-            for row in read_csv("hardware/manufacturing/fixture-budget.csv")
-            if row["fixture_id"] != "TOTAL"
-        )
-        == 4000,
+        "fixture_budget_rows_sum_to_4000": fixture_budget_total_usd == 4000,
         "all_fmea_actions_are_above_rpn_threshold": all(
             int(row["current_rpn"]) > baseline["quality"]["rpn_action_threshold"]
             for row in read_csv("hardware/qa/fmea-action-register.csv")
@@ -107,12 +129,22 @@ def validate() -> dict[str, object]:
             row["severity"] for row in read_csv("hardware/support/escalation-matrix.csv")
         }
         == {"S0", "S1", "S2", "S3"},
+        "documentation_build_is_in_ci": 'python -m pip install -e ".[dev,docs]"'
+        in (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        and "make docs" in (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8"),
     }
     report: dict[str, object] = {
         "package": baseline["package"],
         "pass": all(checks.values()),
         "status": baseline["status"],
         "checks": checks,
+        "metrics": {
+            "mass_kg": total_mass_kg,
+            "center_of_gravity_mm": center_of_gravity_mm,
+            "planning_bom_total_usd": planning_bom_total_usd,
+            "fixture_budget_total_usd": fixture_budget_total_usd,
+            "station_count": len({row["station"] for row in read_csv("hardware/manufacturing/station-map.csv")}),
+        },
         "required_files": required_files,
         "note": "A passing document check never substitutes for quotes, certificates, pilot data, or physical tests.",
     }

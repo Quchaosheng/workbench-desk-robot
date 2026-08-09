@@ -6,6 +6,10 @@ theme:
   name: mkdocs
 nav:
   - User manual: user-guide/index.md
+  - Installation: user-guide/installation.md
+  - Daily operation: user-guide/operation.md
+  - Maintenance: user-guide/maintenance.md
+  - Troubleshooting: user-guide/troubleshooting.md
   - 90-minute demo: user-guide/demo-runbook.md
   - System architecture: architecture/system.md
   - API reference: api.md

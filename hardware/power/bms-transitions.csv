@@ -1,0 +1,17 @@
+source_state,event,guard,target_state,contactor_action,latch
+OFF,wake,pack_present_and_service_disconnect_closed,SELF_TEST,all_open,no
+SELF_TEST,self_test_pass,config_and_sensors_valid,STANDBY,all_open,no
+SELF_TEST,self_test_fail,always,FAULT_LATCHED,all_open,yes
+STANDBY,run_request,safety_chain_ok,PRECHARGE,precharge_close,no
+STANDBY,charge_request,approved_charger_and_temperature_ok,CHARGE,charge_close,no
+PRECHARGE,precharge_pass,bus_ratio_and_timeout_ok,RUN,main_close_then_precharge_open,no
+PRECHARGE,precharge_fail,timeout_or_ratio_invalid,FAULT_LATCHED,all_open,yes
+RUN,warning,within_derate_envelope,DERATE,current_limit_reduce,no
+RUN,stop_request,always,STANDBY,all_open,no
+RUN,protection_trip,always,FAULT_LATCHED,all_open,yes
+CHARGE,charge_complete_or_unplug,always,STANDBY,all_open,no
+CHARGE,protection_trip,always,FAULT_LATCHED,all_open,yes
+DERATE,recovered,hysteresis_clear,RUN,current_limit_restore,no
+DERATE,protection_trip,always,FAULT_LATCHED,all_open,yes
+FAULT_LATCHED,local_reset,trigger_clear_and_service_authorized,SELF_TEST,all_open,no
+SERVICE,service_exit,always,SELF_TEST,all_open,no

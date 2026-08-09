@@ -1,0 +1,53 @@
+{
+  "issue": "BENCHMARK-DIVERSITY-v0.2",
+  "human_owner": "Quchaosheng",
+  "objective": "Expand the deterministic baseline from one pick/place task into a diverse semantic-task benchmark without exposing joint, firmware, or hardware control.",
+  "allowed_paths": [
+    "services/agent_runtime/**",
+    "services/world_model/**",
+    "tasks/**",
+    "sim/scenarios/**",
+    "evaluation/**",
+    "tools/scripts/**",
+    "apps/dashboard/**",
+    "tests/**",
+    "docs/task_packets/**",
+    "docs/evaluation/**",
+    "README.md",
+    "README.zh-CN.md"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "libs/contracts/**"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "hardware/safety/**"
+  ],
+  "acceptance": [
+    "offline planner supports place, kitting, inspection, and clear-then-place task families using semantic actions only",
+    "expanded scenarios cover at least three non-baseline task families",
+    "kitting verification checks missing parts, extra parts, confidence, and evidence",
+    "evaluation reports task-family coverage and complex-task rate",
+    "dashboard fixtures visibly demonstrate multi-object, inspection, and recovery tasks"
+  ],
+  "commands": [
+    "make check",
+    "make evaluation-check",
+    "make evaluation-scripted",
+    "make dashboard-test",
+    "make container-smoke"
+  ],
+  "evidence": [
+    "planner and verifier unit tests",
+    "scenario distribution validation",
+    "90-run scripted evaluation metrics",
+    "desktop and mobile dashboard checks"
+  ],
+  "stop_conditions": [
+    "a frozen interface change is required",
+    "raw joint, CAN, emergency-stop, or firmware access would be introduced",
+    "scripted results could be mistaken for physical robot evidence"
+  ]
+}

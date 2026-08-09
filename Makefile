@@ -1,7 +1,8 @@
 PYTHON ?= python3
 
 .PHONY: bootstrap lint fmt test contract scenario-check golden-check evaluation-check evaluation-scripted context-check \
-	dashboard-test dashboard demo-scripted demo-offline docs task-check check container-smoke
+	dashboard-test dashboard demo demo-scripted demo-offline demo-model model-provision performance-test benchmark-startup \
+	benchmark-resources docs task-check check container-smoke
 
 bootstrap:
 	$(PYTHON) -m pip install --upgrade pip
@@ -47,6 +48,24 @@ demo-scripted:
 
 demo-offline:
 	$(PYTHON) tools/scripts/local_runner.py --goal "Place the red block in the tray"
+
+demo: demo-offline
+
+demo-model:
+	$(PYTHON) tools/scripts/local_runner.py --provider ollama --goal "Sort the parcels already in the intake area"
+
+model-provision:
+	docker compose --profile model-bootstrap run --rm model-bootstrap
+
+performance-test:
+	$(PYTHON) tools/scripts/demo_scripted.py --iterations 30 --telemetry runs/performance/simulation.jsonl
+	$(PYTHON) tools/scripts/analyze_telemetry.py runs/performance/simulation.jsonl --output runs/performance/stages.json
+
+benchmark-startup:
+	$(PYTHON) tools/scripts/benchmark_startup.py --output runs/performance/startup.json
+
+benchmark-resources:
+	$(PYTHON) tools/scripts/benchmark_resources.py --project workbench-startup-benchmark --output runs/performance/resources.json
 
 dashboard-test:
 	$(PYTHON) -m unittest tests.unit.test_dashboard_backend -v

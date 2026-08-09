@@ -3,6 +3,15 @@
 """
 
 import json
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path[:0] = [
+    str(ROOT / "libs/contracts"),
+    str(ROOT / "services/agent_runtime"),
+    str(ROOT / "services/world_model"),
+]
 
 from workbench_agent_runtime import build_template_plan
 from workbench_contracts import WorldEvent, WorldEventType

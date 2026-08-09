@@ -1,31 +1,141 @@
+import math
+import re
+import unicodedata
 import uuid
+from collections.abc import Mapping
 
-from workbench_contracts import (
-    ReasonCode,
-    RecoveryHint,
-    VerificationResult,
-    VerificationStatus,
-)
+from workbench_contracts import ReasonCode, RecoveryHint, VerificationResult, VerificationStatus
 
 from .reducer import WorldState
 
+NO_EVIDENCE_REF = "system://world-state/no-evidence"
+DEFAULT_PARCEL_ROUTES = {
+    "parcel_box": "pickup_shelf",
+    "parcel_envelope": "pickup_shelf",
+    "parcel_damaged": "quarantine_bin",
+}
+DEFAULT_PARCEL_ATTRIBUTES = {
+    "parcel_box": {"label_status": "verified", "condition": "intact"},
+    "parcel_envelope": {"label_status": "verified", "condition": "intact"},
+    "parcel_damaged": {"label_status": "verified", "condition": "damaged"},
+}
+PARCEL_IDENTITY_KEYS = ("tracking_id", "barcode", "parcel_uid")
+
+
+def _unique_evidence(state: WorldState) -> list[str]:
+    evidence = list(state.evidence_refs)
+    for references in state.entity_evidence_refs.values():
+        evidence.extend(references)
+    return list(dict.fromkeys(evidence))
+
+
+def _missing_entity_evidence(state: WorldState, entity_ids: set[str]) -> list[str]:
+    return sorted(entity_id for entity_id in entity_ids if not state.entity_evidence_refs.get(entity_id))
+
+
+def _required_entity_set(entity_ids: list[str], label: str) -> set[str]:
+    if not entity_ids or any(not isinstance(entity_id, str) or not entity_id.strip() for entity_id in entity_ids):
+        raise ValueError(f"{label} requires non-empty entity IDs")
+    if len(entity_ids) != len(set(entity_ids)):
+        raise ValueError(f"{label} requires unique entity IDs")
+    return set(entity_ids)
+
+
+def _validate_confidence_threshold(value: float) -> None:
+    if isinstance(value, bool) or not isinstance(value, int | float) or not 0.0 <= value <= 1.0:
+        raise ValueError("confidence_threshold must be between 0 and 1")
+
+
+def _normalize_parcel_identity(value: object, label: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"parcel identity {label} must be a non-empty string")
+    normalized = unicodedata.normalize("NFKC", value).casefold()
+    normalized = re.sub(r"[\s-]+", "", normalized)
+    if not normalized:
+        raise ValueError(f"parcel identity {label} must contain readable characters")
+    return normalized
+
+
+def _validate_parcel_manifest(
+    required: set[str],
+    parcel_manifest: Mapping[str, Mapping[str, str]] | None,
+    manifest_id: str | None,
+) -> tuple[str | None, dict[str, set[str]]]:
+    if parcel_manifest is None:
+        if manifest_id is not None:
+            raise ValueError("manifest_id requires parcel_manifest")
+        return None, {}
+    if not isinstance(manifest_id, str) or not manifest_id.strip():
+        raise ValueError("manifest_id must be a non-empty string")
+    if not isinstance(parcel_manifest, Mapping):
+        raise ValueError("parcel_manifest must be a mapping")
+    if set(parcel_manifest) != required:
+        raise ValueError("parcel_manifest must contain exactly the required parcel IDs")
+
+    expected_identities: dict[str, set[str]] = {}
+    seen: dict[str, tuple[str, str]] = {}
+    for parcel_id, attributes in parcel_manifest.items():
+        if not isinstance(attributes, Mapping):
+            raise ValueError("parcel manifest entries must be mappings")
+        unsupported = set(attributes) - set(PARCEL_IDENTITY_KEYS)
+        if unsupported:
+            raise ValueError(f"parcel manifest contains unsupported identity keys: {', '.join(sorted(unsupported))}")
+        expected_identities[parcel_id] = set()
+        for key in PARCEL_IDENTITY_KEYS:
+            if attributes.get(key) is None:
+                continue
+            identity = _normalize_parcel_identity(attributes[key], key)
+            previous = seen.get(identity)
+            if previous is not None and previous[0] != parcel_id:
+                raise ValueError(
+                    f"duplicate parcel manifest identity: {previous[0]}.{previous[1]} and {parcel_id}.{key}"
+                )
+            seen[identity] = (parcel_id, key)
+            expected_identities[parcel_id].add(identity)
+        if not expected_identities[parcel_id]:
+            raise ValueError(f"parcel manifest requires an identity for {parcel_id}")
+    return manifest_id.strip(), expected_identities
+
+
+def _result(
+    state: WorldState,
+    task_id: str,
+    claim: str,
+    status: VerificationStatus,
+    reason_code: ReasonCode,
+    recovery_hint: RecoveryHint,
+    rule_version: str,
+) -> VerificationResult:
+    return VerificationResult(
+        verification_id=f"ver-{uuid.uuid4().hex[:12]}",
+        run_id=state.run_id,
+        task_id=task_id,
+        claim=claim,
+        status=status,
+        reason_code=reason_code,
+        evidence_refs=_unique_evidence(state) or [NO_EVIDENCE_REF],
+        recovery_hint=recovery_hint,
+        verified_at="1970-01-01T00:00:00Z",
+        rule_version=rule_version,
+    )
+
 
 def verify_object_in_tray(state: WorldState, task_id: str, object_id: str, tray_id: str) -> VerificationResult:
-    """Decide whether object_id is inside tray_id.
-
-    Three outcomes, not two. If the object was never observed we cannot say the
-    goal failed — we can only say we have no evidence either way, which is what
-    INSUFFICIENT_EVIDENCE means. Collapsing that into False would report a
-    failure the world never showed us.
-    """
+    if not isinstance(object_id, str) or not object_id.strip() or not isinstance(tray_id, str) or not tray_id.strip():
+        raise ValueError("object_id and tray_id must be non-empty")
     expected_location = f"in:{tray_id}"
     actual_location = state.entity_locations.get(object_id)
-
+    evidence = _unique_evidence(state)
     if actual_location is None:
         status = VerificationStatus.INSUFFICIENT_EVIDENCE
         reason_code = ReasonCode.TARGET_NOT_OBSERVED
         recovery_hint = RecoveryHint.RE_OBSERVE
         claim = f"{object_id} inside {tray_id}: never observed"
+    elif actual_location == expected_location and not evidence:
+        status = VerificationStatus.INSUFFICIENT_EVIDENCE
+        reason_code = ReasonCode.EVIDENCE_MISSING
+        recovery_hint = RecoveryHint.RE_OBSERVE
+        claim = f"{object_id} inside {tray_id}: relation has no evidence"
     elif actual_location == expected_location:
         status = VerificationStatus.CONFIRMED
         reason_code = ReasonCode.GOAL_SATISFIED
@@ -36,20 +146,313 @@ def verify_object_in_tray(state: WorldState, task_id: str, object_id: str, tray_
         reason_code = ReasonCode.GOAL_NOT_SATISFIED
         recovery_hint = RecoveryHint.RETRY_ACTION
         claim = f"{object_id} inside {tray_id}: found at {actual_location}"
+    return _result(state, task_id, claim, status, reason_code, recovery_hint, "tray-membership-v1")
 
-    # A conclusion with no evidence is not a conclusion. The schema requires at
-    # least one ref, so record why the chain is empty rather than emitting [].
-    evidence_refs = state.evidence_refs or ["no-events-applied"]
 
-    return VerificationResult(
-        verification_id=f"ver-{uuid.uuid4().hex[:12]}",
-        run_id=state.run_id,
-        task_id=task_id,
-        claim=claim,
-        status=status,
-        reason_code=reason_code,
-        evidence_refs=evidence_refs,
-        recovery_hint=recovery_hint,
-        verified_at="1970-01-01T00:00:00Z",
-        rule_version="tray-membership-v1",
+def verify_kit_contents(
+    state: WorldState,
+    task_id: str,
+    required_object_ids: list[str],
+    tray_id: str = "kit_tray",
+    confidence_threshold: float = 0.8,
+) -> VerificationResult:
+    required = _required_entity_set(required_object_ids, "kitting")
+    if not isinstance(tray_id, str) or not tray_id.strip():
+        raise ValueError("tray_id must be non-empty")
+    _validate_confidence_threshold(confidence_threshold)
+    expected_location = f"in:{tray_id}"
+    unobserved = sorted(object_id for object_id in required if object_id not in state.entity_locations)
+    misplaced = sorted(
+        object_id
+        for object_id in required
+        if object_id in state.entity_locations and state.entity_locations[object_id] != expected_location
     )
+    extras = sorted(
+        object_id
+        for object_id, location in state.entity_locations.items()
+        if location == expected_location and object_id not in required
+    )
+    low_confidence = sorted(
+        object_id for object_id in required if state.entity_confidence.get(object_id, 0.0) < confidence_threshold
+    )
+    missing_evidence = _missing_entity_evidence(state, required)
+    claim = (
+        f"kit in {tray_id}: unobserved={unobserved}; misplaced={misplaced}; extras={extras}; "
+        f"low_confidence={low_confidence}; missing_evidence={missing_evidence}"
+    )
+    if unobserved:
+        outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.TARGET_NOT_OBSERVED, RecoveryHint.RE_OBSERVE)
+    elif low_confidence:
+        outcome = (
+            VerificationStatus.INSUFFICIENT_EVIDENCE,
+            ReasonCode.CONFIDENCE_BELOW_THRESHOLD,
+            RecoveryHint.RE_OBSERVE,
+        )
+    elif missing_evidence:
+        outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.EVIDENCE_MISSING, RecoveryHint.RE_OBSERVE)
+    elif misplaced or extras:
+        outcome = (VerificationStatus.REFUTED, ReasonCode.GOAL_NOT_SATISFIED, RecoveryHint.RETRY_ACTION)
+    else:
+        outcome = (VerificationStatus.CONFIRMED, ReasonCode.GOAL_SATISFIED, RecoveryHint.NONE)
+    return _result(state, task_id, claim, *outcome, "kit-contents-v1")
+
+
+def verify_inspection_evidence(
+    state: WorldState,
+    task_id: str,
+    required_entity_ids: list[str],
+    confidence_threshold: float = 0.8,
+) -> VerificationResult:
+    required = _required_entity_set(required_entity_ids, "inspection")
+    _validate_confidence_threshold(confidence_threshold)
+    unobserved = sorted(entity_id for entity_id in required if entity_id not in state.entity_locations)
+    low_confidence = sorted(
+        entity_id for entity_id in required if state.entity_confidence.get(entity_id, 0.0) < confidence_threshold
+    )
+    missing_evidence = _missing_entity_evidence(state, required)
+    claim = (
+        f"inspection: unobserved={unobserved}; low_confidence={low_confidence}; " f"missing_evidence={missing_evidence}"
+    )
+    if unobserved:
+        outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.TARGET_NOT_OBSERVED, RecoveryHint.RE_OBSERVE)
+    elif low_confidence:
+        outcome = (
+            VerificationStatus.INSUFFICIENT_EVIDENCE,
+            ReasonCode.CONFIDENCE_BELOW_THRESHOLD,
+            RecoveryHint.RE_OBSERVE,
+        )
+    elif missing_evidence:
+        outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.EVIDENCE_MISSING, RecoveryHint.RE_OBSERVE)
+    else:
+        outcome = (VerificationStatus.CONFIRMED, ReasonCode.GOAL_SATISFIED, RecoveryHint.NONE)
+    return _result(state, task_id, claim, *outcome, "inspection-evidence-v1")
+
+
+def verify_workspace_clearance(state: WorldState, task_id: str) -> VerificationResult:
+    expected = {"blue_cylinder": "in:staging_bin", "red_block": "in:tray"}
+    unobserved = sorted(entity_id for entity_id in expected if entity_id not in state.entity_locations)
+    unmet = sorted(
+        f"{entity_id}->{location}"
+        for entity_id, location in expected.items()
+        if entity_id in state.entity_locations and state.entity_locations[entity_id] != location
+    )
+    missing_evidence = _missing_entity_evidence(state, set(expected))
+    claim = f"workspace clearance: unobserved={unobserved}; unmet={unmet}; missing_evidence={missing_evidence}"
+    if unobserved:
+        outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.TARGET_NOT_OBSERVED, RecoveryHint.RE_OBSERVE)
+    elif missing_evidence:
+        outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.EVIDENCE_MISSING, RecoveryHint.RE_OBSERVE)
+    elif unmet:
+        outcome = (VerificationStatus.REFUTED, ReasonCode.GOAL_NOT_SATISFIED, RecoveryHint.RETRY_ACTION)
+    else:
+        outcome = (VerificationStatus.CONFIRMED, ReasonCode.GOAL_SATISFIED, RecoveryHint.NONE)
+    return _result(state, task_id, claim, *outcome, "workspace-clearance-v1")
+
+
+def verify_parcel_sorting(
+    state: WorldState,
+    task_id: str,
+    parcel_routes: dict[str, str] | None = None,
+    expected_attributes: dict[str, dict[str, str]] | None = None,
+    confidence_threshold: float = 0.8,
+) -> VerificationResult:
+    route_input = DEFAULT_PARCEL_ROUTES if parcel_routes is None else parcel_routes
+    if not isinstance(route_input, Mapping):
+        raise ValueError("parcel sorting routes must be a mapping")
+    routes = dict(route_input)
+    required = _required_entity_set(list(routes), "parcel sorting")
+    if any(not isinstance(destination, str) or not destination.strip() for destination in routes.values()):
+        raise ValueError("parcel sorting requires non-empty destinations")
+    attributes = DEFAULT_PARCEL_ATTRIBUTES if expected_attributes is None else expected_attributes
+    if not isinstance(attributes, Mapping):
+        raise ValueError("parcel attribute requirements must be a mapping")
+    if set(attributes) != required:
+        raise ValueError("parcel attribute requirements must match routed parcels")
+    if any(
+        not isinstance(requirements, Mapping)
+        or not requirements
+        or any(
+            not isinstance(key, str) or not key.strip() or not isinstance(value, str) or not value.strip()
+            for key, value in requirements.items()
+        )
+        for requirements in attributes.values()
+    ):
+        raise ValueError("each parcel requires non-empty string attribute requirements")
+    _validate_confidence_threshold(confidence_threshold)
+
+    unobserved = sorted(parcel_id for parcel_id in required if parcel_id not in state.entity_locations)
+    low_confidence = sorted(
+        parcel_id
+        for parcel_id in required
+        if not math.isfinite(state.entity_confidence.get(parcel_id, 0.0))
+        or state.entity_confidence.get(parcel_id, 0.0) < confidence_threshold
+    )
+    missing_evidence = _missing_entity_evidence(state, required)
+    missing_attributes: list[str] = []
+    attribute_mismatches: list[str] = []
+    for parcel_id in sorted(required):
+        observed = state.entity_attributes.get(parcel_id, {})
+        for key, expected_value in attributes[parcel_id].items():
+            if key not in observed:
+                missing_attributes.append(f"{parcel_id}.{key}")
+            elif observed[key] != expected_value:
+                attribute_mismatches.append(f"{parcel_id}.{key}={observed[key]}")
+    misrouted = sorted(
+        f"{parcel_id}->{destination}"
+        for parcel_id, destination in routes.items()
+        if parcel_id in state.entity_locations and state.entity_locations[parcel_id] != f"in:{destination}"
+    )
+    managed_locations = {f"in:{destination}" for destination in routes.values()}
+    extras = sorted(
+        entity_id
+        for entity_id, location in state.entity_locations.items()
+        if location in managed_locations and entity_id not in required
+    )
+    claim = (
+        f"parcel sorting: unobserved={unobserved}; low_confidence={low_confidence}; "
+        f"missing_evidence={missing_evidence}; missing_attributes={missing_attributes}; "
+        f"attribute_mismatches={attribute_mismatches}; misrouted={misrouted}; extras={extras}"
+    )
+    if unobserved:
+        outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.TARGET_NOT_OBSERVED, RecoveryHint.RE_OBSERVE)
+    elif low_confidence:
+        outcome = (
+            VerificationStatus.INSUFFICIENT_EVIDENCE,
+            ReasonCode.CONFIDENCE_BELOW_THRESHOLD,
+            RecoveryHint.RE_OBSERVE,
+        )
+    elif missing_evidence or missing_attributes:
+        outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.EVIDENCE_MISSING, RecoveryHint.RE_OBSERVE)
+    elif attribute_mismatches or misrouted or extras:
+        outcome = (VerificationStatus.REFUTED, ReasonCode.GOAL_NOT_SATISFIED, RecoveryHint.RETRY_ACTION)
+    else:
+        outcome = (VerificationStatus.CONFIRMED, ReasonCode.GOAL_SATISFIED, RecoveryHint.NONE)
+    return _result(state, task_id, claim, *outcome, "parcel-sorting-v1")
+
+
+def verify_parcel_policy(
+    state: WorldState,
+    task_id: str,
+    parcel_ids: list[str],
+    pickup_shelf_id: str = "pickup_shelf",
+    quarantine_bin_id: str = "quarantine_bin",
+    confidence_threshold: float = 0.8,
+    parcel_manifest: Mapping[str, Mapping[str, str]] | None = None,
+    manifest_id: str | None = None,
+) -> VerificationResult:
+    """Verify routes derived from observed parcel attributes, never caller claims."""
+    required = _required_entity_set(parcel_ids, "parcel policy")
+    if not isinstance(pickup_shelf_id, str) or not pickup_shelf_id.strip():
+        raise ValueError("pickup_shelf_id must be non-empty")
+    if not isinstance(quarantine_bin_id, str) or not quarantine_bin_id.strip():
+        raise ValueError("quarantine_bin_id must be non-empty")
+    if pickup_shelf_id == quarantine_bin_id:
+        raise ValueError("pickup and quarantine destinations must be different")
+    _validate_confidence_threshold(confidence_threshold)
+    normalized_manifest_id, expected_identities = _validate_parcel_manifest(required, parcel_manifest, manifest_id)
+
+    unobserved = sorted(parcel_id for parcel_id in required if parcel_id not in state.entity_locations)
+    low_confidence = sorted(
+        parcel_id
+        for parcel_id in required
+        if not math.isfinite(state.entity_confidence.get(parcel_id, 0.0))
+        or state.entity_confidence.get(parcel_id, 0.0) < confidence_threshold
+    )
+    missing_evidence = _missing_entity_evidence(state, required)
+    missing_attributes: list[str] = []
+    missing_manifest_identities: list[str] = []
+    manifest_mismatches: list[str] = []
+    duplicate_identities: list[str] = []
+    seen_identities: dict[str, tuple[str, str]] = {}
+    decisions: dict[str, str] = {}
+    decision_reasons: dict[str, str] = {}
+    for parcel_id in sorted(required):
+        observed = state.entity_attributes.get(parcel_id, {})
+        if not isinstance(observed, Mapping):
+            missing_attributes.extend([f"{parcel_id}.label_status", f"{parcel_id}.condition"])
+            if normalized_manifest_id is not None:
+                missing_manifest_identities.append(parcel_id)
+            continue
+        label_status = observed.get("label_status")
+        condition = observed.get("condition")
+        if not isinstance(label_status, str) or not label_status.strip():
+            missing_attributes.append(f"{parcel_id}.label_status")
+        if not isinstance(condition, str) or not condition.strip():
+            missing_attributes.append(f"{parcel_id}.condition")
+        observed_identities: set[str] = set()
+        for identity_key in PARCEL_IDENTITY_KEYS:
+            identity_value = observed.get(identity_key)
+            if identity_value is None:
+                continue
+            try:
+                identity = _normalize_parcel_identity(identity_value, identity_key)
+            except ValueError:
+                missing_attributes.append(f"{parcel_id}.{identity_key}")
+                continue
+            observed_identities.add(identity)
+            previous = seen_identities.get(identity)
+            if previous is not None and previous[0] != parcel_id:
+                duplicate_identities.append(
+                    f"{previous[0]}.{previous[1]}={parcel_id}.{identity_key} ({str(identity_value).strip()})"
+                )
+            else:
+                seen_identities[identity] = (parcel_id, identity_key)
+        if normalized_manifest_id is not None:
+            if not observed_identities:
+                missing_manifest_identities.append(parcel_id)
+            elif expected_identities[parcel_id].isdisjoint(observed_identities):
+                manifest_mismatches.append(parcel_id)
+        if (
+            not isinstance(label_status, str)
+            or not label_status.strip()
+            or not isinstance(condition, str)
+            or not condition.strip()
+        ):
+            continue
+        label_status = label_status.strip().lower()
+        condition = condition.strip().lower()
+        if label_status == "verified" and condition == "intact":
+            decisions[parcel_id] = f"in:{pickup_shelf_id}"
+            decision_reasons[parcel_id] = "verified_intact"
+        else:
+            decisions[parcel_id] = f"in:{quarantine_bin_id}"
+            reasons = []
+            if label_status != "verified":
+                reasons.append(f"label_{label_status}")
+            if condition != "intact":
+                reasons.append(f"condition_{condition}")
+            decision_reasons[parcel_id] = "+".join(reasons)
+    misrouted = sorted(
+        f"{parcel_id}->{expected_location}"
+        for parcel_id, expected_location in decisions.items()
+        if state.entity_locations.get(parcel_id) != expected_location
+    )
+    managed_locations = {f"in:{pickup_shelf_id}", f"in:{quarantine_bin_id}"}
+    extras = sorted(
+        entity_id
+        for entity_id, location in state.entity_locations.items()
+        if location in managed_locations and entity_id not in required
+    )
+    claim = (
+        f"parcel policy: manifest_id={normalized_manifest_id}; decisions={decisions}; "
+        f"reasons={decision_reasons}; unobserved={unobserved}; "
+        f"low_confidence={low_confidence}; missing_evidence={missing_evidence}; "
+        f"missing_attributes={missing_attributes}; missing_manifest_identities={missing_manifest_identities}; "
+        f"manifest_mismatches={manifest_mismatches}; duplicate_identities={duplicate_identities}; "
+        f"misrouted={misrouted}; extras={extras}"
+    )
+    if unobserved:
+        outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.TARGET_NOT_OBSERVED, RecoveryHint.RE_OBSERVE)
+    elif low_confidence:
+        outcome = (
+            VerificationStatus.INSUFFICIENT_EVIDENCE,
+            ReasonCode.CONFIDENCE_BELOW_THRESHOLD,
+            RecoveryHint.RE_OBSERVE,
+        )
+    elif missing_evidence or missing_attributes or missing_manifest_identities:
+        outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.EVIDENCE_MISSING, RecoveryHint.RE_OBSERVE)
+    elif manifest_mismatches or duplicate_identities or misrouted or extras:
+        outcome = (VerificationStatus.REFUTED, ReasonCode.GOAL_NOT_SATISFIED, RecoveryHint.RETRY_ACTION)
+    else:
+        outcome = (VerificationStatus.CONFIRMED, ReasonCode.GOAL_SATISFIED, RecoveryHint.NONE)
+    return _result(state, task_id, claim, *outcome, "parcel-policy-v2")

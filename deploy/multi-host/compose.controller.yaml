@@ -1,0 +1,19 @@
+services:
+  controller:
+    image: ${WORKBENCH_IMAGE:-workbench-1:local}
+    command: ["python", "-m", "workbench_backend.server", "--host", "0.0.0.0", "--port", "8080", "--event-source-url", "${WORKBENCH_EVENT_SOURCE_URL:?Set WORKBENCH_EVENT_SOURCE_URL to the simulation host}"]
+    environment:
+      WORKBENCH_OFFLINE: "1"
+      WORKBENCH_EVENT_SOURCE_URL: ${WORKBENCH_EVENT_SOURCE_URL}
+    ports:
+      - "${CONTROLLER_PORT:-8080}:8080"
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/readyz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3

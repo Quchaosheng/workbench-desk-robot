@@ -1,1 +1,1 @@
-{"scenario_id":"multi-object-001","seed":213,"task_id":"task-place-red-block","world_version":"WorkbenchSim-v0.2","fault_type":"occlusion","scene_variant":"multi_object","timeout_s":120,"oracle_allowed":false}
+{"scenario_id":"multi-object-001","seed":213,"task_id":"task-kit-three-parts","world_version":"WorkbenchSim-v0.2","fault_type":"occlusion","scene_variant":"multi_object","timeout_s":120,"oracle_allowed":false}

@@ -1,0 +1,18 @@
+services:
+  sim:
+    image: ${WORKBENCH_IMAGE:-workbench-1:local}
+    command: ["python", "-m", "workbench_backend.server", "--host", "0.0.0.0", "--port", "8090"]
+    environment:
+      WORKBENCH_OFFLINE: "1"
+    ports:
+      - "${SIM_PORT:-8090}:8090"
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8090/readyz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3

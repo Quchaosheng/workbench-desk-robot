@@ -8,6 +8,8 @@ on:
 permissions:
   contents: read
   packages: write
+  id-token: write
+  attestations: write
 
 jobs:
   verify-build-publish:
@@ -63,6 +65,7 @@ jobs:
           output-file: workbench-1.spdx.json
 
       - name: Publish tested image
+        id: publish
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           IMAGE_TAGS: ${{ steps.metadata.outputs.tags }}
@@ -73,8 +76,40 @@ jobs:
               docker push "$tag"
             fi
           done <<< "$IMAGE_TAGS"
+          first_tag="$(printf '%s\n' "$IMAGE_TAGS" | sed -n '/./{p;q;}')"
+          digest="$(docker image inspect "$first_tag" --format '{{index .RepoDigests 0}}' | awk -F@ '{print $2}')"
+          if [ -z "$digest" ]; then
+            echo "Published image has no registry digest" >&2
+            exit 1
+          fi
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: workbench-1-sbom
           path: workbench-1.spdx.json
+
+      - name: Write release provenance manifest
+        env:
+          RELEASE_VERSION: ${{ github.ref_name }}
+          REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
+        run: |
+          python tools/scripts/release_manifest.py \
+            --image workbench-1:release-candidate \
+            --sbom workbench-1.spdx.json \
+            --version "$RELEASE_VERSION" \
+            --registry-image "$REGISTRY_IMAGE" \
+            --output release-manifest.json
+
+      - name: Attest published image
+        if: steps.publish.outputs.digest != ''
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be  # v2.4.0
+        with:
+          subject-name: ghcr.io/${{ github.repository }}
+          subject-digest: ${{ steps.publish.outputs.digest }}
+          push-to-registry: true
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: workbench-1-release-provenance
+          path: release-manifest.json

@@ -1,5 +1,8 @@
 import json
 import threading
+import urllib.error
+import urllib.parse
+import urllib.request
 from pathlib import Path
 from typing import Any
 
@@ -186,6 +189,57 @@ class DashboardReadModel:
             "recovery_count": recovery_count,
             "safety": {"hardware_estop": "not_connected", "software_control": "read_only"},
         }
+
+
+class RemoteDashboardReadModel(DashboardReadModel):
+    """Read the simulation event source over HTTP for a split-host controller."""
+
+    data_source = "remote-simulation-event-source"
+
+    def __init__(self, base_url: str, timeout_s: float = 1.0) -> None:
+        parsed = urllib.parse.urlparse(base_url)
+        if parsed.scheme != "http" or not parsed.hostname or parsed.username or parsed.password:
+            raise ValueError("event source URL must be an unauthenticated http URL")
+        self.base_url = base_url.rstrip("/")
+        self.timeout_s = timeout_s
+
+    def _request(self, path: str) -> dict[str, Any]:
+        request = urllib.request.Request(f"{self.base_url}{path}", headers={"Accept": "application/json"})
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout_s) as response:
+                payload = json.loads(response.read())
+        except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
+            raise ReadModelError(f"remote event source unavailable: {self.base_url}") from exc
+        if not isinstance(payload, dict):
+            raise ReadModelError("remote event source returned a non-object payload")
+        return payload
+
+    def ready(self) -> bool:
+        try:
+            payload = self._request("/readyz")
+        except ReadModelError:
+            return False
+        return payload.get("status") == "ready"
+
+    def list_runs(self) -> list[dict[str, Any]]:
+        payload = self._request("/api/runs")
+        runs = payload.get("runs")
+        if not isinstance(runs, list) or not all(isinstance(run, dict) for run in runs):
+            raise ReadModelError("remote event source returned invalid runs")
+        return runs
+
+    def list_events(self, run_id: str) -> list[dict[str, Any]]:
+        encoded = urllib.parse.quote(run_id, safe="")
+        payload = self._request(f"/api/runs/{encoded}/events")
+        events = payload.get("events")
+        if not isinstance(events, list) or not all(isinstance(event, dict) for event in events):
+            raise ReadModelError("remote event source returned invalid events")
+        if not events or any(event.get("run_id") != run_id for event in events):
+            raise ReadModelError("remote event source returned inconsistent run_id values")
+        sequences = [event.get("sequence_no") for event in events]
+        if sequences != list(range(len(events))):
+            raise ReadModelError("remote event source sequence_no is not contiguous")
+        return events
 
     def expression_contract(self) -> dict[str, Any]:
         return {

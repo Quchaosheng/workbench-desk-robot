@@ -18,13 +18,14 @@
 
 ## 它做什么
 
-一条臂、一张桌子、纯仿真。你给个目标,它:
+一条臂、一张桌子、纯仿真。红块任务保留为冻结回归基线;v0.2 评测还覆盖三件齐套、多工件检验、清障恢复和证据优先的快递入库分拣。你给一个边界明确的自然语言目标,它:
 
-- 看场景
-- 规划一串动作(observe、grasp、place)
+- 观察场景中的每个必需实体
+- 把目标路由为受限语义计划(`observe`、`grasp`、`place`)
 - 通过 MoveIt 执行
-- **事后检查**:模块真的在托盘里吗?
-- 如果拿不准(相机跟丢了、置信度低),说"我无法确认"而不是瞎猜
+- **事后检查**:全部目标条件是否满足,齐套托盘里是否没有多余零件?
+- 如果拿不准(相机跟丢、置信度低、证据过期),说"我无法确认"而不是瞎猜
+- 对可恢复故障重新观测并重试,同时在回放中保留首次失败
 
 模型选目标,但发不出关节位置或速度。这个边界是代码强制的,不是提示词。
 
@@ -35,21 +36,24 @@
 **能用:**
 - 契约定义(11 个 JSON schema)
 - 事件库 + 回放
-- 模板规划器(抓放任务不需要模型)
-- 验证器输出"confirmed / refuted / insufficient_evidence"
-- 只读任务看板、按序回放与证据查看
+- 五类任务的模板规划器(不需要模型)
+- 放置、精确齐套、检验置信度、工作区清障以及到件清单对账快递路由的专用验证器
+- 多实体只读看板、按序回放、恢复历史与证据查看
 - 断网容器、健康端点、统一 JSON 日志、镜像/SBOM 工作流
-- 12 个 P1 冻结场景与 30 个 P2 场景,含 seed 确定性检查
+- localhost-only Ollama Runner: 模型只做五类任务路由,语义动作由受信模板生成
+- 启动、阶段 P50/P95、CPU/RAM 和真机日志哈希校验工具
+- 控制端/仿真端分机 Compose 拓扑,远端不可达时 readiness 失败
+- 12 个冻结 v0.1 基线与 24 个扩展 v0.2 场景,含 seed 确定性检查
+- 五类共 50 条黄金任务请求,另有 26 条必须失败关闭的危险请求
 - CI 跑 lint、契约、评测 fixture、断网 demo 与容器 smoke test
 
 **还没做:**
 - Gazebo 世界
 - MoveIt 抓取放置
 - 真实相机(OpenCV + AprilTag)
-- 自然语言 → 计划(本地模型)
 - Gazebo 真实评测结果(仓库内运行数据明确标为脚本化 fixture)
 
-每个没做的都有冻结的契约。你可以只做其中一个,不用等别人。
+真实相机、Gazebo 和真实硬件仍需外部设备；仓库内不会把模拟日志伪装成真机证据。
 
 ---
 
@@ -62,6 +66,7 @@ git clone https://github.com/Quchaosheng/workbench-desk-robot.git
 cd workbench-desk-robot
 make bootstrap
 make demo-scripted
+make performance-test
 ```
 
 `demo-scripted` 跑完整条链(观测 → 规划 → 验证 → 回放),纯 Python,不启动仿真器。反馈快。
@@ -94,6 +99,19 @@ make dashboard
 docker compose up --build
 curl http://127.0.0.1:8080/healthz
 ```
+
+本地模型需要先 provision 一次模型卷，然后运行时只连 internal Docker 网络：
+
+```bash
+docker compose --profile model-bootstrap run --rm model-bootstrap
+docker compose --profile model up -d
+docker compose run --rm dashboard python tools/scripts/local_runner.py \
+  --provider ollama --endpoint http://model:11434 --allow-host model \
+  --goal "处理 intake 区已经到达的快递"
+```
+
+阶段性能和分机部署见 [`docs/performance/README.md`](docs/performance/README.md) 与
+[`docs/deployment/multi-host.md`](docs/deployment/multi-host.md)。
 
 看板 API 只读。所有 HTTP 写方法都返回 `405`;这个服务里没有 ROS、运动、MCU 或急停发布器。
 
@@ -133,7 +151,7 @@ status = "insufficient_evidence"  # 判断不了,这是缺的东西
 
 ## 怎么扩展
 
-演示是一个模块一个托盘,但没什么东西把你锁在这上面。
+单模块演示只是回归下限,不是能力上限。当前脚本评测已经在同一组契约后覆盖精确三件齐套、纯证据检验和有序清障恢复。
 
 **加任务:**写一个新验证器。系统问"断言 X 成立吗?" —— 它不关心 X 是"模块在托盘里"还是"线缆就位"还是"六颗螺丝都在"。
 
@@ -149,10 +167,10 @@ status = "insufficient_evidence"  # 判断不了,这是缺的东西
 
 ## 路线图
 
-v0.1 故意做得小,是为了先把验证层证明对,再往上叠东西。
+v0.1 故意做得小,是为了先把验证层证明对,再往上叠东西。v0.2 扩大离线评测范围,但不会把脚本证据冒充成仿真器或真机证据。
 
-- **v0.1** — 一条臂、一个任务、纯仿真(进行中)
-- **v0.2** — 多种任务、更细的失败处理
+- **v0.1** — 冻结的一条臂、一个任务回归基线
+- **v0.2** — 五类任务与更细的失败处理(脚本链路已实现,Gazebo 待接入)
 - **v0.3** — 真实硬件,契约不变
 - **更远** — 移动底盘(验证器能推广到导航目标)、多臂
 
@@ -178,6 +196,9 @@ v0.1 要达到的数字。标 **0** 的是发布阻断项。
 | 已验证任务完成率 | ≥ 80% |
 | 首次失败后恢复成功率 | ≥ 70% |
 | 任务耗时 P95 | < 120 秒 |
+| 评测任务族 | ≥ 5 类 |
+| 复杂任务占比 | ≥ 50% |
+| 目标条件覆盖率 | 100% |
 
 | 证据 | 目标 |
 |---|---|
@@ -207,6 +228,8 @@ v0.1 要达到的数字。标 **0** 的是发布阻断项。
 软件安全停止 ≠ 硬件急停。Gazebo 的数字不能不经重新验证就迁移到真机。
 
 脚本化评测 fixture 也不能证明 Gazebo 性能。它只验证事件顺序、证据覆盖、回放和报告链路,并始终标记为 `release_eligible: false`。见[已记录的 fixture 失败案例](docs/evaluation/failure-cases.md)和[容器运行手册](docs/deployment/container.md)。
+
+快递处理明确限定为桌面入库区内已经放置的包裹:系统先扫描整批,只有标签已核验且外观完好的包裹进入取件架;外观异常件先于单纯标签异常件进入隔离区。容量预检会在任何搬运动作前拒绝放不下的整批任务,避免执行到一半才溢出。当前设备没有移动底盘、电梯或快递柜访问能力,因此“下楼/去快递柜取件”会失败关闭,不会伪造已取件证据。
 
 ---
 

@@ -60,16 +60,98 @@ class ReadModelTests(unittest.TestCase):
         summary = self.model.summarize(events)
         self.assertEqual(summary["status"], "insufficient_evidence")
         self.assertEqual(summary["expression"], "uncertain")
-        self.assertEqual(summary["missing_evidence"], ["fresh_camera_frame", "target_confidence_above_0.80"])
+        self.assertEqual(
+            summary["missing_evidence"],
+            [
+                "fresh_well_lit_frames",
+                "blue_cylinder_confidence_above_0.80",
+                "green_gear_confidence_above_0.80",
+            ],
+        )
 
     def test_recovery_path_retains_refuted_attempt_and_finishes_confirmed(self) -> None:
         events = self.model.list_events("run-recovery")
         final = self.model.summarize(events)
-        first_attempt = self.model.summarize(events, replay_index=4)
+        first_refuted_index = next(
+            index
+            for index, event in enumerate(events)
+            if event["event_type"] == "verification" and event["payload"]["status"] == "refuted"
+        )
+        first_attempt = self.model.summarize(events, replay_index=first_refuted_index)
         self.assertEqual(first_attempt["status"], "refuted")
         self.assertEqual(first_attempt["expression"], "uncertain")
         self.assertEqual(final["status"], "confirmed")
         self.assertEqual(final["recovery_count"], 1)
+
+    def test_dashboard_fixtures_cover_kitting_inspection_clearance_and_parcels(self) -> None:
+        summaries = {summary["run_id"]: summary for summary in self.model.list_runs()}
+        self.assertEqual(
+            {summary["task_id"] for summary in summaries.values()},
+            {
+                "task-kit-three-parts",
+                "task-inspect-workpieces",
+                "task-clear-workspace",
+                "task-sort-parcels",
+            },
+        )
+
+        kit_events = self.model.list_events("run-confirmed")
+        observed_entities = {
+            event["payload"]["entity_id"] for event in kit_events if event["event_type"] == "observation"
+        }
+        self.assertEqual(observed_entities, {"red_block", "blue_cylinder", "green_gear"})
+        final_verification = next(event for event in reversed(kit_events) if event["event_type"] == "verification")
+        self.assertEqual(
+            final_verification["payload"]["required_conditions"],
+            final_verification["payload"]["satisfied_conditions"],
+        )
+
+        recovery_events = self.model.list_events("run-recovery")
+        resulting_locations = {
+            event["payload"].get("resulting_location")
+            for event in recovery_events
+            if event["event_type"] == "action_result"
+        }
+        self.assertTrue({"in:staging_bin", "in:tray"}.issubset(resulting_locations))
+
+        parcel_events = self.model.list_events("dashboard-parcel--parcel-intake-003")
+        parcel_observations = [event for event in parcel_events if event["event_type"] == "observation"]
+        self.assertEqual(
+            {event["payload"]["entity_id"] for event in parcel_observations},
+            {"parcel_box", "parcel_unreadable", "parcel_damaged"},
+        )
+        self.assertTrue(all(event["payload"].get("attributes") for event in parcel_observations))
+        parcel_locations = {
+            event["payload"].get("resulting_location")
+            for event in parcel_events
+            if event["event_type"] == "action_result"
+        }
+        self.assertTrue({"in:pickup_shelf", "in:quarantine_bin"}.issubset(parcel_locations))
+
+    def test_dashboard_map_uses_event_driven_multi_entity_layer(self) -> None:
+        dashboard = ROOT / "apps" / "dashboard"
+        markup = (dashboard / "index.html").read_text(encoding="utf-8")
+        script = (dashboard / "app.js").read_text(encoding="utf-8")
+        self.assertIn('id="map-entities"', markup)
+        self.assertNotIn('id="map-block"', markup)
+        self.assertIn("function buildWorkbenchState", script)
+        self.assertIn("function applyEntityPositions", script)
+        self.assertIn('data-left="${position.left}"', script)
+        self.assertNotIn('style="left:${position.left}', script)
+        self.assertIn('payload.status === "succeeded" && payload.resulting_location', script)
+        self.assertIn('"task-sort-parcels"', script)
+        self.assertIn("pickup_shelf", script)
+        self.assertIn("quarantine_bin", script)
+        self.assertIn("renderParcelDecisions", script)
+        self.assertIn("destination_capacities", script)
+        self.assertIn("route-priority", script)
+        self.assertIn("reverse().find", script)
+        self.assertIn("configuredPriorities", script)
+        self.assertIn("manifest_statuses", script)
+        self.assertIn("清单已匹配", script)
+        self.assertIn("function parcelIdentityLabel", script)
+        self.assertIn('id="parcel-decisions"', markup)
+        self.assertIn("map-entity-envelope", script + (dashboard / "styles.css").read_text(encoding="utf-8"))
 
     def test_event_cache_reuses_parse_and_invalidates_on_file_change(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

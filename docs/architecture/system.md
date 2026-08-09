@@ -17,6 +17,10 @@ Dashboard <- Read-only HTTP API <- Event Store <- ActionResult <- Motion / Virtu
 6. `services/backend/`: health/readiness plus a read-only projection of ordered event streams.
 7. `apps/dashboard/`: task status, four expression states, evidence inspection and deterministic replay.
 
+The runtime has two planner providers. The template provider is fully offline and deterministic. The optional Ollama
+provider is localhost/container-network-only: it returns a five-way route decision, then trusted deterministic builders
+emit the `TaskGraph`. A model response never becomes a joint, velocity, firmware, emergency-stop or completion command.
+
 ## Critical flow
 
 1. Perception emits an `Observation` with frame, confidence and source.
@@ -34,6 +38,8 @@ Dashboard <- Read-only HTTP API <- Event Store <- ActionResult <- Motion / Virtu
 - Static responses use ETags, while versioned vendored assets use immutable caching.
 - `POST`, `PUT`, `PATCH` and `DELETE` return `405 read_only`.
 - Service logs are JSON Lines with `service`, `source`, `run_id` and per-run `sequence_no` fields. The same record shape accepts `simulation` and `hardware` sources without changing analysis code.
+- Stage telemetry uses `event=stage_completed`, `details.stage` and `details.duration_ms`; `analyze_telemetry.py` computes P50/P95 for both sources.
+- A controller may use `WORKBENCH_EVENT_SOURCE_URL` to read the simulation event source over HTTP. Its readiness is false when the peer is unavailable or returns malformed events.
 - `apps/dashboard/data/` is fixture data for offline UI and API tests. It is never eligible as physical release evidence.
 
 ## Safety boundary

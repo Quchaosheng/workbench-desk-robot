@@ -1,0 +1,102 @@
+<?xml version="1.0"?>
+<!--
+  Semantic Robot Description for the phase-1 UR5e + Robotiq 2F-85 composition.
+
+  Hand-authored (not Setup-Assistant-generated) so it is reproducible in CI and
+  reviewable in diff. Link/joint names match the expansion of
+  config/arm_on_workbench.urdf.xacro with the default (empty) tf_prefix.
+
+  Group names here MUST match config/arm.yaml (planning_group: ur_manipulator,
+  gripper: gripper). The arm chain tip is `grasp_tcp` so IK solves to the grasp
+  point between the fingers, not the wrist — matching arm.yaml ik_tip_link.
+
+  Collision authority: the merged URDF (workbench + arm) is the single source of
+  table/tray geometry. We do NOT add planning-scene collision objects here (per
+  PLAN.md §阶段 3). This SRDF only disables *self*-collision pairs that are
+  adjacent or can never collide, which is what an SRDF is for.
+-->
+<robot name="workbench_arm">
+
+  <!-- ===================================================== planning groups -->
+  <!-- Arm: base_link .. grasp_tcp. A chain group; MoveIt derives the 6 joints. -->
+  <group name="ur_manipulator">
+    <chain base_link="base_link" tip_link="grasp_tcp"/>
+  </group>
+
+  <!-- Gripper: the single actuated Robotiq driver joint (opposite knuckle mimics). -->
+  <group name="gripper">
+    <joint name="robotiq_85_left_knuckle_joint"/>
+  </group>
+
+  <!-- ======================================================= named states -->
+  <!-- home: candle/upright-ish, a safe neutral. ready: elbow-down pose over the
+       workspace, a good planning seed. Values in radians. -->
+  <group_state name="home" group="ur_manipulator">
+    <joint name="shoulder_pan_joint"  value="0.0"/>
+    <joint name="shoulder_lift_joint" value="-1.5708"/>
+    <joint name="elbow_joint"         value="0.0"/>
+    <joint name="wrist_1_joint"       value="-1.5708"/>
+    <joint name="wrist_2_joint"       value="0.0"/>
+    <joint name="wrist_3_joint"       value="0.0"/>
+  </group_state>
+  <group_state name="ready" group="ur_manipulator">
+    <joint name="shoulder_pan_joint"  value="0.0"/>
+    <joint name="shoulder_lift_joint" value="-1.0472"/>
+    <joint name="elbow_joint"         value="1.0472"/>
+    <joint name="wrist_1_joint"       value="-1.5708"/>
+    <joint name="wrist_2_joint"       value="-1.5708"/>
+    <joint name="wrist_3_joint"       value="0.0"/>
+  </group_state>
+
+  <group_state name="open" group="gripper">
+    <joint name="robotiq_85_left_knuckle_joint" value="0.0"/>
+  </group_state>
+  <group_state name="closed" group="gripper">
+    <joint name="robotiq_85_left_knuckle_joint" value="0.8"/>
+  </group_state>
+
+  <!-- ======================================================= end effector -->
+  <end_effector name="gripper_ee" parent_link="tool0" group="gripper" parent_group="ur_manipulator"/>
+
+  <!-- No virtual_joint here on purpose. The merged URDF already fixes the arm
+       `base_link` to the workbench `world` link via the generated `base_joint`
+       (parent=world, child=base_link). Declaring an SRDF virtual_joint
+       world -> base_link on top of that is a second, redundant connection: MoveIt
+       warns about (or rejects) a virtual joint whose child link already has a
+       parent joint in the URDF. The URDF fixed joint is the single source of the
+       world attachment. -->
+
+  <!-- ============================================ self-collision disables -->
+  <!-- UR5e adjacent chain pairs (always in contact or never collide). -->
+  <disable_collisions link1="base_link_inertia" link2="shoulder_link" reason="Adjacent"/>
+  <disable_collisions link1="shoulder_link"     link2="upper_arm_link" reason="Adjacent"/>
+  <disable_collisions link1="upper_arm_link"    link2="forearm_link"   reason="Adjacent"/>
+  <disable_collisions link1="forearm_link"      link2="wrist_1_link"   reason="Adjacent"/>
+  <disable_collisions link1="wrist_1_link"      link2="wrist_2_link"   reason="Adjacent"/>
+  <disable_collisions link1="wrist_2_link"      link2="wrist_3_link"   reason="Adjacent"/>
+
+  <!-- Wrist cluster + gripper mount are physically close and never self-collide. -->
+  <disable_collisions link1="wrist_1_link" link2="wrist_3_link" reason="Never"/>
+  <disable_collisions link1="wrist_3_link" link2="ur_to_robotiq_link"   reason="Adjacent"/>
+  <disable_collisions link1="wrist_2_link" link2="ur_to_robotiq_link"   reason="Never"/>
+  <disable_collisions link1="wrist_3_link" link2="robotiq_85_base_link" reason="Adjacent"/>
+  <disable_collisions link1="ur_to_robotiq_link" link2="robotiq_85_base_link" reason="Adjacent"/>
+
+  <!-- Robotiq 2F-85 internal pairs (linkage that moves together). -->
+  <disable_collisions link1="robotiq_85_base_link" link2="robotiq_85_left_knuckle_link"  reason="Adjacent"/>
+  <disable_collisions link1="robotiq_85_base_link" link2="robotiq_85_right_knuckle_link" reason="Adjacent"/>
+  <disable_collisions link1="robotiq_85_base_link" link2="robotiq_85_left_inner_knuckle_link"  reason="Adjacent"/>
+  <disable_collisions link1="robotiq_85_base_link" link2="robotiq_85_right_inner_knuckle_link" reason="Adjacent"/>
+  <disable_collisions link1="robotiq_85_left_knuckle_link"  link2="robotiq_85_left_finger_link"  reason="Adjacent"/>
+  <disable_collisions link1="robotiq_85_right_knuckle_link" link2="robotiq_85_right_finger_link" reason="Adjacent"/>
+  <disable_collisions link1="robotiq_85_left_inner_knuckle_link"  link2="robotiq_85_left_finger_tip_link"  reason="Adjacent"/>
+  <disable_collisions link1="robotiq_85_right_inner_knuckle_link" link2="robotiq_85_right_finger_tip_link" reason="Adjacent"/>
+  <disable_collisions link1="robotiq_85_left_finger_link"  link2="robotiq_85_left_finger_tip_link"  reason="Default"/>
+  <disable_collisions link1="robotiq_85_right_finger_link" link2="robotiq_85_right_finger_tip_link" reason="Default"/>
+  <disable_collisions link1="robotiq_85_left_knuckle_link"  link2="robotiq_85_right_knuckle_link"  reason="Never"/>
+  <disable_collisions link1="robotiq_85_left_inner_knuckle_link"  link2="robotiq_85_right_inner_knuckle_link" reason="Never"/>
+  <disable_collisions link1="robotiq_85_left_finger_tip_link"  link2="robotiq_85_right_finger_tip_link" reason="Never"/>
+  <disable_collisions link1="robotiq_85_left_knuckle_link"  link2="robotiq_85_left_inner_knuckle_link"  reason="Adjacent"/>
+  <disable_collisions link1="robotiq_85_right_knuckle_link" link2="robotiq_85_right_inner_knuckle_link" reason="Adjacent"/>
+
+</robot>

@@ -1,0 +1,67 @@
+{
+  "generated_at": "2026-08-09T20:30:08+0800",
+  "seed": 0,
+  "samples_per_region": 20,
+  "yaws_per_position": 12,
+  "ik_timeout_s": 0.05,
+  "metric": "position graspable if >=1 top-down yaw is collision-free and IK-valid",
+  "group": "ur_manipulator",
+  "tip_link": "grasp_tcp",
+  "base_frame": "world",
+  "threshold": 0.95,
+  "arm": "ur5e+robotiq_2f_85",
+  "gate_qualifying": true,
+  "regions": [
+    {
+      "name": "block",
+      "positions": 20,
+      "graspable": 20,
+      "rate": 1.0,
+      "threshold": 0.95,
+      "passed": true,
+      "pure_reach_rate": 1.0,
+      "yaw_margin_min": 8,
+      "yaw_margin_max": 11,
+      "bounds": {
+        "x": [
+          -0.2,
+          -0.1
+        ],
+        "y": [
+          0.0,
+          0.1
+        ],
+        "z": [
+          0.8,
+          0.9
+        ]
+      }
+    },
+    {
+      "name": "tray",
+      "positions": 20,
+      "graspable": 20,
+      "rate": 1.0,
+      "threshold": 0.95,
+      "passed": true,
+      "pure_reach_rate": 1.0,
+      "yaw_margin_min": 11,
+      "yaw_margin_max": 12,
+      "bounds": {
+        "x": [
+          0.156,
+          0.284
+        ],
+        "y": [
+          -0.134,
+          -0.066
+        ],
+        "z": [
+          0.86,
+          0.92
+        ]
+      }
+    }
+  ],
+  "all_passed": true
+}

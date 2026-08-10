@@ -6,6 +6,41 @@
 
 ---
 
+## 核心贡献（系统与内核工程）
+
+这个项目把系统集成、运行时架构和任务验证放在同一条可复现链路中，核心工程工作包括：
+
+**事件存储与回放**
+- 仅追加事件日志，可从检查点进行确定性回放
+- 按明确契约校验带版本的事件 schema
+- 根据事件流重建状态，不依赖外部快照才能得到正确结果
+
+**契约驱动架构**
+- 由 `interfaces/json_schema/` 中的 11 个 JSON schema 定义模块边界
+- 在入口处拒绝不符合契约的请求，默认失败关闭
+- 通过对应的 Pydantic 模型和契约检查防止生产端与消费端漂移
+
+**证据优先验证**
+- 用 `confirmed`、`refuted`、`insufficient_evidence` 三值逻辑代替布尔成功
+- 验证结果携带结构化证据引用，而不只是通过/失败标志
+- 同一 seed 产生同一场景和事件序列，支持确定性评测
+
+**系统可靠性**
+- 控制端与仿真端分机部署，包含 readiness 探针和对端可用性检查
+- 结构化日志、健康端点、SBOM 工作流和带哈希绑定的硬件证据
+- 可复现的启动 P50/P95、CPU/RAM 分析和容器冒烟测试
+
+**面向硬件的基础设施**
+- Linux `wbcan` SocketCAN 内核模块，包含构建、checkpatch 和特权故障测试路径
+- 面向 host、QEMU 和 CH32V307 HAL 的 RISC-V 安全 MCU 分层脚手架
+- 覆盖采购、制造、质量、合规和现场验证的失败关闭式硬件发布门禁
+
+**尚未包含：** Gazebo 世界、MoveIt 抓取放置、真实相机（OpenCV + AprilTag）和 Gazebo 实测评测结果仍待完成。仓库中的 fixture 是脚本化链路测试，不是真机证据。
+
+**权限边界：** 模型只能路由到受限语义动作；关节控制、速度和急停都留在模型无法触达的受信代码中。
+
+---
+
 ## 问题
 
 告诉机器人把模块放进托盘。它动了,报告成功,模块在地上。
@@ -18,11 +53,11 @@
 
 ## 它做什么
 
-一条臂、一张桌子、纯仿真。红块任务保留为冻结回归基线;v0.2 评测还覆盖三件齐套、多工件检验、清障恢复和证据优先的快递入库分拣。你给一个边界明确的自然语言目标,它:
+当前可运行路径是确定性的脚本化桌面运行时。红块任务保留为冻结回归基线;v0.2 评测还覆盖三件齐套、多工件检验、清障恢复和证据优先的快递入库分拣。你给一个边界明确的自然语言目标,它:
 
 - 观察场景中的每个必需实体
 - 把目标路由为受限语义计划(`observe`、`grasp`、`place`)
-- 通过 MoveIt 执行
+- 通过脚本化运行时执行语义动作（MoveIt 集成仍待完成）
 - **事后检查**:全部目标条件是否满足,齐套托盘里是否没有多余零件?
 - 如果拿不准(相机跟丢、置信度低、证据过期),说"我无法确认"而不是瞎猜
 - 对可恢复故障重新观测并重试,同时在回放中保留首次失败
@@ -43,6 +78,10 @@
 - localhost-only Ollama Runner: 模型只做五类任务路由,语义动作由受信模板生成
 - 启动、阶段 P50/P95、CPU/RAM 和真机日志哈希校验工具
 - 控制端/仿真端分机 Compose 拓扑,远端不可达时 readiness 失败
+- Linux `wbcan` SocketCAN 内核模块源码及 CI 构建/checkpatch 检查；运行时故障测试需要特权 Linux 主机
+- RISC-V 安全 MCU 的 host/QEMU/开发板 HAL 脚手架，CI 会保留明确的未完成状态
+- 可审计的硬件工程包和失败关闭式发布报告；当前报告因缺少外部证据仍为 `RELEASE_BLOCKED`
+- MkDocs 操作手册，覆盖安装、日常操作、维护、故障排查和 90 分钟演示
 - 12 个冻结 v0.1 基线与 24 个扩展 v0.2 场景,含 seed 确定性检查
 - 五类共 50 条黄金任务请求,另有 26 条必须失败关闭的危险请求
 - CI 跑 lint、契约、评测 fixture、断网 demo 与容器 smoke test
@@ -52,6 +91,7 @@
 - MoveIt 抓取放置
 - 真实相机(OpenCV + AprilTag)
 - Gazebo 真实评测结果(仓库内运行数据明确标为脚本化 fixture)
+- 实物制造、供应商报价、实验室认证和现场验证证据
 
 真实相机、Gazebo 和真实硬件仍需外部设备；仓库内不会把模拟日志伪装成真机证据。
 
@@ -76,7 +116,8 @@ make performance-test
 ```bash
 make test             # 单元 + 契约测试
 make lint             # ruff 检查
-make check            # CI 跑的全部内容
+make check            # 核心 Python 检查和离线演示
+make docs             # 严格模式构建 MkDocs
 ```
 
 Gazebo 集成就位之后:
@@ -112,6 +153,14 @@ docker compose run --rm dashboard python tools/scripts/local_runner.py \
 
 阶段性能和分机部署见 [`docs/performance/README.md`](docs/performance/README.md) 与
 [`docs/deployment/multi-host.md`](docs/deployment/multi-host.md)。
+操作员和维护人员文档从 [`docs/user-guide/index.md`](docs/user-guide/index.md) 开始。
+硬件发布状态可通过以下命令重新生成：
+
+```bash
+python hardware/release/tools/check_release_readiness.py
+```
+
+报告校验成功只表示仓库内证据自洽，不代表外部阻断项已经解除，也不代表实物硬件可以发布。
 
 看板 API 只读。所有 HTTP 写方法都返回 `405`;这个服务里没有 ROS、运动、MCU 或急停发布器。
 

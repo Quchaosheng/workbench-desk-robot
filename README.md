@@ -1,4 +1,4 @@
-﻿# workbench-1
+# workbench-1
 
 A tabletop robot that verifies task completion instead of assuming it.
 

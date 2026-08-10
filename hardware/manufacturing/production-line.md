@@ -54,3 +54,6 @@ requires fixture GR&R/measurement-system evidence where the result is quantitati
 
 Status: `PILOT_EXECUTION_REQUIRED`. Release needs 20 serialized travellers,
 measured FPY, defect closure, fixture acceptance, training records, and owner sign-off.
+
+The six-station mapping is controlled in `station-map.csv`; `fixture-budget.csv`
+is the USD 4,000 planning cap and excludes unpriced calibration services.

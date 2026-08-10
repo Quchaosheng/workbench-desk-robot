@@ -1,0 +1,8 @@
+component,mass_kg,x_mm,y_mm,z_mm,source,status
+base_frame,22,0,0,250,design_case_estimate,ESTIMATE
+left_arm,8,-350,0,650,arm_supplier_class,ESTIMATE
+right_arm,8,350,0,650,arm_supplier_class,ESTIMATE
+payload_and_tooling,6,0,0,850,rated_payload_case,ESTIMATE
+battery_and_bms,5,0,-100,250,pack_design_case,ESTIMATE
+electronics_and_harness,3,0,0,500,engineering_allowance,ESTIMATE
+covers_and_accessories,3,0,0,700,engineering_allowance,ESTIMATE

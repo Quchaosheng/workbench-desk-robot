@@ -1,0 +1,2 @@
+case_id,unit_serial,commission_date,window_end,operating_hours,confirmed_product_failure,root_cause,evidence_ref,status
+EFL-TEMPLATE-001,NOT_ASSIGNED,NOT_EXECUTED,NOT_EXECUTED,NOT_EXECUTED,NOT_EXECUTED,NOT_EXECUTED,REQUIRED,NOT_EXECUTED

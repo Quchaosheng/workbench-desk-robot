@@ -57,3 +57,6 @@ service-clearance, coating-mask, weld distortion, and packaging restraints.
 Status: `PHYSICAL_VALIDATION_REQUIRED`. A 55 kg target is not a measured result;
 release needs the signed mass ledger, CG/stability report, dual-arm sweep log,
 assembly trial, and resolved DFM actions for the production revision.
+
+The estimate is recorded in `mass-ledger.csv`; `interference-checklist.csv`
+enumerates the CAD and guarded-test evidence still required.

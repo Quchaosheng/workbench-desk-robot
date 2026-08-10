@@ -44,3 +44,32 @@ def test_task_packet_is_bounded_and_fail_closed() -> None:
     assert "firmware/**" in packet["forbidden"]
     assert "interfaces/**" in packet["forbidden"]
     assert any("invented" in condition for condition in packet["stop_conditions"])
+
+
+def test_structured_evidence_attachments_are_complete() -> None:
+    report = load_validator().validate()
+    checks = report["checks"]
+    for name in (
+        "bms_has_fail_closed_states",
+        "bms_transition_graph_uses_known_states",
+        "bms_run_entry_requires_precharge_or_derate_recovery",
+        "bms_fault_transitions_open_and_latch",
+        "mass_ledger_sums_to_55kg",
+        "mass_ledger_cg_is_calculated",
+        "planning_bom_rows_sum_to_5100",
+        "station_map_has_six_unique_stations",
+        "fixture_budget_rows_sum_to_4000",
+        "all_fmea_actions_are_above_rpn_threshold",
+        "compliance_matrix_has_three_required_programs",
+        "support_has_four_severity_levels",
+        "documentation_build_is_in_ci",
+    ):
+        assert checks[name], name
+
+    assert report["metrics"] == {
+        "mass_kg": 55.0,
+        "center_of_gravity_mm": [0.0, -9.1, 470.0],
+        "planning_bom_total_usd": 5100.0,
+        "fixture_budget_total_usd": 4000.0,
+        "station_count": 6,
+    }

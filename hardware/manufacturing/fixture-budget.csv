@@ -1,0 +1,9 @@
+fixture_id,description,planned_cost_usd,calibration_or_service_included,status
+FX-01,datum motor alignment and torque nest,300,no,PLANNING_ONLY
+FX-02,guarded PCBA power and AOI fixture,650,no,PLANNING_ONLY
+FX-03,CAN and isolation electrical fixture,700,no,PLANNING_ONLY
+FX-04,safety and E-stop exerciser,500,no,PLANNING_ONLY
+FX-05,final functional cart and barcode capture,550,no,PLANNING_ONLY
+FX-06,harness continuity and insulation bed,1000,no,PLANNING_ONLY
+FX-07,packaging and final inspection aids,300,no,PLANNING_ONLY
+TOTAL,fixture_cap,4000,no,PLANNING_ONLY

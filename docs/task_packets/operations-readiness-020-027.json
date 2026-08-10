@@ -17,6 +17,7 @@
     "docs/user-guide/**",
     "docs/api.md",
     "mkdocs.yml",
+    ".github/workflows/ci.yml",
     ".gitignore",
     "pyproject.toml",
     "Makefile",
@@ -36,7 +37,7 @@
     "planning BOM totals USD 5100 without being represented as supplier quotes",
     "six-station line, USD 4000 fixture cap, and FPY target of at least 85 percent are controlled",
     "RPN above 100 and early failure rate above 5 percent block release",
-    "MkDocs navigation, generated API reference, user manual, and 90-minute demo route exist",
+    "MkDocs navigation, CI build, generated API reference, user manual, and 90-minute demo route exist",
     "CE, FCC, and UN 38.3 evidence is required before affected purchase orders",
     "field triage, escalation, spares, rollback, and evidence capture are defined",
     "deterministic validator and focused tests pass"

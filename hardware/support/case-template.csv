@@ -1,0 +1,11 @@
+field,required,example_or_allowed_value,privacy_or_safety_note
+case_id,yes,CS-YYYY-NNN,do_not_use_personal_data_as_id
+unit_serial,yes,serialized_unit_id,match physical label
+hardware_revision,yes,REV-A,do not infer from photo
+software_config_hash,yes,release hash,never request credentials
+severity,yes,S0|S1|S2|S3,S0/S1 containment first
+symptom_and_time,yes,operator narrative plus UTC timestamp,preserve original timestamps
+diagnostic_bundle,yes,checksum and time range,redact secrets
+containment_action,yes,stop_use|rollback|RMA,never bypass guards
+root_cause,when_known,controlled defect taxonomy,distinguish symptom from cause
+evidence_refs,yes,logs photos video return record,retain chain of custody

@@ -39,8 +39,6 @@ This project combines systems integration, runtime architecture, and task verifi
 
 **Role Boundary:** Model routes to bounded semantic actions; joint control, velocities, and emergency stop remain in trusted code outside model reach.
 
-**Repository Layout:** This is the integration repository and the only public one. The system is split into seven module repositories — contracts, runtime, world-model, motion, perception, mcu, and interaction — which are currently private. The interfaces between them are public here: every cross-module message is defined by a JSON Schema under [`interfaces/json_schema/`](interfaces/json_schema/), so the module boundaries and version contracts can be reviewed without access to the module repositories.
-
 ---
 
 ## Problem

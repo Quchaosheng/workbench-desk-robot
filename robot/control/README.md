@@ -105,13 +105,13 @@ check_urdf /tmp/wb_arm.urdf
 ros2 launch workbench_motion move_group.launch.py
 
 # In another shell (after move_group is up). --timeout 0.05 matches the solver
-# timeout in config/moveit/kinematics.yaml; pass an explicit absolute output path
-# so the JSON lands in the repo regardless of the shell's cwd:
+# timeout in config/moveit/kinematics.yaml. The default --output is a relative
+# path that anchors to the git repo root (not the shell's cwd), so the JSON lands
+# in the repo even when run from robot/control:
 source install/setup.bash
-ros2 run workbench_motion reachability_check \
-  --seed 0 --samples 20 --yaws 12 --timeout 0.05 \
-  --output "$(git -C <path-to-repo> rev-parse --show-toplevel)/docs/evaluation/phase1-reachability.json"
-# -> exits 0 if ≥95% both regions
+ros2 run workbench_motion reachability_check --seed 0 --samples 20 --yaws 12 --timeout 0.05
+# writes docs/evaluation/phase1-reachability.json; exits 0 if ≥95% both regions.
+# Pass --output <path> to override (an absolute path is used verbatim).
 ```
 
 > **Status (verified 2026-08-09, MoveIt + TRAC-IK on Jazzy):** gate PASSES.

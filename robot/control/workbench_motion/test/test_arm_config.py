@@ -11,6 +11,7 @@ ROS-free: runs under `uv run pytest`. rclpy/moveit are never imported.
 
 from __future__ import annotations
 
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
@@ -18,7 +19,9 @@ from workbench_motion.arm_config import ArmConfig, load_arm_config, parse_arm_co
 
 # The shipped config, resolved from the source tree (two parents up from this test
 # file's package: workbench_motion/test -> workbench_motion -> config).
-_ARM_YAML = Path(__file__).resolve().parent.parent / "config" / "arm.yaml"
+_CONFIG_DIR = Path(__file__).resolve().parent.parent / "config"
+_ARM_YAML = _CONFIG_DIR / "arm.yaml"
+_SRDF = _CONFIG_DIR / "moveit" / "workbench_arm.srdf"
 
 
 def test_shipped_arm_yaml_loads():
@@ -34,10 +37,9 @@ def test_shipped_arm_yaml_loads():
     assert cfg.arm_label == "ur5e+robotiq_2f_85"
 
 
-def test_shipped_arm_yaml_matches_xacro_defaults():
-    """arm.yaml joint count must match the SRDF/URDF the composition builds."""
+def test_shipped_arm_yaml_joint_list():
+    """arm.yaml carries the 6 UR joints in chain order."""
     cfg = load_arm_config(_ARM_YAML)
-    # The 6 UR joints, in chain order — same list the SRDF group derives.
     assert cfg.joints == (
         "shoulder_pan_joint",
         "shoulder_lift_joint",
@@ -45,6 +47,40 @@ def test_shipped_arm_yaml_matches_xacro_defaults():
         "wrist_1_joint",
         "wrist_2_joint",
         "wrist_3_joint",
+    )
+
+
+def _srdf_groups(root: ET.Element) -> dict[str, ET.Element]:
+    return {g.get("name"): g for g in root.findall("group")}
+
+
+def test_arm_yaml_agrees_with_srdf():
+    """arm.yaml and the hand-authored SRDF must not drift apart.
+
+    The SRDF (config/moveit/workbench_arm.srdf) is what move_group actually loads;
+    arm.yaml is what the runtime Python reads. If someone edits the SRDF chain or
+    renames a group without updating arm.yaml (or vice versa), IK would target a
+    group/tip move_group does not expose. This parses the real SRDF (stdlib XML,
+    no ROS) and asserts the arm planning group, its chain base/tip links, and the
+    gripper group name match arm.yaml exactly.
+    """
+    cfg = load_arm_config(_ARM_YAML)
+    root = ET.fromstring(_SRDF.read_text(encoding="utf-8"))
+    groups = _srdf_groups(root)
+
+    # Arm planning group exists under the name arm.yaml declares.
+    assert cfg.planning_group in groups, (
+        f"arm.yaml planning_group={cfg.planning_group!r} has no matching SRDF group " f"(SRDF groups: {sorted(groups)})"
+    )
+    # Its chain resolves IK to the tip arm.yaml names, rooted at base_link.
+    chain = groups[cfg.planning_group].find("chain")
+    assert chain is not None, f"SRDF group {cfg.planning_group!r} is not a chain group"
+    assert chain.get("base_link") == cfg.base_link
+    assert chain.get("tip_link") == cfg.ik_tip_link
+
+    # Gripper group name matches too (arm.yaml gripper.planning_group).
+    assert cfg.gripper_group in groups, (
+        f"arm.yaml gripper_group={cfg.gripper_group!r} has no matching SRDF group " f"(SRDF groups: {sorted(groups)})"
     )
 
 

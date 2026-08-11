@@ -20,13 +20,12 @@ def _validate_plan(plan: TaskGraph) -> None:
     for step in plan.steps:
         result = _tool_registry.validate(step.action)
         if not result.is_valid:
-            messages = "; ".join(
-                f"{error.field}: {error.message}" for error in result.errors
-            )
+            messages = "; ".join(f"{error.field}: {error.message}" for error in result.errors)
             raise ValueError(
                 f"step '{step.step_id}' action '{step.action.action_id}' "
                 f"failed tool-registry validation: {messages}"
             )
+
 
 DEFAULT_KIT_PARTS = ("red_block", "blue_cylinder", "green_gear")
 DEFAULT_INSPECTION_ENTITIES = ("red_block", "blue_cylinder", "green_gear")

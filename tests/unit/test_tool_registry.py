@@ -20,16 +20,14 @@ sys.path[:0] = [
 
 from workbench_agent_runtime import (
     ToolRegistry,
-    ValidationError,
-    ValidationResult,
     build_template_plan,
 )
 from workbench_contracts import ActionType, SemanticAction
 
-
 # ---------------------------------------------------------------------------
 # helpers
 # ---------------------------------------------------------------------------
+
 
 def _action(
     action_type: ActionType,
@@ -161,9 +159,7 @@ class ToolRegistryValidationTests(unittest.TestCase):
     # -- extra (forbidden) params ---------------------------------------------
 
     def test_extra_param_is_rejected(self) -> None:
-        result = self.registry.validate(
-            _action(ActionType.OBSERVE, parameters={"joint_angle": 90})
-        )
+        result = self.registry.validate(_action(ActionType.OBSERVE, parameters={"joint_angle": 90}))
         self.assertFalse(result.is_valid)
         self.assertTrue(
             any("forbidden keys" in e.message for e in result.errors),
@@ -173,9 +169,7 @@ class ToolRegistryValidationTests(unittest.TestCase):
     # -- missing required params -----------------------------------------------
 
     def test_missing_required_destination_id_is_rejected(self) -> None:
-        result = self.registry.validate(
-            _action(ActionType.PLACE, parameters={})
-        )
+        result = self.registry.validate(_action(ActionType.PLACE, parameters={}))
         self.assertFalse(result.is_valid)
         self.assertTrue(
             any("missing required" in e.message for e in result.errors),
@@ -183,15 +177,11 @@ class ToolRegistryValidationTests(unittest.TestCase):
         )
 
     def test_ask_confirm_missing_question_is_rejected(self) -> None:
-        result = self.registry.validate(
-            _action(ActionType.ASK_CONFIRM, parameters={})
-        )
+        result = self.registry.validate(_action(ActionType.ASK_CONFIRM, parameters={}))
         self.assertFalse(result.is_valid)
 
     def test_express_missing_emotion_state_is_rejected(self) -> None:
-        result = self.registry.validate(
-            _action(ActionType.EXPRESS, parameters={})
-        )
+        result = self.registry.validate(_action(ActionType.EXPRESS, parameters={}))
         self.assertFalse(result.is_valid)
 
     # -- type safety: bool-before-int -----------------------------------------
@@ -264,15 +254,11 @@ class ToolRegistryValidationTests(unittest.TestCase):
     # -- ValidationResult structure -------------------------------------------
 
     def test_validation_result_contains_action_id(self) -> None:
-        result = self.registry.validate(
-            _action(ActionType.OBSERVE, action_id="my-action-42")
-        )
+        result = self.registry.validate(_action(ActionType.OBSERVE, action_id="my-action-42"))
         self.assertEqual(result.action_id, "my-action-42")
 
     def test_validation_error_fields_are_populated(self) -> None:
-        result = self.registry.validate(
-            _action(ActionType.PLACE, parameters={})
-        )
+        result = self.registry.validate(_action(ActionType.PLACE, parameters={}))
         self.assertFalse(result.is_valid)
         for error in result.errors:
             self.assertIsInstance(error.field, str)
@@ -299,9 +285,7 @@ class PlannerIntegrationTests(unittest.TestCase):
         self.assertEqual(len(plan.steps), 3)
 
     def test_build_clearance_plan_validates(self) -> None:
-        plan = build_template_plan(
-            "Clear the blocked path and place the red block"
-        )
+        plan = build_template_plan("Clear the blocked path and place the red block")
         self.assertEqual(plan.task_id, "task-clear-workspace")
         self.assertEqual(len(plan.steps), 6)
 

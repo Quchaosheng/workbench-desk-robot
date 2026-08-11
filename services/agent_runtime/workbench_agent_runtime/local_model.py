@@ -234,9 +234,7 @@ def build_local_model_plan(goal: str, provider: ModelProvider) -> TaskGraph:
     for step in plan.steps:
         result = _tool_registry.validate(step.action)
         if not result.is_valid:
-            messages = "; ".join(
-                f"{error.field}: {error.message}" for error in result.errors
-            )
+            messages = "; ".join(f"{error.field}: {error.message}" for error in result.errors)
             raise LocalModelError(
                 f"step '{step.step_id}' action '{step.action.action_id}' "
                 f"failed tool-registry validation: {messages}"

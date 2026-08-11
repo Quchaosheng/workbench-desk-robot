@@ -8,8 +8,7 @@ its whitelist.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from workbench_contracts import ActionType, SemanticAction
 
@@ -44,12 +43,8 @@ class ValidationResult:
         return cls(is_valid=True, action_id=action_id)
 
     @classmethod
-    def fail(
-        cls, action_id: str, errors: list[ValidationError]
-    ) -> ValidationResult:
-        return cls(
-            is_valid=False, action_id=action_id, errors=tuple(errors)
-        )
+    def fail(cls, action_id: str, errors: list[ValidationError]) -> ValidationResult:
+        return cls(is_valid=False, action_id=action_id, errors=tuple(errors))
 
 
 # ---------------------------------------------------------------------------
@@ -91,9 +86,7 @@ class ToolRegistry:
         schema = self._tool_param_schemas[action_type]
         return schema["required_params"] | schema["optional_params"]
 
-    def validate(
-        self, action: SemanticAction
-    ) -> ValidationResult:
+    def validate(self, action: SemanticAction) -> ValidationResult:
         """Validate *action* and return ``ValidationResult``.
 
         This method never raises — every rejection is encoded in the result
@@ -130,16 +123,14 @@ class ToolRegistry:
             errors.append(
                 ValidationError(
                     "parameters",
-                    f"forbidden keys for '{action.action_type.value}': "
-                    f"{sorted(extra)}; allowed: {sorted(allowed)}",
+                    f"forbidden keys for '{action.action_type.value}': " f"{sorted(extra)}; allowed: {sorted(allowed)}",
                 )
             )
         if missing:
             errors.append(
                 ValidationError(
                     "parameters",
-                    f"missing required keys for '{action.action_type.value}': "
-                    f"{sorted(missing)}",
+                    f"missing required keys for '{action.action_type.value}': " f"{sorted(missing)}",
                 )
             )
         # early-exit when the field set is broken — type checking on a
@@ -190,7 +181,7 @@ class ToolRegistry:
                             "expected float, got bool",
                         )
                     )
-                elif not isinstance(value, (int, float)):
+                elif not isinstance(value, int | float):
                     errors.append(
                         ValidationError(
                             f"parameters.{key}",
@@ -224,8 +215,7 @@ class ToolRegistry:
                 errors.append(
                     ValidationError(
                         f"parameters.{key}",
-                        f"expected {_type_name(expected_type)}, "
-                        f"got {_type_label(value)}",
+                        f"expected {_type_name(expected_type)}, " f"got {_type_label(value)}",
                     )
                 )
 

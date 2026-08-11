@@ -8,9 +8,6 @@ reads the same registry to build its whitelist.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from dataclasses import dataclass, field
-
 from workbench_contracts import ActionType
 
 # ---------------------------------------------------------------------------
@@ -105,9 +102,7 @@ TOOL_SCHEMAS: dict[ActionType, dict[str, object]] = {
 
 # Additional per-tool runtime constraints that are not captured by
 # required/optional/type alone.
-EXPRESS_EMOTION_STATES: frozenset[str] = frozenset(
-    {"idle", "thinking", "uncertain", "pleased"}
-)
+EXPRESS_EMOTION_STATES: frozenset[str] = frozenset({"idle", "thinking", "uncertain", "pleased"})
 
 # Allow-list for observe attributes (used by policy-based planners).
 KNOWN_OBSERVE_ATTRIBUTES: frozenset[str] = frozenset(

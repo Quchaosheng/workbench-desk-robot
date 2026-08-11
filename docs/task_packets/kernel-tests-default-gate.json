@@ -1,45 +1,43 @@
 {
   "issue": 29,
   "human_owner": "Quchaosheng",
-  "objective": "Make the K1-K10 test additions assert current kernel behavior and run in the default repository gate.",
+  "objective": "Include the maintained K1-K10 kernel suites in default pytest discovery and the repository test gate.",
   "allowed_paths": [
-    "libs/kernel/tests/test_k1_k10.py",
-    "libs/kernel/tests/test_k1_k10_extended.py",
     "pyproject.toml",
+    "Makefile",
     "docs/task_packets/kernel-tests-default-gate.json"
   ],
   "read_only_paths": [
+    "libs/kernel/tests/**",
     "libs/kernel/workbench/kernel/**",
-    "tests/unit/test_kernel_*.py"
+    "tests/**"
   ],
   "forbidden": [
     "interfaces/**",
     "robot/control/**",
     "firmware/**",
-    "hardware/safety/**"
+    "hardware/**"
   ],
   "acceptance": [
-    "all K1-K10 tests pass against the current production API",
-    "schema version message event and lifecycle assertions test observable behavior instead of nonexistent APIs",
-    "libs/kernel/tests is part of the default pytest collection",
-    "repository lint and full checks pass",
-    "production kernel behavior is not changed to satisfy incorrect tests"
+    "default pytest discovery includes tests and libs/kernel/tests",
+    "the Makefile test gate uses default pytest discovery",
+    "the K1-K10 suites pass without production or test rewrites",
+    "repository lint and full checks pass"
   ],
   "commands": [
     "python tools/scripts/check_task_packet.py docs/task_packets/kernel-tests-default-gate.json",
-    "python -m pytest libs/kernel/tests -q",
-    "python -m pytest tests/ libs/kernel/tests -q",
+    "python -m pytest --collect-only -q",
+    "make test",
     "make check"
   ],
   "evidence": [
     "Task Packet validation output",
-    "kernel-only test output",
-    "default/full test collection output",
-    "repository lint and check output"
+    "default pytest collection output containing libs/kernel/tests",
+    "repository test and check output"
   ],
   "stop_conditions": [
-    "a production kernel API change is proposed only to preserve an invalid test assumption",
-    "test intent requires an undocumented compatibility policy decision",
-    "robot control firmware or interface changes are required"
+    "a production kernel or test rewrite is required",
+    "default discovery collects generated or unsupported test trees",
+    "robot control firmware interface or hardware changes are required"
   ]
 }

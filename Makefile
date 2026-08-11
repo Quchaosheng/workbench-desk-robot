@@ -18,7 +18,7 @@ fmt:
 	$(PYTHON) -m ruff format .
 
 test:
-	$(PYTHON) -m pytest tests/ -v
+	$(PYTHON) -m pytest -v
 
 # Everything CI runs, in one command. Run this before opening a PR.
 check: lint test contract scenario-check golden-check context-check demo-scripted demo-offline

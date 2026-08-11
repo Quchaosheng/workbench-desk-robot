@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from workbench.kernel.communication import Message
 from workbench.kernel.event_store import EventStore
 from workbench.kernel.lifecycle import LifecycleManager
-from workbench.kernel.schema_compiler import SchemaCompiler
+from workbench.kernel.schema_compiler import SchemaCompiler, _python_type
 from workbench.kernel.startup import SystemBootstrapper
 from workbench.kernel.version_registry import VersionRegistry
 
@@ -129,9 +129,9 @@ if __name__ == "__main__":
 # 补充的单元测试 (54个新测试)
 # ============================================================================
 
+
 def test_schema_compiler_all_types():
     """K1-K2: 所有基础Schema类型"""
-    compiler = SchemaCompiler()
     tests = [
         ({"type": "string"}, "str"),
         ({"type": "integer"}, "int"),
@@ -139,23 +139,28 @@ def test_schema_compiler_all_types():
         ({"type": "boolean"}, "bool"),
     ]
     for schema, expected in tests:
-        result = compiler._schema_to_python_type(schema)
+        result = _python_type(schema)
         assert result == expected
 
 
 def test_schema_compiler_nested():
     """K1-K2: 嵌套对象"""
-    compiler = SchemaCompiler()
     schema = {"type": "object", "properties": {"motor": {"type": "object"}}}
-    assert "object" in str(schema)
+    assert _python_type(schema) == "dict[str, Any]"
 
 
 def test_version_registry_compat():
-    """K3: 版本兼容性"""
-    registry = VersionRegistry()
-    registry.register_schema("motor", "1.0.0", {})
-    registry.register_schema("motor", "1.0.1", {})
-    assert registry.is_compatible("motor", "1.0.0", "1.0.1")
+    """K3: 多版本共存并持久化"""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        registry_file = Path(tmpdir) / "registry.json"
+        registry = VersionRegistry(registry_file)
+        registry.register_schema("motor", "1.0.0", {"revision": 1})
+        registry.register_schema("motor", "1.0.1", {"revision": 2})
+        reopened = VersionRegistry(registry_file)
+        assert reopened.versions["motor"] == {
+            "1.0.0": {"revision": 1},
+            "1.0.1": {"revision": 2},
+        }
 
 
 def test_message_serialization():
@@ -165,11 +170,12 @@ def test_message_serialization():
     assert "motor" in serialized
 
 
-def test_message_unique_id():
-    """K4-K5: 消息唯一ID"""
+def test_message_checksum_tracks_envelope_identity():
+    """K4-K5: 校验和覆盖完整消息信封"""
     msg1 = Message({}, "test", "1.0.0", "a")
-    msg2 = Message({}, "test", "1.0.0", "a")
-    assert msg1.message_id != msg2.message_id
+    msg2 = Message({"value": 1}, "test", "1.0.0", "a")
+    assert msg1.checksum == Message({}, "test", "1.0.0", "a").checksum
+    assert msg1.checksum != msg2.checksum
 
 
 def test_event_store_persistence():
@@ -178,9 +184,9 @@ def test_event_store_persistence():
         log_file = Path(tmpdir) / "test.jsonl"
         store1 = EventStore(log_file)
         store1.append({"data": "test"})
-        
+
         store2 = EventStore(log_file)
-        assert len(store2.events) == 1
+        assert store2.replay() == [{"data": "test"}]
 
 
 def test_event_store_checkpoint():
@@ -189,13 +195,13 @@ def test_event_store_checkpoint():
         store = EventStore(Path(tmpdir) / "test.jsonl")
         for i in range(5):
             store.append({"index": i})
-        
+
         cp = store.create_checkpoint()
-        assert cp.position == 5
-        
+        assert cp == 5
+
         store.append({"index": 5})
         replayed = store.replay(from_checkpoint=cp)
-        assert len(replayed) >= 1
+        assert replayed == [{"index": 5}]
 
 
 def test_event_store_scale():
@@ -209,28 +215,30 @@ def test_event_store_scale():
 
 def test_lifecycle_sequence():
     """K8: 完整生命周期"""
-    lm = LifecycleManager()
-    assert lm.configure()
-    assert lm.activate()
-    assert lm.deactivate()
-    assert lm.finalize()
+    manager = LifecycleManager()
+    node = manager.create_node("sequence")
+    assert node.configure()
+    assert node.activate()
+    assert node.deactivate()
+    assert node.finalize()
+    assert manager.get_all_states()["sequence"] == "finalized"
 
 
 def test_lifecycle_invalid():
     """K8: 无效转移"""
-    lm = LifecycleManager()
-    result = lm.activate()
-    assert not result
+    manager = LifecycleManager()
+    node = manager.create_node("invalid")
+    assert not node.activate()
 
 
 # 性能测试
 def test_perf_schema():
     """性能: Schema编译"""
     import time
-    compiler = SchemaCompiler()
+
     start = time.time()
     for _ in range(100):
-        compiler._schema_to_python_type({"type": "string"})
+        _python_type({"type": "string"})
     elapsed = (time.time() - start) / 100 * 1000
     assert elapsed < 10
 
@@ -238,6 +246,7 @@ def test_perf_schema():
 def test_perf_message():
     """性能: 消息创建"""
     import time
+
     start = time.time()
     for _ in range(100):
         Message({}, "test", "1.0.0", "actor")
@@ -248,6 +257,7 @@ def test_perf_message():
 def test_perf_event():
     """性能: 事件追加"""
     import time
+
     with tempfile.TemporaryDirectory() as tmpdir:
         store = EventStore(Path(tmpdir) / "perf.jsonl")
         start = time.time()
@@ -270,16 +280,16 @@ def test_compat_old_events():
         store = EventStore(Path(tmpdir) / "compat.jsonl")
         for i in range(5):
             store.append({"type": "event", "id": i})
-        
+
         replayed = store.replay()
         assert len(replayed) == 5
 
 
 def test_compat_version():
-    """兼容: 版本升级"""
-    registry = VersionRegistry()
-    registry.register_schema("config", "1.0.0", {})
-    registry.register_schema("config", "1.1.0", {})
-    
-    assert registry.is_compatible("config", "1.0.0", "1.1.0")
-
+    """兼容: 版本内容在升级后仍可读取"""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        registry = VersionRegistry(Path(tmpdir) / "compat.json")
+        registry.register_schema("config", "1.0.0", {"legacy": True})
+        registry.register_schema("config", "1.1.0", {"legacy": False})
+        assert registry.versions["config"]["1.0.0"] == {"legacy": True}
+        assert registry.versions["config"]["1.1.0"] == {"legacy": False}

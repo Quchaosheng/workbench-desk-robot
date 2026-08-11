@@ -19,7 +19,7 @@ dependencies = []
 
 [dependency-groups]
 dev = [
-  "pytest>=8,<9",
+  "pytest>=8,<10",
   # arm_config.py parses config/arm.yaml. The ROS runtime also ships PyYAML, but
   # the pure-Python tests run under this uv venv with no ROS, so pin it here too.
   "pyyaml>=6,<7",

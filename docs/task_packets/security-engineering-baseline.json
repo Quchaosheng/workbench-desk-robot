@@ -1,0 +1,55 @@
+{
+  "issue": 24,
+  "human_owner": "Quchaosheng",
+  "objective": "Establish continuous least-privilege security review and response controls without claiming unexecuted penetration compliance or physical results.",
+  "allowed_paths": [
+    ".github/workflows/security.yml",
+    ".github/dependabot.yml",
+    "SECURITY.md",
+    "docs/security/**",
+    "docs/task_packets/security-engineering-baseline.json",
+    "tests/unit/test_security_baseline.py",
+    "mkdocs.yml"
+  ],
+  "read_only_paths": [
+    ".github/workflows/release-image.yml",
+    "Dockerfile",
+    "compose.yaml",
+    "THIRD_PARTY_REVIEW.md",
+    "AGENTS.md"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "robot/control/**",
+    "firmware/**",
+    "hardware/safety/**"
+  ],
+  "acceptance": [
+    "CodeQL and pull-request dependency review use immutable action commits",
+    "the workflow defaults to contents read and grants security-events write only to CodeQL",
+    "Dependabot covers Python GitHub Actions and both container definition roots",
+    "private reporting severity triage hardening incident response and supply-chain review are documented",
+    "penetration testing remains NOT_EXECUTED and the control matrix makes no certification claim",
+    "deterministic tests protect workflow permissions pins and evidence states"
+  ],
+  "commands": [
+    "python tools/scripts/check_task_packet.py docs/task_packets/security-engineering-baseline.json",
+    "python -m pytest tests/unit/test_security_baseline.py -q",
+    "python -m mkdocs build --strict",
+    "make check"
+  ],
+  "evidence": [
+    "Task Packet validation output",
+    "security baseline test output",
+    "strict documentation build output",
+    "CodeQL and dependency-review GitHub Actions results",
+    "full repository check output"
+  ],
+  "stop_conditions": [
+    "a credential vulnerability exploit or private report would need to be exposed",
+    "robot control firmware or physical safety paths require modification",
+    "a penetration compliance or certification result would need to be inferred",
+    "a human risk release or disclosure decision is required"
+  ]
+}

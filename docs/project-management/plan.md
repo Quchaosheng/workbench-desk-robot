@@ -49,4 +49,3 @@ gantt
 | Human-owned release/tag decision | publication | AI and CI prepare evidence but never create the decision |
 
 Schedule variance is measured against this baseline at every weekly review. Missing evidence changes the gate state, not the historical baseline.
-

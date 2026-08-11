@@ -1,8 +1,8 @@
 # Monthly report template
 
-Reporting period: `YYYY-MM-DD` to `YYYY-MM-DD`  
-Baseline commit:  
-Prepared by / reviewed by:
+- Reporting period: `YYYY-MM-DD` to `YYYY-MM-DD`
+- Baseline commit:
+- Prepared by / reviewed by:
 
 ## Executive status
 
@@ -31,4 +31,3 @@ List triggered/new/closed risks with register IDs. Link scope, risk acceptance, 
 ## Next month
 
 List no more than five outcomes. Each needs an owner, due date, acceptance evidence, and stop condition.
-

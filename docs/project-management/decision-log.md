@@ -24,4 +24,3 @@ Human approver:
 ```
 
 AI may draft this record. Only the named human approver can accept scope, risk, release, licensing, procurement, or physical-safety decisions.
-

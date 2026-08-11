@@ -16,4 +16,3 @@
 | team delivery satisfaction | >=4/5 | anonymous monthly pulse with response count | PMO | report only after a real survey |
 
 Use `UNKNOWN` when the eligible source is missing. Planning values, fixtures, screenshots, and generated templates cannot populate physical metrics.
-

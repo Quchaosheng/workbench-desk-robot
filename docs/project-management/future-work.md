@@ -12,4 +12,3 @@ These items begin only after the relevant phase gate. They are not part of the c
 | after P3 | operator workflow expansion | usability study identifies validated needs | tested prototype with no added control authority |
 
 Each candidate needs a new Ready Issue and Task Packet before repository writes. Prioritize evidence quality and operator safety over feature count.
-

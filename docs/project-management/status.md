@@ -45,4 +45,3 @@ Snapshot: 2026-08-11. Refresh this page weekly and whenever a release-blocking r
 | P1 | freeze the formal Gazebo run command and output layout | Simulation + Integration | external-runner command, raw log sample, hash/index |
 | P1 | approve the security audit baseline | Security + Integration | reviewed workflow/policy PR |
 | P1 | assign owners and due dates to all open risks | Project Owner / PMO | updated `risks.csv` review |
-

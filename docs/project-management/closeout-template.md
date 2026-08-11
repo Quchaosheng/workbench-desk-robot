@@ -1,8 +1,8 @@
 # Project closeout template
 
-Version / decision date / human approver:  
-Baseline and final commit:  
-Release or stop decision:
+- Version / decision date / human approver:
+- Baseline and final commit:
+- Release or stop decision:
 
 ## Scope outcome
 
@@ -23,4 +23,3 @@ Name code, service, hardware, incident, and evidence owners. Link runbooks, back
 ## Retrospective and follow-up
 
 Link lessons learned, deferred debt, owner/due date for every follow-up, and the next review. Do not close actions only because the project period ended.
-

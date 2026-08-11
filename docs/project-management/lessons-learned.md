@@ -19,4 +19,3 @@ Hardware/procurement validators pass while their business status remains `RELEAS
 ## Baselines and forecasts serve different purposes
 
 The baseline preserves accountability. Forecasts may move as evidence arrives, but rewriting the baseline hides variance and weakens risk learning.
-

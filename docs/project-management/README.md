@@ -38,4 +38,3 @@ Templates, scripted fixtures, estimates, and verbal updates never move a gate to
 | PMO12 later projects | [Future work](future-work.md) |
 
 Update links and evidence before changing a status. The human Project Owner owns Go/No-Go, scope, release, and claims based on physical evidence.
-

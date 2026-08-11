@@ -43,4 +43,3 @@ Escalations:
 ```
 
 No owner, due date, or acceptance evidence means the item is not an action. No eligible evidence means the status remains Amber, Red, or Unknown.
-

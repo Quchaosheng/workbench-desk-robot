@@ -16,4 +16,3 @@ This is a responsibility and capacity plan, not a claim that named staff are hir
 ## Reallocation order
 
 When critical work slips, move capacity from expression polish, replay visual polish, optional natural-language work, then optional local-model work. Never fund schedule recovery by weakening false-completion, collision, privilege, evaluation, or external-reproduction gates.
-

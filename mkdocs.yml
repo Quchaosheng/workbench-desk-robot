@@ -13,6 +13,9 @@ nav:
   - 90-minute demo: user-guide/demo-runbook.md
   - Dashboard design: design/dashboard-design-system.md
   - Dashboard usability test: design/dashboard-usability-test.md
+  - Security program: security/README.md
+  - Secure review: security/secure-review-standard.md
+  - Incident response: security/incident-response.md
   - System architecture: architecture/system.md
   - API reference: api.md
 plugins:

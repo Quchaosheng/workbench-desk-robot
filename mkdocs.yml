@@ -11,6 +11,8 @@ nav:
   - Maintenance: user-guide/maintenance.md
   - Troubleshooting: user-guide/troubleshooting.md
   - 90-minute demo: user-guide/demo-runbook.md
+  - Dashboard design: design/dashboard-design-system.md
+  - Dashboard usability test: design/dashboard-usability-test.md
   - System architecture: architecture/system.md
   - API reference: api.md
 plugins:

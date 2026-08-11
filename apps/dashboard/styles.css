@@ -1881,6 +1881,33 @@ svg {
   *::before,
   *::after {
     scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .connection-dot,
+  #progress-bar {
+    background: Highlight;
+  }
+
+  .timeline-marker {
+    border-color: Highlight;
+    background: Canvas;
+  }
+
+  .is-active,
+  .attention-banner,
+  .status-pill {
+    border: 1px solid CanvasText;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  select:focus-visible,
+  input:focus-visible {
+    outline-color: Highlight;
   }
 }

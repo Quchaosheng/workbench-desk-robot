@@ -1,0 +1,53 @@
+{
+  "issue": 26,
+  "human_owner": "Quchaosheng",
+  "objective": "Harden the read-only dashboard across responsive and keyboard use while preserving evidence and robot-authority boundaries.",
+  "allowed_paths": [
+    "apps/dashboard/**",
+    "docs/design/**",
+    "docs/task_packets/dashboard-accessibility-ux.json",
+    "tests/unit/test_dashboard_accessibility.py",
+    "mkdocs.yml"
+  ],
+  "read_only_paths": [
+    "services/backend/**",
+    "interfaces/**",
+    "apps/dashboard/data/**"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "hardware/safety/**"
+  ],
+  "acceptance": [
+    "active filters runs playback and replay position expose programmatic state",
+    "view tabs implement controls selected state roving tabindex and arrow Home End keyboard behavior",
+    "the active run scrolls into view in the horizontal mobile list",
+    "dynamic summary attention busy and replay state use appropriate announcements",
+    "reduced-motion and forced-colors users retain stable readable state",
+    "desktop and mobile browser checks show no page-level overflow or incoherent overlap",
+    "the usability protocol remains NOT_EXECUTED until real participants provide records",
+    "the dashboard remains read-only with no control publisher"
+  ],
+  "commands": [
+    "python tools/scripts/check_task_packet.py docs/task_packets/dashboard-accessibility-ux.json",
+    "python -m pytest tests/unit/test_dashboard_accessibility.py tests/unit/test_dashboard_backend.py -q",
+    "python -m mkdocs build --strict",
+    "make check"
+  ],
+  "evidence": [
+    "Task Packet validation output",
+    "dashboard accessibility and backend test output",
+    "desktop 1440x900 mobile 390x844 and narrow 320x568 browser screenshots",
+    "keyboard tab and replay state inspection",
+    "browser console log inspection",
+    "strict documentation and repository check output"
+  ],
+  "stop_conditions": [
+    "a robot control ROS firmware or emergency-stop interface would be introduced",
+    "a frozen event contract or fixture meaning would need to change",
+    "participant feedback accessibility conformance or production usability would need to be fabricated",
+    "a layout or interaction cannot be verified at the target viewport"
+  ]
+}
+

@@ -11,6 +11,9 @@ nav:
   - Maintenance: user-guide/maintenance.md
   - Troubleshooting: user-guide/troubleshooting.md
   - 90-minute demo: user-guide/demo-runbook.md
+  - Project status: project-management/status.md
+  - Project plan: project-management/plan.md
+  - Risk management: project-management/risk-management.md
   - System architecture: architecture/system.md
   - API reference: api.md
 plugins:

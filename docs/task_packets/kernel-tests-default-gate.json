@@ -1,0 +1,43 @@
+{
+  "issue": 29,
+  "human_owner": "Quchaosheng",
+  "objective": "Include the maintained K1-K10 kernel suites in default pytest discovery and the repository test gate.",
+  "allowed_paths": [
+    "pyproject.toml",
+    "Makefile",
+    "docs/task_packets/kernel-tests-default-gate.json"
+  ],
+  "read_only_paths": [
+    "libs/kernel/tests/**",
+    "libs/kernel/workbench/kernel/**",
+    "tests/**"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "robot/control/**",
+    "firmware/**",
+    "hardware/**"
+  ],
+  "acceptance": [
+    "default pytest discovery includes tests and libs/kernel/tests",
+    "the Makefile test gate uses default pytest discovery",
+    "the K1-K10 suites pass without production or test rewrites",
+    "repository lint and full checks pass"
+  ],
+  "commands": [
+    "python tools/scripts/check_task_packet.py docs/task_packets/kernel-tests-default-gate.json",
+    "python -m pytest --collect-only -q",
+    "make test",
+    "make check"
+  ],
+  "evidence": [
+    "Task Packet validation output",
+    "default pytest collection output containing libs/kernel/tests",
+    "repository test and check output"
+  ],
+  "stop_conditions": [
+    "a production kernel or test rewrite is required",
+    "default discovery collects generated or unsupported test trees",
+    "robot control firmware interface or hardware changes are required"
+  ]
+}

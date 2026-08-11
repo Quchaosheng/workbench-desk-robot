@@ -33,7 +33,7 @@ where = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "libs/kernel/tests"]
 python_files = ["test_*.py"]
 addopts = [
   "-v",

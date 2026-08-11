@@ -14,6 +14,8 @@ nav:
   - Project status: project-management/status.md
   - Project plan: project-management/plan.md
   - Risk management: project-management/risk-management.md
+  - Dashboard design: design/dashboard-design-system.md
+  - Dashboard usability test: design/dashboard-usability-test.md
   - System architecture: architecture/system.md
   - API reference: api.md
 plugins:

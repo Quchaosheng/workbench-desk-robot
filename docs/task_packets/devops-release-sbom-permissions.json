@@ -1,0 +1,43 @@
+{
+  "issue": 20,
+  "human_owner": "Quchaosheng",
+  "objective": "Keep tag-triggered SBOM generation least-privileged while retaining the SPDX artifact and provenance input.",
+  "allowed_paths": [
+    ".github/workflows/release-image.yml",
+    "tests/unit/test_release_workflow.py",
+    "docs/deployment/container.md",
+    "docs/task_packets/devops-release-sbom-permissions.json"
+  ],
+  "read_only_paths": [
+    "Dockerfile",
+    "tools/scripts/release_manifest.py"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "robot/control/**",
+    "firmware/**",
+    "hardware/safety/**"
+  ],
+  "acceptance": [
+    "release workflow retains contents read instead of granting contents write",
+    "SBOM generation does not attempt to attach assets to a GitHub Release",
+    "the generated SPDX file is retained by the explicit artifact step and remains the provenance manifest input",
+    "a deterministic regression test protects the permission boundary"
+  ],
+  "commands": [
+    "python tools/scripts/check_task_packet.py docs/task_packets/devops-release-sbom-permissions.json",
+    "python -m pytest tests/unit/test_release_workflow.py -q",
+    "make check"
+  ],
+  "evidence": [
+    "Task Packet validation output",
+    "release workflow regression test output",
+    "full repository check output",
+    "GitHub Actions result from a human-owned tag or manual dispatch"
+  ],
+  "stop_conditions": [
+    "the fix requires contents write or release credentials",
+    "a new release or version tag is required",
+    "the SBOM cannot be generated without changing the runtime image"
+  ]
+}

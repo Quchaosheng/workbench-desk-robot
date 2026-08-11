@@ -79,6 +79,8 @@ const taskZones = {
   ],
 };
 
+const viewOrder = ["overview", "replay"];
+
 const get = (id) => document.getElementById(id);
 
 function escapeHtml(value) {
@@ -175,7 +177,8 @@ function renderRunList() {
     .map(
       (run) => `
         <button class="run-item ${run.run_id === state.currentRun?.run_id ? "is-active" : ""}"
-          type="button" data-run-id="${escapeHtml(run.run_id)}">
+          type="button" data-run-id="${escapeHtml(run.run_id)}"
+          aria-pressed="${run.run_id === state.currentRun?.run_id}">
           <div class="run-item-top">
             <strong>${escapeHtml(run.task_id)}</strong>
             <span class="status-pill status-${escapeHtml(run.status)}">${escapeHtml(run.status_label)}</span>
@@ -191,6 +194,7 @@ function renderRunList() {
   document.querySelectorAll(".run-item").forEach((button) => {
     button.addEventListener("click", () => selectRun(button.dataset.runId));
   });
+  document.querySelector(".run-item.is-active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
 }
 
 function renderAttention(summary) {
@@ -525,8 +529,15 @@ function renderTimeline(target, events, cursor, replay = false) {
 function renderReplayEvent() {
   const event = state.cursor < 0 ? null : state.events[state.cursor];
   get("replay-position").textContent = `${Math.max(0, state.cursor + 1)} / ${state.events.length}`;
-  get("replay-range").max = String(Math.max(0, state.events.length - 1));
-  get("replay-range").value = String(Math.max(0, state.cursor));
+  const replayRange = get("replay-range");
+  replayRange.max = String(Math.max(0, state.events.length - 1));
+  replayRange.value = String(Math.max(0, state.cursor));
+  replayRange.setAttribute(
+    "aria-valuetext",
+    event
+      ? `${state.cursor + 1} / ${state.events.length}，${eventLabels[event.event_type] || event.event_type}`
+      : `0 / ${state.events.length}，任务尚未开始`,
+  );
   get("replay-event-title").textContent = event ? eventLabels[event.event_type] || event.event_type : "等待任务";
   get("replay-sequence").textContent = event ? `#${String(event.sequence_no).padStart(2, "0")}` : "#--";
   if (!event) {
@@ -609,14 +620,18 @@ function openEvidence(reference) {
   else dialog.setAttribute("open", "");
 }
 
-function setView(view) {
+function setView(view, focusTab = false) {
   const replay = view === "replay";
   get("overview-view").hidden = replay;
   get("replay-view").hidden = !replay;
+  get("overview-view").setAttribute("aria-hidden", String(replay));
+  get("replay-view").setAttribute("aria-hidden", String(!replay));
   document.querySelectorAll(".view-tab").forEach((tab) => {
     const selected = tab.dataset.view === view;
     tab.classList.toggle("is-active", selected);
     tab.setAttribute("aria-selected", String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+    if (selected && focusTab) tab.focus();
   });
   if (replay && state.cursor < 0) state.cursor = state.events.length - 1;
   renderCurrent();
@@ -627,6 +642,7 @@ function stopPlayback() {
   clearTimeout(state.timer);
   state.timer = null;
   get("replay-play").innerHTML = '<i data-lucide="play"></i><span>播放</span>';
+  get("replay-play").setAttribute("aria-pressed", "false");
   refreshIcons();
 }
 
@@ -649,6 +665,7 @@ function togglePlayback() {
   if (state.cursor >= state.events.length - 1) state.cursor = -1;
   state.playing = true;
   get("replay-play").innerHTML = '<i data-lucide="pause"></i><span>暂停</span>';
+  get("replay-play").setAttribute("aria-pressed", "true");
   refreshIcons();
   playbackTick();
 }
@@ -660,6 +677,7 @@ async function selectRun(runId) {
   const generation = ++state.requestGeneration;
   state.runRequest = controller;
   get("run-list").setAttribute("aria-busy", "true");
+  document.querySelector(".workspace").setAttribute("aria-busy", "true");
   try {
     const response = await fetch(`/api/runs/${encodeURIComponent(runId)}/events`, { signal: controller.signal });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -677,6 +695,7 @@ async function selectRun(runId) {
     if (generation === state.requestGeneration) {
       state.runRequest = null;
       get("run-list").removeAttribute("aria-busy");
+      document.querySelector(".workspace").removeAttribute("aria-busy");
     }
   }
 }
@@ -693,11 +712,28 @@ function bindControls() {
   document.querySelectorAll(".filter-button").forEach((button) => {
     button.addEventListener("click", () => {
       state.filter = button.dataset.filter;
-      document.querySelectorAll(".filter-button").forEach((item) => item.classList.toggle("is-active", item === button));
+      document.querySelectorAll(".filter-button").forEach((item) => {
+        const selected = item === button;
+        item.classList.toggle("is-active", selected);
+        item.setAttribute("aria-pressed", String(selected));
+      });
       renderRunList();
     });
   });
-  document.querySelectorAll(".view-tab").forEach((tab) => tab.addEventListener("click", () => setView(tab.dataset.view)));
+  document.querySelectorAll(".view-tab").forEach((tab) => {
+    tab.addEventListener("click", () => setView(tab.dataset.view));
+    tab.addEventListener("keydown", (event) => {
+      const currentIndex = viewOrder.indexOf(tab.dataset.view);
+      let targetIndex = null;
+      if (["ArrowLeft", "ArrowUp"].includes(event.key)) targetIndex = (currentIndex - 1 + viewOrder.length) % viewOrder.length;
+      if (["ArrowRight", "ArrowDown"].includes(event.key)) targetIndex = (currentIndex + 1) % viewOrder.length;
+      if (event.key === "Home") targetIndex = 0;
+      if (event.key === "End") targetIndex = viewOrder.length - 1;
+      if (targetIndex === null) return;
+      event.preventDefault();
+      setView(viewOrder[targetIndex], true);
+    });
+  });
   get("replay-start").addEventListener("click", () => {
     stopPlayback();
     state.cursor = -1;

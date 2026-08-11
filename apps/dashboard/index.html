@@ -18,7 +18,7 @@
           <small>验证优先任务系统</small>
         </span>
       </a>
-      <div class="header-status" aria-label="系统连接状态">
+      <div class="header-status" role="status" aria-label="系统连接状态">
         <span class="connection-dot"></span>
         <span>本地在线</span>
         <span class="header-divider"></span>
@@ -34,12 +34,12 @@
             <p class="eyebrow">运行记录</p>
             <h1>任务队列</h1>
           </div>
-          <span id="run-count" class="count-badge">0</span>
+          <span id="run-count" class="count-badge" aria-live="polite">0</span>
         </div>
         <div class="run-filter" role="group" aria-label="运行筛选">
-          <button class="filter-button is-active" type="button" data-filter="all">全部</button>
-          <button class="filter-button" type="button" data-filter="attention">需关注</button>
-          <button class="filter-button" type="button" data-filter="confirmed">已确认</button>
+          <button class="filter-button is-active" type="button" data-filter="all" aria-pressed="true">全部</button>
+          <button class="filter-button" type="button" data-filter="attention" aria-pressed="false">需关注</button>
+          <button class="filter-button" type="button" data-filter="confirmed" aria-pressed="false">已确认</button>
         </div>
         <div id="run-list" class="run-list"></div>
         <div class="sidebar-foot">
@@ -51,10 +51,10 @@
       <main class="workspace">
         <div class="workspace-head">
           <div class="view-tabs" role="tablist" aria-label="任务视图">
-            <button class="view-tab is-active" id="overview-tab" type="button" role="tab" aria-selected="true" data-view="overview">
+            <button class="view-tab is-active" id="overview-tab" type="button" role="tab" aria-selected="true" aria-controls="overview-view" tabindex="0" data-view="overview">
               <i data-lucide="layout-dashboard"></i><span>实时状态</span>
             </button>
-            <button class="view-tab" id="replay-tab" type="button" role="tab" aria-selected="false" data-view="replay">
+            <button class="view-tab" id="replay-tab" type="button" role="tab" aria-selected="false" aria-controls="replay-view" tabindex="-1" data-view="replay">
               <i data-lucide="history"></i><span>事件回放</span>
             </button>
           </div>
@@ -64,7 +64,7 @@
           </div>
         </div>
 
-        <section class="status-strip" aria-label="任务摘要">
+        <section class="status-strip" aria-label="任务摘要" aria-live="polite" aria-atomic="true">
           <div class="status-cell">
             <span>任务状态</span>
             <strong id="task-status">--</strong>
@@ -83,7 +83,7 @@
           </div>
         </section>
 
-        <section id="attention-banner" class="attention-banner" hidden>
+        <section id="attention-banner" class="attention-banner" role="status" aria-live="polite" hidden>
           <i data-lucide="scan-search"></i>
           <div>
             <strong>暂时无法确认任务结果</strong>
@@ -92,7 +92,7 @@
           <span class="attention-state">UNCERTAIN</span>
         </section>
 
-        <div id="overview-view" class="view-panel" role="tabpanel" aria-labelledby="overview-tab">
+        <div id="overview-view" class="view-panel" role="tabpanel" aria-labelledby="overview-tab" aria-hidden="false" tabindex="0">
           <section class="task-band">
             <div class="task-primary">
               <p class="eyebrow">当前目标</p>
@@ -169,17 +169,17 @@
           </div>
         </div>
 
-        <div id="replay-view" class="view-panel" role="tabpanel" aria-labelledby="replay-tab" hidden>
+        <div id="replay-view" class="view-panel" role="tabpanel" aria-labelledby="replay-tab" aria-hidden="true" tabindex="0" hidden>
           <section class="replay-toolbar" aria-label="回放控制">
             <div class="replay-controls">
               <button id="replay-start" class="icon-button" type="button" title="回到开始" aria-label="回到开始"><i data-lucide="skip-back"></i></button>
               <button id="replay-prev" class="icon-button" type="button" title="上一个事件" aria-label="上一个事件"><i data-lucide="step-back"></i></button>
-              <button id="replay-play" class="play-button" type="button"><i data-lucide="play"></i><span>播放</span></button>
+              <button id="replay-play" class="play-button" type="button" aria-pressed="false"><i data-lucide="play"></i><span>播放</span></button>
               <button id="replay-next" class="icon-button" type="button" title="下一个事件" aria-label="下一个事件"><i data-lucide="step-forward"></i></button>
               <button id="replay-end" class="icon-button" type="button" title="跳到末尾" aria-label="跳到末尾"><i data-lucide="skip-forward"></i></button>
             </div>
             <div class="replay-position">
-              <span id="replay-position">0 / 0</span>
+              <span id="replay-position" aria-live="polite">0 / 0</span>
               <input id="replay-range" type="range" min="0" max="0" value="0" aria-label="回放事件位置">
             </div>
             <label class="speed-control">速度

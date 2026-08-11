@@ -2,17 +2,17 @@
 
 ## Overview
 
-嵌入式工程师 P1 实现 (HW1-HW7)
+嵌入式工程师 P1 模块。当前实现 HW1 的展开 URDF 参数提取；HW2-HW7 仍是后续任务。
 
 ## Components
 
-- **HW1**: URDF Parser (extract motor parameters)
-- **HW2**: CAN Driver (communicate with MCU)
-- **HW3**: Motor Feedback Parser (position/velocity/current)
-- **HW4**: PID Controller (closed-loop control)
-- **HW5**: Sensor Simulator (read from Gazebo)
-- **HW6**: Realtime Executor (100Hz control loop)
-- **HW7**: Integration Test Framework
+- **HW1**: URDF Parser (implemented)
+- **HW2**: CAN Driver (planned)
+- **HW3**: Motor Feedback Parser (planned)
+- **HW4**: PID Controller (planned)
+- **HW5**: Sensor Simulator (planned)
+- **HW6**: Realtime Executor (planned)
+- **HW7**: Integration Test Framework (planned)
 
 ## Architecture
 
@@ -28,37 +28,33 @@ Hardware Layer
     └─ Realtime Executor (100Hz)
 ```
 
-## Key Features
+## HW1 usage
 
-- **100Hz control loop**: Real-time execution with thread-based scheduling
-- **CAN communication**: Versioned message protocol (via K4-K5 from kernel)
-- **Motor feedback**: Position, velocity, current parsing
-- **PID control**: Closed-loop feedback control
-- **Sensor integration**: IMU + joint states from Gazebo
+The parser consumes expanded URDF XML, not Xacro source. Generate an official
+UR5e description and extract the six arm joints:
 
-## Usage
-
-```python
-from workbench.hardware.realtime_executor import RealtimeExecutor
-from workbench.hardware.pid_controller import PIDController
-
-executor = RealtimeExecutor(frequency=100)
-pid = PIDController(kp=10, ki=0.1, kd=1)
-
-def control_loop():
-    output = pid.compute(setpoint=1.0, feedback=0.5)
-    # send to motor via CAN
-
-executor.add_task(control_loop)
-executor.start()
+```bash
+source /opt/ros/jazzy/setup.bash
+xacro /opt/ros/jazzy/share/ur_description/urdf/ur.urdf.xacro \
+  ur_type:=ur5e name:=ur5e > /tmp/ur5e.urdf
+python3 libs/hardware/urdf_to_motor_config.py /tmp/ur5e.urdf \
+  --joint shoulder_pan_joint \
+  --joint shoulder_lift_joint \
+  --joint elbow_joint \
+  --joint wrist_1_joint \
+  --joint wrist_2_joint \
+  --joint wrist_3_joint
 ```
+
+`max_torque_nm`, velocity and position limits come from each URDF `<limit>`.
+`mechanical_reduction` is populated only when an explicit URDF transmission
+declares it. `null` means the controlled input did not declare a reduction; it
+must not be replaced with a guessed physical gearbox ratio.
 
 ## P1 Deliverables
 
-- HW1: Motor configuration from URDF
-- HW2-3: CAN communication + feedback parsing
-- HW4: PID controller tested
-- HW5-6: 100Hz real-time control loop
-- HW7: Full integration test passing
-
-All tests passing. Ready for P1 application layer integration.
+- HW1: Motor configuration from expanded URDF (implemented)
+- HW2-3: CAN communication + feedback parsing (planned)
+- HW4: PID controller (planned)
+- HW5-6: Sensor simulation + 100Hz real-time control loop (planned)
+- HW7: Full integration test (planned)

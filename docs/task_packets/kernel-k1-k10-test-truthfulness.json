@@ -1,0 +1,53 @@
+{
+  "issue": 30,
+  "human_owner": "Quchaosheng",
+  "objective": "Restore main CI by aligning the added K1-K10 tests with the kernel's real public APIs and removing the duplicate backup file.",
+  "allowed_paths": [
+    "libs/kernel/tests/test_k1_k10.py",
+    "libs/kernel/tests/test_k1_k10.py.bak",
+    "libs/kernel/tests/test_k1_k10_extended.py",
+    "docs/task_packets/kernel-k1-k10-test-truthfulness.json"
+  ],
+  "read_only_paths": [
+    "libs/kernel/workbench/kernel/schema_compiler.py",
+    "libs/kernel/workbench/kernel/version_registry.py",
+    "libs/kernel/workbench/kernel/communication.py",
+    "libs/kernel/workbench/kernel/event_store.py",
+    "libs/kernel/workbench/kernel/lifecycle.py"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "robot/control/**",
+    "firmware/**",
+    "hardware/safety/**"
+  ],
+  "acceptance": [
+    "the added tests call only APIs implemented by the current kernel modules",
+    "version registry tests prove persistence and coexistence without claiming automatic compatibility",
+    "the duplicate tracked backup file is removed",
+    "Ruff, the focused K1-K10 suite, the repository test suite, contract checks, scenario checks, context checks and offline demos pass"
+  ],
+  "commands": [
+    "python tools/scripts/check_task_packet.py docs/task_packets/kernel-k1-k10-test-truthfulness.json",
+    "python -m ruff check .",
+    "python -m ruff format --check .",
+    "python -m pytest libs/kernel/tests/test_k1_k10.py libs/kernel/tests/test_k1_k10_extended.py -q",
+    "python -m pytest tests/ -q",
+    "python tools/scripts/validate_contracts.py",
+    "python tools/scripts/validate_scenarios.py",
+    "python tools/scripts/validate_golden_set.py",
+    "python tools/scripts/check_context.py",
+    "python tools/scripts/demo_scripted.py",
+    "python tools/scripts/local_runner.py --goal \"Place the red block in the tray\""
+  ],
+  "evidence": [
+    "focused K1-K10 test output",
+    "full repository test and validation output",
+    "GitHub Actions result on the pull request and merged main commit"
+  ],
+  "stop_conditions": [
+    "the fix requires production kernel behavior changes",
+    "the fix requires public schema changes",
+    "a test can pass only by skipping an unsupported behavior"
+  ]
+}

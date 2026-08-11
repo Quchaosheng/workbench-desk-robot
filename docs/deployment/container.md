@@ -47,6 +47,8 @@ image or network.
 
 `.github/workflows/release-image.yml` runs `make check`, builds and smoke-tests the image, and emits an SPDX JSON SBOM. Version tags publish to GHCR; manual workflow runs build and validate without creating a release tag.
 
+The SBOM action only writes the local SPDX file. A separate, pinned artifact step retains that file for provenance and review; it does not attach assets to a GitHub Release or require `contents: write`.
+
 Publishing still requires a human-owned version tag and repository permissions. The workflow does not make Go/No-Go decisions and cannot turn scripted evaluation data into release evidence.
 
 ## Windows without Make

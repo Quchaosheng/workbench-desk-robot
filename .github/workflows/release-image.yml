@@ -63,6 +63,8 @@ jobs:
           image: workbench-1:release-candidate
           format: spdx-json
           output-file: workbench-1.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
 
       - name: Publish tested image
         id: publish

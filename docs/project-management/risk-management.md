@@ -17,13 +17,13 @@ Allowed status values are `open`, `mitigating`, `monitoring`, `accepted`, and `c
 
 | Risk | Immediate mitigation | Escalation |
 |---|---|---|
-| R-001 | merge the least-privilege workflow fix after CI/review | no new tag until a human reviewer approves the fix |
+| R-001 | exercise merged PR #21 on the next human-owned tag and retain its workflow result | no release-readiness claim until a post-fix tag succeeds |
 | R-002 | freeze the formal Gazebo command and raw-log layout | P1 gate remains stopped without 36 eligible runs and independent audit |
 | R-003 | resolve each hardware gate with physical/commercial evidence | keep `RELEASE_BLOCKED`; do not infer results from planning reports |
 | R-004 | obtain quotes, AVL approval, and incoming inspection | keep `ORDER_RELEASE_BLOCKED` |
 | R-005 | schedule three unique external participants | remove external reproducibility claims if records remain absent |
 | R-007 | enforce same-PR schema/model updates, three-owner review, and contract validation | reject the change before merge if any owner or consumer is missing |
-| R-009 | add continuous code/dependency review and triage policy | unresolved high/critical findings block release |
+| R-009 | keep merged PR #25 scans green and decide required-check policy | unresolved high/critical findings block release |
 
 ## Weekly review procedure
 

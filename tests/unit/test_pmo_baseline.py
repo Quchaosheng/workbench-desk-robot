@@ -69,3 +69,18 @@ def test_status_never_substitutes_fixture_results_for_formal_evidence() -> None:
     assert "scripted fixtures are not physics runs" in status
     assert "hardware release blockers | 0 | 12 | RED" in status
     assert "Use `UNKNOWN` when the eligible source is missing" in metrics
+
+
+def test_merged_dependency_status_does_not_regress_to_pending() -> None:
+    status = (PMO / "status.md").read_text(encoding="utf-8")
+    risks = (PMO / "risks.csv").read_text(encoding="utf-8")
+    risk_plan = (PMO / "risk-management.md").read_text(encoding="utf-8")
+    decisions = (PMO / "decision-log.md").read_text(encoding="utf-8")
+
+    assert "fix tracked in PR #21" not in status
+    assert "merge and verify the least-privilege SBOM fix" not in status
+    assert "deliver the security baseline" not in status
+    assert "PR #21 merged" in risks
+    assert "merged PR #21" in risk_plan
+    assert "merged PR #25" in risk_plan
+    assert "implemented in merged PR #21; release verification pending" in decisions

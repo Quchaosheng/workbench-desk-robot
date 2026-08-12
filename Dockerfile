@@ -20,6 +20,8 @@ RUN printf 'Acquire::Retries "10";\nAcquire::http::Timeout "120";\nAcquire::http
 WORKDIR /app
 COPY pyproject.toml README.md README.zh-CN.md LICENSE NOTICE ./
 COPY libs/contracts ./libs/contracts
+COPY libs/hardware ./libs/hardware
+COPY libs/kernel ./libs/kernel
 COPY services/agent_runtime ./services/agent_runtime
 COPY services/backend ./services/backend
 COPY services/world_model ./services/world_model

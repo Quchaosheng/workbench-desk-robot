@@ -3,6 +3,7 @@
   "human_owner": "TH3478",
   "objective": "Extract deterministic motor-limit configuration from an expanded URDF without inventing hardware parameters that the URDF does not declare.",
   "allowed_paths": [
+    "Dockerfile",
     "docs/task_packets/hw1-urdf-parser.json",
     "docs/hardware/hw1-ur5e-extraction.md",
     "libs/hardware/README.md",
@@ -10,6 +11,7 @@
     "libs/hardware/workbench/hardware/__init__.py",
     "libs/hardware/workbench/hardware/urdf_parser.py",
     "pyproject.toml",
+    "tests/unit/test_container_baseline.py",
     "tests/unit/test_hardware_urdf.py"
   ],
   "read_only_paths": [
@@ -31,7 +33,7 @@
     "python3 tools/scripts/check_task_packet.py docs/task_packets/hw1-urdf-parser.json",
     "python3 -m pip install -e .",
     "python3 -c \"from workbench.hardware import parse_urdf_motor_config\"",
-    "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest tests/unit/test_hardware_urdf.py -v",
+    "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest tests/unit/test_hardware_urdf.py tests/unit/test_container_baseline.py -v",
     "make test",
     "make contract",
     "make scenario-check",

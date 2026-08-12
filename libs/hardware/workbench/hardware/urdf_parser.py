@@ -36,19 +36,32 @@ def _required_float(value: str | None, field: str, joint_name: str, *, positive:
 
 def _transmission_reductions(root: ElementTree.Element) -> dict[str, float]:
     reductions: dict[str, float] = {}
+    transmission_joints: set[str] = set()
     for transmission in root.findall("./transmission"):
-        reduction_elements = transmission.findall("./actuator/mechanicalReduction")
-        if not reduction_elements:
-            continue
         joint_elements = transmission.findall("./joint")
-        if len(joint_elements) != 1 or len(reduction_elements) != 1:
-            transmission_name = transmission.get("name", "<unnamed>")
+        actuator_elements = transmission.findall("./actuator")
+        transmission_name = transmission.get("name", "<unnamed>")
+        if len(joint_elements) != 1 or len(actuator_elements) != 1:
             raise UrdfMotorConfigError(
-                f"transmission {transmission_name!r} must declare one joint and one mechanicalReduction"
+                f"transmission {transmission_name!r} must declare exactly one joint and one actuator"
             )
         joint_name = joint_elements[0].get("name")
-        if not joint_name:
+        if not joint_name or not joint_name.strip():
             raise UrdfMotorConfigError("a transmission joint is missing its name")
+        if joint_name in transmission_joints:
+            raise UrdfMotorConfigError(f"joint {joint_name!r} has multiple transmission declarations")
+        transmission_joints.add(joint_name)
+
+        actuator = actuator_elements[0]
+        reduction_elements = actuator.findall("./mechanicalReduction")
+        all_reduction_elements = transmission.findall(".//mechanicalReduction")
+        if len(reduction_elements) != len(all_reduction_elements) or len(reduction_elements) > 1:
+            raise UrdfMotorConfigError(
+                f"transmission {transmission_name!r} must declare at most one actuator mechanicalReduction"
+            )
+        if not reduction_elements:
+            continue
+
         reduction_text = reduction_elements[0].text
         try:
             reduction = float(reduction_text) if reduction_text is not None else float("nan")
@@ -60,8 +73,6 @@ def _transmission_reductions(root: ElementTree.Element) -> dict[str, float]:
             raise UrdfMotorConfigError(
                 f"transmission for joint {joint_name!r} requires a finite positive mechanicalReduction"
             )
-        if joint_name in reductions:
-            raise UrdfMotorConfigError(f"joint {joint_name!r} has multiple mechanicalReduction declarations")
         reductions[joint_name] = reduction
     return reductions
 
@@ -78,16 +89,19 @@ def parse_urdf_motor_config(
         raise UrdfMotorConfigError("expanded URDF root element must be <robot>")
 
     joints: dict[str, ElementTree.Element] = {}
+    declared_joint_names: set[str] = set()
     discovered_names: list[str] = []
     for joint in root.findall("./joint"):
+        joint_name = joint.get("name")
+        if not joint_name or not joint_name.strip():
+            raise UrdfMotorConfigError("a joint declaration is missing its name")
+        if joint_name in declared_joint_names:
+            raise UrdfMotorConfigError(f"duplicate joint declaration {joint_name!r}")
+        declared_joint_names.add(joint_name)
+
         joint_type = joint.get("type")
         if joint_type not in {"continuous", "revolute"}:
             continue
-        joint_name = joint.get("name")
-        if not joint_name:
-            raise UrdfMotorConfigError("an actuated joint is missing its name")
-        if joint_name in joints:
-            raise UrdfMotorConfigError(f"duplicate actuated joint {joint_name!r}")
         joints[joint_name] = joint
         discovered_names.append(joint_name)
 
@@ -97,7 +111,9 @@ def parse_urdf_motor_config(
         if isinstance(joint_names, str):
             raise UrdfMotorConfigError("joint_names must be a sequence, not a string")
         selected_names = tuple(joint_names)
-        if not selected_names or any(not isinstance(name, str) or not name for name in selected_names):
+        if not selected_names or any(
+            not isinstance(name, str) or not name or not name.strip() for name in selected_names
+        ):
             raise UrdfMotorConfigError("joint_names requires non-empty joint names")
         if len(selected_names) != len(set(selected_names)):
             raise UrdfMotorConfigError("joint_names must not contain duplicates")
@@ -112,9 +128,10 @@ def parse_urdf_motor_config(
         if joint is None:
             raise UrdfMotorConfigError(f"requested actuated joint {joint_name!r} is not present")
         joint_type = joint.get("type")
-        limit = joint.find("./limit")
-        if limit is None:
-            raise UrdfMotorConfigError(f"joint {joint_name!r} is missing its <limit> element")
+        limit_elements = joint.findall("./limit")
+        if len(limit_elements) != 1:
+            raise UrdfMotorConfigError(f"joint {joint_name!r} must declare exactly one <limit> element")
+        limit = limit_elements[0]
         lower_limit: float | None = None
         upper_limit: float | None = None
         if joint_type == "revolute":

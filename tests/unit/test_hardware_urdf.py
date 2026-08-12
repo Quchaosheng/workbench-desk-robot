@@ -1,23 +1,15 @@
-import importlib.util
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-MODULE_NAME = "workbench_hardware_urdf_parser"
-MODULE_PATH = ROOT / "libs/hardware/workbench/hardware/urdf_parser.py"
-MODULE_SPEC = importlib.util.spec_from_file_location(MODULE_NAME, MODULE_PATH)
-if MODULE_SPEC is None or MODULE_SPEC.loader is None:
-    raise RuntimeError(f"could not load HW1 parser from {MODULE_PATH}")
-URDF_PARSER = importlib.util.module_from_spec(MODULE_SPEC)
-sys.modules[MODULE_NAME] = URDF_PARSER
-MODULE_SPEC.loader.exec_module(URDF_PARSER)
-
-UrdfMotorConfigError = URDF_PARSER.UrdfMotorConfigError
-dump_motor_config_yaml = URDF_PARSER.dump_motor_config_yaml
-load_urdf_motor_config = URDF_PARSER.load_urdf_motor_config
-parse_urdf_motor_config = URDF_PARSER.parse_urdf_motor_config
+import workbench.kernel
+from workbench.hardware import (
+    MotorConfig,
+    UrdfMotorConfigError,
+    dump_motor_config_yaml,
+    load_urdf_motor_config,
+    parse_urdf_motor_config,
+)
 
 ARM_JOINTS = (
     "shoulder_pan_joint",
@@ -58,6 +50,10 @@ UR5E_SHAPE_URDF = """<?xml version="1.0"?>
 
 
 class HardwareUrdfTests(unittest.TestCase):
+    def test_installed_package_exposes_hardware_api(self) -> None:
+        self.assertEqual(MotorConfig.__module__, "workbench.hardware.urdf_parser")
+        self.assertIsNotNone(workbench.kernel.__path__)
+
     def test_extracts_requested_ur5e_motor_limits_in_order(self) -> None:
         configs = parse_urdf_motor_config(UR5E_SHAPE_URDF, ARM_JOINTS)
 
@@ -118,6 +114,60 @@ class HardwareUrdfTests(unittest.TestCase):
 
         with self.assertRaises(UrdfMotorConfigError):
             parse_urdf_motor_config(duplicate, ARM_JOINTS)
+
+    def test_rejects_duplicate_limit_elements(self) -> None:
+        duplicate = UR5E_SHAPE_URDF.replace(
+            '<limit effort="150.0" lower="-6.283185307179586" upper="6.283185307179586" '
+            'velocity="3.141592653589793"/>',
+            """<limit effort="150.0" lower="-6.283185307179586" upper="6.283185307179586" velocity="3.141592653589793"/>
+    <limit effort="1.0" lower="-1.0" upper="1.0" velocity="1.0"/>""",
+            1,
+        )
+
+        with self.assertRaises(UrdfMotorConfigError):
+            parse_urdf_motor_config(duplicate, ARM_JOINTS)
+
+    def test_rejects_malformed_transmission_structures(self) -> None:
+        cases = {
+            "multiple actuators with reduction": UR5E_SHAPE_URDF.replace(
+                '<actuator name="shoulder_pan_motor"><mechanicalReduction>1</mechanicalReduction></actuator>',
+                """<actuator name="shoulder_pan_motor"><mechanicalReduction>1</mechanicalReduction></actuator>
+    <actuator name="ambiguous_motor"/>""",
+            ),
+            "multiple joints without reduction": UR5E_SHAPE_URDF.replace(
+                '<joint name="shoulder_pan_joint"/>\n    '
+                '<actuator name="shoulder_pan_motor"><mechanicalReduction>1</mechanicalReduction></actuator>',
+                '<joint name="shoulder_pan_joint"/>\n    <joint name="elbow_joint"/>\n    '
+                '<actuator name="shoulder_pan_motor"/>',
+            ),
+            "misplaced reduction": UR5E_SHAPE_URDF.replace(
+                '<actuator name="shoulder_pan_motor"><mechanicalReduction>1</mechanicalReduction></actuator>',
+                '<actuator name="shoulder_pan_motor"/>\n    <mechanicalReduction>1</mechanicalReduction>',
+            ),
+        }
+
+        for label, urdf_xml in cases.items():
+            with self.subTest(label=label), self.assertRaises(UrdfMotorConfigError):
+                parse_urdf_motor_config(urdf_xml, ARM_JOINTS)
+
+    def test_rejects_duplicate_and_empty_joint_declarations(self) -> None:
+        duplicate_joint = UR5E_SHAPE_URDF.replace(
+            '<joint name="world_joint" type="fixed"/>',
+            '<joint name="shoulder_pan_joint" type="fixed"/>',
+        )
+        empty_joint = UR5E_SHAPE_URDF.replace('name="world_joint"', 'name="   "')
+        empty_transmission_joint = UR5E_SHAPE_URDF.replace(
+            '<joint name="shoulder_pan_joint"/>\n    <actuator',
+            '<joint name=""/>\n    <actuator',
+        )
+
+        for label, urdf_xml in {
+            "duplicate joint": duplicate_joint,
+            "empty joint": empty_joint,
+            "empty transmission joint": empty_transmission_joint,
+        }.items():
+            with self.subTest(label=label), self.assertRaises(UrdfMotorConfigError):
+                parse_urdf_motor_config(urdf_xml, ARM_JOINTS)
 
 
 if __name__ == "__main__":

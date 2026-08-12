@@ -23,14 +23,25 @@ docs = [
   "mkdocstrings[python]>=0.27,<1",
 ]
 
-[tool.setuptools.packages.find]
-where = [
-  "libs/contracts",
-  "services/agent_runtime",
-  "services/backend",
-  "services/world_model",
-  "firmware/virtual_mcu",
+[tool.setuptools]
+packages = [
+  "workbench.hardware",
+  "workbench.kernel",
+  "workbench_agent_runtime",
+  "workbench_backend",
+  "workbench_contracts",
+  "workbench_virtual_mcu",
+  "workbench_world_model",
 ]
+
+[tool.setuptools.package-dir]
+"workbench.hardware" = "libs/hardware/workbench/hardware"
+"workbench.kernel" = "libs/kernel/workbench/kernel"
+workbench_agent_runtime = "services/agent_runtime/workbench_agent_runtime"
+workbench_backend = "services/backend/workbench_backend"
+workbench_contracts = "libs/contracts/workbench_contracts"
+workbench_virtual_mcu = "firmware/virtual_mcu/workbench_virtual_mcu"
+workbench_world_model = "services/world_model/workbench_world_model"
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "libs/kernel/tests"]

@@ -4,10 +4,12 @@
   "objective": "Extract deterministic motor-limit configuration from an expanded URDF without inventing hardware parameters that the URDF does not declare.",
   "allowed_paths": [
     "docs/task_packets/hw1-urdf-parser.json",
+    "docs/hardware/hw1-ur5e-extraction.md",
     "libs/hardware/README.md",
     "libs/hardware/urdf_to_motor_config.py",
     "libs/hardware/workbench/hardware/__init__.py",
     "libs/hardware/workbench/hardware/urdf_parser.py",
+    "pyproject.toml",
     "tests/unit/test_hardware_urdf.py"
   ],
   "read_only_paths": [
@@ -27,6 +29,8 @@
   ],
   "commands": [
     "python3 tools/scripts/check_task_packet.py docs/task_packets/hw1-urdf-parser.json",
+    "python3 -m pip install -e .",
+    "python3 -c \"from workbench.hardware import parse_urdf_motor_config\"",
     "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest tests/unit/test_hardware_urdf.py -v",
     "make test",
     "make contract",
@@ -35,7 +39,7 @@
   ],
   "evidence": [
     "HW1 unit-test output",
-    "official UR5e xacro extraction output",
+    "docs/hardware/hw1-ur5e-extraction.md: official UR5e xacro extraction command, source references and output hashes",
     "generated deterministic motor configuration"
   ],
   "stop_conditions": [

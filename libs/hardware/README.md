@@ -51,6 +51,10 @@ python3 libs/hardware/urdf_to_motor_config.py /tmp/ur5e.urdf \
 declares it. `null` means the controlled input did not declare a reduction; it
 must not be replaced with a guessed physical gearbox ratio.
 
+The audited official-source extraction command, package versions, hashes and
+generated motor configuration are recorded in
+[`docs/hardware/hw1-ur5e-extraction.md`](../../docs/hardware/hw1-ur5e-extraction.md).
+
 ## P1 Deliverables
 
 - HW1: Motor configuration from expanded URDF (implemented)

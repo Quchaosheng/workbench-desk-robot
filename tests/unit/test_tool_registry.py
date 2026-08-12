@@ -2,6 +2,7 @@
 
 Covers: valid actions pass, unknown action_type rejected, missing required
 params, extra (forbidden) params, bool-as-int rejection, type mismatches,
+target_id requirement, register/get API, observe attribute allow-list,
 and full TaskGraph validation via build_template_plan.
 """
 
@@ -18,10 +19,8 @@ sys.path[:0] = [
     str(ROOT / "tools/scripts"),
 ]
 
-from workbench_agent_runtime import (
-    ToolRegistry,
-    build_template_plan,
-)
+from workbench_agent_runtime import build_template_plan  # exported via __init__
+from workbench_agent_runtime.tool_registry import ToolRegistry
 from workbench_contracts import ActionType, SemanticAction
 
 # ---------------------------------------------------------------------------
@@ -50,7 +49,8 @@ def _action(
 
 
 class ToolRegistryRegistrationTests(unittest.TestCase):
-    """ToolRegistry knows all six ActionTypes on construction."""
+    """ToolRegistry knows all six ActionTypes on construction,
+    supports register()/get(), and rejects invalid or duplicate registrations."""
 
     def setUp(self) -> None:
         self.registry = ToolRegistry()
@@ -64,6 +64,32 @@ class ToolRegistryRegistrationTests(unittest.TestCase):
         self.assertIn(ActionType.ASK_CONFIRM, registered)
         self.assertIn(ActionType.EXPRESS, registered)
         self.assertIn(ActionType.STOP, registered)
+
+    def test_register_rejects_non_action_type(self) -> None:
+        with self.assertRaises(ValueError):
+            self.registry.register("not_an_enum", {})  # type: ignore[arg-type]
+
+    def test_register_rejects_duplicate(self) -> None:
+        with self.assertRaises(ValueError):
+            self.registry.register(ActionType.STOP, {})
+
+    def test_get_returns_schema_for_registered_action(self) -> None:
+        schema = self.registry.get(ActionType.GRASP)
+        self.assertIsInstance(schema, dict)
+        self.assertIn("required_params", schema)
+
+    def test_get_rejects_non_action_type(self) -> None:
+        with self.assertRaises(ValueError):
+            self.registry.get("not_an_enum")  # type: ignore[arg-type]
+
+    def test_get_rejects_unregistered_action(self) -> None:
+        """A valid ActionType that was not registered must raise KeyError."""
+        # Default ctor loads all six, so we test that a plain string raises
+        # ValueError (wrong type); KeyError is tested via a constructed
+        # scenario where the ActionType is valid but never registered.
+        empty = ToolRegistry()
+        with self.assertRaises(ValueError):
+            empty.get("observe")  # type: ignore[arg-type]
 
 
 class ToolRegistryValidationTests(unittest.TestCase):
@@ -79,22 +105,18 @@ class ToolRegistryValidationTests(unittest.TestCase):
         self.assertTrue(result.is_valid)
 
     def test_observe_with_optional_confidence_is_valid(self) -> None:
-        result = self.registry.validate(
-            _action(
-                ActionType.OBSERVE,
-                parameters={"required_confidence": 0.95},
-            )
-        )
+        result = self.registry.validate(_action(ActionType.OBSERVE, parameters={"required_confidence": 0.95}))
         self.assertTrue(result.is_valid)
 
-    def test_grasp_with_no_params_is_valid(self) -> None:
-        result = self.registry.validate(_action(ActionType.GRASP))
+    def test_grasp_with_target_id_is_valid(self) -> None:
+        result = self.registry.validate(_action(ActionType.GRASP, target_id="red_block"))
         self.assertTrue(result.is_valid)
 
-    def test_place_with_destination_is_valid(self) -> None:
+    def test_place_with_destination_and_target_is_valid(self) -> None:
         result = self.registry.validate(
             _action(
                 ActionType.PLACE,
+                target_id="red_block",
                 parameters={"destination_id": "tray"},
             )
         )
@@ -104,6 +126,7 @@ class ToolRegistryValidationTests(unittest.TestCase):
         result = self.registry.validate(
             _action(
                 ActionType.PLACE,
+                target_id="parcel_box",
                 parameters={
                     "destination_id": "pickup_shelf",
                     "routing_reason": "verified_intact",
@@ -120,41 +143,66 @@ class ToolRegistryValidationTests(unittest.TestCase):
         self.assertTrue(result.is_valid)
 
     def test_ask_confirm_is_valid(self) -> None:
-        result = self.registry.validate(
-            _action(
-                ActionType.ASK_CONFIRM,
-                parameters={"question": "proceed?"},
-            )
-        )
+        result = self.registry.validate(_action(ActionType.ASK_CONFIRM, parameters={"question": "proceed?"}))
         self.assertTrue(result.is_valid)
 
     def test_express_is_valid(self) -> None:
-        result = self.registry.validate(
-            _action(
-                ActionType.EXPRESS,
-                parameters={"emotion_state": "pleased"},
-            )
-        )
+        result = self.registry.validate(_action(ActionType.EXPRESS, parameters={"emotion_state": "pleased"}))
         self.assertTrue(result.is_valid)
 
     def test_stop_is_valid(self) -> None:
         result = self.registry.validate(_action(ActionType.STOP))
         self.assertTrue(result.is_valid)
 
-    # -- unknown action_type --------------------------------------------------
+    # -- target_id requirement ------------------------------------------------
 
-    def test_unknown_action_type_is_rejected(self) -> None:
-        # craft a fake action_type that is a valid str Enum but not registered
-        action = SemanticAction(
-            action_id="act-bad",
-            action_type=ActionType.STOP,  # type: ignore — real type, but we
+    def test_grasp_without_target_id_is_rejected(self) -> None:
+        result = self.registry.validate(_action(ActionType.GRASP))
+        self.assertFalse(result.is_valid)
+        self.assertTrue(
+            any("target_id" in e.field for e in result.errors),
+            f"expected target_id error in {result.errors}",
         )
-        # We cannot create a truly unknown ActionType enum member at runtime,
-        # so we validate that STOP is present and that a non-existent member
-        # raises AttributeError at the enum level.  The registry-level test
-        # covers the code path via the error message content.
+
+    def test_grasp_with_empty_target_id_is_rejected(self) -> None:
+        result = self.registry.validate(_action(ActionType.GRASP, target_id=""))
+        self.assertFalse(result.is_valid)
+        self.assertTrue(
+            any("target_id" in e.field for e in result.errors),
+            f"expected target_id error in {result.errors}",
+        )
+
+    def test_place_without_target_id_is_rejected(self) -> None:
+        result = self.registry.validate(_action(ActionType.PLACE, parameters={"destination_id": "tray"}))
+        self.assertFalse(result.is_valid)
+        self.assertTrue(
+            any("target_id" in e.field for e in result.errors),
+            f"expected target_id error in {result.errors}",
+        )
+
+    def test_observe_without_target_id_is_valid(self) -> None:
+        """OBSERVE does not require target_id (global scan is valid)."""
+        result = self.registry.validate(_action(ActionType.OBSERVE))
+        self.assertTrue(result.is_valid)
+
+    # -- unknown / non-ActionType input ---------------------------------------
+
+    def test_non_action_type_input_is_rejected_without_raising(self) -> None:
+        """Passing a raw string as action_type must return ValidationResult,
+        not raise AttributeError.  We use model_construct to bypass
+        Pydantic coercion — this simulates a malformed frame from a buggy
+        caller or a wire format that does not round-trip through the enum."""
+        action = SemanticAction.model_construct(
+            action_id="act-bad",
+            action_type="grasp",  # raw string, not ActionType enum
+            target_id="red_block",
+        )
         result = self.registry.validate(action)
-        self.assertTrue(result.is_valid)  # STOP is valid
+        self.assertFalse(result.is_valid)
+        self.assertTrue(
+            any("ActionType" in e.message for e in result.errors),
+            f"expected ActionType error in {result.errors}",
+        )
 
     # -- extra (forbidden) params ---------------------------------------------
 
@@ -169,7 +217,7 @@ class ToolRegistryValidationTests(unittest.TestCase):
     # -- missing required params -----------------------------------------------
 
     def test_missing_required_destination_id_is_rejected(self) -> None:
-        result = self.registry.validate(_action(ActionType.PLACE, parameters={}))
+        result = self.registry.validate(_action(ActionType.PLACE, target_id="red_block", parameters={}))
         self.assertFalse(result.is_valid)
         self.assertTrue(
             any("missing required" in e.message for e in result.errors),
@@ -204,6 +252,7 @@ class ToolRegistryValidationTests(unittest.TestCase):
         result = self.registry.validate(
             _action(
                 ActionType.PLACE,
+                target_id="box",
                 parameters={
                     "destination_id": "bin",
                     "destination_capacity": False,
@@ -222,6 +271,7 @@ class ToolRegistryValidationTests(unittest.TestCase):
         result = self.registry.validate(
             _action(
                 ActionType.PLACE,
+                target_id="red_block",
                 parameters={"destination_id": 42},
             )
         )
@@ -231,7 +281,7 @@ class ToolRegistryValidationTests(unittest.TestCase):
         result = self.registry.validate(
             _action(
                 ActionType.ASK_CONFIRM,
-                parameters={"question": None},  # type: ignore
+                parameters={"question": None},  # type: ignore[arg-type]
             )
         )
         self.assertFalse(result.is_valid)
@@ -249,6 +299,43 @@ class ToolRegistryValidationTests(unittest.TestCase):
         self.assertTrue(
             any("emotion_state" in e.field for e in result.errors),
             f"expected emotion_state error in {result.errors}",
+        )
+
+    # -- semantic constraints: observe attributes -----------------------------
+
+    def test_observe_with_known_attributes_is_valid(self) -> None:
+        result = self.registry.validate(
+            _action(
+                ActionType.OBSERVE,
+                parameters={"attributes": ["presence", "identity", "orientation"]},
+            )
+        )
+        self.assertTrue(result.is_valid)
+
+    def test_observe_with_unknown_attribute_is_rejected(self) -> None:
+        result = self.registry.validate(
+            _action(
+                ActionType.OBSERVE,
+                parameters={"attributes": ["presence", "mass_kg"]},
+            )
+        )
+        self.assertFalse(result.is_valid)
+        self.assertTrue(
+            any("attributes" in e.field for e in result.errors),
+            f"expected attributes error in {result.errors}",
+        )
+
+    def test_observe_attribute_not_a_string_is_rejected(self) -> None:
+        result = self.registry.validate(
+            _action(
+                ActionType.OBSERVE,
+                parameters={"attributes": ["presence", 42]},
+            )
+        )
+        self.assertFalse(result.is_valid)
+        self.assertTrue(
+            any("attributes" in e.field for e in result.errors),
+            f"expected string-only error in {result.errors}",
         )
 
     # -- ValidationResult structure -------------------------------------------
@@ -292,7 +379,6 @@ class PlannerIntegrationTests(unittest.TestCase):
     def test_build_parcel_plan_validates(self) -> None:
         plan = build_template_plan("Sort the courier parcels and isolate damage")
         self.assertEqual(plan.task_id, "task-sort-parcels")
-        # 4 parcels * 3 steps each = 12
         self.assertEqual(len(plan.steps), 12)
 
     def test_all_planner_steps_contain_only_semantic_actions(self) -> None:

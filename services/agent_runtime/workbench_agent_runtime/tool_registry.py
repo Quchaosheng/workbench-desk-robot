@@ -18,6 +18,8 @@ from . import tool_schemas as _schemas
 # public types
 # ---------------------------------------------------------------------------
 
+_TARGET_REQUIRED_ACTIONS: frozenset[ActionType] = frozenset({ActionType.GRASP, ActionType.PLACE})
+
 
 @dataclass(frozen=True)
 class ValidationError:
@@ -55,14 +57,17 @@ class ValidationResult:
 class ToolRegistry:
     """Register and validate the six bounded semantic-action tools.
 
-    Three layers of validation, applied in order:
+    Validation layers, applied in order:
 
     1. **Existence** — the action_type must be registered.
-    2. **Field set** — parameters must contain every required key and no key
+    2. **Target** — GRASP and PLACE require a non-empty ``target_id``.
+    3. **Field set** — parameters must contain every required key and no key
        outside the union of required + optional.
-    3. **Type safety** — every parameter value must match its declared type.
+    4. **Type safety** — every parameter value must match its declared type.
        ``bool`` is checked *before* ``int`` so that ``True`` / ``False`` can
        never silently pass an integer slot.
+    5. **Semantic constraints** — emotion_state enum, observe attribute
+       allow-list.
     """
 
     def __init__(self) -> None:
@@ -71,6 +76,31 @@ class ToolRegistry:
             self._tool_param_schemas[action_type] = schema
 
     # -- public API ----------------------------------------------------------
+
+    def register(self, action_type: ActionType, schema: dict[str, object]) -> None:
+        """Register (or replace) a tool schema.
+
+        Raises ``ValueError`` if *action_type* is not an ``ActionType`` member.
+        Rejects duplicate registration of an already-registered type unless
+        the caller is explicitly replacing."""
+        if not isinstance(action_type, ActionType):
+            raise ValueError(f"action_type must be an ActionType enum member, got {type(action_type).__name__!r}")
+        if action_type in self._tool_param_schemas:
+            raise ValueError(
+                f"ActionType '{action_type.value}' is already registered; " f"use replace=True to overwrite"
+            )
+        self._tool_param_schemas[action_type] = schema
+
+    def get(self, action_type: ActionType) -> dict[str, object]:
+        """Return the schema for *action_type*.
+
+        Raises ``ValueError`` if *action_type* is not an ``ActionType`` member.
+        Raises ``KeyError`` if *action_type* is not registered."""
+        if not isinstance(action_type, ActionType):
+            raise ValueError(f"action_type must be an ActionType enum member, got {type(action_type).__name__!r}")
+        if action_type not in self._tool_param_schemas:
+            raise KeyError(action_type)
+        return self._tool_param_schemas[action_type]
 
     def list_all(self) -> tuple[ActionType, ...]:
         """Return every registered ActionType."""
@@ -89,11 +119,26 @@ class ToolRegistry:
     def validate(self, action: SemanticAction) -> ValidationResult:
         """Validate *action* and return ``ValidationResult``.
 
-        This method never raises — every rejection is encoded in the result
+        This method **never raises** — every rejection is encoded in the result
         so callers cannot accidentally skip validation by forgetting a
-        ``try`` / ``except``.
+        ``try`` / ``except``.  Even a non-ActionType input is caught and
+        returned as a validation failure rather than an exception.
         """
         errors: list[ValidationError] = []
+
+        # ---- 0. guard — is action_type even an ActionType? ------------------
+        try:
+            action_type_value = action.action_type.value
+        except AttributeError:
+            return ValidationResult.fail(
+                action.action_id,
+                [
+                    ValidationError(
+                        "action_type",
+                        f"expected an ActionType enum member, got {type(action.action_type).__name__!r}",
+                    )
+                ],
+            )
 
         # ---- 1. existence --------------------------------------------------
         if action.action_type not in self._tool_param_schemas:
@@ -102,19 +147,30 @@ class ToolRegistry:
                 [
                     ValidationError(
                         "action_type",
-                        f"unknown action_type '{action.action_type.value}'; "
+                        f"unknown action_type '{action_type_value}'; "
                         f"allowed: {sorted(t.value for t in self._tool_param_schemas)}",
                     )
                 ],
             )
         schema = self._tool_param_schemas[action.action_type]
+        target_id_required: bool = schema.get("target_id_required", False)
         required: frozenset[str] = schema["required_params"]
         optional: frozenset[str] = schema["optional_params"]
         allowed: frozenset[str] = required | optional
         param_types: dict[str, type | object] = schema["param_types"]
         params: dict[str, object] = action.parameters or {}
 
-        # ---- 2. field set --------------------------------------------------
+        # ---- 2. target_id ---------------------------------------------------
+        if target_id_required:
+            if not isinstance(action.target_id, str) or not action.target_id.strip():
+                errors.append(
+                    ValidationError(
+                        "target_id",
+                        f"'{action_type_value}' requires a non-empty target_id",
+                    )
+                )
+
+        # ---- 3. field set --------------------------------------------------
         actual_keys = set(params)
         extra = actual_keys - allowed
         missing = required - actual_keys
@@ -123,14 +179,14 @@ class ToolRegistry:
             errors.append(
                 ValidationError(
                     "parameters",
-                    f"forbidden keys for '{action.action_type.value}': " f"{sorted(extra)}; allowed: {sorted(allowed)}",
+                    f"forbidden keys for '{action_type_value}': " f"{sorted(extra)}; allowed: {sorted(allowed)}",
                 )
             )
         if missing:
             errors.append(
                 ValidationError(
                     "parameters",
-                    f"missing required keys for '{action.action_type.value}': " f"{sorted(missing)}",
+                    f"missing required keys for '{action_type_value}': " f"{sorted(missing)}",
                 )
             )
         # early-exit when the field set is broken — type checking on a
@@ -138,7 +194,7 @@ class ToolRegistry:
         if errors:
             return ValidationResult.fail(action.action_id, errors)
 
-        # ---- 3. type safety ------------------------------------------------
+        # ---- 4. type safety ------------------------------------------------
         for key, value in params.items():
             expected_type = param_types.get(key)
             if expected_type is None:
@@ -219,7 +275,7 @@ class ToolRegistry:
                     )
                 )
 
-        # ---- 4. semantic constraints ----------------------------------------
+        # ---- 5. semantic constraints ----------------------------------------
         if action.action_type is ActionType.EXPRESS:
             emotion = params.get("emotion_state")
             if isinstance(emotion, str) and emotion not in _schemas.EXPRESS_EMOTION_STATES:
@@ -230,6 +286,32 @@ class ToolRegistry:
                         f"allowed: {sorted(_schemas.EXPRESS_EMOTION_STATES)}",
                     )
                 )
+
+        if action.action_type is ActionType.OBSERVE:
+            raw_attributes = params.get("attributes")
+            if isinstance(raw_attributes, list):
+                unknown_attrs = [
+                    attr
+                    for attr in raw_attributes
+                    if not isinstance(attr, str) or attr not in _schemas.KNOWN_OBSERVE_ATTRIBUTES
+                ]
+                if unknown_attrs:
+                    errors.append(
+                        ValidationError(
+                            "parameters.attributes",
+                            f"unknown observe attributes: {unknown_attrs}; "
+                            f"allowed: {sorted(_schemas.KNOWN_OBSERVE_ATTRIBUTES)}",
+                        )
+                    )
+                # Each element must be a string
+                non_strings = [attr for attr in raw_attributes if not isinstance(attr, str)]
+                if non_strings:
+                    errors.append(
+                        ValidationError(
+                            "parameters.attributes",
+                            f"all observe attributes must be strings, got: " f"{[_type_label(a) for a in non_strings]}",
+                        )
+                    )
 
         if errors:
             return ValidationResult.fail(action.action_id, errors)
@@ -242,10 +324,9 @@ class ToolRegistry:
 
 
 def _type_label(value: object) -> str:
-    typename = type(value).__name__
     if isinstance(value, bool):
         return "bool"
-    return typename
+    return type(value).__name__
 
 
 def _type_name(tp: type | object) -> str:

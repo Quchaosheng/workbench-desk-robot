@@ -16,20 +16,12 @@ from .planner import (
     build_template_plan,
     classify_template_task,
 )
-from .tool_registry import (
-    ToolRegistry,
-    ValidationError,
-    ValidationResult,
-)
 
 __all__ = [
     "LocalModelError",
     "ModelProvider",
     "OllamaModelProvider",
     "RouteDecision",
-    "ToolRegistry",
-    "ValidationError",
-    "ValidationResult",
     "build_clear_workspace_plan",
     "build_inspection_plan",
     "build_kitting_plan",

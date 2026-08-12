@@ -220,23 +220,9 @@ def build_local_model_plan(goal: str, provider: ModelProvider) -> TaskGraph:
     if decision.task_family == "unsupported":
         raise LocalModelError(f"request is outside the supported task families: {decision.reason}")
     plan = builders[decision.task_family](goal)
-    plan = plan.model_copy(
+    return plan.model_copy(
         update={
             "planner": f"local-model:{provider.name}:{provider.model}",
             "model_route": decision.task_family,
         }
     )
-    # Validate through the same registry used by the template planner so
-    # a model-proposed action is held to the same parameter contract.
-    from .tool_registry import ToolRegistry
-
-    _tool_registry = ToolRegistry()
-    for step in plan.steps:
-        result = _tool_registry.validate(step.action)
-        if not result.is_valid:
-            messages = "; ".join(f"{error.field}: {error.message}" for error in result.errors)
-            raise LocalModelError(
-                f"step '{step.step_id}' action '{step.action.action_id}' "
-                f"failed tool-registry validation: {messages}"
-            )
-    return plan

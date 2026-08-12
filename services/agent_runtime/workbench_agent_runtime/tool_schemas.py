@@ -11,22 +11,13 @@ from __future__ import annotations
 from workbench_contracts import ActionType
 
 # ---------------------------------------------------------------------------
-# type tags used by the registry
-# ---------------------------------------------------------------------------
-# str, int, float, bool and list are used as-is.
-# We represent "any" with a sentinel so the registry can tell the difference
-# between a deliberately permissive param and a missing definition.
-_ANY = object()
-
-
-# ---------------------------------------------------------------------------
 # per-tool definitions
 # ---------------------------------------------------------------------------
 
 TOOL_SCHEMAS: dict[ActionType, dict[str, object]] = {
     ActionType.OBSERVE: {
-        "description": "Observe the workspace or a specific entity.  No required "
-        "parameters; provide target_id via the SemanticAction field.",
+        "description": "Observe the workspace or a specific entity.  target_id is optional.",
+        "target_id_required": False,
         "required_params": frozenset[str](),
         "optional_params": frozenset({"required_confidence", "attributes"}),
         "param_types": {
@@ -35,16 +26,16 @@ TOOL_SCHEMAS: dict[ActionType, dict[str, object]] = {
         },
     },
     ActionType.GRASP: {
-        "description": "Grasp a known entity identified by target_id.  "
-        "target_id is validated at the SemanticAction level.",
+        "description": "Grasp a known entity.  target_id is required — a grasp "
+        "without a target is a physical safety hazard.",
+        "target_id_required": True,
         "required_params": frozenset[str](),
         "optional_params": frozenset[str](),
         "param_types": {},
     },
     ActionType.PLACE: {
-        "description": "Place a grasped entity into a destination.  "
-        "destination_id is required in parameters.  Routing, capacity and "
-        "manifest fields are optional and used by policy-driven task types.",
+        "description": "Place a grasped entity into a destination.  target_id and " "destination_id are required.",
+        "target_id_required": True,
         "required_params": frozenset({"destination_id"}),
         "optional_params": frozenset(
             {
@@ -74,6 +65,7 @@ TOOL_SCHEMAS: dict[ActionType, dict[str, object]] = {
     },
     ActionType.ASK_CONFIRM: {
         "description": "Ask a human operator for confirmation before proceeding.",
+        "target_id_required": False,
         "required_params": frozenset({"question"}),
         "optional_params": frozenset({"timeout_s"}),
         "param_types": {
@@ -83,15 +75,17 @@ TOOL_SCHEMAS: dict[ActionType, dict[str, object]] = {
     },
     ActionType.EXPRESS: {
         "description": "Express an emotion state (idle / thinking / uncertain / pleased).",
+        "target_id_required": False,
         "required_params": frozenset({"emotion_state"}),
         "optional_params": frozenset({"duration_ms"}),
         "param_types": {
-            "emotion_state": str,  # enum-checked by the registry
+            "emotion_state": str,
             "duration_ms": int,
         },
     },
     ActionType.STOP: {
         "description": "Safe-stop the current run.  No required parameters.",
+        "target_id_required": False,
         "required_params": frozenset[str](),
         "optional_params": frozenset({"reason"}),
         "param_types": {
@@ -100,11 +94,11 @@ TOOL_SCHEMAS: dict[ActionType, dict[str, object]] = {
     },
 }
 
-# Additional per-tool runtime constraints that are not captured by
-# required/optional/type alone.
+# Additional per-tool runtime constraints.
 EXPRESS_EMOTION_STATES: frozenset[str] = frozenset({"idle", "thinking", "uncertain", "pleased"})
 
-# Allow-list for observe attributes (used by policy-based planners).
+# Allow-list for observe attributes (used by policy-based planners and validated
+# by the registry).
 KNOWN_OBSERVE_ATTRIBUTES: frozenset[str] = frozenset(
     {
         "presence",

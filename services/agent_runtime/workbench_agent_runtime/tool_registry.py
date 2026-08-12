@@ -8,7 +8,9 @@ its whitelist.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
+from types import MappingProxyType
 
 from workbench_contracts import ActionType, SemanticAction
 
@@ -70,28 +72,26 @@ class ToolRegistry:
        allow-list.
     """
 
-    def __init__(self) -> None:
-        self._tool_param_schemas: dict[ActionType, dict[str, object]] = {}
-        for action_type, schema in _schemas.TOOL_SCHEMAS.items():
-            self._tool_param_schemas[action_type] = schema
+    def __init__(self, *, load_defaults: bool = True) -> None:
+        self._tool_param_schemas: dict[ActionType, Mapping[str, object]] = {}
+        if load_defaults:
+            for action_type, schema in _schemas.TOOL_SCHEMAS.items():
+                self.register(action_type, schema)
 
     # -- public API ----------------------------------------------------------
 
-    def register(self, action_type: ActionType, schema: dict[str, object]) -> None:
-        """Register (or replace) a tool schema.
+    def register(self, action_type: ActionType, schema: Mapping[str, object]) -> None:
+        """Register a tool schema.
 
         Raises ``ValueError`` if *action_type* is not an ``ActionType`` member.
-        Rejects duplicate registration of an already-registered type unless
-        the caller is explicitly replacing."""
+        Rejects duplicate registration of an already-registered type."""
         if not isinstance(action_type, ActionType):
             raise ValueError(f"action_type must be an ActionType enum member, got {type(action_type).__name__!r}")
         if action_type in self._tool_param_schemas:
-            raise ValueError(
-                f"ActionType '{action_type.value}' is already registered; " f"use replace=True to overwrite"
-            )
-        self._tool_param_schemas[action_type] = schema
+            raise ValueError(f"ActionType '{action_type.value}' is already registered")
+        self._tool_param_schemas[action_type] = _freeze_mapping(schema)
 
-    def get(self, action_type: ActionType) -> dict[str, object]:
+    def get(self, action_type: ActionType) -> Mapping[str, object]:
         """Return the schema for *action_type*.
 
         Raises ``ValueError`` if *action_type* is not an ``ActionType`` member.
@@ -327,6 +327,20 @@ def _type_label(value: object) -> str:
     if isinstance(value, bool):
         return "bool"
     return type(value).__name__
+
+
+def _freeze_mapping(value: Mapping[object, object]) -> Mapping:
+    return MappingProxyType({key: _freeze_value(item) for key, item in value.items()})
+
+
+def _freeze_value(value: object) -> object:
+    if isinstance(value, Mapping):
+        return _freeze_mapping(value)
+    if isinstance(value, set | frozenset):
+        return frozenset(_freeze_value(item) for item in value)
+    if isinstance(value, list | tuple):
+        return tuple(_freeze_value(item) for item in value)
+    return value
 
 
 def _type_name(tp: type | object) -> str:

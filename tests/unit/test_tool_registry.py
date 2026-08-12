@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import sys
 import unittest
+from collections.abc import Mapping
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -21,6 +22,7 @@ sys.path[:0] = [
 
 from workbench_agent_runtime import build_template_plan  # exported via __init__
 from workbench_agent_runtime.tool_registry import ToolRegistry
+from workbench_agent_runtime.tool_schemas import TOOL_SCHEMAS
 from workbench_contracts import ActionType, SemanticAction
 
 # ---------------------------------------------------------------------------
@@ -70,13 +72,53 @@ class ToolRegistryRegistrationTests(unittest.TestCase):
             self.registry.register("not_an_enum", {})  # type: ignore[arg-type]
 
     def test_register_rejects_duplicate(self) -> None:
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(ValueError, "already registered") as caught:
             self.registry.register(ActionType.STOP, {})
+        self.assertNotIn("replace=True", str(caught.exception))
+
+    def test_register_succeeds_in_empty_registry_and_enables_validation(self) -> None:
+        registry = ToolRegistry(load_defaults=False)
+        registry.register(ActionType.STOP, TOOL_SCHEMAS[ActionType.STOP])
+
+        self.assertEqual(registry.list_all(), (ActionType.STOP,))
+        self.assertEqual(
+            registry.get(ActionType.STOP)["required_params"],
+            TOOL_SCHEMAS[ActionType.STOP]["required_params"],
+        )
+        self.assertTrue(registry.validate(_action(ActionType.STOP)).is_valid)
 
     def test_get_returns_schema_for_registered_action(self) -> None:
         schema = self.registry.get(ActionType.GRASP)
-        self.assertIsInstance(schema, dict)
+        self.assertIsInstance(schema, Mapping)
         self.assertIn("required_params", schema)
+
+    def test_get_does_not_expose_mutable_registry_state(self) -> None:
+        schema = self.registry.get(ActionType.PLACE)
+        param_types = schema["param_types"]
+
+        with self.assertRaises(TypeError):
+            schema["required_params"] = frozenset()  # type: ignore[index]
+        with self.assertRaises(TypeError):
+            param_types["destination_id"] = int  # type: ignore[index]
+
+        result = self.registry.validate(
+            _action(ActionType.PLACE, target_id="red_block", parameters={"destination_id": "tray"})
+        )
+        self.assertTrue(result.is_valid)
+
+    def test_register_defensively_copies_caller_schema(self) -> None:
+        schema = {
+            "required_params": {"reason"},
+            "optional_params": set(),
+            "param_types": {"reason": str},
+        }
+        registry = ToolRegistry(load_defaults=False)
+        registry.register(ActionType.STOP, schema)
+        schema["required_params"].clear()
+        schema["param_types"]["reason"] = int
+
+        self.assertFalse(registry.validate(_action(ActionType.STOP)).is_valid)
+        self.assertTrue(registry.validate(_action(ActionType.STOP, parameters={"reason": "operator"})).is_valid)
 
     def test_get_rejects_non_action_type(self) -> None:
         with self.assertRaises(ValueError):
@@ -84,12 +126,9 @@ class ToolRegistryRegistrationTests(unittest.TestCase):
 
     def test_get_rejects_unregistered_action(self) -> None:
         """A valid ActionType that was not registered must raise KeyError."""
-        # Default ctor loads all six, so we test that a plain string raises
-        # ValueError (wrong type); KeyError is tested via a constructed
-        # scenario where the ActionType is valid but never registered.
-        empty = ToolRegistry()
-        with self.assertRaises(ValueError):
-            empty.get("observe")  # type: ignore[arg-type]
+        empty = ToolRegistry(load_defaults=False)
+        with self.assertRaises(KeyError):
+            empty.get(ActionType.OBSERVE)
 
 
 class ToolRegistryValidationTests(unittest.TestCase):

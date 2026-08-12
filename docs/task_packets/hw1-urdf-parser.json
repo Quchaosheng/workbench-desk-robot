@@ -1,0 +1,53 @@
+{
+  "issue": "HW1",
+  "human_owner": "TH3478",
+  "objective": "Extract deterministic motor-limit configuration from an expanded URDF without inventing hardware parameters that the URDF does not declare.",
+  "allowed_paths": [
+    "Dockerfile",
+    "docs/task_packets/hw1-urdf-parser.json",
+    "docs/hardware/hw1-ur5e-extraction.md",
+    "libs/hardware/README.md",
+    "libs/hardware/urdf_to_motor_config.py",
+    "libs/hardware/workbench/hardware/__init__.py",
+    "libs/hardware/workbench/hardware/urdf_parser.py",
+    "pyproject.toml",
+    "tests/unit/test_container_baseline.py",
+    "tests/unit/test_hardware_urdf.py"
+  ],
+  "read_only_paths": [
+    "robot/control/**",
+    "robot/description/**"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "firmware/**",
+    "robot/control/**"
+  ],
+  "acceptance": [
+    "an expanded official UR5e URDF yields exactly six requested arm joints with documented effort, velocity and position limits",
+    "mechanical reduction is emitted only when an explicit URDF transmission declares it",
+    "missing, duplicate, non-finite or malformed motor parameters fail closed",
+    "the generated YAML is deterministic for the same URDF and joint selection"
+  ],
+  "commands": [
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/hw1-urdf-parser.json",
+    "python3 -m pip install -e .",
+    "python3 -c \"from workbench.hardware import parse_urdf_motor_config\"",
+    "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest tests/unit/test_hardware_urdf.py tests/unit/test_container_baseline.py -v",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check"
+  ],
+  "evidence": [
+    "HW1 unit-test output",
+    "docs/hardware/hw1-ur5e-extraction.md: official UR5e xacro extraction command, source references and output hashes",
+    "generated deterministic motor configuration"
+  ],
+  "stop_conditions": [
+    "the official description does not expose six requested arm joints",
+    "a requested value would need to be guessed rather than read from controlled input",
+    "the implementation would require a write under interfaces, firmware or robot/control",
+    "the requested source is not an expanded URDF document"
+  ]
+}

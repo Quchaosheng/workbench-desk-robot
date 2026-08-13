@@ -28,12 +28,19 @@ def test_shipped_arm_yaml_loads():
     cfg = load_arm_config(_ARM_YAML)
     assert isinstance(cfg, ArmConfig)
     assert cfg.model == "ur5e"
+    assert cfg.vendor_description_pkg == "ur_description"
+    assert cfg.ur_type == "ur5e"
     assert cfg.planning_group == "ur_manipulator"
     assert cfg.ik_tip_link == "grasp_tcp"
     assert cfg.base_frame == "world"
     assert cfg.dof == 6
     assert cfg.joints[0] == "shoulder_pan_joint"
     assert cfg.gripper_model == "robotiq_2f_85"
+    assert cfg.driver_joint == "robotiq_85_left_knuckle_joint"
+    assert cfg.update_rate_hz == 500
+    assert cfg.joint_state_broadcaster == "joint_state_broadcaster"
+    assert cfg.arm_trajectory_controller == "arm_trajectory_controller"
+    assert cfg.gripper_controller == "gripper_controller"
     assert cfg.arm_label == "ur5e+robotiq_2f_85"
 
 
@@ -90,12 +97,21 @@ def test_parse_rejects_empty_joints():
             {
                 "arm": {
                     "model": "x",
+                    "vendor_description_pkg": "vendor",
+                    "ur_type": "x",
                     "planning_group": "g",
                     "base_link": "b",
                     "ee_link": "e",
                     "ik_tip_link": "t",
                     "joints": [],
-                }
+                },
+                "gripper": {"model": "g", "planning_group": "gripper", "driver_joint": "finger"},
+                "controllers": {
+                    "update_rate_hz": 100,
+                    "joint_state_broadcaster": "jsb",
+                    "arm_trajectory_controller": "arm",
+                    "gripper_controller": "gripper",
+                },
             }
         )
 
@@ -105,16 +121,128 @@ def test_parse_defaults_base_frame_to_world_when_absent():
         {
             "arm": {
                 "model": "ur5e",
+                "vendor_description_pkg": "ur_description",
+                "ur_type": "ur5e",
                 "planning_group": "ur_manipulator",
                 "base_link": "base_link",
                 "ee_link": "tool0",
                 "ik_tip_link": "grasp_tcp",
                 "joints": ["a"],
-            }
+            },
+            "gripper": {"model": "g", "planning_group": "gripper", "driver_joint": "finger"},
+            "controllers": {
+                "update_rate_hz": 100,
+                "joint_state_broadcaster": "jsb",
+                "arm_trajectory_controller": "arm",
+                "gripper_controller": "gripper",
+            },
         }
     )
     assert cfg.base_frame == "world"
-    assert cfg.gripper_model == "none"
+    assert cfg.gripper_model == "g"
+
+
+@pytest.mark.parametrize("missing", ["gripper", "controllers"])
+def test_parse_rejects_missing_safety_sections(missing):
+    data = {
+        "arm": {
+            "model": "ur5e",
+            "vendor_description_pkg": "ur_description",
+            "ur_type": "ur5e",
+            "planning_group": "arm",
+            "base_link": "base",
+            "ee_link": "tool",
+            "ik_tip_link": "tip",
+            "joints": ["joint"],
+        },
+        "gripper": {"model": "g", "planning_group": "gripper", "driver_joint": "finger"},
+        "controllers": {
+            "update_rate_hz": 100,
+            "joint_state_broadcaster": "jsb",
+            "arm_trajectory_controller": "arm",
+            "gripper_controller": "gripper",
+        },
+    }
+    del data[missing]
+    with pytest.raises(ValueError, match="missing required"):
+        parse_arm_config(data)
+
+
+def test_parse_rejects_missing_arm_section_as_value_error():
+    with pytest.raises(ValueError, match="missing required arm configuration section: arm"):
+        parse_arm_config({"gripper": {}, "controllers": {}})
+
+
+def test_parse_rejects_required_identity_field_as_value_error():
+    data = {
+        "arm": {
+            "vendor_description_pkg": "ur_description",
+            "ur_type": "ur5e",
+            "planning_group": "arm",
+            "base_link": "base",
+            "ee_link": "tool",
+            "ik_tip_link": "tip",
+            "joints": ["joint"],
+        },
+        "gripper": {"model": "g", "planning_group": "gripper", "driver_joint": "finger"},
+        "controllers": {
+            "update_rate_hz": 100,
+            "joint_state_broadcaster": "jsb",
+            "arm_trajectory_controller": "arm",
+            "gripper_controller": "gripper",
+        },
+    }
+    with pytest.raises(ValueError, match="required arm configuration field: model"):
+        parse_arm_config(data)
+
+
+def test_parse_rejects_missing_driver_joint():
+    data = {
+        "arm": {
+            "model": "ur5e",
+            "vendor_description_pkg": "ur_description",
+            "ur_type": "ur5e",
+            "planning_group": "arm",
+            "base_link": "base",
+            "ee_link": "tool",
+            "ik_tip_link": "tip",
+            "joints": ["joint"],
+        },
+        "gripper": {"model": "g", "planning_group": "gripper"},
+        "controllers": {
+            "update_rate_hz": 100,
+            "joint_state_broadcaster": "jsb",
+            "arm_trajectory_controller": "arm",
+            "gripper_controller": "gripper",
+        },
+    }
+    with pytest.raises(ValueError, match="driver_joint"):
+        parse_arm_config(data)
+
+
+@pytest.mark.parametrize("rate", [0, -1, 100.5, True])
+def test_parse_rejects_invalid_controller_update_rate(rate):
+    data = {
+        "arm": {
+            "model": "ur5e",
+            "vendor_description_pkg": "ur_description",
+            "ur_type": "ur5e",
+            "planning_group": "arm",
+            "base_link": "base",
+            "ee_link": "tool",
+            "ik_tip_link": "tip",
+            "joints": ["joint"],
+        },
+        "gripper": {"model": "g", "planning_group": "gripper", "driver_joint": "finger"},
+        "controllers": {
+            "update_rate_hz": rate,
+            "joint_state_broadcaster": "jsb",
+            "arm_trajectory_controller": "arm",
+            "gripper_controller": "gripper",
+        },
+    }
+    with pytest.raises(ValueError, match="positive integer"):
+        parse_arm_config(data)
 
 
 def test_reachability_check_defaults_come_from_arm_yaml():

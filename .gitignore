@@ -14,6 +14,10 @@ node_modules/
 coverage.xml
 /site/
 
+# colcon / ament build artifacts generated at repository root.
+/install/
+/log/
+
 # AI tooling working directories — must stay out of history.
 # Once committed, removing these requires rewriting history and a force-push.
 # NOTE: docs/task_packets/ is deliberately NOT ignored. A task packet is a

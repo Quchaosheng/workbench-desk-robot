@@ -27,7 +27,14 @@ compiler.compile_all(py_output_dir, ts_output_dir)
 
 # Event logging
 store = EventStore(log_file)
-store.append({"event": "data"})
+store.append({
+    "event_id": "event-1",
+    "run_id": "run-1",
+    "sequence_no": 0,
+    "event_type": "observation",
+    "occurred_at": "2026-08-13T00:00:00Z",
+    "payload": {"entity_id": "red_block"},
+})
 checkpoint = store.create_checkpoint()
 replayed_events = store.replay(from_checkpoint=checkpoint)
 
@@ -36,6 +43,9 @@ manager = LifecycleManager()
 node = manager.create_node("kernel")
 manager.startup_sequence()
 ```
+
+The default Event Store accepts one contiguous, contract-shaped run. Open legacy
+object logs with `EventStore(path, legacy_objects=True)` only while migrating them.
 
 ## Tests
 

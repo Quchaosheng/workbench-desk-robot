@@ -130,9 +130,7 @@ def _validate_definition(definition: dict[str, Any], location: str) -> None:
         raise ValueError(f"minimum must be numeric at {location}")
     if "maximum" in definition and not isinstance(definition["maximum"], int | float):
         raise ValueError(f"maximum must be numeric at {location}")
-    if "minItems" in definition and (
-        type(definition["minItems"]) is not int or definition["minItems"] < 0
-    ):
+    if "minItems" in definition and (type(definition["minItems"]) is not int or definition["minItems"] < 0):
         raise ValueError(f"minItems must be a non-negative integer at {location}")
     if "pattern" in definition and not isinstance(definition["pattern"], str):
         raise ValueError(f"pattern must be a string at {location}")
@@ -175,13 +173,11 @@ def _conditional_validators(schema: dict[str, Any], name: str) -> tuple[list[str
             checks.append(f"self.{target_field} > {constraint['maximum']!r}")
         if not checks:
             raise ValueError(f"allOf result has no supported bound in schema {name} at index {index}")
-        error_message = (
-            f"{target_field} violates the {condition_field}={condition['const']!r} constraint"
-        )
+        error_message = f"{target_field} violates the {condition_field}={condition['const']!r} constraint"
         lines.extend(
             [
                 "",
-                "    @model_validator(mode=\"after\")",
+                '    @model_validator(mode="after")',
                 f"    def _validate_conditional_{index}(self):",
                 f"        if self.{condition_field} == {condition['const']!r} and ({' or '.join(checks)}):",
                 f"            raise ValueError({error_message!r})",
@@ -350,8 +346,7 @@ class SchemaCompiler:
             self._append_python_model(model_name, schema, name, class_blocks, {})
             python_code = (
                 "from typing import Annotated, Any, Literal\n\n"
-                "from pydantic import BaseModel, ConfigDict, Field, model_validator\n\n\n"
-                + "\n\n".join(class_blocks)
+                "from pydantic import BaseModel, ConfigDict, Field, model_validator\n\n\n" + "\n\n".join(class_blocks)
             )
             typescript_body = "\n".join(typescript_fields)
             metadata = {

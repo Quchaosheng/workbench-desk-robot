@@ -103,8 +103,7 @@ def test_explicit_extra_forbid_and_unsupported_keywords_fail_closed(tmp_path: Pa
     schema_dir = tmp_path / "schemas"
     schema_dir.mkdir()
     (schema_dir / "strict.schema.json").write_text(
-        '{"title":"Strict","type":"object","additionalProperties":false,'
-        '"properties":{"id":{"type":"string"}}}',
+        '{"title":"Strict","type":"object","additionalProperties":false,' '"properties":{"id":{"type":"string"}}}',
         encoding="utf-8",
     )
     compiler = SchemaCompiler(schema_dir)

@@ -99,7 +99,7 @@ def test_all():
         print("[PASS] K8 Lifecycle")
 
         # K9-K10: Bootstrap
-        bootstrapper = SystemBootstrapper(tmp_path / "config")
+        bootstrapper = SystemBootstrapper(tmp_path / "config", offline=True)
         assert bootstrapper.bootstrap()
         (tmp_path / "config").mkdir()
         (tmp_path / "config" / "bootstrap.json").write_text(
@@ -108,7 +108,19 @@ def test_all():
                     "schemas": ["action"],
                     "nodes": ["kernel"],
                     "version": "1.0.0",
-                    "checks": {"event_store_ready": False},
+                    "mode": "production",
+                    "checks": {
+                        "schema_compatibility": True,
+                        "version_middleware": True,
+                        "disk_space": True,
+                        "all_nodes_online": True,
+                        "event_store_ready": False,
+                        "lifecycle_configured": True,
+                        "contracts_valid": True,
+                        "dependencies_resolved": True,
+                        "config_loaded": True,
+                        "memory_available": True,
+                    },
                 }
             ),
             encoding="utf-8",

@@ -44,10 +44,11 @@ wait_for_state() {
 	return 1
 }
 
-# Capture for a fixed window. candump -T exits on its own, so no stray kill.
+# Capture compact data and error frames for a fixed window. candump -T exits
+# on its own, so no stray kill.
 capture() {
 	local ms="$1"
-	candump -T "$ms" -n 100 "$IFACE" 2>/dev/null
+	candump -L -T "$ms" -n 100 "$IFACE,0:0,#FFFFFFFF" 2>/dev/null
 }
 
 check() {

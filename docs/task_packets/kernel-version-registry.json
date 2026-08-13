@@ -1,7 +1,7 @@
 {
-  "issue": "kernel-version-registry",
+  "issue": "97",
   "human_owner": "Quchaosheng",
-  "objective": "Persist schema versions durably and fail closed when the registry file is malformed or cannot be written.",
+  "objective": "Prevent published schema versions from being silently overwritten while preserving idempotent registration.",
   "allowed_paths": [
     "libs/kernel/workbench/kernel/version_registry.py",
     "libs/kernel/tests/test_k1_k10.py",
@@ -22,6 +22,8 @@
     "schema names and versions are validated",
     "malformed registry content fails closed",
     "failed persistence does not update in-memory state",
+    "identical registration is idempotent and does not rewrite the registry",
+    "conflicting content for an existing schema version is rejected before persistence",
     "repository lint and tests pass"
   ],
   "commands": [
@@ -33,6 +35,7 @@
   "evidence": [
     "registry reopen regression assertions",
     "malformed and failed-write assertions",
+    "idempotent and conflicting registration assertions",
     "K1-K10 integration test output",
     "repository test output"
   ],

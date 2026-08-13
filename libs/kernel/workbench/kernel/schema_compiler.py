@@ -2,6 +2,7 @@
 
 import json
 import keyword
+import math
 import re
 from pathlib import Path
 from typing import Any
@@ -30,6 +31,120 @@ PROPERTY_KEYWORDS = {
     "required",
     "type",
 }
+
+
+class SchemaValidationError(ValueError):
+    """Raised when a value does not satisfy the supported schema subset."""
+
+
+def _matches_json_type(value: Any, schema_type: str) -> bool:
+    if schema_type == "null":
+        return value is None
+    if schema_type == "boolean":
+        return type(value) is bool
+    if schema_type == "integer":
+        return type(value) is int
+    if schema_type == "number":
+        return type(value) in {int, float} and math.isfinite(value)
+    if schema_type == "string":
+        return isinstance(value, str)
+    if schema_type == "array":
+        return isinstance(value, list)
+    if schema_type == "object":
+        return isinstance(value, dict)
+    raise SchemaValidationError(f"unsupported schema type {schema_type!r}")
+
+
+def _enum_contains(enum: list[Any], value: Any) -> bool:
+    return any(type(candidate) is type(value) and candidate == value for candidate in enum)
+
+
+def validate_schema_instance(
+    value: Any,
+    schema: dict[str, Any],
+    *,
+    references: dict[str, dict[str, Any]] | None = None,
+    location: str = "$",
+) -> None:
+    """Validate one value against the JSON Schema subset the compiler supports."""
+    if not isinstance(schema, dict):
+        raise SchemaValidationError(f"schema at {location} must be an object")
+    if "$ref" in schema:
+        reference = schema["$ref"]
+        referenced = (references or {}).get(reference)
+        if referenced is None:
+            raise SchemaValidationError(f"unresolved schema reference {reference!r} at {location}")
+        validate_schema_instance(value, referenced, references=references, location=location)
+        return
+
+    if "enum" in schema:
+        enum = schema["enum"]
+        if not isinstance(enum, list) or not _enum_contains(enum, value):
+            raise SchemaValidationError(f"value at {location} is not in the allowed enum")
+
+    schema_types = schema.get("type")
+    if schema_types is not None:
+        allowed_types = schema_types if isinstance(schema_types, list) else [schema_types]
+        if not all(isinstance(schema_type, str) for schema_type in allowed_types):
+            raise SchemaValidationError(f"schema type at {location} must be a string or string list")
+        if not any(_matches_json_type(value, schema_type) for schema_type in allowed_types):
+            raise SchemaValidationError(f"value at {location} does not match type {schema_types!r}")
+
+    if "minimum" in schema and (type(value) not in {int, float} or value < schema["minimum"]):
+        raise SchemaValidationError(f"value at {location} is below minimum {schema['minimum']!r}")
+    if "maximum" in schema and (type(value) not in {int, float} or value > schema["maximum"]):
+        raise SchemaValidationError(f"value at {location} is above maximum {schema['maximum']!r}")
+    if "pattern" in schema and (not isinstance(value, str) or re.search(schema["pattern"], value) is None):
+        raise SchemaValidationError(f"value at {location} does not match pattern {schema['pattern']!r}")
+    if "minItems" in schema and (not isinstance(value, list) or len(value) < schema["minItems"]):
+        raise SchemaValidationError(f"array at {location} has fewer than {schema['minItems']} items")
+
+    if isinstance(value, list) and "items" in schema:
+        for index, item in enumerate(value):
+            validate_schema_instance(
+                item,
+                schema["items"],
+                references=references,
+                location=f"{location}[{index}]",
+            )
+
+    if isinstance(value, dict):
+        properties = schema.get("properties", {})
+        required = schema.get("required", [])
+        if not isinstance(properties, dict) or not isinstance(required, list):
+            raise SchemaValidationError(f"object schema at {location} has invalid properties or required fields")
+        missing = set(required) - set(value)
+        if missing:
+            raise SchemaValidationError(f"object at {location} is missing fields: {sorted(missing)}")
+        if schema.get("additionalProperties", True) is False:
+            extra = set(value) - set(properties)
+            if extra:
+                raise SchemaValidationError(f"object at {location} has extra fields: {sorted(extra)}")
+        for field_name, definition in properties.items():
+            if field_name in value:
+                validate_schema_instance(
+                    value[field_name],
+                    definition,
+                    references=references,
+                    location=f"{location}.{field_name}",
+                )
+
+    for conditional in schema.get("allOf", []):
+        condition_properties = conditional.get("if", {}).get("properties", {})
+        condition_matches = (
+            all(
+                field_name in value
+                and isinstance(definition, dict)
+                and "const" in definition
+                and type(value[field_name]) is type(definition["const"])
+                and value[field_name] == definition["const"]
+                for field_name, definition in condition_properties.items()
+            )
+            if isinstance(value, dict)
+            else False
+        )
+        if condition_matches:
+            validate_schema_instance(value, conditional.get("then", {}), references=references, location=location)
 
 
 def _model_name(value: str) -> str:

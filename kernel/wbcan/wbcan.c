@@ -32,6 +32,7 @@
 #include <linux/debugfs.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
+#include <linux/string.h>
 #include <linux/can.h>
 #include <linux/can/dev.h>
 #include <linux/can/error.h>
@@ -130,13 +131,14 @@ static void wbcan_emit_error(struct net_device *dev, enum wbcan_fault fault)
 
 	switch (fault) {
 	case WBCAN_FAULT_BUS_OFF:
-		cf->can_id |= CAN_ERR_BUSOFF;
 		/* Bus-off is terminal until the driver is restarted. The CAN
 		 * core handles the restart timer if restart-ms is set, which
 		 * is what FW19 exercises. */
-		priv->can.state = CAN_STATE_BUS_OFF;
-		priv->can.can_stats.bus_off++;
 		netif_stop_queue(dev);
+		tx_state = CAN_STATE_BUS_OFF;
+		rx_state = CAN_STATE_BUS_OFF;
+		can_change_state(dev, cf, tx_state, rx_state);
+		can_bus_off(dev);
 		break;
 
 	case WBCAN_FAULT_ARB_LOST:
@@ -171,7 +173,11 @@ static void wbcan_emit_error(struct net_device *dev, enum wbcan_fault fault)
 static int wbcan_open(struct net_device *dev)
 {
 	struct wbcan_priv *priv = netdev_priv(dev);
+	int err;
 
+	err = open_candev(dev);
+	if (err)
+		return err;
 	priv->can.state = CAN_STATE_ERROR_ACTIVE;
 	netif_start_queue(dev);
 	return 0;
@@ -182,6 +188,7 @@ static int wbcan_stop(struct net_device *dev)
 	struct wbcan_priv *priv = netdev_priv(dev);
 
 	netif_stop_queue(dev);
+	close_candev(dev);
 	priv->can.state = CAN_STATE_STOPPED;
 	return 0;
 }
@@ -468,6 +475,7 @@ static int __init wbcan_init(void)
 
 	wbcan_dev->netdev_ops = &wbcan_netdev_ops;
 	wbcan_dev->flags |= IFF_ECHO;
+	strscpy(wbcan_dev->name, "wbcan%d", IFNAMSIZ);
 
 	/* No real bit timing: there is no wire. Advertising fixed bitrate
 	 * keeps `ip link set up` from demanding timing parameters, and makes

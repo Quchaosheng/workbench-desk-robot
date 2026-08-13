@@ -32,6 +32,18 @@ arm()   { echo "$*" > "$DBG/inject"; }
 clear_fault() { arm "none 0"; }
 stat()  { awk -v k="$1" '$1==k{print $2}' "$DBG/status"; }
 
+wait_for_state() {
+	local want="$1" attempts="${2:-40}"
+	local current
+	while [ "$attempts" -gt 0 ]; do
+		current=$(stat state)
+		[ "$current" = "$want" ] && return 0
+		sleep 0.05
+		attempts=$((attempts - 1))
+	done
+	return 1
+}
+
 # Capture for a fixed window. candump -T exits on its own, so no stray kill.
 capture() {
 	local ms="$1"
@@ -125,22 +137,30 @@ check "id filter spares non-matching" \
 
 # --- 7. bus-off produces an error frame and changes state -----------------
 # This is the case a userspace shim cannot fake.
+ip link set "$IFACE" down
+ip link set "$IFACE" type can restart-ms 500
+ip link set "$IFACE" up
 clear_fault
 arm "bus-off 1"
-out=$(capture 400 & sleep 0.1; cansend "$IFACE" 500#01 2>/dev/null; wait)
+out=$(capture 250 & sleep 0.05; cansend "$IFACE" 500#01 2>/dev/null; wait)
 check "bus-off emits an error frame" \
       "1" "$(grep -c '20000040\|ERRORFRAME' <<<"$out" | head -1)"
 check "bus-off moves controller state" \
       "bus-off" "$(stat state)"
 
-# --- 8. restart clears state and the armed fault --------------------------
-ip link set "$IFACE" down
-ip link set "$IFACE" up
-sleep 0.2
-check "restart returns to error-active" \
-      "error-active" "$(stat state)"
-check "restart clears the armed fault" \
+# --- 8. restart-ms automatically clears state and the armed fault ---------
+if wait_for_state "error-active" 40; then
+	restarted="error-active"
+else
+	restarted=$(stat state)
+fi
+check "restart-ms returns to error-active" \
+      "error-active" "$restarted"
+check "automatic restart clears the armed fault" \
       "none" "$(stat armed_fault)"
+out=$(capture 300 & sleep 0.1; cansend "$IFACE" 501#02; wait)
+check "automatic restart restores transmission" \
+      "1" "$(grep -c '501.*02' <<<"$out")"
 
 # --- 9. arb-lost is an error but not terminal ------------------------------
 clear_fault

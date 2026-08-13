@@ -1,0 +1,45 @@
+{
+  "issue": "114",
+  "human_owner": "Quchaosheng",
+  "objective": "Register the documented wbcan interface and use Linux CAN-core lifecycle and bus-off recovery paths.",
+  "allowed_paths": [
+    "kernel/wbcan/wbcan.c",
+    "kernel/wbcan/test_wbcan.sh",
+    "docs/task_packets/linux-wbcan-recovery.json"
+  ],
+  "read_only_paths": [
+    "firmware/**",
+    "interfaces/**",
+    "AGENTS.md"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "interfaces/**"
+  ],
+  "acceptance": [
+    "the module registers wbcan0 through the wbcan%d name pattern",
+    "interface open and stop call the CAN-core lifecycle helpers",
+    "bus-off state uses can_change_state and can_bus_off",
+    "restart-ms automatically recovers without cycling the interface",
+    "the fault suite proves post-restart transmission",
+    "kernel build and checkpatch pass"
+  ],
+  "commands": [
+    "make -C kernel/wbcan",
+    "make -C kernel/wbcan checkpatch",
+    "sudo make -C kernel/wbcan reload",
+    "sudo make -C kernel/wbcan test"
+  ],
+  "evidence": [
+    "kernel module build output",
+    "checkpatch output",
+    "privileged wbcan fault-suite output",
+    "automatic recovery and post-restart transmission assertions"
+  ],
+  "stop_conditions": [
+    "firmware or interface schema changes are required",
+    "the target kernel lacks the documented CAN-core lifecycle APIs",
+    "physical CAN hardware behavior is required"
+  ]
+}

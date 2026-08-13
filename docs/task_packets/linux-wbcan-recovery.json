@@ -27,7 +27,7 @@
     "the fault suite proves post-restart transmission",
     "manual CAN-core restart remains supported",
     "kernel build and checkpatch failures stop CI",
-    "CI loads each CAN dependency and runs the privileged fault suite"
+    "CI installs and loads each CAN dependency and runs the privileged fault suite"
   ],
   "commands": [
     "make -C kernel/wbcan",

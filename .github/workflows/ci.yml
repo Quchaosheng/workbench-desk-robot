@@ -51,7 +51,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            "linux-headers-$(uname -r)" can-utils build-essential
+            "linux-headers-$(uname -r)" \
+            "linux-modules-extra-$(uname -r)" \
+            can-utils build-essential
       - name: Build and check wbcan.ko
         run: |
           make -C kernel/wbcan
@@ -60,7 +62,8 @@ jobs:
         run: |
           sudo modprobe can
           sudo modprobe can_raw
-          sudo modprobe can_dev
+          modinfo can-dev
+          sudo modprobe can-dev
           sudo insmod kernel/wbcan/wbcan.ko
           sudo ip link set wbcan0 type can restart-ms 100
           sudo ip link set wbcan0 up

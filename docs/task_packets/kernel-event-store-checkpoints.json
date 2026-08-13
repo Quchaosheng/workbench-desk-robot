@@ -1,10 +1,12 @@
 {
-  "issue": "kernel-event-store-checkpoints",
+  "issue": "95",
   "human_owner": "Quchaosheng",
-  "objective": "Keep append-only event checkpoints correct across process restarts and reject unsafe replay boundaries.",
+  "objective": "Enforce event identity, run isolation and contiguous sequence integrity across append, replay and checkpoints.",
   "allowed_paths": [
     "libs/kernel/workbench/kernel/event_store.py",
     "libs/kernel/tests/test_k1_k10.py",
+    "libs/kernel/tests/test_k1_k10_extended.py",
+    "libs/kernel/README.md",
     "tests/unit/test_kernel_event_store.py",
     "docs/task_packets/kernel-event-store-checkpoints.json"
   ],
@@ -22,6 +24,8 @@
     "replay from the current checkpoint returns no historical events",
     "negative, boolean, and out-of-range checkpoints are rejected",
     "malformed and non-object log records fail closed",
+    "default append rejects missing fields, duplicate event IDs, mixed runs, sequence gaps and unknown event types",
+    "legacy object logs require an explicit migration-only constructor flag",
     "repository lint and tests pass"
   ],
   "commands": [
@@ -33,6 +37,7 @@
   "evidence": [
     "restart checkpoint regression assertions",
     "corrupt-log failure assertions",
+    "event-contract, identity, run and sequence regression assertions",
     "K1-K10 integration test output",
     "repository test output"
   ],

@@ -1,0 +1,51 @@
+{
+  "issue": 22,
+  "human_owner": "Quchaosheng",
+  "objective": "Create an evidence-backed PMO baseline for the P1/P2/P3 program without converting templates or scripted fixtures into delivery evidence.",
+  "allowed_paths": [
+    "docs/project-management/**",
+    "docs/task_packets/pmo-project-baseline.json",
+    "tests/unit/test_pmo_baseline.py",
+    "mkdocs.yml"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "SECURITY.md",
+    "THIRD_PARTY_REVIEW.md",
+    "docs/decisions/**",
+    "docs/evaluation/**",
+    "docs/context/**",
+    "hardware/**",
+    ".github/workflows/**"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "robot/control/**",
+    "firmware/**"
+  ],
+  "acceptance": [
+    "all twelve PMO tasks map to maintained repository artifacts",
+    "the plan exposes phase gates dependencies and a dated baseline",
+    "every risk has an owner trigger mitigation contingency review date and evidence reference",
+    "status and metrics preserve unknown blocked and not-executed states",
+    "the baseline is linked from the documentation navigation and has deterministic tests"
+  ],
+  "commands": [
+    "python tools/scripts/check_task_packet.py docs/task_packets/pmo-project-baseline.json",
+    "python -m pytest tests/unit/test_pmo_baseline.py -q",
+    "python -m mkdocs build --strict",
+    "make check"
+  ],
+  "evidence": [
+    "Task Packet validation output",
+    "PMO baseline test output",
+    "strict documentation build output",
+    "full repository check output"
+  ],
+  "stop_conditions": [
+    "a physical result external participant record or human decision would need to be inferred",
+    "an interface safety or release setting change is required",
+    "the plan would label a template or scripted fixture as release evidence"
+  ]
+}

@@ -2,11 +2,149 @@
 
 import json
 import keyword
+import math
 import re
 from pathlib import Path
 from typing import Any
 
 SCHEMA_SUFFIX = ".schema.json"
+ROOT_KEYWORDS = {
+    "$schema",
+    "title",
+    "description",
+    "type",
+    "required",
+    "properties",
+    "additionalProperties",
+    "allOf",
+}
+PROPERTY_KEYWORDS = {
+    "$ref",
+    "description",
+    "enum",
+    "items",
+    "maximum",
+    "minimum",
+    "minItems",
+    "pattern",
+    "properties",
+    "required",
+    "type",
+}
+
+
+class SchemaValidationError(ValueError):
+    """Raised when a value does not satisfy the supported schema subset."""
+
+
+def _matches_json_type(value: Any, schema_type: str) -> bool:
+    if schema_type == "null":
+        return value is None
+    if schema_type == "boolean":
+        return type(value) is bool
+    if schema_type == "integer":
+        return type(value) is int
+    if schema_type == "number":
+        return type(value) in {int, float} and math.isfinite(value)
+    if schema_type == "string":
+        return isinstance(value, str)
+    if schema_type == "array":
+        return isinstance(value, list)
+    if schema_type == "object":
+        return isinstance(value, dict)
+    raise SchemaValidationError(f"unsupported schema type {schema_type!r}")
+
+
+def _enum_contains(enum: list[Any], value: Any) -> bool:
+    return any(type(candidate) is type(value) and candidate == value for candidate in enum)
+
+
+def validate_schema_instance(
+    value: Any,
+    schema: dict[str, Any],
+    *,
+    references: dict[str, dict[str, Any]] | None = None,
+    location: str = "$",
+) -> None:
+    """Validate one value against the JSON Schema subset the compiler supports."""
+    if not isinstance(schema, dict):
+        raise SchemaValidationError(f"schema at {location} must be an object")
+    if "$ref" in schema:
+        reference = schema["$ref"]
+        referenced = (references or {}).get(reference)
+        if referenced is None:
+            raise SchemaValidationError(f"unresolved schema reference {reference!r} at {location}")
+        validate_schema_instance(value, referenced, references=references, location=location)
+        return
+
+    if "enum" in schema:
+        enum = schema["enum"]
+        if not isinstance(enum, list) or not _enum_contains(enum, value):
+            raise SchemaValidationError(f"value at {location} is not in the allowed enum")
+
+    schema_types = schema.get("type")
+    if schema_types is not None:
+        allowed_types = schema_types if isinstance(schema_types, list) else [schema_types]
+        if not all(isinstance(schema_type, str) for schema_type in allowed_types):
+            raise SchemaValidationError(f"schema type at {location} must be a string or string list")
+        if not any(_matches_json_type(value, schema_type) for schema_type in allowed_types):
+            raise SchemaValidationError(f"value at {location} does not match type {schema_types!r}")
+
+    if "minimum" in schema and (type(value) not in {int, float} or value < schema["minimum"]):
+        raise SchemaValidationError(f"value at {location} is below minimum {schema['minimum']!r}")
+    if "maximum" in schema and (type(value) not in {int, float} or value > schema["maximum"]):
+        raise SchemaValidationError(f"value at {location} is above maximum {schema['maximum']!r}")
+    if "pattern" in schema and (not isinstance(value, str) or re.search(schema["pattern"], value) is None):
+        raise SchemaValidationError(f"value at {location} does not match pattern {schema['pattern']!r}")
+    if "minItems" in schema and (not isinstance(value, list) or len(value) < schema["minItems"]):
+        raise SchemaValidationError(f"array at {location} has fewer than {schema['minItems']} items")
+
+    if isinstance(value, list) and "items" in schema:
+        for index, item in enumerate(value):
+            validate_schema_instance(
+                item,
+                schema["items"],
+                references=references,
+                location=f"{location}[{index}]",
+            )
+
+    if isinstance(value, dict):
+        properties = schema.get("properties", {})
+        required = schema.get("required", [])
+        if not isinstance(properties, dict) or not isinstance(required, list):
+            raise SchemaValidationError(f"object schema at {location} has invalid properties or required fields")
+        missing = set(required) - set(value)
+        if missing:
+            raise SchemaValidationError(f"object at {location} is missing fields: {sorted(missing)}")
+        if schema.get("additionalProperties", True) is False:
+            extra = set(value) - set(properties)
+            if extra:
+                raise SchemaValidationError(f"object at {location} has extra fields: {sorted(extra)}")
+        for field_name, definition in properties.items():
+            if field_name in value:
+                validate_schema_instance(
+                    value[field_name],
+                    definition,
+                    references=references,
+                    location=f"{location}.{field_name}",
+                )
+
+    for conditional in schema.get("allOf", []):
+        condition_properties = conditional.get("if", {}).get("properties", {})
+        condition_matches = (
+            all(
+                field_name in value
+                and isinstance(definition, dict)
+                and "const" in definition
+                and type(value[field_name]) is type(definition["const"])
+                and value[field_name] == definition["const"]
+                for field_name, definition in condition_properties.items()
+            )
+            if isinstance(value, dict)
+            else False
+        )
+        if condition_matches:
+            validate_schema_instance(value, conditional.get("then", {}), references=references, location=location)
 
 
 def _model_name(value: str) -> str:
@@ -72,6 +210,104 @@ def _typescript_type(definition: dict[str, Any]) -> str:
     return "unknown"
 
 
+def _python_annotation(definition: dict[str, Any], base_annotation: str | None = None) -> str:
+    annotation = _python_type(definition) if base_annotation is None else base_annotation
+    constraints = []
+    if "minimum" in definition:
+        constraints.append(f"ge={definition['minimum']!r}")
+    if "maximum" in definition:
+        constraints.append(f"le={definition['maximum']!r}")
+    if "minItems" in definition:
+        constraints.append(f"min_length={definition['minItems']!r}")
+    if "pattern" in definition:
+        constraints.append(f"pattern={definition['pattern']!r}")
+    if constraints:
+        return f"Annotated[{annotation}, Field({', '.join(constraints)})]"
+    return annotation
+
+
+def _typescript_constraint_comment(definition: dict[str, Any]) -> str | None:
+    constraints = [
+        f"minimum: {definition['minimum']}" if "minimum" in definition else None,
+        f"maximum: {definition['maximum']}" if "maximum" in definition else None,
+        f"minItems: {definition['minItems']}" if "minItems" in definition else None,
+        f"pattern: {definition['pattern']}" if "pattern" in definition else None,
+    ]
+    present = [constraint for constraint in constraints if constraint]
+    return f"  /** {'; '.join(present)} */" if present else None
+
+
+def _validate_definition(definition: dict[str, Any], location: str) -> None:
+    unsupported = set(definition) - PROPERTY_KEYWORDS
+    if unsupported:
+        raise ValueError(f"unsupported schema keyword(s) at {location}: {sorted(unsupported)}")
+    if "minimum" in definition and not isinstance(definition["minimum"], int | float):
+        raise ValueError(f"minimum must be numeric at {location}")
+    if "maximum" in definition and not isinstance(definition["maximum"], int | float):
+        raise ValueError(f"maximum must be numeric at {location}")
+    if "minItems" in definition and (type(definition["minItems"]) is not int or definition["minItems"] < 0):
+        raise ValueError(f"minItems must be a non-negative integer at {location}")
+    if "pattern" in definition and not isinstance(definition["pattern"], str):
+        raise ValueError(f"pattern must be a string at {location}")
+    items = definition.get("items")
+    if items is not None:
+        if not isinstance(items, dict):
+            raise ValueError(f"items must be an object at {location}")
+        _validate_definition(items, f"{location}.items")
+    properties = definition.get("properties")
+    if properties is not None:
+        if not isinstance(properties, dict):
+            raise ValueError(f"properties must be an object at {location}")
+        for field_name, nested in properties.items():
+            if not isinstance(nested, dict):
+                raise ValueError(f"property definition must be an object: {location}.{field_name}")
+            _validate_definition(nested, f"{location}.{field_name}")
+
+
+def _conditional_validators(schema: dict[str, Any], name: str) -> tuple[list[str], list[dict[str, Any]]]:
+    lines: list[str] = []
+    metadata: list[dict[str, Any]] = []
+    for index, conditional in enumerate(schema.get("allOf", []), start=1):
+        try:
+            condition_properties = conditional["if"]["properties"]
+            then_properties = conditional["then"]["properties"]
+        except (KeyError, TypeError) as exc:
+            raise ValueError(f"unsupported allOf conditional in schema {name} at index {index}") from exc
+        if len(condition_properties) != 1 or len(then_properties) != 1:
+            raise ValueError(f"allOf conditional must target one field in schema {name} at index {index}")
+        condition_field, condition = next(iter(condition_properties.items()))
+        target_field, constraint = next(iter(then_properties.items()))
+        if not isinstance(condition, dict) or set(condition) != {"const"}:
+            raise ValueError(f"allOf condition must use one const in schema {name} at index {index}")
+        if not isinstance(constraint, dict) or set(constraint) - {"minimum", "maximum"}:
+            raise ValueError(f"allOf result must use numeric bounds in schema {name} at index {index}")
+        checks = []
+        if "minimum" in constraint:
+            checks.append(f"self.{target_field} < {constraint['minimum']!r}")
+        if "maximum" in constraint:
+            checks.append(f"self.{target_field} > {constraint['maximum']!r}")
+        if not checks:
+            raise ValueError(f"allOf result has no supported bound in schema {name} at index {index}")
+        error_message = f"{target_field} violates the {condition_field}={condition['const']!r} constraint"
+        lines.extend(
+            [
+                "",
+                '    @model_validator(mode="after")',
+                f"    def _validate_conditional_{index}(self):",
+                f"        if self.{condition_field} == {condition['const']!r} and ({' or '.join(checks)}):",
+                f"            raise ValueError({error_message!r})",
+                "        return self",
+            ]
+        )
+        metadata.append(
+            {
+                "if": {condition_field: condition["const"]},
+                "then": {target_field: constraint},
+            }
+        )
+    return lines, metadata
+
+
 class SchemaCompiler:
     """Generate importable Pydantic models and valid TypeScript interfaces."""
 
@@ -89,41 +325,155 @@ class SchemaCompiler:
                 raise ValueError(f"schema root must be an object: {schema_file.name}")
             self.schemas[name] = schema
 
+    def _resolve_ref(self, reference: Any, location: str) -> tuple[str, dict[str, Any]]:
+        if not isinstance(reference, str) or "/" in reference or "\\" in reference:
+            raise ValueError(f"only local schema file references are supported at {location}")
+        name = reference.removesuffix(SCHEMA_SUFFIX)
+        schema = self.schemas.get(name)
+        if schema is None:
+            raise ValueError(f"unknown schema reference {reference!r} at {location}")
+        return _model_name(schema.get("title", name)), schema
+
+    def _python_base_annotation(
+        self,
+        definition: dict[str, Any],
+        suggested_name: str,
+        location: str,
+        class_blocks: list[str],
+        generated: dict[str, dict[str, Any]],
+    ) -> str:
+        if "$ref" in definition:
+            class_name, referenced_schema = self._resolve_ref(definition["$ref"], location)
+            self._append_python_model(class_name, referenced_schema, location, class_blocks, generated)
+            return class_name
+        schema_type = definition.get("type")
+        if schema_type == "array":
+            items = definition.get("items")
+            if not isinstance(items, dict):
+                return "list[Any]"
+            item_annotation = self._python_base_annotation(
+                items,
+                f"{suggested_name}Item",
+                f"{location}.items",
+                class_blocks,
+                generated,
+            )
+            item_annotation = _python_annotation(items, item_annotation)
+            return f"list[{item_annotation}]"
+        if schema_type == "object" and isinstance(definition.get("properties"), dict):
+            self._append_python_model(suggested_name, definition, location, class_blocks, generated)
+            return suggested_name
+        return _python_type(definition)
+
+    def _append_python_model(
+        self,
+        class_name: str,
+        schema: dict[str, Any],
+        location: str,
+        class_blocks: list[str],
+        generated: dict[str, dict[str, Any]],
+    ) -> None:
+        existing = generated.get(class_name)
+        if existing is not None:
+            if existing != schema:
+                raise ValueError(f"generated model name collision for {class_name} at {location}")
+            return
+        generated[class_name] = schema
+
+        unsupported_root = set(schema) - ROOT_KEYWORDS
+        if unsupported_root:
+            raise ValueError(f"unsupported schema keyword(s) at {location}: {sorted(unsupported_root)}")
+        properties = schema.get("properties", {})
+        if schema.get("type") != "object" or not isinstance(properties, dict):
+            raise ValueError(f"schema must describe an object at {location}")
+        required = set(schema.get("required", []))
+        additional_properties = schema.get("additionalProperties", True)
+        if type(additional_properties) is not bool:
+            raise ValueError(f"additionalProperties must be boolean at {location}")
+
+        fields = []
+        for field_name, definition in properties.items():
+            if not isinstance(definition, dict):
+                raise ValueError(f"property definition must be an object: {location}.{field_name}")
+            if not field_name.isidentifier() or keyword.iskeyword(field_name):
+                raise ValueError(f"property cannot produce a Python field: {location}.{field_name}")
+            field_location = f"{location}.{field_name}"
+            _validate_definition(definition, field_location)
+            nested_name = f"{class_name}{_model_name(field_name)}"
+            base_annotation = self._python_base_annotation(
+                definition,
+                nested_name,
+                field_location,
+                class_blocks,
+                generated,
+            )
+            annotation = _python_annotation(definition, base_annotation)
+            optional = field_name not in required
+            if optional and "None" not in annotation.split(" | "):
+                annotation += " | None"
+            fields.append(f"    {field_name}: {annotation}{' = None' if optional else ''}")
+
+        conditional_lines, _ = _conditional_validators(schema, location)
+        if not additional_properties:
+            fields.insert(0, '    model_config = ConfigDict(extra="forbid")')
+        body = "\n".join([*fields, *conditional_lines]) or "    pass"
+        class_blocks.append(f"class {class_name}(BaseModel):\n{body}\n")
+
     def compile_all(self, output_py: Path, output_ts: Path) -> None:
         output_py.mkdir(parents=True, exist_ok=True)
         output_ts.mkdir(parents=True, exist_ok=True)
 
         for name, schema in self.schemas.items():
+            unsupported_root = set(schema) - ROOT_KEYWORDS
+            if unsupported_root:
+                raise ValueError(f"unsupported schema keyword(s) in {name}: {sorted(unsupported_root)}")
             model_name = _model_name(schema.get("title", name))
             properties = schema.get("properties", {})
             if schema.get("type") != "object" or not isinstance(properties, dict):
                 raise ValueError(f"schema must describe an object: {name}")
             required = set(schema.get("required", []))
+            additional_properties = schema.get("additionalProperties", True)
+            if type(additional_properties) is not bool:
+                raise ValueError(f"additionalProperties must be boolean in schema {name}")
 
-            python_fields = []
             typescript_fields = []
+            constraint_metadata: dict[str, Any] = {}
             for field_name, definition in properties.items():
                 if not isinstance(definition, dict):
                     raise ValueError(f"property definition must be an object: {name}.{field_name}")
                 if not field_name.isidentifier() or keyword.iskeyword(field_name):
                     raise ValueError(f"property cannot produce a Python field: {name}.{field_name}")
-                python_annotation = _python_type(definition)
+                _validate_definition(definition, f"{name}.{field_name}")
                 optional = field_name not in required
-                if optional and "None" not in python_annotation.split(" | "):
-                    python_annotation += " | None"
-                default = "" if not optional else " = None"
-                python_fields.append(f"    {field_name}: {python_annotation}{default}")
                 marker = "" if not optional else "?"
+                comment = _typescript_constraint_comment(definition)
+                if comment:
+                    typescript_fields.append(comment)
+                    constraint_metadata[field_name] = {
+                        key: definition[key]
+                        for key in ("minimum", "maximum", "minItems", "pattern")
+                        if key in definition
+                    }
                 typescript_fields.append(f"  {json.dumps(field_name)}{marker}: {_typescript_type(definition)};")
 
-            python_body = "\n".join(python_fields) or "    pass"
+            _, conditional_metadata = _conditional_validators(schema, name)
+            class_blocks: list[str] = []
+            self._append_python_model(model_name, schema, name, class_blocks, {})
             python_code = (
-                "from typing import Any, Literal\n\n"
-                "from pydantic import BaseModel\n\n\n"
-                f"class {model_name}(BaseModel):\n{python_body}\n"
+                "from typing import Annotated, Any, Literal\n\n"
+                "from pydantic import BaseModel, ConfigDict, Field, model_validator\n\n\n" + "\n\n".join(class_blocks)
             )
             typescript_body = "\n".join(typescript_fields)
-            typescript_code = f"export interface {model_name} {{\n{typescript_body}\n}}\n"
+            metadata = {
+                "fields": constraint_metadata,
+                "conditionals": conditional_metadata,
+                "additionalProperties": additional_properties,
+            }
+            typescript_code = (
+                f"export interface {model_name} {{\n{typescript_body}\n}}\n\n"
+                f"export const {model_name}Constraints = {json.dumps(metadata, indent=2)} as const;\n\n"
+                f"export const {model_name}Schema = {json.dumps(schema, indent=2)} as const;\n"
+            )
             (output_py / f"{name}.py").write_text(python_code, encoding="utf-8")
             (output_ts / f"{name}.ts").write_text(typescript_code, encoding="utf-8")
 

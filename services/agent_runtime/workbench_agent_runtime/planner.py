@@ -5,6 +5,28 @@ from collections.abc import Mapping, Sequence
 
 from workbench_contracts import ActionType, SemanticAction, TaskGraph, TaskStep
 
+from .tool_registry import ToolRegistry
+
+# Module-level singleton — created once, shared by all planner entry points.
+_tool_registry = ToolRegistry()
+
+
+def _validate_plan(plan: TaskGraph) -> None:
+    """Validate every step in *plan* against the tool registry.
+
+    Raises ValueError on the first validation failure so a buggy planner
+    (or model) cannot silently emit an invalid action.
+    """
+    for step in plan.steps:
+        result = _tool_registry.validate(step.action)
+        if not result.is_valid:
+            messages = "; ".join(f"{error.field}: {error.message}" for error in result.errors)
+            raise ValueError(
+                f"step '{step.step_id}' action '{step.action.action_id}' "
+                f"failed tool-registry validation: {messages}"
+            )
+
+
 DEFAULT_KIT_PARTS = ("red_block", "blue_cylinder", "green_gear")
 DEFAULT_INSPECTION_ENTITIES = ("red_block", "blue_cylinder", "green_gear")
 DEFAULT_PARCEL_ROUTES = (
@@ -561,11 +583,14 @@ def build_template_plan(goal: str, block_id: str = "red_block", tray_id: str = "
     """Route a bounded offline goal to semantic actions; never emit joint or firmware commands."""
     task_id = classify_template_task(goal)
     if task_id == "task-kit-three-parts":
-        return build_kitting_plan(goal)
-    if task_id == "task-inspect-workpieces":
-        return build_inspection_plan(goal)
-    if task_id == "task-clear-workspace":
-        return build_clear_workspace_plan(goal)
-    if task_id == "task-sort-parcels":
-        return build_policy_routed_parcel_plan(goal, DEFAULT_PARCEL_ATTRIBUTES)
-    return build_place_plan(goal, block_id, tray_id)
+        plan = build_kitting_plan(goal)
+    elif task_id == "task-inspect-workpieces":
+        plan = build_inspection_plan(goal)
+    elif task_id == "task-clear-workspace":
+        plan = build_clear_workspace_plan(goal)
+    elif task_id == "task-sort-parcels":
+        plan = build_policy_routed_parcel_plan(goal, DEFAULT_PARCEL_ATTRIBUTES)
+    else:
+        plan = build_place_plan(goal, block_id, tray_id)
+    _validate_plan(plan)
+    return plan

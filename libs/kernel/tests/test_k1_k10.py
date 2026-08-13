@@ -72,7 +72,7 @@ def test_all():
 
         # K6-K7: Event Store
         log = tmp_path / "events.jsonl"
-        store = EventStore(log)
+        store = EventStore(log, legacy_objects=True)
         for i in range(10):
             store.append({"id": i})
         cp = store.create_checkpoint()
@@ -80,7 +80,7 @@ def test_all():
         replayed = store.replay(from_checkpoint=0)
         assert len(replayed) == 10
         assert store.verify_integrity()
-        reopened = EventStore(log)
+        reopened = EventStore(log, legacy_objects=True)
         reopened.append({"id": 10})
         restart_checkpoint = reopened.create_checkpoint()
         assert restart_checkpoint == 11
@@ -99,7 +99,7 @@ def test_all():
         print("[PASS] K8 Lifecycle")
 
         # K9-K10: Bootstrap
-        bootstrapper = SystemBootstrapper(tmp_path / "config")
+        bootstrapper = SystemBootstrapper(tmp_path / "config", offline=True)
         assert bootstrapper.bootstrap()
         (tmp_path / "config").mkdir()
         (tmp_path / "config" / "bootstrap.json").write_text(
@@ -108,7 +108,19 @@ def test_all():
                     "schemas": ["action"],
                     "nodes": ["kernel"],
                     "version": "1.0.0",
-                    "checks": {"event_store_ready": False},
+                    "mode": "production",
+                    "checks": {
+                        "schema_compatibility": True,
+                        "version_middleware": True,
+                        "disk_space": True,
+                        "all_nodes_online": True,
+                        "event_store_ready": False,
+                        "lifecycle_configured": True,
+                        "contracts_valid": True,
+                        "dependencies_resolved": True,
+                        "config_loaded": True,
+                        "memory_available": True,
+                    },
                 }
             ),
             encoding="utf-8",
@@ -179,17 +191,17 @@ def test_event_store_persistence():
     """K6-K7: 事件持久化"""
     with tempfile.TemporaryDirectory() as tmpdir:
         log_file = Path(tmpdir) / "test.jsonl"
-        store1 = EventStore(log_file)
+        store1 = EventStore(log_file, legacy_objects=True)
         store1.append({"data": "test"})
 
-        store2 = EventStore(log_file)
+        store2 = EventStore(log_file, legacy_objects=True)
         assert store2.replay() == [{"data": "test"}]
 
 
 def test_event_store_checkpoint():
     """K6-K7: 事件检查点"""
     with tempfile.TemporaryDirectory() as tmpdir:
-        store = EventStore(Path(tmpdir) / "test.jsonl")
+        store = EventStore(Path(tmpdir) / "test.jsonl", legacy_objects=True)
         for i in range(5):
             store.append({"index": i})
 
@@ -204,7 +216,7 @@ def test_event_store_checkpoint():
 def test_event_store_scale():
     """K6-K7: 大规模事件"""
     with tempfile.TemporaryDirectory() as tmpdir:
-        store = EventStore(Path(tmpdir) / "large.jsonl")
+        store = EventStore(Path(tmpdir) / "large.jsonl", legacy_objects=True)
         for i in range(100):
             store.append({"id": i})
         assert len(store.events) == 100
@@ -255,7 +267,7 @@ def test_perf_event():
     import time
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        store = EventStore(Path(tmpdir) / "perf.jsonl")
+        store = EventStore(Path(tmpdir) / "perf.jsonl", legacy_objects=True)
         start = time.time()
         for i in range(100):
             store.append({"data": i})
@@ -273,7 +285,7 @@ def test_versioned_message_preserves_type():
 def test_event_store_replays_existing_object_shape():
     """事件存储可以重放已持久化的对象事件。"""
     with tempfile.TemporaryDirectory() as tmpdir:
-        store = EventStore(Path(tmpdir) / "compat.jsonl")
+        store = EventStore(Path(tmpdir) / "compat.jsonl", legacy_objects=True)
         for i in range(5):
             store.append({"type": "event", "id": i})
 

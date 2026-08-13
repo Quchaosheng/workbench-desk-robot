@@ -1,0 +1,55 @@
+{
+  "issue": 41,
+  "human_owner": "zhangjia-1111",
+  "objective": "Build a fail-closed ToolRegistry that validates all six SemanticAction types before they reach Motion or MCU.",
+  "allowed_paths": [
+    "services/agent_runtime/workbench_agent_runtime/tool_schemas.py",
+    "services/agent_runtime/workbench_agent_runtime/tool_registry.py",
+    "services/agent_runtime/workbench_agent_runtime/planner.py",
+    "tests/unit/test_tool_registry.py",
+    "docs/task_packets/agent-a1-tool-registry.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "libs/contracts/**"
+  ],
+  "forbidden": [
+    "firmware/**",
+    "robot/control/**",
+    "services/world_model/**",
+    "services/backend/**"
+  ],
+  "acceptance": [
+    "six tools registered with parameter schemas",
+    "valid SemanticAction passes validate()",
+    "unknown action_type rejected in ValidationResult (never raises)",
+    "missing required parameter rejected",
+    "extra (forbidden) parameter rejected",
+    "bool passed as int rejected",
+    "GRASP and PLACE reject null/empty target_id",
+    "register() rejects non-ActionType and duplicates",
+    "get() returns schema for registered type, raises on invalid",
+    "observe attributes validated against known allow-list",
+    "all five task family plans pass integrated validation",
+    "15+ behavioural assertions in unit tests"
+  ],
+  "commands": [
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "make demo-scripted"
+  ],
+  "evidence": [
+    "unit test output (30+ assertions)",
+    "make test full suite output",
+    "make contract output",
+    "make demo-scripted output"
+  ],
+  "stop_conditions": [
+    "interface conflict with interfaces/ or libs/contracts/",
+    "writing to a file outside allowed_paths",
+    "adding a new ActionType enum value",
+    "make demo-scripted regression"
+  ]
+}

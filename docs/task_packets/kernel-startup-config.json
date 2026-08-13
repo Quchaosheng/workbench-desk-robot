@@ -1,7 +1,7 @@
 {
-  "issue": "kernel-startup-config",
+  "issue": "96",
   "human_owner": "Quchaosheng",
-  "objective": "Load optional kernel bootstrap configuration and make declared startup check failures block bootstrap deterministically.",
+  "objective": "Make production startup fail closed when readiness checks are absent, partial or unmeasured.",
   "allowed_paths": [
     "libs/kernel/workbench/kernel/startup.py",
     "libs/kernel/tests/test_k1_k10.py",
@@ -18,7 +18,9 @@
     "interfaces/**"
   ],
   "acceptance": [
-    "missing bootstrap.json preserves the documented offline defaults",
+    "missing bootstrap.json fails production startup",
+    "offline defaults require an explicit constructor flag and offline mode",
+    "production configuration requires every named boolean check",
     "valid configured failed checks block bootstrap",
     "malformed, incomplete, and unknown-check configurations fail closed",
     "repository lint and tests pass"

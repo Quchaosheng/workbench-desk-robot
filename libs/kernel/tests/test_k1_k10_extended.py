@@ -90,7 +90,7 @@ def test_message_batch():
 def test_event_append():
     """K6-K7: 追加事件"""
     with tempfile.TemporaryDirectory() as tmpdir:
-        store = EventStore(Path(tmpdir) / "events.jsonl")
+        store = EventStore(Path(tmpdir) / "events.jsonl", legacy_objects=True)
         store.append({"action": "start"})
         assert len(store.events) == 1
 
@@ -98,7 +98,7 @@ def test_event_append():
 def test_event_multiple():
     """K6-K7: 多个事件"""
     with tempfile.TemporaryDirectory() as tmpdir:
-        store = EventStore(Path(tmpdir) / "events.jsonl")
+        store = EventStore(Path(tmpdir) / "events.jsonl", legacy_objects=True)
         for i in range(5):
             store.append({"index": i})
         assert len(store.events) == 5
@@ -109,11 +109,11 @@ def test_event_replay():
     with tempfile.TemporaryDirectory() as tmpdir:
         log_file = Path(tmpdir) / "events.jsonl"
 
-        store1 = EventStore(log_file)
+        store1 = EventStore(log_file, legacy_objects=True)
         for i in range(3):
             store1.append({"data": i})
 
-        store2 = EventStore(log_file)
+        store2 = EventStore(log_file, legacy_objects=True)
         replayed = store2.replay()
         assert len(replayed) >= 3
 
@@ -188,7 +188,7 @@ def test_perf_message_creation():
 def test_perf_event_append():
     """性能: 事件追加延迟"""
     with tempfile.TemporaryDirectory() as tmpdir:
-        store = EventStore(Path(tmpdir) / "perf.jsonl")
+        store = EventStore(Path(tmpdir) / "perf.jsonl", legacy_objects=True)
 
         start = time.time()
         for i in range(100):
@@ -224,7 +224,7 @@ def test_versioned_message_format():
 def test_event_object_format_replay():
     """对象事件可以持久化并重放。"""
     with tempfile.TemporaryDirectory() as tmpdir:
-        store = EventStore(Path(tmpdir) / "compat.jsonl")
+        store = EventStore(Path(tmpdir) / "compat.jsonl", legacy_objects=True)
         # 模拟旧格式事件
         store.append({"type": "legacy", "version": "0.9.0"})
 

@@ -1,7 +1,7 @@
 {
-  "issue": "kernel-schema-compiler-correctness",
+  "issue": "100",
   "human_owner": "Quchaosheng",
-  "objective": "Generate syntactically valid and minimally typed Python and TypeScript models from object-shaped JSON Schema files.",
+  "objective": "Preserve supported JSON Schema validation constraints in generated Python models and TypeScript metadata.",
   "allowed_paths": [
     "libs/kernel/workbench/kernel/schema_compiler.py",
     "libs/kernel/tests/test_k1_k10.py",
@@ -21,6 +21,9 @@
     "schema suffixes do not leak into generated identifiers",
     "generated Python compiles and produces an instantiable Pydantic model",
     "generated TypeScript has a valid interface declaration and typed fields",
+    "numeric bounds, minItems, patterns and supported conditionals are enforced by generated Pydantic models",
+    "explicit additionalProperties false rejects extra fields",
+    "unsupported schema keywords fail compilation with field context",
     "repository lint and tests pass"
   ],
   "commands": [

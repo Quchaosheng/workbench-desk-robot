@@ -162,7 +162,30 @@ out=$(capture 300 & sleep 0.1; cansend "$IFACE" 501#02; wait)
 check "automatic restart restores transmission" \
       "1" "$(grep -c '501.*02' <<<"$out")"
 
-# --- 9. arb-lost is an error but not terminal ------------------------------
+# --- 9. manual CAN-core restart remains supported --------------------------
+ip link set "$IFACE" down
+ip link set "$IFACE" type can restart-ms 0
+ip link set "$IFACE" up
+clear_fault
+arm "bus-off 1"
+cansend "$IFACE" 502#03 2>/dev/null
+if wait_for_state "bus-off" 10; then
+	manual_bus_off="bus-off"
+else
+	manual_bus_off=$(stat state)
+fi
+check "manual restart setup reaches bus-off" \
+      "bus-off" "$manual_bus_off"
+ip link set "$IFACE" type can restart
+check "manual restart returns to error-active" \
+      "error-active" "$(stat state)"
+check "manual restart clears the armed fault" \
+      "none" "$(stat armed_fault)"
+out=$(capture 300 & sleep 0.1; cansend "$IFACE" 503#04; wait)
+check "manual restart restores transmission" \
+      "1" "$(grep -c '503.*04' <<<"$out")"
+
+# --- 10. arb-lost is an error but not terminal -----------------------------
 clear_fault
 arm "arb-lost 1"
 out=$(capture 300 & sleep 0.1; cansend "$IFACE" 600#01; wait)
@@ -171,7 +194,7 @@ check "arb-lost emits an error frame" \
 check "arb-lost leaves the bus usable" \
       "error-active" "$(stat state)"
 
-# --- 10. counters are trustworthy -----------------------------------------
+# --- 11. counters are trustworthy -----------------------------------------
 clear_fault
 before=$(stat tx_frames)
 cansend "$IFACE" 700#01
@@ -180,7 +203,7 @@ after=$(stat tx_frames)
 check "tx counter advances" \
       "1" "$(( after - before ))"
 
-# --- 11. rejecting a bad ABI write ----------------------------------------
+# --- 12. rejecting a bad ABI write ----------------------------------------
 if echo "not-a-mode 1" > "$DBG/inject" 2>/dev/null; then
 	check "bad fault name rejected" "rejected" "accepted"
 else

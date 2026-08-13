@@ -50,9 +50,9 @@ test:
 # The kernel's own checker. Catches the style issues a maintainer would.
 checkpatch:
 	@if [ -x "$(KDIR)/scripts/checkpatch.pl" ]; then \
-	  $(KDIR)/scripts/checkpatch.pl --no-tree --file --strict wbcan.c || true; \
+	  $(KDIR)/scripts/checkpatch.pl --no-tree --file --strict wbcan.c; \
 	else \
-	  echo "checkpatch.pl not found under $(KDIR)/scripts/"; \
+	  echo "checkpatch.pl not found under $(KDIR)/scripts/"; exit 1; \
 	fi
 
 help:

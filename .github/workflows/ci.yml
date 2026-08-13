@@ -57,22 +57,18 @@ jobs:
           make -C kernel/wbcan
           make -C kernel/wbcan checkpatch
       - name: Load the module and bring the interface up
-        id: load-module
-        continue-on-error: true
         run: |
-          sudo modprobe can can-raw can-dev
+          sudo modprobe can
+          sudo modprobe can_raw
+          sudo modprobe can_dev
           sudo insmod kernel/wbcan/wbcan.ko
           sudo ip link set wbcan0 type can restart-ms 100
           sudo ip link set wbcan0 up
           ip -details link show wbcan0
 
       - name: Run the fault suite
-        if: steps.load-module.outcome == 'success'
         run: sudo ./kernel/wbcan/test_wbcan.sh wbcan0
 
-      - name: Report unavailable kernel runtime
-        if: steps.load-module.outcome == 'failure'
-        run: echo "::warning title=Kernel runtime unavailable::The hosted runner built wbcan.ko but cannot load it; run the fault suite on a privileged Linux host."
       - name: Dump kernel log on failure
         if: failure()
         run: sudo dmesg | tail -50

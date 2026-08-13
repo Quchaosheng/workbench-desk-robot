@@ -78,8 +78,10 @@ struct wbcan_priv {
 	u8			flip_byte;
 	u8			flip_bit;
 
-	/* Observability. A fault you cannot count is a fault you cannot
-	 * assert on from a test. */
+	/*
+	 * Observability. A fault you cannot count is a fault you cannot
+	 * assert on from a test.
+	 */
 	u64			stat_tx;
 	u64			stat_rx;
 	u64			stat_injected;
@@ -126,14 +128,15 @@ static void wbcan_emit_error(struct net_device *dev, enum wbcan_fault fault)
 	enum can_state rx_state = priv->can.state;
 
 	skb = alloc_can_err_skb(dev, &cf);
-	if (!skb)
-		return;
 
 	switch (fault) {
 	case WBCAN_FAULT_BUS_OFF:
-		/* Bus-off is terminal until the driver is restarted. The CAN
+		/*
+		 * Bus-off is terminal until the driver is restarted. The CAN
 		 * core handles the restart timer if restart-ms is set, which
-		 * is what FW19 exercises. */
+		 * is what FW19 exercises. State recovery must not depend on
+		 * allocating the optional error frame.
+		 */
 		netif_stop_queue(dev);
 		tx_state = CAN_STATE_BUS_OFF;
 		rx_state = CAN_STATE_BUS_OFF;
@@ -142,30 +145,41 @@ static void wbcan_emit_error(struct net_device *dev, enum wbcan_fault fault)
 		break;
 
 	case WBCAN_FAULT_ARB_LOST:
+		if (!cf)
+			return;
 		cf->can_id |= CAN_ERR_LOSTARB;
-		/* Bit position that lost. 0 means unspecified, which is
-		 * honest here: we are not modelling a real bit timeline. */
+		/*
+		 * Bit position that lost. 0 means unspecified, which is
+		 * honest here: we are not modelling a real bit timeline.
+		 */
 		cf->data[0] = 0;
 		priv->can.can_stats.arbitration_lost++;
 		break;
 
 	case WBCAN_FAULT_STUFF_ERR:
+		if (!cf)
+			return;
 		cf->can_id |= CAN_ERR_PROT;
 		cf->data[2] = CAN_ERR_PROT_STUFF;
-		/* Errors accumulate toward passive then bus-off, mirroring
-		 * the real REC/TEC rules the firmware has to survive. */
+		/*
+		 * Errors accumulate toward passive then bus-off, mirroring
+		 * the real REC/TEC rules the firmware has to survive.
+		 */
 		priv->can.can_stats.bus_error++;
 		tx_state = CAN_STATE_ERROR_WARNING;
 		can_change_state(dev, cf, tx_state, rx_state);
 		break;
 
 	default:
+		if (!cf)
+			return;
 		cf->can_id |= CAN_ERR_CRTL;
 		cf->data[1] = CAN_ERR_CRTL_UNSPEC;
 		break;
 	}
 
-	netif_rx(skb);
+	if (skb)
+		netif_rx(skb);
 }
 
 /* --------------------------------------------------------------- netdev ops */
@@ -214,8 +228,10 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
 	if (priv->can.state == CAN_STATE_BUS_OFF) {
 		spin_unlock_irqrestore(&priv->lock, flags);
-		/* A real controller does not quietly accept frames while
-		 * bus-off. Report it so the firmware's TX error path runs. */
+		/*
+		 * A real controller does not quietly accept frames while
+		 * bus-off. Report it so the firmware's TX error path runs.
+		 */
 		dev->stats.tx_dropped++;
 		kfree_skb(skb);
 		return NETDEV_TX_OK;
@@ -229,13 +245,17 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
 	switch (fault) {
 	case WBCAN_FAULT_TX_FULL:
-		/* Mailboxes full. Stopping the queue and returning BUSY is
+		/*
+		 * Mailboxes full. Stopping the queue and returning BUSY is
 		 * how a real driver applies backpressure; the stack will
-		 * retry when we wake it. */
+		 * retry when we wake it.
+		 */
 		netif_stop_queue(dev);
 		wbcan_emit_error(dev, fault);
-		/* Wake immediately: we are modelling a transient full
-		 * condition, not a wedge. Without this the test hangs. */
+		/*
+		 * Wake immediately: we are modelling a transient full
+		 * condition, not a wedge. Without this the test hangs.
+		 */
 		netif_wake_queue(dev);
 		return NETDEV_TX_BUSY;
 
@@ -248,8 +268,10 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 		return NETDEV_TX_OK;
 
 	case WBCAN_FAULT_DROP_TX:
-		/* Accepted, counted, never delivered. This is the nastiest
-		 * failure for firmware: no error, no frame. */
+		/*
+		 * Accepted, counted, never delivered. This is the nastiest
+		 * failure for firmware: no error, no frame.
+		 */
 		dev->stats.tx_packets++;
 		dev->stats.tx_bytes += cf->len;
 		kfree_skb(skb);
@@ -262,8 +284,10 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	dev->stats.tx_packets++;
 	dev->stats.tx_bytes += cf->len;
 
-	/* Deliver to local sockets. skb_clone because the RX path consumes it
-	 * and the TX echo may still want the original. */
+	/*
+	 * Deliver to local sockets. skb_clone because the RX path consumes it
+	 * and the TX echo may still want the original.
+	 */
 	rx_skb = skb_clone(skb, GFP_ATOMIC);
 	if (!rx_skb) {
 		kfree_skb(skb);
@@ -314,9 +338,11 @@ static int wbcan_set_mode(struct net_device *dev, enum can_mode mode)
 	case CAN_MODE_START:
 		spin_lock_irqsave(&priv->lock, flags);
 		priv->can.state = CAN_STATE_ERROR_ACTIVE;
-		/* Clear the armed fault on restart. Leaving it armed would
+		/*
+		 * Clear the armed fault on restart. Leaving it armed would
 		 * make recovery tests flap for reasons the test did not ask
-		 * for. */
+		 * for.
+		 */
 		priv->fault = WBCAN_FAULT_NONE;
 		priv->fault_count = 0;
 		spin_unlock_irqrestore(&priv->lock, flags);
@@ -410,7 +436,7 @@ static int wbcan_status_show(struct seq_file *s, void *unused)
 		   priv->can.state == CAN_STATE_ERROR_PASSIVE ? "error-passive" :
 		   priv->can.state == CAN_STATE_BUS_OFF       ? "bus-off"       :
 		   priv->can.state == CAN_STATE_STOPPED       ? "stopped"       :
-							        "sleeping");
+							"sleeping");
 	seq_printf(s, "armed_fault   %s\n", wbcan_fault_names[priv->fault]);
 	seq_printf(s, "shots_left    %u\n", priv->fault_count);
 	seq_printf(s, "skip_first    %u\n", priv->fault_after);
@@ -460,9 +486,11 @@ static int __init wbcan_init(void)
 	struct wbcan_priv *priv;
 	int err;
 
-	/* echo_skb_max 0: we do our own loopback in start_xmit rather than
+	/*
+	 * echo_skb_max 0: we do our own loopback in start_xmit rather than
 	 * using can_put_echo_skb, because the fault plane needs to decide
-	 * whether the frame comes back at all. */
+	 * whether the frame comes back at all.
+	 */
 	wbcan_dev = alloc_candev(sizeof(struct wbcan_priv), 0);
 	if (!wbcan_dev)
 		return -ENOMEM;
@@ -477,10 +505,12 @@ static int __init wbcan_init(void)
 	wbcan_dev->flags |= IFF_ECHO;
 	strscpy(wbcan_dev->name, "wbcan%d", IFNAMSIZ);
 
-	/* No real bit timing: there is no wire. Advertising fixed bitrate
+	/*
+	 * No real bit timing: there is no wire. Advertising fixed bitrate
 	 * keeps `ip link set up` from demanding timing parameters, and makes
 	 * it obvious this device does not model the physical layer. That is
-	 * FW18's job, on the board. */
+	 * FW18's job, on the board.
+	 */
 	priv->can.bittiming.bitrate = 1000000;
 	priv->can.ctrlmode_supported = CAN_CTRLMODE_LOOPBACK |
 				       CAN_CTRLMODE_BERR_REPORTING;

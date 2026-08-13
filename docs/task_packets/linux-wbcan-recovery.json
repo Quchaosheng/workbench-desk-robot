@@ -5,6 +5,8 @@
   "allowed_paths": [
     "kernel/wbcan/wbcan.c",
     "kernel/wbcan/test_wbcan.sh",
+    "kernel/wbcan/Makefile",
+    ".github/workflows/ci.yml",
     "docs/task_packets/linux-wbcan-recovery.json"
   ],
   "read_only_paths": [
@@ -23,7 +25,9 @@
     "bus-off state uses can_change_state and can_bus_off",
     "restart-ms automatically recovers without cycling the interface",
     "the fault suite proves post-restart transmission",
-    "kernel build and checkpatch pass"
+    "manual CAN-core restart remains supported",
+    "kernel build and checkpatch failures stop CI",
+    "CI loads each CAN dependency and runs the privileged fault suite"
   ],
   "commands": [
     "make -C kernel/wbcan",
@@ -35,7 +39,7 @@
     "kernel module build output",
     "checkpatch output",
     "privileged wbcan fault-suite output",
-    "automatic recovery and post-restart transmission assertions"
+    "automatic and manual recovery post-restart transmission assertions"
   ],
   "stop_conditions": [
     "firmware or interface schema changes are required",

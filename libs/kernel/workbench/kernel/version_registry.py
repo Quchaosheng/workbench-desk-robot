@@ -10,6 +10,10 @@ class VersionRegistryError(ValueError):
     """Raised when a version registry cannot be loaded or written safely."""
 
 
+class VersionConflictError(VersionRegistryError):
+    """Raised when a published schema version is registered with new content."""
+
+
 class VersionRegistry:
     def __init__(self, registry_file: Path):
         self.registry_file = registry_file
@@ -49,6 +53,13 @@ class VersionRegistry:
         if not isinstance(version, str) or not version:
             raise ValueError("schema version must be a non-empty string")
         with self._lock:
+            existing = self.versions.get(name, {}).get(version)
+            if version in self.versions.get(name, {}):
+                if existing == content:
+                    return
+                raise VersionConflictError(
+                    f"schema {name!r} version {version!r} is already registered with different content"
+                )
             updated = {schema: dict(versions) for schema, versions in self.versions.items()}
             updated.setdefault(name, {})[version] = content
             self._persist(updated)

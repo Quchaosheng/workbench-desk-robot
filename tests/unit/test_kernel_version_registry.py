@@ -7,7 +7,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "libs" / "kernel"))
 
-from workbench.kernel.version_registry import VersionRegistry, VersionRegistryError
+from workbench.kernel.version_registry import VersionConflictError, VersionRegistry, VersionRegistryError
 
 
 def test_registry_survives_reopen_and_keeps_versions_separate(tmp_path: Path) -> None:
@@ -42,3 +42,33 @@ def test_unserializable_content_does_not_replace_in_memory_state(tmp_path: Path)
         registry.register_schema("action", "1.0.0", {"bad": {1, 2}})
     assert registry.versions == {}
     assert not path.exists()
+
+
+def test_identical_registration_is_idempotent(tmp_path: Path) -> None:
+    path = tmp_path / "registry.json"
+    registry = VersionRegistry(path)
+    content = {"type": "object", "required": ["id"]}
+    registry.register_schema("action", "1.0.0", content)
+    before = path.read_bytes()
+    before_mtime = path.stat().st_mtime_ns
+
+    registry.register_schema("action", "1.0.0", {"type": "object", "required": ["id"]})
+
+    assert path.read_bytes() == before
+    assert path.stat().st_mtime_ns == before_mtime
+    assert VersionRegistry(path).versions["action"]["1.0.0"] == content
+
+
+def test_conflicting_registration_is_rejected_without_writing(tmp_path: Path) -> None:
+    path = tmp_path / "registry.json"
+    registry = VersionRegistry(path)
+    registry.register_schema("action", "1.0.0", {"required": ["id"]})
+    before = path.read_bytes()
+
+    with pytest.raises(VersionConflictError, match="already registered"):
+        registry.register_schema("action", "1.0.0", {"required": ["target"]})
+
+    assert registry.versions["action"]["1.0.0"] == {"required": ["id"]}
+    assert path.read_bytes() == before
+    assert not path.with_name(f".{path.name}.tmp").exists()
+    assert VersionRegistry(path).versions == registry.versions

@@ -37,6 +37,13 @@ required, out-of-range integers, wall-clock timestamps and unknown enum values
 are invalid. Producers must not emit them. Consumers must reject the complete
 frame without applying a command or changing confirmed state.
 
+The Schema declares the obsolete `sent_at` name only so the repository's
+limited object-schema compiler can inspect the field table. Every v1.0 frame
+branch explicitly rejects it; it is not a protocol field. `sent_at_us` is the
+only valid timestamp field. The compiler-generated flat model is not the
+normative MCU validator; consumers use the full JSON Schema or exported
+`McuFrame` model.
+
 `frame_id` is evidence identity. `command_id` is command correlation. A
 deliberate retry keeps the same command semantics and `command_id`, increments
 `retry_count`, and uses a new `frame_id` and send timestamp. A link-level copy

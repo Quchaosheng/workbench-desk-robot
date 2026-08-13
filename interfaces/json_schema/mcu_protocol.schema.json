@@ -1,32 +1,26 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "mcu_protocol.schema.json",
   "title": "McuFrame",
   "description": "Workbench MCU logical-frame protocol v1.0. This contract freezes frame meaning, not the binary CAN payload encoding.",
   "type": "object",
-  "oneOf": [
-    {"$ref": "#/$defs/command"},
-    {"$ref": "#/$defs/ack"},
-    {"$ref": "#/$defs/telemetry"},
-    {"$ref": "#/$defs/stop"},
-    {"$ref": "#/$defs/stop_ack"}
-  ],
-  "$defs": {
-    "protocol_version": {"const": "1.0"},
-    "frame_id": {
+  "additionalProperties": false,
+  "required": ["frame_id", "frame_kind"],
+  "properties": {
+    "protocol_version": {"type": "string", "enum": ["1.0"]},
+    "frame_id": {"type": "string"},
+    "frame_kind": {
       "type": "string",
-      "minLength": 11,
-      "maxLength": 74,
-      "pattern": "^mcu-frame-[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$"
+      "enum": ["command", "ack", "telemetry", "stop", "stop_ack"]
     },
-    "ordinary_command_id": {"type": "integer", "minimum": 0, "maximum": 32767},
-    "stop_command_id": {"type": "integer", "minimum": 32768, "maximum": 65535},
+    "command_id": {"type": "integer", "minimum": 0, "maximum": 65535},
     "sequence_no": {"type": "integer", "minimum": 0, "maximum": 4294967295},
-    "ordinary_opcode": {
-      "enum": ["move", "grip_open", "grip_close", "hold", "heartbeat"]
+    "opcode": {
+      "type": "string",
+      "enum": ["move", "grip_open", "grip_close", "hold", "stop", "heartbeat"]
     },
     "result_code": {"type": "integer", "enum": [0, 1]},
     "fault_code": {
+      "type": "string",
       "enum": [
         "none",
         "ack_timeout",
@@ -38,190 +32,265 @@
         "malformed_frame"
       ]
     },
-    "telemetry_fault_code": {"enum": ["none", "link_lost", "watchdog_expired"]},
-    "non_faulted_device_mode": {"enum": ["idle", "moving", "holding", "stopped"]},
-    "device_mode": {"enum": ["idle", "moving", "holding", "stopped", "faulted"]},
+    "device_mode": {
+      "type": "string",
+      "enum": ["idle", "moving", "holding", "stopped", "faulted"]
+    },
     "retry_count": {"type": "integer", "minimum": 0, "maximum": 255},
     "sent_at_us": {
       "type": "integer",
       "minimum": 0,
       "maximum": 18446744073709551615
     },
-    "clock_id": {"const": "monotonic"},
-    "command": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "protocol_version",
-        "frame_id",
-        "frame_kind",
-        "command_id",
-        "opcode",
-        "retry_count",
-        "sent_at_us",
-        "clock_id"
-      ],
-      "properties": {
-        "protocol_version": {"$ref": "#/$defs/protocol_version"},
-        "frame_id": {"$ref": "#/$defs/frame_id"},
-        "frame_kind": {"const": "command"},
-        "command_id": {"$ref": "#/$defs/ordinary_command_id"},
-        "opcode": {"$ref": "#/$defs/ordinary_opcode"},
-        "retry_count": {"$ref": "#/$defs/retry_count"},
-        "sent_at_us": {"$ref": "#/$defs/sent_at_us"},
-        "clock_id": {"$ref": "#/$defs/clock_id"}
-      }
-    },
-    "ack": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "protocol_version",
-        "frame_id",
-        "frame_kind",
-        "command_id",
-        "opcode",
-        "result_code",
-        "fault_code",
-        "device_mode",
-        "retry_count",
-        "sent_at_us",
-        "clock_id"
-      ],
-      "properties": {
-        "protocol_version": {"$ref": "#/$defs/protocol_version"},
-        "frame_id": {"$ref": "#/$defs/frame_id"},
-        "frame_kind": {"const": "ack"},
-        "command_id": {"$ref": "#/$defs/ordinary_command_id"},
-        "opcode": {"$ref": "#/$defs/ordinary_opcode"},
-        "result_code": {"$ref": "#/$defs/result_code"},
-        "fault_code": {"$ref": "#/$defs/fault_code"},
-        "device_mode": {"$ref": "#/$defs/device_mode"},
-        "retry_count": {"$ref": "#/$defs/retry_count"},
-        "sent_at_us": {"$ref": "#/$defs/sent_at_us"},
-        "clock_id": {"$ref": "#/$defs/clock_id"}
-      },
-      "allOf": [
-        {
-          "if": {"properties": {"result_code": {"const": 0}}, "required": ["result_code"]},
-          "then": {
-            "properties": {
-              "fault_code": {"const": "none"},
-              "device_mode": {"$ref": "#/$defs/non_faulted_device_mode"}
-            }
-          },
-          "else": {
-            "properties": {
-              "fault_code": {"enum": ["duplicate_frame", "malformed_frame"]},
-              "device_mode": {"const": "faulted"}
-            }
-          }
-        }
-      ]
-    },
-    "telemetry": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "protocol_version",
-        "frame_id",
-        "frame_kind",
-        "sequence_no",
-        "fault_code",
-        "device_mode",
-        "sent_at_us",
-        "clock_id"
-      ],
-      "properties": {
-        "protocol_version": {"$ref": "#/$defs/protocol_version"},
-        "frame_id": {"$ref": "#/$defs/frame_id"},
-        "frame_kind": {"const": "telemetry"},
-        "sequence_no": {"$ref": "#/$defs/sequence_no"},
-        "fault_code": {"$ref": "#/$defs/telemetry_fault_code"},
-        "device_mode": {"$ref": "#/$defs/device_mode"},
-        "sent_at_us": {"$ref": "#/$defs/sent_at_us"},
-        "clock_id": {"$ref": "#/$defs/clock_id"}
-      },
-      "allOf": [
-        {
-          "if": {"properties": {"fault_code": {"const": "none"}}, "required": ["fault_code"]},
-          "then": {
-            "properties": {"device_mode": {"$ref": "#/$defs/non_faulted_device_mode"}}
-          },
-          "else": {"properties": {"device_mode": {"const": "faulted"}}}
-        }
-      ]
-    },
-    "stop": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "protocol_version",
-        "frame_id",
-        "frame_kind",
-        "command_id",
-        "opcode",
-        "retry_count",
-        "sent_at_us",
-        "clock_id"
-      ],
-      "properties": {
-        "protocol_version": {"$ref": "#/$defs/protocol_version"},
-        "frame_id": {"$ref": "#/$defs/frame_id"},
-        "frame_kind": {"const": "stop"},
-        "command_id": {"$ref": "#/$defs/stop_command_id"},
-        "opcode": {"const": "stop"},
-        "retry_count": {"$ref": "#/$defs/retry_count"},
-        "sent_at_us": {"$ref": "#/$defs/sent_at_us"},
-        "clock_id": {"$ref": "#/$defs/clock_id"}
-      }
-    },
-    "stop_ack": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "protocol_version",
-        "frame_id",
-        "frame_kind",
-        "command_id",
-        "opcode",
-        "result_code",
-        "fault_code",
-        "device_mode",
-        "retry_count",
-        "sent_at_us",
-        "clock_id"
-      ],
-      "properties": {
-        "protocol_version": {"$ref": "#/$defs/protocol_version"},
-        "frame_id": {"$ref": "#/$defs/frame_id"},
-        "frame_kind": {"const": "stop_ack"},
-        "command_id": {"$ref": "#/$defs/stop_command_id"},
-        "opcode": {"const": "stop"},
-        "result_code": {"$ref": "#/$defs/result_code"},
-        "fault_code": {"$ref": "#/$defs/fault_code"},
-        "device_mode": {"$ref": "#/$defs/device_mode"},
-        "retry_count": {"$ref": "#/$defs/retry_count"},
-        "sent_at_us": {"$ref": "#/$defs/sent_at_us"},
-        "clock_id": {"$ref": "#/$defs/clock_id"}
-      },
-      "allOf": [
-        {
-          "if": {"properties": {"result_code": {"const": 0}}, "required": ["result_code"]},
-          "then": {
-            "properties": {
-              "fault_code": {"const": "none"},
-              "device_mode": {"const": "stopped"}
-            }
-          },
-          "else": {
-            "properties": {
-              "fault_code": {"const": "stop_rejected"},
-              "device_mode": {"const": "faulted"}
-            }
-          }
-        }
-      ]
+    "clock_id": {"type": "string", "enum": ["monotonic"]},
+    "sent_at": {
+      "type": "string",
+      "description": "Legacy Schema Compiler compatibility field; every protocol v1.0 frame branch rejects it."
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"frame_kind": {"const": "command"}}},
+      "then": {
+        "properties": {"command_id": {"minimum": 0, "maximum": 32767}},
+        "required": [
+          "protocol_version",
+          "frame_id",
+          "frame_kind",
+          "command_id",
+          "opcode",
+          "retry_count",
+          "sent_at_us",
+          "clock_id"
+        ],
+        "allOf": [
+          {
+            "properties": {
+              "frame_id": {
+                "pattern": "^mcu-frame-[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$"
+              }
+            }
+          },
+          {
+            "properties": {
+              "opcode": {
+                "enum": ["move", "grip_open", "grip_close", "hold", "heartbeat"]
+              }
+            }
+          },
+          {
+            "not": {
+              "anyOf": [
+                {"required": ["sequence_no"]},
+                {"required": ["result_code"]},
+                {"required": ["fault_code"]},
+                {"required": ["device_mode"]},
+                {"required": ["sent_at"]}
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {"properties": {"frame_kind": {"const": "ack"}}},
+      "then": {
+        "properties": {"command_id": {"minimum": 0, "maximum": 32767}},
+        "required": [
+          "protocol_version",
+          "frame_id",
+          "frame_kind",
+          "command_id",
+          "opcode",
+          "result_code",
+          "fault_code",
+          "device_mode",
+          "retry_count",
+          "sent_at_us",
+          "clock_id"
+        ],
+        "allOf": [
+          {
+            "properties": {
+              "frame_id": {
+                "pattern": "^mcu-frame-[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$"
+              }
+            }
+          },
+          {
+            "properties": {
+              "opcode": {
+                "enum": ["move", "grip_open", "grip_close", "hold", "heartbeat"]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {"result_code": {"const": 0}},
+              "required": ["result_code"]
+            },
+            "then": {
+              "properties": {
+                "fault_code": {"const": "none"},
+                "device_mode": {"enum": ["idle", "moving", "holding", "stopped"]}
+              }
+            },
+            "else": {
+              "properties": {
+                "fault_code": {"enum": ["duplicate_frame", "malformed_frame"]},
+                "device_mode": {"const": "faulted"}
+              }
+            }
+          },
+          {
+            "not": {
+              "anyOf": [{"required": ["sequence_no"]}, {"required": ["sent_at"]}]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {"properties": {"frame_kind": {"const": "telemetry"}}},
+      "then": {
+        "properties": {"sequence_no": {"minimum": 0, "maximum": 4294967295}},
+        "required": [
+          "protocol_version",
+          "frame_id",
+          "frame_kind",
+          "sequence_no",
+          "fault_code",
+          "device_mode",
+          "sent_at_us",
+          "clock_id"
+        ],
+        "allOf": [
+          {
+            "properties": {
+              "frame_id": {
+                "pattern": "^mcu-frame-[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$"
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {"fault_code": {"const": "none"}},
+              "required": ["fault_code"]
+            },
+            "then": {
+              "properties": {
+                "device_mode": {"enum": ["idle", "moving", "holding", "stopped"]}
+              }
+            },
+            "else": {
+              "properties": {
+                "fault_code": {"enum": ["link_lost", "watchdog_expired"]},
+                "device_mode": {"const": "faulted"}
+              }
+            }
+          },
+          {
+            "not": {
+              "anyOf": [
+                {"required": ["command_id"]},
+                {"required": ["opcode"]},
+                {"required": ["result_code"]},
+                {"required": ["retry_count"]},
+                {"required": ["sent_at"]}
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {"properties": {"frame_kind": {"const": "stop"}}},
+      "then": {
+        "properties": {"command_id": {"minimum": 32768, "maximum": 65535}},
+        "required": [
+          "protocol_version",
+          "frame_id",
+          "frame_kind",
+          "command_id",
+          "opcode",
+          "retry_count",
+          "sent_at_us",
+          "clock_id"
+        ],
+        "allOf": [
+          {
+            "properties": {
+              "frame_id": {
+                "pattern": "^mcu-frame-[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$"
+              },
+              "opcode": {"const": "stop"}
+            }
+          },
+          {
+            "not": {
+              "anyOf": [
+                {"required": ["sequence_no"]},
+                {"required": ["result_code"]},
+                {"required": ["fault_code"]},
+                {"required": ["device_mode"]},
+                {"required": ["sent_at"]}
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {"properties": {"frame_kind": {"const": "stop_ack"}}},
+      "then": {
+        "properties": {"command_id": {"minimum": 32768, "maximum": 65535}},
+        "required": [
+          "protocol_version",
+          "frame_id",
+          "frame_kind",
+          "command_id",
+          "opcode",
+          "result_code",
+          "fault_code",
+          "device_mode",
+          "retry_count",
+          "sent_at_us",
+          "clock_id"
+        ],
+        "allOf": [
+          {
+            "properties": {
+              "frame_id": {
+                "pattern": "^mcu-frame-[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$"
+              },
+              "opcode": {"const": "stop"}
+            }
+          },
+          {
+            "if": {
+              "properties": {"result_code": {"const": 0}},
+              "required": ["result_code"]
+            },
+            "then": {
+              "properties": {
+                "fault_code": {"const": "none"},
+                "device_mode": {"const": "stopped"}
+              }
+            },
+            "else": {
+              "properties": {
+                "fault_code": {"const": "stop_rejected"},
+                "device_mode": {"const": "faulted"}
+              }
+            }
+          },
+          {
+            "not": {
+              "anyOf": [{"required": ["sequence_no"]}, {"required": ["sent_at"]}]
+            }
+          }
+        ]
+      }
+    }
+  ]
 }

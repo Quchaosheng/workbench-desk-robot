@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from jsonschema import Draft202012Validator
 from pydantic import ValidationError
+from workbench.kernel.schema_compiler import SchemaCompiler
 from workbench_contracts import (
     McuDeviceMode,
     McuFaultCode,
@@ -183,20 +184,17 @@ def test_schema_and_model_reject_invalid_frame_corpus(label: str, payload: dict[
 
 
 def test_protocol_vocabularies_match_schema_and_documentation() -> None:
-    schema_frame_kinds = [
-        SCHEMA["$defs"][reference["$ref"].removeprefix("#/$defs/")]["properties"]["frame_kind"]["const"]
-        for reference in SCHEMA["oneOf"]
-    ]
+    schema_frame_kinds = SCHEMA["properties"]["frame_kind"]["enum"]
     assert schema_frame_kinds == [frame_kind.value for frame_kind in McuFrameKind]
 
-    schema_ordinary_opcodes = SCHEMA["$defs"]["ordinary_opcode"]["enum"]
+    schema_ordinary_opcodes = SCHEMA["allOf"][0]["then"]["allOf"][1]["properties"]["opcode"]["enum"]
     model_ordinary_opcodes = [opcode.value for opcode in McuOpcode if opcode is not McuOpcode.STOP]
     assert schema_ordinary_opcodes == model_ordinary_opcodes
-    assert SCHEMA["$defs"]["stop"]["properties"]["opcode"] == {"const": McuOpcode.STOP.value}
+    assert SCHEMA["allOf"][3]["then"]["allOf"][0]["properties"]["opcode"] == {"const": McuOpcode.STOP.value}
 
-    assert SCHEMA["$defs"]["device_mode"]["enum"] == [mode.value for mode in McuDeviceMode]
+    assert SCHEMA["properties"]["device_mode"]["enum"] == [mode.value for mode in McuDeviceMode]
 
-    schema_fault_codes = SCHEMA["$defs"]["fault_code"]["enum"]
+    schema_fault_codes = SCHEMA["properties"]["fault_code"]["enum"]
     assert schema_fault_codes == [fault.value for fault in McuFaultCode]
     for fault_code in schema_fault_codes:
         assert PROTOCOL_DOC.count(f"| `{fault_code}` |") == 1
@@ -251,6 +249,19 @@ def test_ordinary_command_serial_half_range_vectors(last_accepted: int, candidat
 )
 def test_telemetry_sequence_half_range_vectors(last_accepted: int, candidate: int, expected: str) -> None:
     assert classify_telemetry_sequence(last_accepted, candidate) == expected
+
+
+def test_repository_schema_compiler_accepts_protocol_metadata(tmp_path: Path) -> None:
+    compiler = SchemaCompiler(ROOT / "interfaces" / "json_schema")
+    compiler.load_schemas()
+    compiler.compile_all(tmp_path / "python", tmp_path / "typescript")
+
+    generated = tmp_path / "python" / "mcu_protocol.py"
+    namespace: dict[str, object] = {}
+    exec(compile(generated.read_text(encoding="utf-8"), str(generated), "exec"), namespace)
+    generated_model = namespace["McuFrame"]
+    generated_model(frame_id="f", frame_kind="command", command_id=32767, sent_at="compat")
+    generated_model(frame_id="f", frame_kind="stop", command_id=32768, sent_at="compat")
 
 
 def test_committed_stop_ack_round_trips_through_schema_and_model() -> None:

@@ -54,3 +54,12 @@ gripper:
   planning_group: gripper
   # tool0 -> grasp_tcp offset along tool0 +z (arm_on_workbench.urdf.xacro arg tcp_z).
   tcp_offset_z: 0.16
+
+# Controller names and controller-manager settings are safety-relevant runtime
+# configuration. Consumers must read them through ArmConfig and fail closed if
+# this section is absent.
+controllers:
+  update_rate_hz: 500
+  joint_state_broadcaster: joint_state_broadcaster
+  arm_trajectory_controller: arm_trajectory_controller
+  gripper_controller: gripper_controller

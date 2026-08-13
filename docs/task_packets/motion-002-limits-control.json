@@ -1,0 +1,70 @@
+{
+  "issue": 116,
+  "human_owner": "cyathea152-bit",
+  "objective": "Motion phase 2: joint limits (three distinct sources) + ros2_control + controllers for the UR5e + Robotiq 2F-85 composition, plus the pure-logic over-limit trajectory validator. Deliver a gz_ros2_control block behind a sim_gz xacro arg (phase-1 zero regression), controllers.yaml (arm JointTrajectoryController + GripperActionController [package gripper_controllers, plugin type position_controllers/GripperActionController - historical namespace] + joint_state_broadcaster) with names sourced from arm.yaml, a config-only hw_override safety layer (structure only; content stays empty for P0 sim per ADR-0001), a reproducible sim_control.launch.py, and workbench_motion/joint_limits.py whose check_trajectory is a PURE JUDGMENT (returns Violation|None, no side effects, never clamps) that accepts current joint state to check the current->first-point segment (prevents single-point-large-jump bypass), AND is a CONSERVATIVE PRE-FILTER (no JTC spline-peak or hard acceleration check). Per docs/context/CONSTRAINTS.yaml the end-to-end zero-motion enforcement - event emission, zero-dispatch, EvidenceSink closure, sole trajectory gate, anti-bypass, namespace isolation, AND the real spline-extremum/runtime-monitoring needed to actually guarantee zero-over-limit - is phase 4's release-line responsibility, not phase 2. Phase 2 delivers the pure validator kernel + a phase2_probe tool that empirically records the controller's actual over-limit behavior as one of SIX classes (rejected/aborted/clamped/executed_over_limit/timeout/unclassified; last four fail the gate), the TF chain, and the gripper mimic ratios (computed as delta-follower/delta-driver, not absolute position ratio). PLAN.md phase-2 acceptance was updated on 2026-08-10 to move end-to-end rejection to phase 4, so the two build docs agree. No ActionResult/interfaces changes. C13/C14 real-hardware safety and C5/C6 recovery/safe-stop are out of scope (phase 3/4/6). Launch/package.xml/setup.py changes require Linux Owner review per AGENTS.md:18.",
+  "allowed_paths": [
+    "robot/control/**",
+    "docs/task_packets/motion-002-limits-control.json",
+    "docs/evaluation/phase2-controllers.json",
+    ".gitignore"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "robot/description/**",
+    "docs/context/**",
+    "docs/architecture/**",
+    "AGENTS.md"
+  ],
+  "forbidden": [
+    "firmware/**",
+    "services/**",
+    "interfaces/**",
+    "robot/description/**"
+  ],
+  "acceptance": [
+    "xacro <install-or-source>/config/arm_on_workbench.urdf.xacro sim_gz:=true > /tmp/wb_ctrl.urdf expands to a single connected tree (check_urdf passes) containing the gz_ros2_control/GazeboSimSystem hardware plugin, position command_interfaces for all 6 arm joints + the gripper driver joint, and the gz_ros2_control-system gazebo plugin whose <parameters> points at controllers.yaml",
+    "sim_gz:=false (default) is unchanged: move_group launch and the phase-1 reachability gate still pass (phase-1 zero regression)",
+    "ros2 control list_controllers shows joint_state_broadcaster, arm_trajectory_controller and gripper_controller all active (C2-derived acceptance per 05-机械臂资产.md:13, NOT a README Metrics row; requires gz_ros2_control + controllers apt install, run locally)",
+    "TF is complete (C2 explicitly lists URDF/TF/controllers/limits): /tf and /tf_static resolve the chain world->base_link->...->tool0->grasp_tcp with no missing frames",
+    "a legal FollowJointTrajectory reaches the goal in Gazebo; no-penetration is evidenced by MoveIt /check_state_validity (moveit_msgs/GetStateValidity) - the single pinned path (repo has no Gazebo contact sensor/bridge; merged URDF is MoveIt's collision authority). Since /check_state_validity validates ONE state, the path is checked at each observed /joint_states sample AND at trajectory points densified to a fixed joint step collision_check_resolution_rad (default 0.05) - endpoint-valid does not prove path-collision-free; /joint_states before/after recorded",
+    "sim_control.launch.py does NOT include phase-1 move_group.launch.py (which starts a static joint_state_publisher and hardcodes use_sim_time=false at line 91,113); it builds a separate move_group Node via a shared param-assembly helper (workbench_motion/launch_utils.py) with use_sim_time=true, a single robot_state_publisher, NO joint_state_publisher, and /joint_states sourced only from joint_state_broadcaster",
+    "controller names, update_rate, arm joint list and gripper driver joint are read from config/arm.yaml (arm.vendor_description_pkg/arm.ur_type for hard limits path, controllers: section for names) by runtime Python via workbench_motion.arm_config, not hard-coded; controllers.yaml <-> arm.yaml consistency is regression-guarded in test/test_controllers_config.py",
+    "workbench_motion/joint_limits.py loads hard limits from vendor ur5e joint_limits.yaml via arm.yaml arm.vendor_description_pkg/arm.ur_type (custom !degrees tag), enforces override subset-of-hard fail-closed (empty/missing/looser/unknown-joint/bad-unit), and check_trajectory(traj, current_joint_positions) is a PURE JUDGMENT (input trajectory + current state -> Violation|None, NO event/dispatch/EvidenceSink side effects) covering position/velocity/effort/NaN-Inf/negative-or-non-strictly-increasing-time_from_start/optional-velocities-accelerations-effort-length-must-be-0-or-njoints/current-to-first-point-segment-velocity (first.time_from_start<0 rejects; ==0 requires first.positions match current within epsilon; >0 checks |first-current|/t segment velocity; prevents single-point-large-jump bypass)/segment-mean-velocity-under-linear-interpolation/missing-empty-duplicate-unknown-partial joint_names, with limit_epsilon that only tightens (never widens a hard limit outward), WITHOUT clamping; all covered by attack-style tests under uv run pytest with no ROS. It validates hard-limits intersect hw_override (NOT planning limits - those are MoveIt's planning-time constraint). It is a CONSERVATIVE PRE-FILTER (no JTC spline peak, no hard acceleration check) - not a sole guarantee of zero-over-limit; event emission, zero-dispatch and EvidenceSink closure are phase 4",
+    "the controller's ACTUAL over-limit behavior (raw FollowJointTrajectory to JTC) is observed via /joint_states before/after + action result and classified into SIX classes: rejected / aborted / clamped / executed_over_limit / timeout / unclassified; clamped + executed_over_limit + timeout + unclassified all FAIL the gate (executed_over_limit directly violates collision_or_limit_violation=0); clamped and executed_over_limit are registered as bypass risks phase 4 must eliminate; only rejected/aborted (confirmed no over-limit) count as controller-side protection",
+    "the Robotiq 2F-85 mimic linkage is validated by a minimal spike: after open->close, all five follower joints satisfy their multiplier ratio (computed as delta-follower / delta-driver, NOT absolute position ratio) to the driver joint within tolerance_abs=0.02 (NOT just controller active); if the driver-joint-only macro does not drive the followers under gz_ros2_control, fall back to explicitly declaring the five follower joints + multipliers (per vendor macro) and record it",
+    "phase2_probe is one console command that emits docs/evaluation/phase2-controllers.json (atomic replace on success; failure exits nonzero and does not publish a new artifact; consumers validate exit status, commit, git_dirty and config hashes); it depends on control_msgs/trajectory_msgs/controller_manager_msgs/tf2_ros/moveit_msgs/sensor_msgs (declared in package.xml); before sending any over-limit trajectory it fail-closed confirms the hardware plugin is gz_ros2_control/GazeboSimSystem and aborts otherwise; missing/timed-out endpoints (ListControllers/action/GetStateValidity/TF) yield a non-zero exit and no empty-passing JSON; stale TF/JointState (beyond staleness_s) is flagged not silently used",
+    "test/test_phase2_probe.py covers (with mocked ROS IO, under uv run pytest) the six-class over-limit classification (rejected/aborted/clamped/executed_over_limit/timeout/unclassified) with the last four failing the gate, timeouts, stale TF/JointState, missing topic/action/service -> non-zero exit without empty JSON, JSON schema, mimic ratio delta-based computation, and the non-GazeboSimSystem -> refuse-to-send fail-closed path",
+    "docs/evaluation/phase2-controllers.json records commit, software versions, controller states, the TF chain check, the gripper mimic ratios, the legal trajectory + its collision evidence, the observed controller over-limit behavior, and the validator Violation (no event_id at phase 2 - events are phase 4), plus /joint_states before/after",
+    "colcon build --packages-select workbench_motion passes; root make lint/test/contract/scenario-check/context-check stay green (no interfaces change)"
+  ],
+  "commands": [
+    "make task-check PACKET=docs/task_packets/motion-002-limits-control.json",
+    "uv run --directory robot/control pytest",
+    "source /opt/ros/jazzy/setup.bash && colcon build --packages-select workbench_motion && source install/setup.bash",
+    "source /opt/ros/jazzy/setup.bash && source install/setup.bash && xacro $(ros2 pkg prefix workbench_motion)/share/workbench_motion/config/arm_on_workbench.urdf.xacro sim_gz:=true > /tmp/wb_ctrl.urdf && check_urdf /tmp/wb_ctrl.urdf",
+    "source /opt/ros/jazzy/setup.bash && source install/setup.bash && ros2 launch workbench_motion sim_control.launch.py",
+    "source /opt/ros/jazzy/setup.bash && source install/setup.bash && ros2 control list_controllers",
+    "source /opt/ros/jazzy/setup.bash && source install/setup.bash && ros2 control list_controller_types | grep -i gripper",
+    "source /opt/ros/jazzy/setup.bash && source install/setup.bash && ros2 run workbench_motion phase2_probe",
+    "make lint && make test && make contract && make scenario-check && make context-check"
+  ],
+  "evidence": [
+    "check_urdf output on the sim_gz:=true expansion + grep of the gz_ros2_control plugin and command_interfaces",
+    "ros2 control list_controllers output (three controllers active)",
+    "docs/evaluation/phase2-controllers.json (generated by phase2_probe) with controller states, TF chain check, gripper mimic ratios, legal trajectory + collision evidence, observed over-limit behavior, validator Violation, and /joint_states before/after",
+    "joint_limits + controllers-config unit test output under uv run pytest",
+    "RViz/Gazebo screenshot of the arm executing a legal trajectory (aux)"
+  ],
+  "stop_conditions": [
+    "Linux Owner rejects the proposed launch/package.xml/setup.py changes (requires their approval per AGENTS.md:18 before merge)",
+    "gz_ros2_control / controllers not installable under Jazzy/Harmonic (record blocker; pure-logic tests still deliverable)",
+    "fallback (explicit follower joints + multipliers per vendor macro) also fails to drive the gripper under gz_ros2_control after the minimal spike confirmed driver-joint-only does not work",
+    "any change would require touching a forbidden path or interfaces/",
+    "phase2_probe cannot confirm the hardware plugin is gz_ros2_control/GazeboSimSystem (abort before sending any over-limit trajectory; never risk sending to a real-hardware controller)",
+    "neither MoveIt /check_state_validity nor a controller-manager/action/TF endpoint the probe needs is available (record unavailable + non-zero exit; do not emit an empty-but-passing JSON)"
+  ],
+  "risks_and_fallbacks": [
+    "gz_ros2_control may not drive Robotiq follower joints from driver-joint-only <mimic>: fall back to explicitly declaring the five follower joints + multipliers per vendor macro; record in docs/evaluation/phase2-controllers.json",
+    "chosen gripper controller plugin may not load: switch to the actually-loadable type (self-decidable); update controllers.yaml + package.xml"
+  ]
+}

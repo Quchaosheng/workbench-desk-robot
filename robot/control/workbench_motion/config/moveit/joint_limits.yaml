@@ -6,16 +6,16 @@
 # other layers land in phase 2 (config/controllers.yaml, joint_limits.hw_override).
 # Do not confuse the three sources.
 #
-# Velocity limits mirror ur_description nominal UR5e values; accelerations are a
-# conservative planning choice (not published by the vendor, so chosen here and
-# recorded rather than left as magic numbers).
+# Shoulder pan/lift are deliberately tightened to 120 deg/s from the vendor's
+# 180 deg/s nominal hard limit. The other nominal values and the 0.1 scaling are
+# planning-layer choices; this file is not consumed by the safety validator.
 default_velocity_scaling_factor: 0.1
 default_acceleration_scaling_factor: 0.1
 
 joint_limits:
   shoulder_pan_joint:
     has_velocity_limits: true
-    max_velocity: 2.0943951    # rad/s (120 deg/s), UR5e nominal
+    max_velocity: 2.0943951    # rad/s (120 deg/s), tightened from vendor 180 deg/s
     has_acceleration_limits: true
     max_acceleration: 5.0
   shoulder_lift_joint:

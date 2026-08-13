@@ -6,8 +6,8 @@
   <description>
     Motion (robot/control) semantic-action adapter package: entry validation,
     grasp/place/stop execution over a replaceable backend, and ActionResult
-    production. Phase 0 delivers the package skeleton, unified logging, and the
-    EvidenceSink interface only.
+    production. Phase 2 adds the Gazebo Harmonic ros2_control foundation,
+    controller bringup, and a ROS-free joint-limit pre-filter.
   </description>
   <maintainer email="motion-owner@workbench-1.invalid">Motion Owner</maintainer>
   <license>Apache-2.0</license>
@@ -34,6 +34,18 @@
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>
+  <exec_depend>gz_ros2_control</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>controller_manager</exec_depend>
+  <exec_depend>joint_trajectory_controller</exec_depend>
+  <exec_depend>joint_state_broadcaster</exec_depend>
+  <exec_depend>gripper_controllers</exec_depend>
+  <exec_depend>control_msgs</exec_depend>
+  <exec_depend>action_msgs</exec_depend>
+  <exec_depend>trajectory_msgs</exec_depend>
+  <exec_depend>controller_manager_msgs</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
 
   <test_depend>ament_copyright</test_depend>

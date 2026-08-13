@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!-- Reuse the vendor's six-arm-joint interface declaration. Hard limits stay
+       in the UR macro/URDF; this file does not duplicate their values. -->
+  <xacro:include filename="$(find ur_description)/urdf/inc/ur_joint_control.xacro"/>
+
+  <!-- The Robotiq vendor simulation macro is tied to ign_ros2_control. Reuse
+       its follower list and multipliers so joint_state_broadcaster exposes the
+       complete linkage under gz_ros2_control; only the driver is commanded. -->
+  <xacro:macro name="workbench_gripper_control" params="tf_prefix driver_joint">
+    <joint name="${tf_prefix}${driver_joint}">
+      <command_interface name="position"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="velocity"/>
+    </joint>
+    <joint name="${tf_prefix}robotiq_85_right_knuckle_joint">
+      <param name="mimic">${tf_prefix}${driver_joint}</param>
+      <param name="multiplier">-1</param>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+    <joint name="${tf_prefix}robotiq_85_left_inner_knuckle_joint">
+      <param name="mimic">${tf_prefix}${driver_joint}</param>
+      <param name="multiplier">1</param>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+    <joint name="${tf_prefix}robotiq_85_right_inner_knuckle_joint">
+      <param name="mimic">${tf_prefix}${driver_joint}</param>
+      <param name="multiplier">-1</param>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+    <joint name="${tf_prefix}robotiq_85_left_finger_tip_joint">
+      <param name="mimic">${tf_prefix}${driver_joint}</param>
+      <param name="multiplier">-1</param>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+    <joint name="${tf_prefix}robotiq_85_right_finger_tip_joint">
+      <param name="mimic">${tf_prefix}${driver_joint}</param>
+      <param name="multiplier">1</param>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:macro name="workbench_ros2_control" params="tf_prefix driver_joint controllers_yaml">
+    <ros2_control name="workbench_arm_system" type="system">
+      <hardware>
+        <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+      </hardware>
+      <xacro:ur_joint_control_description tf_prefix="${tf_prefix}"/>
+      <xacro:workbench_gripper_control tf_prefix="${tf_prefix}" driver_joint="${driver_joint}"/>
+    </ros2_control>
+
+    <gazebo>
+      <plugin filename="gz_ros2_control-system"
+              name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+        <parameters>${controllers_yaml}</parameters>
+      </plugin>
+    </gazebo>
+  </xacro:macro>
+</robot>

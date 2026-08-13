@@ -114,6 +114,7 @@ INVALID_FRAMES = {
     "boolean command id": changed("command lower bound", command_id=True),
     "command in stop id range": changed("command lower bound", command_id=32768),
     "command uses stop opcode": changed("command lower bound", opcode="stop"),
+    "command uses reset opcode": changed("command lower bound", opcode="reset"),
     "command carries ack field": changed("command lower bound", result_code=0),
     "retry count overflow": changed("command lower bound", retry_count=256),
     "ack in stop id range": changed("successful ack", command_id=32768),
@@ -151,6 +152,24 @@ def model_accepts(payload: dict[str, object]) -> bool:
     return True
 
 
+def classify_ordinary_serial(last_accepted: int, candidate: int) -> str:
+    delta = (candidate - last_accepted) % 32768
+    if delta == 0:
+        return "duplicate"
+    if delta < 16384:
+        return "newer"
+    return "stale_or_ambiguous"
+
+
+def classify_telemetry_sequence(last_accepted: int, candidate: int) -> str:
+    delta = (candidate - last_accepted) % 4294967296
+    if delta == 0:
+        return "duplicate"
+    if delta < 2147483648:
+        return "newer"
+    return "stale_or_ambiguous"
+
+
 @pytest.mark.parametrize(("label", "payload"), VALID_FRAMES.items())
 def test_schema_and_model_accept_valid_frame_corpus(label: str, payload: dict[str, object]) -> None:
     assert schema_accepts(payload), label
@@ -181,6 +200,57 @@ def test_protocol_vocabularies_match_schema_and_documentation() -> None:
     assert schema_fault_codes == [fault.value for fault in McuFaultCode]
     for fault_code in schema_fault_codes:
         assert PROTOCOL_DOC.count(f"| `{fault_code}` |") == 1
+
+
+def test_downstream_safety_semantics_are_explicitly_frozen() -> None:
+    normalized_doc = " ".join(PROTOCOL_DOC.split())
+    required_semantics = [
+        "delta = (candidate - last_accepted) mod 32768",
+        "delta = (candidate - last_accepted) mod 4294967296",
+        "including the wrap from 32767 to 0",
+        "must not execute side effects again",
+        "retry_count` echoes the received request",
+        "must not subtract timestamps from different senders",
+        "duplicate, retry and stale frames do not",
+        "does not define a reset frame or reset opcode",
+        "must not derive reset authority solely from any",
+    ]
+    for semantic in required_semantics:
+        assert semantic in normalized_doc
+
+
+@pytest.mark.parametrize(
+    ("last_accepted", "candidate", "expected"),
+    [
+        (32766, 32767, "newer"),
+        (32767, 0, "newer"),
+        (0, 1, "newer"),
+        (0, 16383, "newer"),
+        (0, 0, "duplicate"),
+        (0, 16384, "stale_or_ambiguous"),
+        (0, 32767, "stale_or_ambiguous"),
+        (1, 0, "stale_or_ambiguous"),
+    ],
+)
+def test_ordinary_command_serial_half_range_vectors(last_accepted: int, candidate: int, expected: str) -> None:
+    assert classify_ordinary_serial(last_accepted, candidate) == expected
+
+
+@pytest.mark.parametrize(
+    ("last_accepted", "candidate", "expected"),
+    [
+        (4294967294, 4294967295, "newer"),
+        (4294967295, 0, "newer"),
+        (0, 1, "newer"),
+        (0, 2147483647, "newer"),
+        (0, 0, "duplicate"),
+        (0, 2147483648, "stale_or_ambiguous"),
+        (0, 4294967295, "stale_or_ambiguous"),
+        (1, 0, "stale_or_ambiguous"),
+    ],
+)
+def test_telemetry_sequence_half_range_vectors(last_accepted: int, candidate: int, expected: str) -> None:
+    assert classify_telemetry_sequence(last_accepted, candidate) == expected
 
 
 def test_committed_stop_ack_round_trips_through_schema_and_model() -> None:

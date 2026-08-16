@@ -1,4 +1,5 @@
 from .event_store import SQLiteEventStore
+from .mock import mock_verification, mock_world_state
 from .reducer import WorldState, apply_event, reduce_events
 from .verifier import (
     verify_inspection_evidence,
@@ -13,6 +14,8 @@ __all__ = [
     "SQLiteEventStore",
     "WorldState",
     "apply_event",
+    "mock_verification",
+    "mock_world_state",
     "reduce_events",
     "verify_inspection_evidence",
     "verify_kit_contents",

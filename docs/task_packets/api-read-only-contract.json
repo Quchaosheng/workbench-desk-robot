@@ -1,0 +1,28 @@
+{
+  "issue": 80,
+  "human_owner": "Quchaosheng",
+  "objective": "Publish and test a versioned read-only Dashboard API contract for local and split-host clients.",
+  "allowed_paths": [
+    "services/backend/**",
+    "tests/unit/test_dashboard_backend.py",
+    "tests/unit/test_multi_host.py",
+    "docs/api.md",
+    "docs/api-openapi-v1.json",
+    "docs/architecture/system.md",
+    "docs/task_packets/api-read-only-contract.json"
+  ],
+  "read_only_paths": ["interfaces/**", "robot/control/**", "firmware/**"],
+  "forbidden": ["interfaces/**", "robot/control/**", "firmware/**"],
+  "acceptance": [
+    "checked-in OpenAPI v1 lists methods, statuses, limits, and read-only policy",
+    "local and remote clients use the same versioned paths and validate the same response shape",
+    "malformed identifiers, missing runs, malformed sources, and oversized responses fail closed",
+    "legacy /api aliases remain additive and no write endpoint is introduced"
+  ],
+  "commands": [
+    "python3 -m pytest tests/unit/test_dashboard_backend.py tests/unit/test_multi_host.py -q",
+    "python3 -m mkdocs build --strict"
+  ],
+  "evidence": ["OpenAPI fixture assertions", "local/remote HTTP test output", "strict docs build"],
+  "stop_conditions": ["schema changes are required", "a write/control operation is requested"]
+}

@@ -1,0 +1,154 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Workbench Desk Robot read-only API",
+    "version": "1.0.0",
+    "description": "Read-only run, event, readiness, and expression projections. No endpoint grants robot or ROS control authority."
+  },
+  "servers": [{"url": "/"}],
+  "paths": {
+    "/healthz": {
+      "get": {
+        "operationId": "health",
+        "responses": {"200": {"description": "Process is responding.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Health"}}}}}
+      }
+    },
+    "/readyz": {
+      "get": {
+        "operationId": "readiness",
+        "responses": {
+          "200": {"description": "Event source is readable.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Readiness"}}}},
+          "503": {"description": "Event source is unavailable or malformed.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}
+        }
+      }
+    },
+    "/api/v1/openapi.json": {
+      "get": {"operationId": "apiContract", "responses": {"200": {"description": "This contract.", "content": {"application/json": {"schema": {"type": "object"}}}}}}
+    },
+    "/api/v1/runs": {
+      "get": {
+        "operationId": "listRuns",
+        "responses": {
+          "200": {"description": "Ordered run summaries.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/RunList"}}}},
+          "503": {"description": "Invalid source.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}
+        }
+      }
+    },
+    "/api/v1/runs/{run_id}": {
+      "get": {
+        "operationId": "getRun",
+        "parameters": [{"$ref": "#/components/parameters/RunId"}],
+        "responses": {
+          "200": {"description": "Run summary.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/RunDetail"}}}},
+          "400": {"description": "Identifier is empty or outside the allowed character set.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
+          "404": {"description": "Run does not exist.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
+          "413": {"description": "Response exceeds 4 MiB.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}
+        }
+      }
+    },
+    "/api/v1/runs/{run_id}/events": {
+      "get": {
+        "operationId": "getRunEvents",
+        "parameters": [{"$ref": "#/components/parameters/RunId"}],
+        "responses": {
+          "200": {"description": "Run summary and contiguous events.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/RunEvents"}}}},
+          "400": {"description": "Invalid run identifier.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
+          "404": {"description": "Run does not exist.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
+          "413": {"description": "Response exceeds 4 MiB.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
+          "503": {"description": "Event source is unavailable or malformed.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}
+        }
+      }
+    },
+    "/api/v1/expression-states": {
+      "get": {"operationId": "expressionContract", "responses": {"200": {"description": "Expression states and transitions.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ExpressionContract"}}}}}}
+    }
+  },
+  "components": {
+    "parameters": {
+      "RunId": {
+        "name": "run_id",
+        "in": "path",
+        "required": true,
+        "description": "1-128 ASCII letters, digits, dot, underscore, colon, or hyphen.",
+        "schema": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"}
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {"error": {"type": "string"}, "message": {"type": "string"}, "run_id": {"type": "string"}}
+      },
+      "Health": {
+        "type": "object",
+        "required": ["status", "service", "version"],
+        "properties": {"status": {"const": "ok"}, "service": {"type": "string"}, "version": {"type": "string"}}
+      },
+      "Readiness": {
+        "type": "object",
+        "required": ["status", "data_source"],
+        "properties": {"status": {"enum": ["ready", "not_ready"]}, "data_source": {"type": "string"}}
+      },
+      "Event": {
+        "type": "object",
+        "required": ["event_id", "run_id", "sequence_no", "event_type", "occurred_at", "payload"],
+        "properties": {
+          "event_id": {"type": "string", "minLength": 1},
+          "run_id": {"type": "string", "minLength": 1},
+          "sequence_no": {"type": "integer", "minimum": 0},
+          "event_type": {"type": "string", "minLength": 1},
+          "occurred_at": {"type": "string", "minLength": 1},
+          "payload": {"type": "object"},
+          "evidence_refs": {"type": "array", "items": {"type": "string"}}
+        }
+      },
+      "RunSummary": {
+        "type": "object",
+        "required": ["run_id", "status", "expression", "event_count", "visible_event_count", "safety"],
+        "properties": {
+          "run_id": {"type": "string"},
+          "status": {"type": "string"},
+          "expression": {"enum": ["idle", "thinking", "uncertain", "pleased"]},
+          "event_count": {"type": "integer", "minimum": 1},
+          "visible_event_count": {"type": "integer", "minimum": 1},
+          "evidence_refs": {"type": "array", "items": {"type": "string"}},
+          "safety": {"type": "object", "required": ["hardware_estop", "software_control"]}
+        },
+        "additionalProperties": true
+      },
+      "RunList": {
+        "type": "object",
+        "required": ["runs", "read_only"],
+        "properties": {"runs": {"type": "array", "items": {"$ref": "#/components/schemas/RunSummary"}}, "read_only": {"const": true}}
+      },
+      "RunDetail": {
+        "type": "object",
+        "required": ["run"],
+        "properties": {"run": {"$ref": "#/components/schemas/RunSummary"}}
+      },
+      "RunEvents": {
+        "type": "object",
+        "required": ["run", "events"],
+        "properties": {
+          "run": {"$ref": "#/components/schemas/RunSummary"},
+          "events": {"type": "array", "minItems": 1, "maxItems": 10000, "items": {"$ref": "#/components/schemas/Event"}}
+        }
+      },
+      "ExpressionContract": {
+        "type": "object",
+        "required": ["states", "transitions"],
+        "properties": {
+          "states": {"type": "array", "items": {"enum": ["idle", "thinking", "uncertain", "pleased"]}},
+          "transitions": {"type": "object"}
+        }
+      }
+    }
+  },
+  "x-compatibility": {
+    "current": "/api/v1",
+    "legacy_alias": "/api",
+    "policy": "v1 is additive and read-only; aliases remain until a documented v2 migration."
+  },
+  "x-limits": {"max_response_bytes": 4194304, "max_event_log_bytes": 10485760, "max_events_per_run": 10000},
+  "x-headers": {"content_type": "application/json; charset=utf-8", "api_version": "X-API-Version"}
+}

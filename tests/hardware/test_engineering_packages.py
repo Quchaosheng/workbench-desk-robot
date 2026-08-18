@@ -4,6 +4,7 @@ import csv
 import importlib.util
 import json
 import re
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -206,6 +207,51 @@ class ValidationPackageTests(unittest.TestCase):
         self.assertEqual(report["fault_scenario_count"], 20)
         self.assertEqual(report["first_batch_unit_count"], 10)
         self.assertEqual(report["physical_results"], "NOT_EXECUTED")
+
+    def test_evidence_registration_fails_closed_and_accepts_valid_records(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            raw = root / "scope.csv"
+            raw.write_text("time,current\n0,0\n", encoding="utf-8")
+            module = load_module("validation_evidence", ROOT / "hardware/validation/tools/evidence.py")
+            base = {
+                "evidence_id": "EVIDENCE-001",
+                "scenario_id": "VAL5-01",
+                "unit_id": "UNIT-001",
+                "hardware_revision": "EVT1",
+                "config_hash": "a" * 64,
+                "operator": "operator",
+                "reviewer": "reviewer",
+                "captured_at": "2026-08-18T08:00:00Z",
+                "evidence_kind": "physical",
+                "instrument_refs": ["SCOPE-01"],
+                "calibration_refs": ["CAL-01"],
+                "raw_files": {"scope.csv": module.sha256(raw)},
+                "result": "PASS",
+            }
+            register = root / "register.jsonl"
+            kwargs = {
+                "root": root,
+                "scenarios": {"VAL5-01"},
+                "units": {"UNIT-001": ("EVT1", "a" * 64)},
+            }
+            module.register(register, base, **kwargs)
+            self.assertEqual(module.validate_register(register, **kwargs), [base])
+            with self.assertRaisesRegex(module.EvidenceError, "duplicate"):
+                module.register(register, base, **kwargs)
+            with self.assertRaisesRegex(module.EvidenceError, "revision mismatch"):
+                module.validate_record({**base, "hardware_revision": "EVT2"}, **kwargs)
+            raw.unlink()
+            with self.assertRaisesRegex(module.EvidenceError, "missing"):
+                module.validate_register(register, **kwargs)
+
+    def test_physical_result_requires_physical_pass_for_every_scenario(self) -> None:
+        module = load_module("validation_result_derivation", ROOT / "hardware/validation/tools/validate_validation.py")
+        scenarios = {"VAL5-01", "VAL5-02"}
+        simulation = [{"scenario_id": scenario, "result": "PASS"} for scenario in scenarios]
+        self.assertEqual(set(module.derive_results(scenarios, simulation).values()), {"PASS"})
+        physical = [{"scenario_id": "VAL5-01", "result": "PASS"}]
+        self.assertEqual(module.derive_results(scenarios, physical)["VAL5-02"], "NOT_EXECUTED")
 
 
 class ReleaseReadinessTests(unittest.TestCase):

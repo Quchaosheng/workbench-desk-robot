@@ -1,0 +1,40 @@
+{
+  "issue": "40",
+  "human_owner": "Quchaosheng",
+  "objective": "Separate the repository's three supported determinism guarantees in both public READMEs.",
+  "allowed_paths": [
+    "README.md",
+    "README.zh-CN.md",
+    "docs/task_packets/docs-40-determinism-boundaries.json"
+  ],
+  "read_only_paths": [
+    "tools/scripts/validate_scenarios.py",
+    "tests/**"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "services/**",
+    "robot/**",
+    "firmware/**"
+  ],
+  "acceptance": [
+    "the same frozen manifest and seed guarantee only the same scene configuration",
+    "fixed event-log replay is stated as a separate guarantee",
+    "scripted ordered events require identical complete input",
+    "English and Chinese claims remain equivalent"
+  ],
+  "commands": [
+    "python tools/scripts/check_task_packet.py docs/task_packets/docs-40-determinism-boundaries.json",
+    "make context-check"
+  ],
+  "evidence": [
+    "bilingual README diff",
+    "Task Packet validation output",
+    "context validation output"
+  ],
+  "stop_conditions": [
+    "runtime behavior changes are required",
+    "scenario semantics differ from the current validator",
+    "the bilingual claims cannot remain equivalent"
+  ]
+}

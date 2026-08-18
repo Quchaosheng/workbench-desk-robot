@@ -23,7 +23,9 @@ This project combines systems integration, runtime architecture, and task verifi
 **Evidence-First Verification**
 - Three-valued logic (confirmed / refuted / insufficient_evidence) replaces boolean success
 - Verification carries structured evidence references, not just pass/fail flags
-- Same seed → same scene → same event sequence → deterministic evaluation
+- The same frozen scenario manifest and seed materialize the same scene configuration
+- A fixed event log replays deterministically
+- The scripted fixture generator emits the same ordered events only for identical complete input
 
 **System Reliability**
 - Split-host controller/simulation with readiness probes and peer availability checks

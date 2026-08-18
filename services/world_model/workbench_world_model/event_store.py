@@ -43,7 +43,7 @@ class SQLiteEventStore:
         expected_columns = {"event_id", "run_id", "sequence_no", "event_json"}
         has_world_event_triggers = (
             self.connection.execute(
-                "SELECT 1 FROM sqlite_master " "WHERE type = 'trigger' AND tbl_name = 'world_events' LIMIT 1"
+                "SELECT 1 FROM sqlite_master WHERE type = 'trigger' AND tbl_name = 'world_events' LIMIT 1"
             ).fetchone()
             is not None
         )

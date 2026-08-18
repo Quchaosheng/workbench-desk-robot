@@ -87,7 +87,7 @@ def test_conflicting_run_sequence_raises_integrity_error_and_preserves_original(
     conflict = make_event("evt-002")
     store.append(original)
 
-    with pytest.raises(EventStoreIntegrityError, match="run_id.*sequence_no"):
+    with pytest.raises(EventStoreIntegrityError, match=r"run_id.*sequence_no"):
         store.append(conflict)
 
     assert store.list_run("run-001") == [original]
@@ -214,7 +214,7 @@ def test_legacy_partial_sequence_index_fails_closed(tmp_path: Path) -> None:
     connection.commit()
     connection.close()
 
-    with pytest.raises(EventStoreMigrationRequiredError, match="backup.*rebuild"):
+    with pytest.raises(EventStoreMigrationRequiredError, match=r"backup.*rebuild"):
         SQLiteEventStore(database_path)
 
 
@@ -236,7 +236,7 @@ def test_legacy_composite_event_primary_key_fails_closed(tmp_path: Path) -> None
     connection.commit()
     connection.close()
 
-    with pytest.raises(EventStoreMigrationRequiredError, match="backup.*rebuild"):
+    with pytest.raises(EventStoreMigrationRequiredError, match=r"backup.*rebuild"):
         SQLiteEventStore(database_path)
 
 
@@ -266,7 +266,7 @@ def test_legacy_table_with_trigger_fails_closed(tmp_path: Path) -> None:
     connection.commit()
     connection.close()
 
-    with pytest.raises(EventStoreMigrationRequiredError, match="backup.*rebuild"):
+    with pytest.raises(EventStoreMigrationRequiredError, match=r"backup.*rebuild"):
         SQLiteEventStore(database_path)
 
 
@@ -346,7 +346,7 @@ def test_sequence_conflict_policy_cannot_silence_typed_error(tmp_path: Path, tab
 
     try:
         store.append(original)
-        with pytest.raises(EventStoreIntegrityError, match="run_id.*sequence_no"):
+        with pytest.raises(EventStoreIntegrityError, match=r"run_id.*sequence_no"):
             store.append(conflict)
         assert store.list_run("run-001") == [original]
     finally:

@@ -2,13 +2,9 @@
 
 Hardware bring-up notes and integration guides.
 
-```
-hardware/
-  can_bring_up.md        SocketCAN setup, USB-CAN adapters, bitrate config
-  camera_calibration.md  intrinsic + extrinsic calibration workflow
-  cross_compile.md       cross-compilation for ARM64 boards (RDK X5, etc.)
-  safety_wiring.md       e-stop circuit, watchdog, safety relay
-```
+- [Hardware wiring](wiring.md): controlled connector map and safe connection order.
+- [Physical bring-up](bringup.md): HIL bench, staged power-up, evidence, debugging, and defects.
+- [HW1 UR5e extraction](hw1-ur5e-extraction.md): source and configuration notes.
 
 General rule: all bring-up steps are scripted where possible. If a step
 requires manual action (physical wiring, screwdriver), it is documented

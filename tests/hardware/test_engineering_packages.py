@@ -100,6 +100,8 @@ class PcbPackageTests(unittest.TestCase):
         self.assertEqual(report["status"], "ORDER_RELEASE_BLOCKED")
         self.assertFalse(report["order_release_checks"]["detailed_schematic_has_symbols"])
         self.assertFalse(report["order_release_checks"]["safety_analysis_approved"])
+        self.assertTrue(report["engineering_checks"]["approval_register_covers_all_pending_bom_lines"])
+        self.assertEqual(len(report["procurement_hold_references"]), 15)
         self.assertTrue(report["engineering_checks"]["safety_truth_table_covers_channel_discrepancy"])
         with (ROOT / "hardware/pcb/connector-pinout.csv").open(newline="", encoding="utf-8") as handle:
             rows = list(csv.DictReader(handle))

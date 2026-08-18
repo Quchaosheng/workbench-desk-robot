@@ -1,0 +1,32 @@
+{
+  "issue": "130",
+  "human_owner": "Quchaosheng",
+  "objective": "Publish controlled architecture, wiring, HIL bench, bring-up, debug, evidence, and defect-record instructions.",
+  "allowed_paths": [
+    "docs/architecture/system.md",
+    "docs/hardware/**",
+    "mkdocs.yml",
+    "docs/task_packets/hardware-bringup-docs.json"
+  ],
+  "read_only_paths": [
+    "hardware/pcb/**",
+    "hardware/validation/**",
+    "hardware/qa/**",
+    "interfaces/**"
+  ],
+  "forbidden": ["robot/control/**", "firmware/**", "interfaces/**"],
+  "acceptance": [
+    "architecture identifies authority and event/evidence flow",
+    "wiring guide maps every populated external connector and safety boundary",
+    "bring-up guide defines the physical bench, staged power-up, evidence registration, and defect workflow",
+    "unexecuted physical work is visibly NOT_EXECUTED",
+    "strict MkDocs build succeeds"
+  ],
+  "commands": ["python3 -m mkdocs build --strict"],
+  "evidence": ["strict documentation build output"],
+  "stop_conditions": [
+    "physical measurements are required",
+    "connector or component approval differs from the controlled PCB files",
+    "a procedure would bypass a safety interlock"
+  ]
+}

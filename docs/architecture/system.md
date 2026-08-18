@@ -47,3 +47,19 @@ emit the `TaskGraph`. A model response never becomes a joint, velocity, firmware
 ## Safety boundary
 
 Agent Runtime cannot issue joint positions, velocity commands, emergency-stop decisions or physical completion claims. Those belong to Motion, Virtual MCU and the World Model verifier respectively.
+
+## Hardware-in-the-loop boundary
+
+```text
+Linux host -- SocketCAN -- J5/J6 isolated CAN -- controller/fixture
+     |                         |
+     |                    J10 dual E-stop --> U8 --> J11 safe enable
+     `-- evidence logger -----+---- scope/CAN/thermal raw files
+                                      |
+                         signed evidence register --> release gate
+```
+
+The HIL host may request semantic actions and record evidence. It cannot bypass
+U8, synthesize a safe-enable pass, or convert a missing capture into completion.
+The physical procedure and exact connector map are in the hardware wiring and
+bring-up pages.

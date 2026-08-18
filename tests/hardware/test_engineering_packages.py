@@ -209,6 +209,7 @@ class ValidationPackageTests(unittest.TestCase):
         self.assertEqual(report["first_batch_unit_count"], 10)
         self.assertEqual(report["physical_results"], "NOT_EXECUTED")
 
+
 class ReleaseReadinessTests(unittest.TestCase):
     def test_release_register_is_fail_closed_and_cross_package(self) -> None:
         module = load_module("release_readiness_checks", ROOT / "hardware/release/tools/check_release_readiness.py")

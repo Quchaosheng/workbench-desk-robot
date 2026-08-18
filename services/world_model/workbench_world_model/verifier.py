@@ -210,9 +210,7 @@ def verify_inspection_evidence(
         entity_id for entity_id in required if state.entity_confidence.get(entity_id, 0.0) < confidence_threshold
     )
     missing_evidence = _missing_entity_evidence(state, required)
-    claim = (
-        f"inspection: unobserved={unobserved}; low_confidence={low_confidence}; " f"missing_evidence={missing_evidence}"
-    )
+    claim = f"inspection: unobserved={unobserved}; low_confidence={low_confidence}; missing_evidence={missing_evidence}"
     if unobserved:
         outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.TARGET_NOT_OBSERVED, RecoveryHint.RE_OBSERVE)
     elif low_confidence:

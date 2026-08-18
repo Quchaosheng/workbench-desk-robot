@@ -1,4 +1,5 @@
 {
+  "protocol_version": "1.0",
   "frame_id": "mcu-frame-0187",
   "frame_kind": "stop_ack",
   "command_id": 32769,
@@ -7,6 +8,6 @@
   "fault_code": "none",
   "device_mode": "stopped",
   "retry_count": 0,
-  "sent_at": "2026-08-04T00:00:19.310Z",
+  "sent_at_us": 19310000,
   "clock_id": "monotonic"
 }

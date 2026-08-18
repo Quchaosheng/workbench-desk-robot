@@ -24,6 +24,7 @@ enable_local_packages()
 from workbench_agent_runtime import build_template_plan
 from workbench_contracts import (
     ActionResult,
+    McuFrame,
     Observation,
     ScenarioManifest,
     SemanticAction,
@@ -64,6 +65,7 @@ EXAMPLE_FOR_SCHEMA = {
 # status vs outcome) — full coverage makes that drift visible immediately.
 MODEL_FOR_EXAMPLE = {
     "action-result-place-confirmed.json": ActionResult,
+    "mcu-frame-stop-ack.json": McuFrame,
     "observation-red-block.json": Observation,
     "semantic-action-place.json": SemanticAction,
     "scenario-normal-001.json": ScenarioManifest,
@@ -77,7 +79,7 @@ def check_every_schema_is_registered() -> list[str]:
     problems = []
     for stem in sorted(on_disk - registered):
         problems.append(
-            f"{stem}.schema.json is not registered here; add an example for it, " "or register it as None with a reason"
+            f"{stem}.schema.json is not registered here; add an example for it, or register it as None with a reason"
         )
     for stem in sorted(registered - on_disk):
         problems.append(f"{stem} is registered here but no such schema exists")

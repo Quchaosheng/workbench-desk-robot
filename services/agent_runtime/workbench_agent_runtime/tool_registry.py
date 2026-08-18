@@ -179,14 +179,14 @@ class ToolRegistry:
             errors.append(
                 ValidationError(
                     "parameters",
-                    f"forbidden keys for '{action_type_value}': " f"{sorted(extra)}; allowed: {sorted(allowed)}",
+                    f"forbidden keys for '{action_type_value}': {sorted(extra)}; allowed: {sorted(allowed)}",
                 )
             )
         if missing:
             errors.append(
                 ValidationError(
                     "parameters",
-                    f"missing required keys for '{action_type_value}': " f"{sorted(missing)}",
+                    f"missing required keys for '{action_type_value}': {sorted(missing)}",
                 )
             )
         # early-exit when the field set is broken — type checking on a
@@ -271,7 +271,7 @@ class ToolRegistry:
                 errors.append(
                     ValidationError(
                         f"parameters.{key}",
-                        f"expected {_type_name(expected_type)}, " f"got {_type_label(value)}",
+                        f"expected {_type_name(expected_type)}, got {_type_label(value)}",
                     )
                 )
 
@@ -282,8 +282,7 @@ class ToolRegistry:
                 errors.append(
                     ValidationError(
                         "parameters.emotion_state",
-                        f"'{emotion}' is not a valid emotion state; "
-                        f"allowed: {sorted(_schemas.EXPRESS_EMOTION_STATES)}",
+                        f"'{emotion}' is not a valid emotion state; allowed: {sorted(_schemas.EXPRESS_EMOTION_STATES)}",
                     )
                 )
 
@@ -309,7 +308,7 @@ class ToolRegistry:
                     errors.append(
                         ValidationError(
                             "parameters.attributes",
-                            f"all observe attributes must be strings, got: " f"{[_type_label(a) for a in non_strings]}",
+                            f"all observe attributes must be strings, got: {[_type_label(a) for a in non_strings]}",
                         )
                     )
 

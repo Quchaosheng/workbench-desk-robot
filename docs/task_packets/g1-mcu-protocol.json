@@ -1,0 +1,62 @@
+{
+  "issue": 44,
+  "human_owner": "TH3478",
+  "objective": "Freeze the versioned MCU logical-frame contract, telemetry semantics, fault-code meanings, correlation/timing behavior and reset authority without claiming that the binary CAN payload encoding or physical hardware behavior has been validated.",
+  "allowed_paths": [
+    "docs/architecture/mcu-protocol-v1.md",
+    "docs/task_packets/g1-mcu-protocol.json",
+    "interfaces/examples/mcu-frame-stop-ack.json",
+    "interfaces/json_schema/mcu_protocol.schema.json",
+    "libs/contracts/workbench_contracts/__init__.py",
+    "libs/contracts/workbench_contracts/models.py",
+    "tests/unit/test_mcu_protocol_contract.py",
+    "tools/scripts/validate_contracts.py"
+  ],
+  "read_only_paths": [
+    "firmware/mcu/**",
+    "firmware/virtual_mcu/**",
+    "services/agent_runtime/**",
+    "services/world_model/**",
+    "robot/control/**"
+  ],
+  "forbidden": [
+    "firmware/**",
+    "robot/control/**",
+    "hardware/**"
+  ],
+  "acceptance": [
+    "protocol version 1.0 defines command, ack, telemetry, stop and stop_ack as disjoint fail-closed frame shapes",
+    "ordinary command and ack identifiers occupy 0 through 32767 while stop and stop_ack identifiers occupy 32768 through 65535",
+    "every fault code has one deterministic documented meaning and successful acknowledgements cannot carry a fault",
+    "15-bit command serial wrap, exact retry behavior and stale/conflicting duplicate rejection are deterministic",
+    "sender-local monotonic timestamps are not treated as cross-device freshness evidence and invalid or duplicate traffic cannot feed the link watchdog",
+    "protocol version 1.0 exposes no reset frame and no protocol frame can grant reset authority",
+    "unknown fields, unknown enum values, clock/timestamp mismatches and frame-kind field ambiguity are rejected",
+    "the JSON Schema and exported Pydantic McuFrame model accept and reject the same contract test corpus",
+    "the repository Schema Compiler can consume the protocol metadata and preserves command-ID partition bounds",
+    "the committed stop_ack example validates through JSON Schema and Pydantic",
+    "make test and make contract pass"
+  ],
+  "commands": [
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/g1-mcu-protocol.json",
+    "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest tests/unit/test_mcu_protocol_contract.py -v",
+    "make lint",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check"
+  ],
+  "evidence": [
+    "tests/unit/test_mcu_protocol_contract.py valid and invalid frame corpus",
+    "tests/unit/test_mcu_protocol_contract.py Schema Compiler compatibility check",
+    "interfaces/examples/mcu-frame-stop-ack.json round-trip through Draft 2020-12 JSON Schema and Pydantic",
+    "docs/architecture/mcu-protocol-v1.md fault-code and frame-shape tables",
+    "make test and make contract output"
+  ],
+  "stop_conditions": [
+    "a binary CAN payload layout would have to be invented rather than derived from an approved firmware protocol",
+    "the change would require writing firmware or robot/control code",
+    "a frame cannot be represented consistently in Draft 2020-12 JSON Schema and Pydantic",
+    "a fault meaning would permit an unacknowledged stop to be treated as confirmed"
+  ]
+}

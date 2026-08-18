@@ -34,7 +34,7 @@ TOOL_SCHEMAS: dict[ActionType, dict[str, object]] = {
         "param_types": {},
     },
     ActionType.PLACE: {
-        "description": "Place a grasped entity into a destination.  target_id and " "destination_id are required.",
+        "description": "Place a grasped entity into a destination.  target_id and destination_id are required.",
         "target_id_required": True,
         "required_params": frozenset({"destination_id"}),
         "optional_params": frozenset(

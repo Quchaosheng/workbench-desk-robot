@@ -117,8 +117,7 @@ class HardwareUrdfTests(unittest.TestCase):
 
     def test_rejects_duplicate_limit_elements(self) -> None:
         duplicate = UR5E_SHAPE_URDF.replace(
-            '<limit effort="150.0" lower="-6.283185307179586" upper="6.283185307179586" '
-            'velocity="3.141592653589793"/>',
+            '<limit effort="150.0" lower="-6.283185307179586" upper="6.283185307179586" velocity="3.141592653589793"/>',
             """<limit effort="150.0" lower="-6.283185307179586" upper="6.283185307179586" velocity="3.141592653589793"/>
     <limit effort="1.0" lower="-1.0" upper="1.0" velocity="1.0"/>""",
             1,

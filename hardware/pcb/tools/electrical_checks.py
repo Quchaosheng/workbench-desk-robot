@@ -52,7 +52,7 @@ def calculate() -> dict[str, object]:
         }
 
     worst_case = cases["JETSON_40W_MAXN"]
-    input_current_at_min_v = worst_case["input_currents_a"][f'{SPEC["input"]["minimum_v"]}V']
+    input_current_at_min_v = worst_case["input_currents_a"][f"{SPEC['input']['minimum_v']}V"]
     checks = {
         "all_load_cases_have_20_percent_headroom": all(case["pass"] for case in cases.values()),
         "input_current_below_fuse": input_current_at_min_v < SPEC["input"]["fuse_a"],

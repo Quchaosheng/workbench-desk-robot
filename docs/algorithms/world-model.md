@@ -44,15 +44,10 @@ Correct:
 def state_hash(s: WorldState) -> str:
     canonical = {
         "run_id": s.run_id,
-        "entities": sorted(
-            (e.id, quantize(e.pose), confidence_bucket(e.confidence))
-            for e in s.entities
-        ),
+        "entities": sorted((e.id, quantize(e.pose), confidence_bucket(e.confidence)) for e in s.entities),
         "relations": sorted(s.relations),
     }
-    return hashlib.sha256(
-        json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode()
-    ).hexdigest()
+    return hashlib.sha256(json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
 def quantize(p: Pose, eps: float = 1e-6) -> tuple:
@@ -95,8 +90,8 @@ An action result can carry an *earlier* timestamp than the observation that
 triggered it — different nodes, different clock offsets.
 
 ```python
-events.sort(key=lambda e: e.timestamp)     # wrong
-events.sort(key=lambda e: e.sequence_no)   # right
+events.sort(key=lambda e: e.timestamp)  # wrong
+events.sort(key=lambda e: e.sequence_no)  # right
 ```
 
 `sequence_no` establishes total order. Timestamps are diagnostic only and never
@@ -150,6 +145,7 @@ which?
 ```python
 from scipy.optimize import linear_sum_assignment
 
+
 def associate(observations, tracks, w1=1.0, w2=0.5, w3=0.2):
     C = np.zeros((len(observations), len(tracks)))
     for i, obs in enumerate(observations):
@@ -167,7 +163,7 @@ def associate(observations, tracks, w1=1.0, w2=0.5, w3=0.2):
         if C[i][j] < COST_THRESHOLD:
             matched.append((observations[i], tracks[j]))
         else:
-            new.append(observations[i])       # too expensive: new instance
+            new.append(observations[i])  # too expensive: new instance
     lost = [t for k, t in enumerate(tracks) if k not in col]
     return matched, new, lost
 ```
@@ -209,11 +205,12 @@ Half-life has to vary by object kind:
 
 ```python
 HALF_LIFE_S = {
-    "tray":        600.0,   # fixture. Position does not change unless moved
-    "table":       600.0,
-    "module":       15.0,   # can be moved by the arm or a person
-    "gripper_tip":   0.5,   # always moving; last frame is already stale
+    "tray": 600.0,  # fixture. Position does not change unless moved
+    "table": 600.0,
+    "module": 15.0,  # can be moved by the arm or a person
+    "gripper_tip": 0.5,  # always moving; last frame is already stale
 }
+
 
 def decay(conf: float, elapsed_s: float, kind: str) -> float:
     hl = HALF_LIFE_S[kind]
@@ -251,7 +248,7 @@ def resolve(obs_a, obs_b) -> Belief:
             ],
             recovery_hint="reobserve",
         )
-    return merge(obs_a, obs_b)      # merge only when they agree
+    return merge(obs_a, obs_b)  # merge only when they agree
 ```
 
 Same reasoning as three-valued verification: **the system does not guess.**
@@ -277,10 +274,10 @@ def containment(module_aabb, cavity_aabb) -> VerificationStatus:
     ratio = inter / volume(module_aabb)
 
     if ratio >= 0.95:
-        return CONFIRMED                  # fully contained
+        return CONFIRMED  # fully contained
     if ratio <= 0.01:
-        return REFUTED                    # fully separate
-    return INSUFFICIENT_EVIDENCE          # partial: caught on the rim
+        return REFUTED  # fully separate
+    return INSUFFICIENT_EVIDENCE  # partial: caught on the rim
 ```
 
 The middle band is the point. A boolean test forces "wedged on the tray edge"

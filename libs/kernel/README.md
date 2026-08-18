@@ -27,14 +27,16 @@ compiler.compile_all(py_output_dir, ts_output_dir)
 
 # Event logging
 store = EventStore("runs/events.sqlite3")
-store.append({
-    "event_id": "event-1",
-    "run_id": "run-1",
-    "sequence_no": 0,
-    "event_type": "observation",
-    "occurred_at": "2026-08-13T00:00:00Z",
-    "payload": {"entity_id": "red_block"},
-})
+store.append(
+    {
+        "event_id": "event-1",
+        "run_id": "run-1",
+        "sequence_no": 0,
+        "event_type": "observation",
+        "occurred_at": "2026-08-13T00:00:00Z",
+        "payload": {"entity_id": "red_block"},
+    }
+)
 checkpoint = store.create_checkpoint()
 replayed_events = store.replay(from_checkpoint=checkpoint)
 

@@ -281,6 +281,47 @@ class DashboardApiTests(unittest.TestCase):
         self.assertEqual(events_status, 200)
         self.assertEqual(replay["events"][0]["sequence_no"], 0)
 
+    def test_versioned_contract_and_identifier_limits(self) -> None:
+        status, contract = self.read_json("/api/v1/openapi.json")
+        self.assertEqual(status, 200)
+        self.assertEqual(contract["info"]["version"], "1.0.0")
+        self.assertTrue(all(set(operations) == {"get"} for operations in contract["paths"].values()))
+        self.assertIn("RunEvents", contract["components"]["schemas"])
+        request = urllib.request.Request(f"{self.base_url}/api/v1/runs/bad%2Fid")
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            urllib.request.urlopen(request, timeout=2)
+        self.assertEqual(caught.exception.code, 400)
+        with self.assertRaises(urllib.error.HTTPError) as missing:
+            urllib.request.urlopen(f"{self.base_url}/api/v1/runs/missing", timeout=2)
+        self.assertEqual(missing.exception.code, 404)
+        with urllib.request.urlopen(f"{self.base_url}/api/v1/runs", timeout=2) as response:
+            self.assertEqual(response.headers["X-API-Version"], "1")
+
+    def test_oversized_api_response_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            Path(temp_dir, "large.jsonl").write_text(
+                json.dumps(
+                    {
+                        **stored_event("large", 0, "task_accepted"),
+                        "payload": {"goal": "x" * (4 * 1024 * 1024)},
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            server = create_server("127.0.0.1", 0, data_dir=temp_dir)
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                url = f"http://127.0.0.1:{server.server_address[1]}/api/v1/runs/large/events"
+                with self.assertRaises(urllib.error.HTTPError) as caught:
+                    urllib.request.urlopen(url, timeout=2)
+                self.assertEqual(caught.exception.code, 413)
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=2)
+
     def test_write_requests_fail_closed(self) -> None:
         request = urllib.request.Request(f"{self.base_url}/api/runs/run-confirmed", data=b"{}", method="POST")
         with self.assertRaises(urllib.error.HTTPError) as caught:

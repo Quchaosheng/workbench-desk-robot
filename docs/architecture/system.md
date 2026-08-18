@@ -33,7 +33,9 @@ emit the `TaskGraph`. A model response never becomes a joint, velocity, firmware
 ## Operational boundary
 
 - `/healthz` reports process health; `/readyz` checks that the event source is readable.
-- `/api/runs` and `/api/runs/{run_id}/events` expose ordered read models.
+- `/api/v1/runs` and `/api/v1/runs/{run_id}/events` expose ordered read models;
+  `/api/*` remains a compatibility alias. The checked-in OpenAPI contract is
+  `docs/api-openapi-v1.json`.
 - Event JSONL files are cached by path, modification time and size; changed files invalidate automatically.
 - Static responses use ETags, while versioned vendored assets use immutable caching.
 - `POST`, `PUT`, `PATCH` and `DELETE` return `405 read_only`.

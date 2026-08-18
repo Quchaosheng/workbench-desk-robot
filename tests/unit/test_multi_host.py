@@ -55,9 +55,12 @@ class MultiHostReadModelTests(unittest.TestCase):
                 with urllib.request.urlopen(f"{controller_url}/readyz", timeout=2) as response:
                     self.assertEqual(response.status, 200)
                     self.assertEqual(json.loads(response.read())["data_source"], "remote-simulation-event-source")
-                with urllib.request.urlopen(f"{controller_url}/api/runs/run-remote/events", timeout=2) as response:
+                with urllib.request.urlopen(f"{controller_url}/api/v1/runs/run-remote/events", timeout=2) as response:
                     payload = json.loads(response.read())
                     self.assertEqual(payload["events"][0]["run_id"], "run-remote")
+                with self.assertRaises(urllib.error.HTTPError) as missing:
+                    urllib.request.urlopen(f"{controller_url}/api/v1/runs/missing/events", timeout=2)
+                self.assertEqual(missing.exception.code, 404)
                 sim.shutdown()
                 sim.server_close()
                 sim_thread.join(timeout=2)

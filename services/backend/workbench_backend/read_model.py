@@ -40,10 +40,15 @@ EVENT_TYPES = {
 MAX_EVENT_LOG_BYTES = 10 * 1024 * 1024
 MAX_EVENTS_PER_RUN = 10_000
 MAX_READ_ATTEMPTS = 2
+MAX_REMOTE_RESPONSE_BYTES = 4 * 1024 * 1024
 
 
 class ReadModelError(ValueError):
     """Raised when a persisted run cannot be trusted as an ordered event stream."""
+
+
+class ReadModelResponseTooLarge(ReadModelError):
+    """Raised when a local or remote projection exceeds the HTTP contract."""
 
 
 class DashboardReadModel:
@@ -207,7 +212,16 @@ class RemoteDashboardReadModel(DashboardReadModel):
         request = urllib.request.Request(f"{self.base_url}{path}", headers={"Accept": "application/json"})
         try:
             with urllib.request.urlopen(request, timeout=self.timeout_s) as response:
-                payload = json.loads(response.read())
+                body = response.read(MAX_REMOTE_RESPONSE_BYTES + 1)
+                if len(body) > MAX_REMOTE_RESPONSE_BYTES:
+                    raise ReadModelError("remote event source response is too large")
+                payload = json.loads(body)
+        except urllib.error.HTTPError as exc:
+            if exc.code == 404:
+                raise KeyError(path) from None
+            if exc.code == 413:
+                raise ReadModelResponseTooLarge("remote event source response is too large") from None
+            raise ReadModelError(f"remote event source unavailable: {self.base_url}") from exc
         except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
             raise ReadModelError(f"remote event source unavailable: {self.base_url}") from exc
         if not isinstance(payload, dict):
@@ -222,7 +236,7 @@ class RemoteDashboardReadModel(DashboardReadModel):
         return payload.get("status") == "ready"
 
     def list_runs(self) -> list[dict[str, Any]]:
-        payload = self._request("/api/runs")
+        payload = self._request("/api/v1/runs")
         runs = payload.get("runs")
         if not isinstance(runs, list) or not all(isinstance(run, dict) for run in runs):
             raise ReadModelError("remote event source returned invalid runs")
@@ -230,7 +244,7 @@ class RemoteDashboardReadModel(DashboardReadModel):
 
     def list_events(self, run_id: str) -> list[dict[str, Any]]:
         encoded = urllib.parse.quote(run_id, safe="")
-        payload = self._request(f"/api/runs/{encoded}/events")
+        payload = self._request(f"/api/v1/runs/{encoded}/events")
         events = payload.get("events")
         if not isinstance(events, list) or not all(isinstance(event, dict) for event in events):
             raise ReadModelError("remote event source returned invalid events")

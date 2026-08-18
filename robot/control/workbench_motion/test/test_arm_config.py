@@ -69,9 +69,7 @@ def test_arm_yaml_agrees_with_srdf():
     groups = _srdf_groups(root)
 
     # Arm planning group exists under the name arm.yaml declares.
-    assert cfg.planning_group in groups, (
-        f"arm.yaml planning_group={cfg.planning_group!r} has no matching SRDF group " f"(SRDF groups: {sorted(groups)})"
-    )
+    assert cfg.planning_group in groups, f"missing SRDF arm group {cfg.planning_group!r}; groups={sorted(groups)}"
     # Its chain resolves IK to the tip arm.yaml names, rooted at base_link.
     chain = groups[cfg.planning_group].find("chain")
     assert chain is not None, f"SRDF group {cfg.planning_group!r} is not a chain group"
@@ -79,9 +77,7 @@ def test_arm_yaml_agrees_with_srdf():
     assert chain.get("tip_link") == cfg.ik_tip_link
 
     # Gripper group name matches too (arm.yaml gripper.planning_group).
-    assert cfg.gripper_group in groups, (
-        f"arm.yaml gripper_group={cfg.gripper_group!r} has no matching SRDF group " f"(SRDF groups: {sorted(groups)})"
-    )
+    assert cfg.gripper_group in groups, f"missing SRDF gripper group {cfg.gripper_group!r}; groups={sorted(groups)}"
 
 
 def test_parse_rejects_empty_joints():

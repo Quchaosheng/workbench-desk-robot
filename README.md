@@ -174,17 +174,17 @@ Most code treats a successful write as a successful action. Here they're separat
 
 ```python
 ActionResult(
-    dispatch_state="sent",       # frame left the host
+    dispatch_state="sent",  # frame left the host
     device_state="unconfirmed",  # device hasn't replied
-    outcome="timeout"
+    outcome="timeout",
 )
 ```
 
 **2. Verification is three-valued, not boolean**
 
 ```python
-status = "confirmed"              # goal met, here's the evidence
-status = "refuted"                # goal definitely not met  
+status = "confirmed"  # goal met, here's the evidence
+status = "refuted"  # goal definitely not met
 status = "insufficient_evidence"  # can't tell, here's what's missing
 ```
 

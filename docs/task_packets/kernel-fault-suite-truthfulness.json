@@ -1,0 +1,40 @@
+{
+  "issue": "73",
+  "human_owner": "Quchaosheng",
+  "objective": "Make the privileged kernel fault-suite result explicit and prevent skipped execution from passing CI.",
+  "allowed_paths": [
+    ".github/workflows/ci.yml",
+    "tests/unit/test_release_workflow.py",
+    "docs/task_packets/kernel-fault-suite-truthfulness.json"
+  ],
+  "read_only_paths": [
+    "kernel/wbcan/**",
+    "AGENTS.md"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "interfaces/**"
+  ],
+  "acceptance": [
+    "the runtime fault result is exactly PASS, NOT_EXECUTED, or FAIL",
+    "module insertion and fault-suite outcomes appear in the job summary",
+    "only an executed and successful fault suite satisfies the kernel CI gate",
+    "a regression test prevents skipped runtime verification from appearing green"
+  ],
+  "commands": [
+    "python -m pytest tests/unit/test_release_workflow.py -v",
+    "python tools/scripts/check_task_packet.py docs/task_packets/kernel-fault-suite-truthfulness.json",
+    "git diff --check"
+  ],
+  "evidence": [
+    "release workflow unit-test output",
+    "Task Packet validation output",
+    "kernel-module GitHub Actions job summary"
+  ],
+  "stop_conditions": [
+    "the hosted runner cannot execute privileged kernel module tests",
+    "firmware or interface changes are required",
+    "a release gate outside the repository must be changed"
+  ]
+}

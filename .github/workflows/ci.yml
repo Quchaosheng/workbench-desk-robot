@@ -59,6 +59,7 @@ jobs:
           make -C kernel/wbcan
           make -C kernel/wbcan checkpatch
       - name: Load the module and bring the interface up
+        id: module_load
         run: |
           sudo modprobe can
           sudo modprobe can_raw
@@ -70,7 +71,31 @@ jobs:
           ip -details link show wbcan0
 
       - name: Run the fault suite
+        id: fault_suite
         run: sudo ./kernel/wbcan/test_wbcan.sh wbcan0
+
+      - name: Report runtime fault result
+        if: always()
+        env:
+          MODULE_LOAD_OUTCOME: ${{ steps.module_load.outcome }}
+          FAULT_SUITE_OUTCOME: ${{ steps.fault_suite.outcome }}
+        run: |
+          case "$FAULT_SUITE_OUTCOME" in
+            success) status=PASS ;;
+            failure) status=FAIL ;;
+            *) status=NOT_EXECUTED ;;
+          esac
+          {
+            echo "### wbcan runtime fault suite"
+            echo
+            echo "Status: **$status**"
+            echo
+            echo "| Phase | Outcome |"
+            echo "| --- | --- |"
+            echo "| Module insertion | $MODULE_LOAD_OUTCOME |"
+            echo "| Fault suite | $FAULT_SUITE_OUTCOME |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          test "$status" = PASS
 
       - name: Dump kernel log on failure
         if: failure()

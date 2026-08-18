@@ -121,5 +121,5 @@ def test_explicit_extra_forbid_and_unsupported_keywords_fail_closed(tmp_path: Pa
         encoding="utf-8",
     )
     compiler.load_schemas()
-    with pytest.raises(ValueError, match="unsupported.*format"):
+    with pytest.raises(ValueError, match=r"unsupported.*format"):
         compiler.compile_all(tmp_path / "bad-python", tmp_path / "bad-typescript")

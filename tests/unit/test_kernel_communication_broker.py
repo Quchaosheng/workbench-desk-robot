@@ -79,6 +79,6 @@ def test_broker_rejects_registered_content_that_is_not_a_schema(tmp_path: Path) 
     registry = VersionRegistry(tmp_path / "versions.json")
     registry.register_schema("action", "1.0.0", "not-a-schema")
     boundary = CommunicationBroker(registry)
-    with pytest.raises(BrokerValidationError, match="version.*not registered"):
+    with pytest.raises(BrokerValidationError, match=r"version.*not registered"):
         boundary.publish({}, "action", "1.0.0", "planner")
     assert boundary.message_log == []

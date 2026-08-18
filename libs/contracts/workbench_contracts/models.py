@@ -1,10 +1,10 @@
-from enum import Enum
+from enum import StrEnum
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel, StringConstraints, model_validator
 
 
-class ActionType(str, Enum):
+class ActionType(StrEnum):
     OBSERVE = "observe"
     GRASP = "grasp"
     PLACE = "place"
@@ -13,7 +13,7 @@ class ActionType(str, Enum):
     STOP = "stop"
 
 
-class ActionStatus(str, Enum):
+class ActionStatus(StrEnum):
     SUCCEEDED = "succeeded"
     FAILED = "failed"
     TIMEOUT = "timeout"
@@ -21,7 +21,7 @@ class ActionStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
-class WorldEventType(str, Enum):
+class WorldEventType(StrEnum):
     OBSERVATION = "observation"
     ACTION_REQUEST = "action_request"
     ACTION_RESULT = "action_result"
@@ -29,12 +29,12 @@ class WorldEventType(str, Enum):
     FAULT = "fault"
 
 
-class ClockId(str, Enum):
+class ClockId(StrEnum):
     MONOTONIC = "monotonic"
     WALL = "wall"
 
 
-class McuFrameKind(str, Enum):
+class McuFrameKind(StrEnum):
     COMMAND = "command"
     ACK = "ack"
     TELEMETRY = "telemetry"
@@ -42,7 +42,7 @@ class McuFrameKind(str, Enum):
     STOP_ACK = "stop_ack"
 
 
-class McuOpcode(str, Enum):
+class McuOpcode(StrEnum):
     MOVE = "move"
     GRIP_OPEN = "grip_open"
     GRIP_CLOSE = "grip_close"
@@ -51,7 +51,7 @@ class McuOpcode(str, Enum):
     HEARTBEAT = "heartbeat"
 
 
-class McuFaultCode(str, Enum):
+class McuFaultCode(StrEnum):
     NONE = "none"
     ACK_TIMEOUT = "ack_timeout"
     STOP_TIMEOUT = "stop_timeout"
@@ -62,7 +62,7 @@ class McuFaultCode(str, Enum):
     MALFORMED_FRAME = "malformed_frame"
 
 
-class McuDeviceMode(str, Enum):
+class McuDeviceMode(StrEnum):
     IDLE = "idle"
     MOVING = "moving"
     HOLDING = "holding"
@@ -201,7 +201,7 @@ class Pose(BaseModel):
     orientation: Orientation
 
 
-class Detector(str, Enum):
+class Detector(StrEnum):
     APRILTAG = "apriltag"
     COLOUR_THRESHOLD = "colour_threshold"
     MOCK = "mock"
@@ -230,7 +230,7 @@ class SemanticAction(BaseModel):
     parameters: dict[str, Any] = Field(default_factory=dict)
 
 
-class ActionOutcome(str, Enum):
+class ActionOutcome(StrEnum):
     COMPLETED = "completed"
     FAILED = "failed"
     CANCELED = "canceled"
@@ -238,7 +238,7 @@ class ActionOutcome(str, Enum):
     TIMEOUT = "timeout"
 
 
-class DispatchState(str, Enum):
+class DispatchState(StrEnum):
     """Whether the frame left the host. Not whether the device acted on it."""
 
     NOT_SENT = "not_sent"
@@ -246,7 +246,7 @@ class DispatchState(str, Enum):
     SEND_FAILED = "send_failed"
 
 
-class DeviceState(str, Enum):
+class DeviceState(StrEnum):
     """Whether the device confirmed. Separate from DispatchState by design:
     a written frame is not a confirmed action."""
 
@@ -298,7 +298,7 @@ class TaskGraph(BaseModel):
     model_route: str = "template"
 
 
-class VerificationStatus(str, Enum):
+class VerificationStatus(StrEnum):
     """Three-valued on purpose. A boolean would force the system to guess when
     the evidence does not support either answer."""
 
@@ -307,7 +307,7 @@ class VerificationStatus(str, Enum):
     INSUFFICIENT_EVIDENCE = "insufficient_evidence"
 
 
-class ReasonCode(str, Enum):
+class ReasonCode(StrEnum):
     GOAL_SATISFIED = "goal_satisfied"
     GOAL_NOT_SATISFIED = "goal_not_satisfied"
     TARGET_NOT_OBSERVED = "target_not_observed"
@@ -317,7 +317,7 @@ class ReasonCode(str, Enum):
     STALE_OBSERVATION = "stale_observation"
 
 
-class RecoveryHint(str, Enum):
+class RecoveryHint(StrEnum):
     RE_OBSERVE = "re_observe"
     RETRY_ACTION = "retry_action"
     ASK_CONFIRM = "ask_confirm"

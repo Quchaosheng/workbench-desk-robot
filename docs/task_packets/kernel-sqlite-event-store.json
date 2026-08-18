@@ -1,0 +1,31 @@
+{
+  "issue": 90,
+  "human_owner": "Quchaosheng",
+  "objective": "Migrate runtime event evidence from JSONL to SQLite with persistent checkpoints and verified backup/restore.",
+  "allowed_paths": [
+    "libs/kernel/workbench/kernel/event_store.py",
+    "libs/kernel/tests/**",
+    "tests/unit/test_kernel_event_store.py",
+    "libs/kernel/README.md",
+    "docs/task_packets/kernel-sqlite-event-store.json"
+  ],
+  "read_only_paths": ["interfaces/**", "AGENTS.md"],
+  "forbidden": ["robot/control/**", "firmware/**", "interfaces/**"],
+  "acceptance": [
+    "SQLite stores strict events and checkpoints across restart",
+    "strict JSONL migration validates before writing",
+    "snapshot restore verifies schema, checksum, integrity, and event count before atomic replacement",
+    "corrupt, torn, duplicate, mixed-run, and sequence-invalid data fails closed",
+    "a repeatable benchmark reports append and replay throughput"
+  ],
+  "commands": [
+    "python3 libs/kernel/tests/benchmark_event_store.py",
+    "python3 -m pytest tests/unit/test_kernel_event_store.py libs/kernel/tests -q"
+  ],
+  "evidence": ["SQLite restart/checkpoint assertions", "backup checksum assertions", "benchmark output"],
+  "stop_conditions": [
+    "a PostgreSQL driver or DSN is required",
+    "cross-process locking or distributed retention is required",
+    "schema/interface changes are required"
+  ]
+}

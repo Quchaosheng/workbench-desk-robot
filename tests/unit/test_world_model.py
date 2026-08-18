@@ -1,6 +1,8 @@
 import sys
 import unittest
+from itertools import permutations
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT / "libs/contracts"), str(ROOT / "services/world_model")]
@@ -28,6 +30,25 @@ def placed_event() -> WorldEvent:
         occurred_at="2026-08-04T00:00:00Z",
         payload={"outcome": "completed", "entity_id": "red_block", "resulting_location": "in:tray"},
         evidence_refs=["act-001"],
+    )
+
+
+def observation_event(
+    event_id: str,
+    sequence_no: int,
+    *,
+    run_id: str = "run-001",
+    entity_id: str = "red_block",
+    location: str = "on:table",
+) -> WorldEvent:
+    return WorldEvent(
+        event_id=event_id,
+        run_id=run_id,
+        sequence_no=sequence_no,
+        event_type=WorldEventType.OBSERVATION,
+        occurred_at=f"2026-08-04T00:00:{sequence_no:02d}Z",
+        payload={"entity_id": entity_id, "location": location, "confidence": 0.9},
+        evidence_refs=[f"frame://{event_id}"],
     )
 
 
@@ -63,6 +84,132 @@ class WorldModelTests(unittest.TestCase):
         twice = apply_event(once, placed_event())
         self.assertEqual(once.model_dump(), twice.model_dump())
         self.assertEqual(once.entity_evidence_refs["red_block"], ["act-001"])
+
+    def test_reduce_events_rejects_empty_run_id_before_apply(self) -> None:
+        streams = [[], [observation_event("evt-001", 1, run_id="")]]
+
+        for events in streams:
+            with self.subTest(event_count=len(events)):
+                with patch("workbench_world_model.reducer.apply_event", wraps=apply_event) as apply_spy:
+                    with self.assertRaisesRegex(ValueError, "run_id"):
+                        reduce_events("", events)
+                    apply_spy.assert_not_called()
+
+    def test_reduce_events_rejects_mixed_run_before_apply(self) -> None:
+        events = [
+            observation_event("evt-001", 1),
+            observation_event("evt-002", 2, run_id="run-002"),
+        ]
+
+        with patch("workbench_world_model.reducer.apply_event", wraps=apply_event) as apply_spy:
+            with self.assertRaisesRegex(ValueError, "run_id"):
+                reduce_events("run-001", events)
+            apply_spy.assert_not_called()
+
+    def test_reduce_events_rejects_duplicate_sequence_before_apply(self) -> None:
+        events = [
+            observation_event("evt-001", 1),
+            observation_event("evt-002", 1, location="in:tray"),
+        ]
+
+        with patch("workbench_world_model.reducer.apply_event", wraps=apply_event) as apply_spy:
+            with self.assertRaisesRegex(ValueError, "sequence_no"):
+                reduce_events("run-001", events)
+            apply_spy.assert_not_called()
+
+    def test_reduce_events_rejects_conflicting_duplicate_event_id_before_apply(self) -> None:
+        original = observation_event("evt-001", 1)
+        conflicts = [
+            original.model_copy(update={"sequence_no": 2}),
+            original.model_copy(update={"occurred_at": "2026-08-04T00:01:00Z"}),
+            original.model_copy(
+                update={
+                    "payload": {
+                        "entity_id": "red_block",
+                        "location": "in:tray",
+                        "confidence": 0.9,
+                    }
+                }
+            ),
+            original.model_copy(update={"evidence_refs": ["frame://different"]}),
+            original.model_copy(update={"event_type": WorldEventType.FAULT}),
+        ]
+
+        for conflict in conflicts:
+            with self.subTest(conflict=conflict.model_dump(mode="json")):
+                with patch("workbench_world_model.reducer.apply_event", wraps=apply_event) as apply_spy:
+                    with self.assertRaisesRegex(ValueError, "event_id"):
+                        reduce_events("run-001", [original, conflict])
+                    apply_spy.assert_not_called()
+
+    def test_reduce_events_accepts_exact_duplicate_idempotently(self) -> None:
+        original = observation_event("evt-001", 1)
+        duplicate = WorldEvent(
+            event_id=original.event_id,
+            run_id=original.run_id,
+            sequence_no=original.sequence_no,
+            event_type=original.event_type,
+            occurred_at=original.occurred_at,
+            payload={
+                "confidence": 0.9,
+                "location": "on:table",
+                "entity_id": "red_block",
+            },
+            evidence_refs=list(original.evidence_refs),
+        )
+
+        state = reduce_events("run-001", [original, duplicate])
+
+        self.assertEqual(state.applied_event_ids, ["evt-001"])
+        self.assertEqual(state.evidence_refs, ["frame://evt-001"])
+        self.assertEqual(state.entity_evidence_refs["red_block"], ["frame://evt-001"])
+
+    def test_reduce_events_orders_unique_events_by_sequence_number(self) -> None:
+        events = [
+            observation_event("evt-003", 3, entity_id="blue_block"),
+            observation_event("evt-001", 1),
+            observation_event("evt-002", 2, location="in:tray"),
+        ]
+
+        state = reduce_events("run-001", events)
+
+        self.assertEqual(state.applied_event_ids, ["evt-001", "evt-002", "evt-003"])
+        self.assertEqual(
+            state.evidence_refs,
+            ["frame://evt-001", "frame://evt-002", "frame://evt-003"],
+        )
+        self.assertEqual(state.entity_locations["red_block"], "in:tray")
+
+    def test_reduce_events_is_deterministic_for_every_input_permutation(self) -> None:
+        events = [
+            observation_event("evt-001", 1),
+            observation_event("evt-002", 2, location="in:tray"),
+            observation_event("evt-003", 3, entity_id="blue_block"),
+        ]
+        states = [
+            reduce_events("run-001", list(event_order)).model_dump(mode="json") for event_order in permutations(events)
+        ]
+
+        self.assertEqual(len(states), 6)
+        self.assertTrue(all(state == states[0] for state in states))
+        self.assertEqual(states[0]["applied_event_ids"], ["evt-001", "evt-002", "evt-003"])
+
+    def test_reduce_events_preflights_entire_stream_before_apply(self) -> None:
+        events = [
+            observation_event("evt-001", 1),
+            observation_event("evt-002", 2),
+            observation_event("evt-003", 2, location="in:tray"),
+        ]
+
+        with patch("workbench_world_model.reducer.apply_event", wraps=apply_event) as apply_spy:
+            with self.assertRaises(ValueError):
+                reduce_events("run-001", events)
+            apply_spy.assert_not_called()
+
+    def test_reduce_events_accepts_empty_stream_for_valid_run(self) -> None:
+        state = reduce_events("run-001", [])
+
+        self.assertEqual(state, WorldState(run_id="run-001"))
 
     def test_verifier_uses_state_relation(self) -> None:
         state = reduce_events("run-001", [placed_event()])

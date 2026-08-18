@@ -1,0 +1,94 @@
+{
+  "issue": 49,
+  "human_owner": "kukuboring",
+  "objective": "Preflight and deterministically reduce one non-empty run's WorldEvent stream, folding only content-identical duplicates and rejecting mixed-run or ambiguous event identities and sequence numbers before applying any event.",
+  "allowed_paths": [
+    "services/world_model/workbench_world_model/reducer.py",
+    "tests/unit/test_world_model.py",
+    "docs/task_packets/issue-49-world-event-stream-integrity.json"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "CONTRIBUTING.md",
+    "Makefile",
+    "docs/architecture/system.md",
+    "docs/task_packets/example-001-world-reducer.json",
+    "tools/scripts/check_task_packet.py",
+    "interfaces/json_schema/world_event.schema.json",
+    "interfaces/json_schema/world_state.schema.json",
+    "interfaces/json_schema/observation.schema.json",
+    "interfaces/json_schema/action_result.schema.json",
+    "interfaces/examples/observation-red-block.json",
+    "interfaces/examples/action-result-place-confirmed.json",
+    "interfaces/examples/world-state-block-in-tray.json",
+    "libs/contracts/workbench_contracts/models.py",
+    "services/world_model/workbench_world_model/__init__.py",
+    "services/world_model/workbench_world_model/event_store.py",
+    "services/world_model/workbench_world_model/verifier.py",
+    "tests/integration/test_observe_plan_act.py"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "services/world_model/workbench_world_model/__init__.py",
+    "services/world_model/workbench_world_model/event_store.py",
+    "services/world_model/workbench_world_model/verifier.py",
+    "services/agent_runtime/**",
+    "services/backend/**",
+    "apps/**",
+    "robot/**",
+    "firmware/**",
+    "sim/**",
+    ".github/**",
+    "docs/task_packets/issue-122-world-model-mocks.json"
+  ],
+  "acceptance": [
+    "reduce_events rejects an empty requested run_id with ValueError before applying any event.",
+    "Every event must match the requested run_id; a mixed-run stream raises ValueError before applying any event.",
+    "Content-distinct events in one run cannot share sequence_no; the stream raises ValueError before applying any event.",
+    "Reusing an event_id with different complete model-dumped JSON content raises ValueError before applying any event.",
+    "Separate WorldEvent instances with equal complete model-dumped JSON content are treated as one idempotent event.",
+    "JSON object key insertion order alone does not make otherwise equal event content different.",
+    "After exact duplicates are folded, accepted events are applied exactly once in ascending sequence_no order.",
+    "Every permutation of the same accepted stream produces an identical WorldState model dump, evidence order and applied_event_ids order.",
+    "The complete stream is validated before the first apply_event call, so rejection cannot expose or return a partial state.",
+    "A valid non-empty run_id with an empty event list returns an empty WorldState for that run.",
+    "The reduce_events public signature, WorldState model, JSON Schemas and package-root exports remain unchanged."
+  ],
+  "commands": [
+    "python3 -m pytest tests/unit/test_world_model.py -v",
+    "python3 -m pytest tests/integration/test_observe_plan_act.py -v",
+    "make task-check PACKET=docs/task_packets/issue-49-world-event-stream-integrity.json",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "make demo-scripted",
+    "make check"
+  ],
+  "evidence": [
+    "Pre-implementation targeted test output showing the new tests fail for the expected missing validation and nondeterminism reasons.",
+    "Cause-specific ValueError assertions for empty run_id, mixed runs, duplicate sequence_no and conflicting duplicate event_id.",
+    "A spy assertion proving invalid streams are rejected before apply_event is called.",
+    "State assertions proving a content-identical duplicate is applied once without duplicate evidence.",
+    "All six permutations of a three-event accepted stream produce the same WorldState model dump and ordered applied_event_ids.",
+    "Targeted unit and existing integration test outputs.",
+    "Task Packet validation and all required repository check outputs with exit codes and test counts.",
+    "Final git status, git diff --name-only and git diff --check output proving only allowed paths changed."
+  ],
+  "stop_conditions": [
+    "Implementation requires changing interfaces/** or libs/contracts/**.",
+    "Implementation requires changing event_store.py, verifier.py, package-root exports or another runtime module.",
+    "A public exception type or reduce_events signature change is required.",
+    "Implementation requires resolving the pre-existing WorldState Pydantic and JSON Schema drift.",
+    "Content-identical duplicate semantics cannot be implemented from the existing WorldEvent model-dumped content.",
+    "Implementation requires robot, firmware, simulation, control or security configuration changes.",
+    "A new test does not fail for the expected reason before implementation.",
+    "Invalid-stream rejection cannot be proven to occur before the first apply_event call.",
+    "The working branch contains Issue #46 or another Issue's commits.",
+    "Pre-existing user changes overlap an allowed path and cannot be preserved safely.",
+    "Any required modification falls outside allowed_paths.",
+    "An interface, safety or cross-module conflict is discovered."
+  ]
+}
+

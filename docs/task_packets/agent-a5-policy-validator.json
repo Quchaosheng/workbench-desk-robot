@@ -1,0 +1,63 @@
+{
+  "issue": 118,
+  "human_owner": "zhangjia-1111",
+  "objective": "Build a language-layer PolicyValidator that enforces exact field-set equality against the A1 ToolRegistry whitelist, fail-closed.",
+  "allowed_paths": [
+    "services/agent_runtime/workbench_agent_runtime/policy_validator.py",
+    "tests/unit/test_policy_validator.py",
+    "docs/task_packets/agent-a5-policy-validator.json"
+  ],
+  "read_only_paths": [
+    "services/agent_runtime/workbench_agent_runtime/tool_registry.py",
+    "services/agent_runtime/workbench_agent_runtime/tool_schemas.py",
+    "services/agent_runtime/workbench_agent_runtime/planner.py",
+    "services/agent_runtime/workbench_agent_runtime/local_model.py",
+    "interfaces/**",
+    "libs/contracts/**"
+  ],
+  "forbidden": [
+    "firmware/**",
+    "robot/control/**",
+    "services/world_model/**",
+    "services/backend/**",
+    "services/perception/**",
+    "sim/**",
+    "interfaces/**"
+  ],
+  "acceptance": [
+    "PolicyValidator reads whitelist from ToolRegistry, no second field list",
+    "valid SemanticAction passes",
+    "exact field-set equality, not subset",
+    "extra fields rejected",
+    "missing required fields rejected",
+    "isinstance(duration_ms, bool) checked before int",
+    "other int slots also bool-before-int",
+    "type mismatches rejected",
+    "fail-closed: any violation raises PolicyViolation",
+    "validator never emits VerificationResult",
+    "15+ behavioural assertions in unit tests"
+  ],
+  "commands": [
+    "make lint",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "make demo-scripted",
+    "make demo-offline"
+  ],
+  "evidence": [
+    "test_policy_validator.py output (25+ assertions)",
+    "make lint output",
+    "make test full suite output",
+    "make contract output",
+    "make demo-scripted output"
+  ],
+  "stop_conditions": [
+    "ToolRegistry interface not merged to main",
+    "adding a new ActionType enum value",
+    "modifying interfaces/ or libs/contracts/",
+    "validator emitting VerificationResult or claiming task completion",
+    "make demo-scripted regression"
+  ]
+}

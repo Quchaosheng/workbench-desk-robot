@@ -174,17 +174,17 @@ python hardware/release/tools/check_release_readiness.py
 
 ```python
 ActionResult(
-    dispatch_state="sent",       # 帧离开了主机
+    dispatch_state="sent",  # 帧离开了主机
     device_state="unconfirmed",  # 设备还没回复
-    outcome="timeout"
+    outcome="timeout",
 )
 ```
 
 **2. 验证是三值的,不是布尔**
 
 ```python
-status = "confirmed"              # 目标达成,这是证据
-status = "refuted"                # 目标确实没达成  
+status = "confirmed"  # 目标达成,这是证据
+status = "refuted"  # 目标确实没达成
 status = "insufficient_evidence"  # 判断不了,这是缺的东西
 ```
 

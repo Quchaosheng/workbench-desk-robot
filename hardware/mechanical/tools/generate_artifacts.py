@@ -229,7 +229,7 @@ def write_engineering_drawings(report: dict[str, object]) -> None:
 <line class="dim" x1="1120" y1="170" x2="1120" y2="530"/><text x="1140" y="370" class="note" transform="rotate(-90 1140 370)">{depth}</text>
 <rect x="675" y="185" width="390" height="330" fill="none" stroke="#e65c00" stroke-width="12" rx="24"/>
 <text x="700" y="565" class="note">8 TPU skin over 24 effective compliant stroke</text>
-<text x="660" y="625" class="note">CG Z={report['center_of_gravity_mm'][2]}; static tip angle={report['static_tip_angle_deg']} deg</text>
+<text x="660" y="625" class="note">CG Z={report["center_of_gravity_mm"][2]}; static tip angle={report["static_tip_angle_deg"]} deg</text>
 <text x="660" y="660" class="note">ISO 2768-m unless noted; prototype only until physical validation</text>
 </svg>"""
     (drawings / "general-arrangement.svg").write_text(svg, encoding="utf-8", newline="\n")

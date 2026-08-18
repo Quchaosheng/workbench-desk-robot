@@ -90,26 +90,26 @@ def generate(metrics: list[dict[str, Any]], labels: list[str], commit: str, seed
 ## 安全与正确性
 
 | 指标 | {columns} | 门槛 |
-|---|{'---|' * len(labels)}---|
-{row('误判完成', 'false_completion_count', count, f'0 ({safety_gate})')}
-{row('碰撞', 'collision_count', count, '0')}
-{row('模型越权', 'policy_violation_count', count, '0')}
+|---|{"---|" * len(labels)}---|
+{row("误判完成", "false_completion_count", count, f"0 ({safety_gate})")}
+{row("碰撞", "collision_count", count, "0")}
+{row("模型越权", "policy_violation_count", count, "0")}
 
 ## 任务与证据
 
 | 指标 | {columns} | 门槛 |
-|---|{'---|' * len(labels)}---|
-{row('VTCR', 'vtcr', percent, '>= 80%')}
-{row('任务时间 P50', 'task_duration_p50_s', seconds, '-')}
-{row('任务时间 P95', 'task_duration_p95_s', seconds, '< 120s')}
-{row('恢复率', 'recovery_rate', percent, '>= 70%')}
-{row('验证证据覆盖率', 'evidence_coverage', percent, '100%')}
-{row('state hash 一致性', 'state_hash_consistency', percent, '100%')}
-{row('回放成功率', 'replay_success_rate', percent, '>= 95%')}
-{row('任务族数量', 'task_family_count', count, '>= 5')}
-{row('复杂任务占比', 'complex_task_rate', percent, '>= 50%')}
-{row('平均观测实体数', 'mean_observed_entities', decimal, '>= 2')}
-{row('目标条件覆盖率', 'goal_condition_coverage', percent, '100%')}
+|---|{"---|" * len(labels)}---|
+{row("VTCR", "vtcr", percent, ">= 80%")}
+{row("任务时间 P50", "task_duration_p50_s", seconds, "-")}
+{row("任务时间 P95", "task_duration_p95_s", seconds, "< 120s")}
+{row("恢复率", "recovery_rate", percent, ">= 70%")}
+{row("验证证据覆盖率", "evidence_coverage", percent, "100%")}
+{row("state hash 一致性", "state_hash_consistency", percent, "100%")}
+{row("回放成功率", "replay_success_rate", percent, ">= 95%")}
+{row("任务族数量", "task_family_count", count, ">= 5")}
+{row("复杂任务占比", "complex_task_rate", percent, ">= 50%")}
+{row("平均观测实体数", "mean_observed_entities", decimal, ">= 2")}
+{row("目标条件覆盖率", "goal_condition_coverage", percent, "100%")}
 
 ## 数据资格
 
@@ -125,7 +125,7 @@ def generate(metrics: list[dict[str, Any]], labels: list[str], commit: str, seed
 
 {reason_lines}
 
-人工审核人: `{metrics[-1].get('false_completion_reviewed_by') or '待填写'}`<br>
+人工审核人: `{metrics[-1].get("false_completion_reviewed_by") or "待填写"}`<br>
 Product Owner 签字: ____________________
 """
 

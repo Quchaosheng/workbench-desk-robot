@@ -40,8 +40,7 @@ def main() -> int:
         expected_total = len(frozen) + 6 * len(SCENE_TASKS)
         if len(frozen) + len(expanded) != expected_total:
             raise RuntimeError(
-                f"expanded benchmark must contain {expected_total} total scenarios, "
-                f"found {len(frozen) + len(expanded)}"
+                f"expanded benchmark must contain {expected_total} total scenarios, found {len(frozen) + len(expanded)}"
             )
         variants = {manifest.get("scene_variant") for manifest in expanded}
         if not P2_SCENE_VARIANTS.issubset(variants):

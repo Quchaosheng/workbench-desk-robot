@@ -162,7 +162,7 @@ class PolicyValidator:
                     step_id,
                     action_id,
                     "parameters",
-                    f"forbidden keys for '{action.action_type.value}': " f"{sorted(extra)}; allowed: {sorted(allowed)}",
+                    f"forbidden keys for '{action.action_type.value}': {sorted(extra)}; allowed: {sorted(allowed)}",
                 )
             )
         if missing:
@@ -171,7 +171,7 @@ class PolicyValidator:
                     step_id,
                     action_id,
                     "parameters",
-                    f"missing required keys for '{action.action_type.value}': " f"{sorted(missing)}",
+                    f"missing required keys for '{action.action_type.value}': {sorted(missing)}",
                 )
             )
 

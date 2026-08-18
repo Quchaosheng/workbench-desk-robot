@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class McuState(str, Enum):
+class McuState(StrEnum):
     IDLE = "idle"
     EXECUTING = "executing"
     SAFE_STOP = "safe_stop"

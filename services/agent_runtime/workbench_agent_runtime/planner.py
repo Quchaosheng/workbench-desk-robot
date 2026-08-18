@@ -22,8 +22,7 @@ def _validate_plan(plan: TaskGraph) -> None:
         if not result.is_valid:
             messages = "; ".join(f"{error.field}: {error.message}" for error in result.errors)
             raise ValueError(
-                f"step '{step.step_id}' action '{step.action.action_id}' "
-                f"failed tool-registry validation: {messages}"
+                f"step '{step.step_id}' action '{step.action.action_id}' failed tool-registry validation: {messages}"
             )
 
 
@@ -438,8 +437,7 @@ def _validate_unique_parcel_identities(
             if previous is not None and previous[0] != parcel_id:
                 raw_value = attributes[key].strip()
                 raise ValueError(
-                    f"duplicate parcel identity {key}={raw_value!r}: "
-                    f"{previous[0]}.{previous[1]} and {parcel_id}.{key}"
+                    f"duplicate parcel identity {key}={raw_value!r}: {previous[0]}.{previous[1]} and {parcel_id}.{key}"
                 )
             seen[identity] = (parcel_id, key)
     return identities

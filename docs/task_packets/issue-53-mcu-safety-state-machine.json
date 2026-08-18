@@ -1,0 +1,71 @@
+{
+  "issue": 53,
+  "human_owner": "TH3478",
+  "objective": "Implement the platform-independent C safety state machine for the MCU, with deterministic fail-closed transitions and the same transition suite running on Host and QEMU.",
+  "allowed_paths": [
+    "firmware/mcu/core/state_machine.h",
+    "firmware/mcu/core/state_machine.c",
+    "firmware/mcu/core/main.c",
+    "firmware/mcu/Makefile",
+    "firmware/mcu/hal/qemu/main_qemu.c",
+    "firmware/mcu/tests/state_machine_tests.h",
+    "firmware/mcu/tests/state_machine_tests.c",
+    "firmware/mcu/tests/main_host.c",
+    "docs/task_packets/issue-53-mcu-safety-state-machine.json"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "docs/architecture/mcu-protocol-v1.md",
+    "interfaces/json_schema/mcu_protocol.schema.json",
+    "interfaces/examples/mcu-frame-stop-ack.json",
+    "firmware/mcu/core/hal.h",
+    "firmware/virtual_mcu/**",
+    "tests/unit/test_virtual_mcu.py",
+    "docs/decisions/ADR-0003-mcu-riscv-qemu.md"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "firmware/mcu/hal/ch32v307/**",
+    "robot/control/**",
+    "hardware/**",
+    "services/**"
+  ],
+  "acceptance": [
+    "The C core exposes IDLE, EXECUTING, SAFE_STOP and FAULT states with deterministic results.",
+    "STOP is processed from every state, is idempotent, and never permits motion to continue.",
+    "WATCHDOG_EXPIRED enters a latched FAULT state with the frozen watchdog fault meaning.",
+    "SAFE_STOP and FAULT cannot resume execution through ordinary events or an unauthorized reset.",
+    "A trusted reset requires an explicit authorization and cleared-cause gate, then enters IDLE only.",
+    "Invalid events and invalid event arguments return a rejection and fail closed without heap allocation.",
+    "The core includes no vendor or platform headers, dynamic allocation, floating point, or hardware register access.",
+    "The shared transition tests cover every state and event boundary and run against the same core source on Host and QEMU.",
+    "Python VirtualMcu parity expectations are represented by the C transition vectors; Python behavior is not silently changed in this issue."
+  ],
+  "commands": [
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/issue-53-mcu-safety-state-machine.json",
+    "make -C firmware/mcu test-host",
+    "make -C firmware/mcu test-qemu",
+    "make -C firmware/mcu verify-no-fp",
+    "make -C firmware/mcu size-check",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check"
+  ],
+  "evidence": [
+    "Host transition-suite output with assertion and failure counts",
+    "QEMU transition-suite output from the shared C test source",
+    "verify-no-fp output proving no floating-point instructions or allocator symbols",
+    "MCU binary size-check output",
+    "repository test, contract, scenario and context-check output"
+  ],
+  "stop_conditions": [
+    "The implementation requires changing the frozen JSON Schema, Pydantic models or protocol documentation.",
+    "A reset opcode or reset frame would be added to protocol v1.0.",
+    "The implementation needs CAN layout, frame decoding, retry deduplication or watchdog timer scheduling from #54, #61 or #60.",
+    "The implementation needs vendor headers, board registers, motor control, PID or physical hardware claims.",
+    "The C state machine cannot run unchanged in both Host and QEMU targets.",
+    "The Python model would need behavior changes outside this Task Packet, especially unknown-command handling from #63."
+  ]
+}

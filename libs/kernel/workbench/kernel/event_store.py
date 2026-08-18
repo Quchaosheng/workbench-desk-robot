@@ -1,7 +1,14 @@
-"""K6-K7: Event Store"""
+"""Append-only event storage with a strict JSONL compatibility path and SQLite backend."""
 
+from __future__ import annotations
+
+import hashlib
 import json
+import os
+import shutil
+import sqlite3
 import threading
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -21,20 +28,76 @@ EVENT_TYPES = {
     "recovery_complete",
 }
 REQUIRED_EVENT_FIELDS = {"event_id", "run_id", "sequence_no", "event_type", "occurred_at", "payload"}
+SQLITE_SUFFIXES = {".db", ".sqlite", ".sqlite3"}
+SCHEMA_VERSION = 1
 
 
 class EventStoreError(ValueError):
-    """Raised when the persisted event log cannot be replayed safely."""
+    """Raised when persisted evidence cannot be written or replayed safely."""
 
 
 class EventStore:
-    def __init__(self, log_file: Path, *, legacy_objects: bool = False):
-        self.log_file = log_file
+    """Persist one contiguous event run.
+
+    SQLite is the default for database-looking paths (``.sqlite3``, ``.sqlite``
+    and ``.db``). ``.jsonl`` remains an explicit compatibility format so old
+    logs can be inspected and migrated without silently changing their meaning.
+    """
+
+    def __init__(self, log_file: Path, *, legacy_objects: bool = False, backend: str | None = None):
+        self.log_file = Path(log_file)
         self.legacy_objects = legacy_objects
+        self.backend = backend or ("sqlite" if self.log_file.suffix.lower() in SQLITE_SUFFIXES else "jsonl")
+        if self.backend not in {"jsonl", "sqlite"}:
+            raise ValueError("backend must be 'jsonl' or 'sqlite'")
+        if self.backend == "sqlite" and legacy_objects:
+            raise ValueError("legacy_objects is only supported by the JSONL compatibility backend")
         self.log_file.parent.mkdir(parents=True, exist_ok=True)
         self.events: list[dict[str, Any]] = []
         self.checkpoints: list[int] = []
         self._lock = threading.RLock()
+        self._connection: sqlite3.Connection | None = None
+        if self.backend == "sqlite":
+            self._connection = sqlite3.connect(self.log_file)
+            self._connection.execute("PRAGMA foreign_keys = ON")
+            self._connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS event_store_meta (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
+                );
+                """
+            )
+            self._connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS events (
+                    event_id TEXT PRIMARY KEY,
+                    run_id TEXT NOT NULL,
+                    sequence_no INTEGER NOT NULL UNIQUE,
+                    event_json TEXT NOT NULL
+                );
+                """
+            )
+            self._connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS checkpoints (
+                    checkpoint_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    event_count INTEGER NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                """
+            )
+            self._connection.execute(
+                "INSERT OR IGNORE INTO event_store_meta(key, value) VALUES ('schema_version', ?)",
+                (str(SCHEMA_VERSION),),
+            )
+            self._connection.commit()
+            self.checkpoints = [
+                row[0]
+                for row in self._connection.execute(
+                    "SELECT event_count FROM checkpoints ORDER BY checkpoint_id"
+                ).fetchall()
+            ]
 
     def _validate_events(self, events: list[dict[str, Any]]) -> None:
         if self.legacy_objects:
@@ -76,7 +139,7 @@ class EventStore:
             if not isinstance(evidence_refs, list) or any(not isinstance(ref, str) for ref in evidence_refs):
                 raise EventStoreError(f"event at index {index} evidence_refs must be a string list")
 
-    def _read_events(self) -> list[dict[str, Any]]:
+    def _read_jsonl(self) -> list[dict[str, Any]]:
         if not self.log_file.exists():
             return []
         events = []
@@ -97,30 +160,102 @@ class EventStore:
         self._validate_events(events)
         return events
 
+    def _read_sqlite(self) -> list[dict[str, Any]]:
+        assert self._connection is not None
+        try:
+            version = self._connection.execute(
+                "SELECT value FROM event_store_meta WHERE key = 'schema_version'"
+            ).fetchone()
+            if version != (str(SCHEMA_VERSION),):
+                raise EventStoreError("event database schema version mismatch")
+            rows = self._connection.execute(
+                "SELECT event_id, run_id, sequence_no, event_json FROM events ORDER BY sequence_no"
+            ).fetchall()
+            events = []
+            for index, (event_id, run_id, sequence_no, encoded) in enumerate(rows):
+                try:
+                    event = json.loads(encoded)
+                except (TypeError, json.JSONDecodeError) as exc:
+                    raise EventStoreError(f"invalid event JSON in SQLite row {index}") from exc
+                if not isinstance(event, dict):
+                    raise EventStoreError(f"event in SQLite row {index} must be an object")
+                if (event.get("event_id"), event.get("run_id"), event.get("sequence_no")) != (
+                    event_id,
+                    run_id,
+                    sequence_no,
+                ):
+                    raise EventStoreError(f"indexed fields disagree with SQLite row {index}")
+                events.append(event)
+            self._validate_events(events)
+            return events
+        except sqlite3.DatabaseError as exc:
+            raise EventStoreError(f"event database is unavailable or corrupt: {self.log_file}") from exc
+
+    def _read_events(self) -> list[dict[str, Any]]:
+        return self._read_jsonl() if self.backend == "jsonl" else self._read_sqlite()
+
     def append(self, event: dict[str, Any]) -> None:
         if not isinstance(event, dict):
             raise TypeError("event must be an object")
+        self.append_many([event])
+
+    def append_many(self, new_events: list[dict[str, Any]]) -> None:
+        """Append a validated batch in one transaction."""
+        if any(not isinstance(event, dict) for event in new_events):
+            raise TypeError("event must be an object")
         try:
-            serialized = json.dumps(event, allow_nan=False, ensure_ascii=False, separators=(",", ":"))
+            serialized = [
+                json.dumps(event, allow_nan=False, ensure_ascii=False, separators=(",", ":")) for event in new_events
+            ]
         except (TypeError, ValueError) as exc:
             raise EventStoreError("event must contain strict JSON values") from exc
-        persisted_event = json.loads(serialized)
+        persisted_events = [json.loads(encoded) for encoded in serialized]
         with self._lock:
             events = self._read_events()
-            self._validate_events([*events, persisted_event])
-            try:
-                with self.log_file.open("a", encoding="utf-8", newline="\n") as handle:
-                    handle.write(serialized + "\n")
-            except OSError as exc:
-                raise EventStoreError(f"event log could not be appended: {self.log_file}") from exc
-            self.events = [*events, persisted_event]
+            self._validate_events([*events, *persisted_events])
+            if self.backend == "jsonl":
+                try:
+                    with self.log_file.open("a", encoding="utf-8", newline="\n") as handle:
+                        handle.writelines(f"{encoded}\n" for encoded in serialized)
+                except OSError as exc:
+                    raise EventStoreError(f"event log could not be appended: {self.log_file}") from exc
+            else:
+                assert self._connection is not None
+                try:
+                    self._connection.executemany(
+                        "INSERT INTO events(event_id, run_id, sequence_no, event_json) VALUES (?, ?, ?, ?)",
+                        [
+                            (event["event_id"], event["run_id"], event["sequence_no"], encoded)
+                            for event, encoded in zip(persisted_events, serialized, strict=True)
+                        ],
+                    )
+                    self._connection.commit()
+                except sqlite3.DatabaseError as exc:
+                    self._connection.rollback()
+                    raise EventStoreError(f"event database could not be appended: {self.log_file}") from exc
+            self.events = [*events, *persisted_events]
 
     def create_checkpoint(self) -> int:
         with self._lock:
             self.events = self._read_events()
-            checkpoint_id = len(self.events)
-            self.checkpoints.append(checkpoint_id)
-            return checkpoint_id
+            checkpoint = len(self.events)
+            if self.backend == "sqlite":
+                assert self._connection is not None
+                try:
+                    self._connection.execute("INSERT INTO checkpoints(event_count) VALUES (?)", (checkpoint,))
+                    self._connection.commit()
+                except sqlite3.DatabaseError as exc:
+                    self._connection.rollback()
+                    raise EventStoreError("checkpoint could not be persisted") from exc
+                self.checkpoints = [
+                    row[0]
+                    for row in self._connection.execute(
+                        "SELECT event_count FROM checkpoints ORDER BY checkpoint_id"
+                    ).fetchall()
+                ]
+            else:
+                self.checkpoints.append(checkpoint)
+            return checkpoint
 
     def replay(self, from_checkpoint: int | None = None) -> list[dict[str, Any]]:
         with self._lock:
@@ -133,7 +268,119 @@ class EventStore:
     def verify_integrity(self) -> bool:
         with self._lock:
             try:
+                if self.backend == "sqlite":
+                    assert self._connection is not None
+                    result = self._connection.execute("PRAGMA integrity_check").fetchone()
+                    if result != ("ok",):
+                        return False
                 self._read_events()
-            except EventStoreError:
+            except (EventStoreError, sqlite3.DatabaseError):
                 return False
             return True
+
+    def backup(self, destination: Path) -> Path:
+        """Create a checksummed SQLite snapshot and return its manifest path."""
+        if self.backend != "sqlite":
+            raise EventStoreError("backup requires the SQLite backend")
+        destination = Path(destination)
+        if destination.resolve() == self.log_file.resolve():
+            raise EventStoreError("snapshot destination must differ from the live database")
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        temp = destination.with_name(f".{destination.name}.backup-tmp")
+        if temp.exists():
+            temp.unlink()
+        with self._lock:
+            assert self._connection is not None
+            self._connection.commit()
+            target = sqlite3.connect(temp)
+            try:
+                self._connection.backup(target)
+            finally:
+                target.close()
+            self._read_events()
+        manifest = {
+            "format": "workbench-event-store-snapshot",
+            "database": "sqlite",
+            "sqlite_version": sqlite3.sqlite_version,
+            "schema_version": SCHEMA_VERSION,
+            "event_count": len(self.events),
+            "created_at": datetime.now(UTC).isoformat(),
+            "sha256": _sha256(temp),
+        }
+        manifest_path = Path(f"{destination}.manifest.json")
+        manifest_temp = Path(f"{temp}.manifest.json")
+        manifest_temp.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        os.replace(temp, destination)
+        os.replace(manifest_temp, manifest_path)
+        return manifest_path
+
+    @classmethod
+    def restore(cls, snapshot: Path, destination: Path) -> EventStore:
+        """Verify a snapshot before atomically replacing a destination database."""
+        snapshot = Path(snapshot)
+        destination = Path(destination)
+        if snapshot.resolve() == destination.resolve():
+            raise EventStoreError("restore destination must differ from the snapshot")
+        manifest_path = Path(f"{snapshot}.manifest.json")
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise EventStoreError("snapshot manifest is unavailable or malformed") from exc
+        if (
+            manifest.get("format") != "workbench-event-store-snapshot"
+            or manifest.get("schema_version") != SCHEMA_VERSION
+            or manifest.get("sha256") != _sha256(snapshot)
+        ):
+            raise EventStoreError("snapshot checksum or schema version mismatch")
+        probe = cls(snapshot, backend="sqlite")
+        try:
+            if not probe.verify_integrity() or len(probe.replay()) != manifest.get("event_count"):
+                raise EventStoreError("snapshot failed integrity or event-count verification")
+        finally:
+            probe.close()
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        temp = destination.with_name(f".{destination.name}.restore-tmp")
+        shutil.copy2(snapshot, temp)
+        os.replace(temp, destination)
+        shutil.copy2(manifest_path, Path(f"{destination}.manifest.json"))
+        return cls(destination, backend="sqlite")
+
+    def close(self) -> None:
+        if self._connection is not None:
+            self._connection.close()
+            self._connection = None
+
+    def __enter__(self) -> EventStore:
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.close()
+
+
+def migrate_jsonl(source: Path, destination: Path) -> EventStore:
+    """Migrate a strict JSONL log into SQLite after validating every event."""
+    source_store = EventStore(source, backend="jsonl")
+    events = source_store.replay()
+    destination = Path(destination)
+    if destination.exists():
+        raise EventStoreError(f"migration destination already exists: {destination}")
+    temp = destination.with_name(f".{destination.name}.migration-tmp")
+    if temp.exists():
+        temp.unlink()
+    target = EventStore(temp, backend="sqlite")
+    try:
+        target.append_many(events)
+        target.close()
+        os.replace(temp, destination)
+    except Exception:
+        target.close()
+        raise
+    return EventStore(destination, backend="sqlite")
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()

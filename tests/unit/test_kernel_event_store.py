@@ -7,7 +7,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "libs" / "kernel"))
 
-from workbench.kernel.event_store import EventStore, EventStoreError
+from workbench.kernel.event_store import EventStore, EventStoreError, migrate_jsonl
 
 
 def event(event_id: int, *, run_id: str = "run-1", sequence_no: int | None = None) -> dict:
@@ -118,3 +118,52 @@ def test_legacy_object_mode_is_explicit(tmp_path: Path) -> None:
     store.append({"id": 0})
     assert store.verify_integrity()
     assert store.replay() == [{"id": 0}]
+
+
+def test_sqlite_restart_checkpoint_and_unknown_fields(tmp_path: Path) -> None:
+    database = tmp_path / "events.sqlite3"
+    first = EventStore(database)
+    first.append({**event(0), "extension": {"source": "bench"}})
+    first.append(event(1))
+    checkpoint = first.create_checkpoint()
+    first.close()
+
+    reopened = EventStore(database)
+    assert reopened.checkpoints == [2]
+    assert reopened.replay(from_checkpoint=checkpoint) == []
+    assert reopened.replay()[0]["extension"] == {"source": "bench"}
+    assert reopened.verify_integrity()
+    reopened.close()
+
+
+def test_jsonl_migration_and_verified_restore(tmp_path: Path) -> None:
+    source = tmp_path / "events.jsonl"
+    legacy = EventStore(source)
+    legacy.append(event(0))
+    legacy.append(event(1))
+    database = tmp_path / "events.sqlite3"
+    migrated = migrate_jsonl(source, database)
+    assert migrated.replay() == [event(0), event(1)]
+    snapshot = tmp_path / "events.snapshot.sqlite3"
+    manifest = migrated.backup(snapshot)
+    metadata = json.loads(manifest.read_text(encoding="utf-8"))
+    migrated.close()
+    restored = EventStore.restore(snapshot, tmp_path / "restored.sqlite3")
+    assert manifest.exists()
+    assert metadata["database"] == "sqlite"
+    assert metadata["sqlite_version"]
+    assert metadata["created_at"].endswith("+00:00")
+    assert restored.replay() == [event(0), event(1)]
+    restored.close()
+
+    snapshot.write_bytes(snapshot.read_bytes() + b"tamper")
+    with pytest.raises(EventStoreError, match="checksum"):
+        EventStore.restore(snapshot, tmp_path / "rejected.sqlite3")
+
+
+def test_sqlite_batch_is_atomic_on_contract_failure(tmp_path: Path) -> None:
+    store = EventStore(tmp_path / "events.sqlite3")
+    with pytest.raises(EventStoreError, match="contiguous"):
+        store.append_many([event(0), event(2)])
+    assert store.replay() == []
+    store.close()

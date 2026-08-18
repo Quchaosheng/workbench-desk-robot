@@ -1,0 +1,42 @@
+{
+  "issue": 87,
+  "human_owner": "Quchaosheng",
+  "objective": "Bind physical fault-validation results to immutable raw evidence and keep release status fail closed.",
+  "allowed_paths": [
+    "hardware/validation/**",
+    "tests/hardware/**",
+    "docs/task_packets/hardware-validation-evidence.json"
+  ],
+  "read_only_paths": [
+    "hardware/pcb/**",
+    "hardware/release/**",
+    "interfaces/**"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "services/**",
+    "interfaces/**"
+  ],
+  "acceptance": [
+    "every fault scenario has an owner, procedure, expected safe response, and evidence requirement",
+    "registration binds scenario, unit, revisions, people, instruments, calibration, timestamp, result, and raw-file hashes",
+    "duplicate identifiers, unknown scenarios, wrong revisions, missing files, and changed files fail closed",
+    "summary CSV edits cannot promote a scenario to PASS",
+    "reports distinguish simulation, bench, and physical evidence"
+  ],
+  "commands": [
+    "python tools/scripts/check_task_packet.py docs/task_packets/hardware-validation-evidence.json",
+    "python hardware/validation/tools/validate_validation.py",
+    "python -m pytest tests/hardware -k validation -v"
+  ],
+  "evidence": [
+    "hardware/validation/generated/validation_report.json",
+    "hardware validation test output"
+  ],
+  "stop_conditions": [
+    "physical execution would be claimed without a valid evidence record",
+    "robot-control or firmware changes are required",
+    "a safety result lacks owner review"
+  ]
+}

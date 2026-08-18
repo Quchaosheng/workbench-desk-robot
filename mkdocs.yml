@@ -20,6 +20,10 @@ nav:
   - Secure review: security/secure-review-standard.md
   - Incident response: security/incident-response.md
   - System architecture: architecture/system.md
+  - Hardware:
+      - Overview: hardware/README.md
+      - Wiring: hardware/wiring.md
+      - Bring-up and debugging: hardware/bringup.md
   - API reference: api.md
 plugins:
   - search

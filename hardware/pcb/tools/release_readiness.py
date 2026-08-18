@@ -16,6 +16,7 @@ def read_csv(name: str) -> list[dict[str, str]]:
 def audit() -> dict[str, object]:
     pinout = read_csv("connector-pinout.csv")
     component_matrix = read_csv("component-selection-matrix.csv")
+    approval_register = read_csv("component-approval-register.csv")
     testpoint_coverage = read_csv("testpoint-coverage.csv")
     bom = read_csv("fabrication/bom.csv")
     schematic = (ROOT / "kicad/controller.kicad_sch").read_text(encoding="utf-8")
@@ -37,6 +38,16 @@ def audit() -> dict[str, object]:
     duplicate_pins = len({(row["reference"], row["pin"]) for row in pinout}) != len(pinout)
     required_populated = {"J1", "J2", "J3", "J4", "J5", "J6", "J10", "J11"}
     procurement_holds = [row["reference"] for row in bom if row["procurement_gate"] != "APPROVED"]
+    approved = [
+        row
+        for row in approval_register
+        if row["decision"] == "APPROVED"
+        and row["approved_mpn"]
+        and row["datasheet_revision"]
+        and row["approved_by"]
+        and row["approved_at"]
+        and row["evidence_ref"]
+    ]
 
     engineering_checks = {
         "drc_clean": "Found 0 DRC violations" in drc and "Found 0 unconnected pads" in drc,
@@ -59,13 +70,16 @@ def audit() -> dict[str, object]:
         "harness_engineering_pass": harness_report["engineering_package_pass"],
         "component_matrix_covers_all_active_modules": {row["reference"] for row in component_matrix}
         >= {"U1", "U2", "U3", "U4", "U5", "U6", "U7", "U8"},
+        "approval_register_covers_all_pending_bom_lines": len(approval_register) == 15
+        and {row["reference"] for row in approval_register} == set(procurement_holds)
+        and all(row["candidate"] and row["required_approver"] for row in approval_register),
         "board_connectivity_audit_pass": connectivity_report["pass"],
         "eight_testpoints_have_measurement_coverage": len(testpoint_coverage) == 8
         and {row["reference"] for row in testpoint_coverage} == {f"TP{index}" for index in range(1, 9)},
     }
     order_release_checks = {
         "detailed_schematic_has_symbols": "(symbol " in schematic,
-        "all_bom_lines_approved": not procurement_holds,
+        "all_bom_lines_approved": len(approved) == len(approval_register),
         "physical_bringup_evidence_attached": False,
         "safety_analysis_approved": False,
         "supplier_dfm_closed": False,
@@ -77,9 +91,12 @@ def audit() -> dict[str, object]:
         "engineering_package_pass": all(engineering_checks.values()),
         "engineering_checks": engineering_checks,
         "order_release_checks": order_release_checks,
-        "procurement_hold_references": procurement_holds,
+        "procurement_hold_references": [row["reference"] for row in approval_register if row not in approved],
         "blocker_count": sum(not value for value in order_release_checks.values()),
-        "note": "Clean ERC on the architecture sheet is not evidence of a detailed component-level schematic.",
+        "note": (
+            "Clean ERC on the architecture sheet is not evidence of a detailed component-level schematic. "
+            "PENDING approval rows require signed owner evidence; this audit cannot approve components."
+        ),
     }
 
 

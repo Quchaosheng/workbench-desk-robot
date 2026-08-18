@@ -52,6 +52,9 @@ nets, a dual-channel J10 loop, a U8 safety-gate carrier, and J11 gated output.
 `connector-pinout.csv` freezes the current EVT pin mapping.
 `component-selection-matrix.csv` tracks every active module, the source-backed
 candidate or class, verification method, owner and procurement status.
+`component-approval-register.csv` covers the 15 order-blocked BOM references.
+Changing `decision` to `APPROVED` is insufficient: an orderable MPN, datasheet
+revision, named approver, date, and evidence reference are all required.
 `expected-connectivity.json` and `generated/connectivity_report.json` independently
 check 58 critical pins across the input protection, CAN isolation, safety gate and test access.
 `testpoint-coverage.csv` defines the measurement, limit, instrument and required
@@ -60,6 +63,8 @@ evidence for every physical test pad.
 Run `python hardware/pcb/tools/release_readiness.py` before sharing an order
 package. It intentionally reports `ORDER_RELEASE_BLOCKED` until the component-level
 schematic, AVL, physical bring-up, safety analysis, and supplier DFM gates close.
+The checked-in schematic is still an architecture sheet, not a complete
+component-level design; do not order a populated board from it.
 
 ## Release status
 

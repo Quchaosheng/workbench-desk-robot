@@ -1,0 +1,39 @@
+{
+  "issue": "138",
+  "human_owner": "Quchaosheng",
+  "objective": "Give every advertised wbcan fault mode a bounded meaning and observable runtime coverage.",
+  "allowed_paths": [
+    "kernel/wbcan/wbcan.c",
+    "kernel/wbcan/test_wbcan.sh",
+    ".github/workflows/ci.yml",
+    "tests/unit/test_release_workflow.py",
+    "docs/task_packets/linux-wbcan-fault-coverage.json"
+  ],
+  "read_only_paths": ["firmware/**", "interfaces/**", "AGENTS.md"],
+  "forbidden": ["robot/control/**", "firmware/**", "interfaces/**"],
+  "acceptance": [
+    "all seven non-none fault modes have observable runtime assertions",
+    "drop-rx accepts TX without delivering RX",
+    "tx-full retries once without duplicate delivery or TX counting",
+    "stuff-err emits a bounded warning and recovers after the next fault-free frame",
+    "CI reports successful coverage only after all advertised modes pass"
+  ],
+  "commands": [
+    "make -C kernel/wbcan",
+    "make -C kernel/wbcan checkpatch",
+    "python -m pytest tests/unit/test_release_workflow.py -v",
+    "sudo make -C kernel/wbcan reload",
+    "sudo make -C kernel/wbcan test"
+  ],
+  "evidence": [
+    "module build output",
+    "checkpatch output",
+    "release workflow regression output",
+    "seven-mode privileged fault-suite output and job summary"
+  ],
+  "stop_conditions": [
+    "physical CAN error-counter timing is required",
+    "firmware or interface changes are required",
+    "the hosted runner cannot execute privileged module tests"
+  ]
+}

@@ -39,6 +39,8 @@ def test_kernel_fault_suite_cannot_be_skipped_as_green() -> None:
     assert "PASS" in summary_step
     assert "NOT_EXECUTED" in summary_step
     assert "FAIL" in summary_step
+    assert "Fault-mode coverage" in summary_step
+    assert "PASS (7/7 advertised modes)" in summary_step
     assert 'test "$status" = PASS' in summary_step
     assert "GITHUB_STEP_SUMMARY" in summary_step
 

@@ -138,6 +138,30 @@ check "drop-tx swallows the frame" \
 check "drop-tx consumed one shot" \
       "0" "$(stat shots_left)"
 
+# --- 3. drop-rx: TX is accepted, peer delivery is suppressed ---------------
+clear_fault
+before_rx=$(stat rx_frames)
+arm "drop-rx 1"
+out=$(capture 300 & sleep 0.1; cansend "$IFACE" 210#01020304; wait)
+check "drop-rx suppresses peer delivery" \
+      "0" "$(grep -c '01020304' <<<"$out")"
+check "drop-rx consumes one shot" "0" "$(stat shots_left)"
+check "drop-rx leaves RX counter unchanged" \
+      "$before_rx" "$(stat rx_frames)"
+
+# --- 4. tx-full: one bounded BUSY retry, then exactly one delivery ---------
+clear_fault
+before_tx=$(stat tx_frames)
+arm "tx-full 1"
+out=$(capture 500 & sleep 0.1; cansend "$IFACE" 211#A1B2; wait)
+check "tx-full emits an error frame" \
+      "1" "$(grep -Eci 'ERRORFRAME|20000004' <<<"$out" | head -1)"
+check "tx-full retry delivers exactly once" \
+      "1" "$(grep -c 'A1B2' <<<"$out")"
+check "tx-full consumes one shot" "0" "$(stat shots_left)"
+check "tx-full retry counts one TX frame" \
+      "1" "$(( $(stat tx_frames) - before_tx ))"
+
 # --- 3. one-shot only affects one frame -----------------------------------
 clear_fault
 arm "drop-tx 1"
@@ -270,7 +294,30 @@ check "arb-lost emits an error frame" \
 check "arb-lost leaves the bus usable" \
       "error-active" "$(stat state)"
 
-# --- 11. counters are trustworthy -----------------------------------------
+# --- 11. stuff-err is one warning and recovers on the next good frame ------
+clear_fault
+before_bus_errors=$(stat bus_errors)
+arm "stuff-err 2"
+out=$(capture 500 & sleep 0.1
+      cansend "$IFACE" 610#01
+      sleep 0.05
+      cansend "$IFACE" 611#02
+      wait)
+check "stuff-err emits one error per shot" \
+      "2" "$(grep -Eci 'ERRORFRAME|20000008' <<<"$out")"
+check "stuff-err enters warning" \
+      "error-warning" "$(stat state)"
+check "stuff-err consumes both shots" "0" "$(stat shots_left)"
+check "stuff-err increments bus-error counter" \
+      "2" "$(( $(stat bus_errors) - before_bus_errors ))"
+clear_fault
+out=$(capture 300 & sleep 0.1; cansend "$IFACE" 612#03; wait)
+check "first good frame after stuff-err is delivered" \
+      "1" "$(grep -c '612.*03' <<<"$out")"
+check "first good frame recovers to active" \
+      "error-active" "$(stat state)"
+
+# --- 12. counters are trustworthy -----------------------------------------
 clear_fault
 before=$(stat tx_frames)
 cansend "$IFACE" 700#01
@@ -279,7 +326,7 @@ after=$(stat tx_frames)
 check "tx counter advances" \
       "1" "$(( after - before ))"
 
-# --- 12. rejecting a bad ABI write ----------------------------------------
+# --- 13. rejecting a bad ABI write ----------------------------------------
 if echo "not-a-mode 1" > "$DBG/inject" 2>/dev/null; then
 	check "bad fault name rejected" "rejected" "accepted"
 else
@@ -331,4 +378,5 @@ restart_if_bus_off
 
 echo
 echo "=== $PASS passed, $FAIL failed ==="
+echo "Fault-mode coverage: drop-tx drop-rx bit-flip bus-off tx-full arb-lost stuff-err"
 [ "$FAIL" -eq 0 ]

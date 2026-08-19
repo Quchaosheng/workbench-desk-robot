@@ -181,8 +181,9 @@ static void wbcan_emit_error(struct net_device *dev, enum wbcan_fault fault)
 		cf->can_id |= CAN_ERR_PROT;
 		cf->data[2] = CAN_ERR_PROT_STUFF;
 		/*
-		 * Errors accumulate toward passive then bus-off, mirroring
-		 * the real REC/TEC rules the firmware has to survive.
+		 * This is a bounded protocol-error model: one warning per
+		 * injected frame, then the next fault-free frame recovers to
+		 * active. We do not pretend to model TEC/REC progression.
 		 */
 		priv->can.can_stats.bus_error++;
 		tx_state = CAN_STATE_ERROR_WARNING;
@@ -262,7 +263,6 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
 	wbcan_should_inject(priv, skb, &fault, &flip_byte, &flip_bit);
 
-	priv->stat_tx++;
 	spin_unlock_irqrestore(&priv->lock, flags);
 	len = can_skb_get_data_len(skb);
 
@@ -285,6 +285,9 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	case WBCAN_FAULT_BUS_OFF:
 	case WBCAN_FAULT_ARB_LOST:
 	case WBCAN_FAULT_STUFF_ERR:
+		spin_lock_irqsave(&priv->lock, flags);
+		priv->stat_tx++;
+		spin_unlock_irqrestore(&priv->lock, flags);
 		wbcan_emit_error(dev, fault);
 		dev->stats.tx_errors++;
 		kfree_skb(skb);
@@ -295,6 +298,9 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 		 * Accepted, counted, never delivered. This is the nastiest
 		 * failure for firmware: no error, no frame.
 		 */
+		spin_lock_irqsave(&priv->lock, flags);
+		priv->stat_tx++;
+		spin_unlock_irqrestore(&priv->lock, flags);
 		dev->stats.tx_packets++;
 		dev->stats.tx_bytes += len;
 		kfree_skb(skb);
@@ -303,6 +309,14 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	default:
 		break;
 	}
+
+	/* Count frames accepted by the driver; a BUSY retry is not a frame. */
+	spin_lock_irqsave(&priv->lock, flags);
+	priv->stat_tx++;
+	if (fault == WBCAN_FAULT_NONE &&
+	    priv->can.state == CAN_STATE_ERROR_WARNING)
+		priv->can.state = CAN_STATE_ERROR_ACTIVE;
+	spin_unlock_irqrestore(&priv->lock, flags);
 
 	dev->stats.tx_packets++;
 	dev->stats.tx_bytes += len;
@@ -568,6 +582,7 @@ static int wbcan_status_show(struct seq_file *s, void *unused)
 	seq_printf(s, "rx_frames     %llu\n", priv->stat_rx);
 	seq_printf(s, "candidates    %llu\n", priv->stat_seen);
 	seq_printf(s, "injected      %llu\n", priv->stat_injected);
+	seq_printf(s, "bus_errors    %u\n", priv->can.can_stats.bus_error);
 	spin_unlock_irqrestore(&priv->lock, flags);
 
 	return 0;

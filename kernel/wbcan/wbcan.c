@@ -101,14 +101,20 @@ static canid_t wbcan_match_key(canid_t id)
 	return id & CAN_SFF_MASK;
 }
 
-static bool wbcan_should_inject(struct wbcan_priv *priv, canid_t id,
+static bool wbcan_should_inject(struct wbcan_priv *priv, struct sk_buff *skb,
 				enum wbcan_fault *fault, u8 *flip_byte,
 				u8 *flip_bit)
 {
+	struct can_frame *cf = (struct can_frame *)skb->data;
+
 	if (priv->fault == WBCAN_FAULT_NONE || priv->fault_count == 0)
 		return false;
 
-	if (!priv->match_any && wbcan_match_key(id) != priv->match_id)
+	if (!priv->match_any && wbcan_match_key(cf->can_id) != priv->match_id)
+		return false;
+	if (priv->fault == WBCAN_FAULT_BIT_FLIP &&
+	    ((cf->can_id & CAN_RTR_FLAG) ||
+	     priv->flip_byte >= can_skb_get_data_len(skb)))
 		return false;
 
 	priv->stat_seen++;
@@ -229,6 +235,7 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	u8 flip_byte = 0;
 	u8 flip_bit = 0;
 	bool loop;
+	unsigned int len;
 	unsigned long flags;
 
 	if (can_dev_dropped_skb(dev, skb))
@@ -253,10 +260,11 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 		return NETDEV_TX_OK;
 	}
 
-	wbcan_should_inject(priv, cf->can_id, &fault, &flip_byte, &flip_bit);
+	wbcan_should_inject(priv, skb, &fault, &flip_byte, &flip_bit);
 
 	priv->stat_tx++;
 	spin_unlock_irqrestore(&priv->lock, flags);
+	len = can_skb_get_data_len(skb);
 
 	switch (fault) {
 	case WBCAN_FAULT_TX_FULL:
@@ -288,7 +296,7 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 		 * failure for firmware: no error, no frame.
 		 */
 		dev->stats.tx_packets++;
-		dev->stats.tx_bytes += cf->len;
+		dev->stats.tx_bytes += len;
 		kfree_skb(skb);
 		return NETDEV_TX_OK;
 
@@ -297,7 +305,7 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	}
 
 	dev->stats.tx_packets++;
-	dev->stats.tx_bytes += cf->len;
+	dev->stats.tx_bytes += len;
 	loop = skb->pkt_type == PACKET_LOOPBACK;
 	if (!loop) {
 		consume_skb(skb);
@@ -339,7 +347,7 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 		rx_skb->ip_summed = CHECKSUM_UNNECESSARY;
 		rx_skb->pkt_type = PACKET_BROADCAST;
 		dev->stats.rx_packets++;
-		dev->stats.rx_bytes += cf->len;
+		dev->stats.rx_bytes += len;
 
 		spin_lock_irqsave(&priv->lock, flags);
 		priv->stat_rx++;

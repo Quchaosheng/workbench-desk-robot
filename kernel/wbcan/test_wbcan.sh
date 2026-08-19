@@ -63,6 +63,21 @@ check() {
 	fi
 }
 
+# wbcan is a module-load singleton, not an RTNL-created link kind.
+if ip link add dev wbcan-test type wbcan 2>/dev/null; then
+	check "RTNL creation is rejected for singleton wbcan" "rejected" "accepted"
+	ip link del dev wbcan-test 2>/dev/null || true
+else
+	check "RTNL creation is rejected for singleton wbcan" "rejected" "rejected"
+fi
+if ip link show wbcan-test >/dev/null 2>&1; then
+	red "FAIL  RTNL probe left an unexpected wbcan-test device"
+	FAIL=$((FAIL + 1))
+else
+	green "PASS  RTNL probe leaves singleton lifecycle unchanged"
+	PASS=$((PASS + 1))
+fi
+
 restart_if_bus_off() {
 	if [ "$(stat state)" = "bus-off" ]; then
 		ip link set "$IFACE" down

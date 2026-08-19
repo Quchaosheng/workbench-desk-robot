@@ -57,9 +57,10 @@ checkpatch:
 
 help:
 	@echo "make           build wbcan.ko against $(KDIR)"
-	@echo "make load      insmod and bring up $(IFACE)"
+	@echo "make load      create and bring up the module-load singleton $(IFACE)"
 	@echo "make test      run the fault suite"
 	@echo "make checkpatch  kernel style check"
+	@echo "ip link add type wbcan is unsupported; unload before loading another"
 	@echo ""
 	@echo "Arm a fault by hand:"
 	@echo "  echo 'drop-tx 3' | sudo tee /sys/kernel/debug/wbcan/$(IFACE)/inject"

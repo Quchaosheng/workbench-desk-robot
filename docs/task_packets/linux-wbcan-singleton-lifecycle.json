@@ -1,0 +1,41 @@
+{
+  "issue": "140",
+  "human_owner": "Quchaosheng",
+  "objective": "Advertise and verify the module-load singleton lifecycle that wbcan actually implements.",
+  "allowed_paths": [
+    "kernel/wbcan/wbcan.c",
+    "kernel/wbcan/Makefile",
+    "kernel/wbcan/test_wbcan.sh",
+    ".github/workflows/ci.yml",
+    "tests/unit/test_release_workflow.py",
+    "docs/task_packets/linux-wbcan-singleton-lifecycle.json"
+  ],
+  "read_only_paths": ["firmware/**", "interfaces/**", "AGENTS.md"],
+  "forbidden": ["robot/control/**", "firmware/**", "interfaces/**"],
+  "acceptance": [
+    "module load creates one documented wbcan device",
+    "the module no longer advertises an unimplemented RTNL link kind",
+    "ip link add type wbcan is rejected without creating a second device",
+    "module unload removes the singleton device and debugfs tree",
+    "the fixed wbcan0 name makes collision and duplicate module insertion fail without partial state",
+    "CI verifies cleanup after the runtime suite"
+  ],
+  "commands": [
+    "make -C kernel/wbcan",
+    "make -C kernel/wbcan checkpatch",
+    "python -m pytest tests/unit/test_release_workflow.py -v",
+    "sudo make -C kernel/wbcan reload",
+    "sudo make -C kernel/wbcan test"
+  ],
+  "evidence": [
+    "module build output",
+    "checkpatch output",
+    "RTNL rejection assertion",
+    "post-unload device and debugfs assertions"
+  ],
+  "stop_conditions": [
+    "multiple devices or network namespaces become a requirement",
+    "firmware or interface changes are required",
+    "the hosted runner cannot unload the module"
+  ]
+}

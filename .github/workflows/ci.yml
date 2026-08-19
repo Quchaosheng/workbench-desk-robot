@@ -71,7 +71,19 @@ jobs:
           sudo modprobe can_raw
           modinfo can-dev
           sudo modprobe can-dev
+          sudo modprobe vcan
+          sudo ip link add wbcan0 type vcan
+          if sudo insmod kernel/wbcan/wbcan.ko; then
+            echo "wbcan unexpectedly loaded across a name collision"
+            exit 1
+          fi
+          test ! -e /sys/kernel/debug/wbcan
+          sudo ip link del wbcan0
           sudo insmod kernel/wbcan/wbcan.ko
+          if sudo insmod kernel/wbcan/wbcan.ko; then
+            echo "wbcan unexpectedly allowed duplicate module insertion"
+            exit 1
+          fi
           sudo ip link set wbcan0 type can restart-ms 100
           sudo ip link set wbcan0 up
           ip -details link show wbcan0
@@ -116,6 +128,8 @@ jobs:
         run: |
           sudo ip link set wbcan0 down 2>/dev/null || true
           sudo rmmod wbcan 2>/dev/null || true
+          test ! -e /sys/class/net/wbcan0
+          test ! -e /sys/kernel/debug/wbcan
 
   mcu-qemu:
     runs-on: ubuntu-24.04

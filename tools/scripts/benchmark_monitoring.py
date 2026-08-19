@@ -5,12 +5,16 @@ import argparse
 import json
 import os
 import platform
-import resource
 import sys
 import threading
 import time
 from datetime import UTC, datetime
 from pathlib import Path
+
+try:
+    import resource
+except ImportError:
+    resource = None
 
 from _paths import ROOT
 
@@ -44,10 +48,13 @@ def _complete(collector: HealthSnapshotCollector, observed_at: float) -> None:
 
 def _proc_status() -> dict[str, int]:
     values: dict[str, int] = {}
-    for line in Path("/proc/self/status").read_text(encoding="utf-8").splitlines():
-        name, _, raw = line.partition(":")
-        if name in {"VmRSS", "voluntary_ctxt_switches", "nonvoluntary_ctxt_switches"}:
-            values[name] = int(raw.split()[0]) * (1_024 if name == "VmRSS" else 1)
+    try:
+        for line in Path("/proc/self/status").read_text(encoding="utf-8").splitlines():
+            name, _, raw = line.partition(":")
+            if name in {"VmRSS", "voluntary_ctxt_switches", "nonvoluntary_ctxt_switches"}:
+                values[name] = int(raw.split()[0]) * (1_024 if name == "VmRSS" else 1)
+    except OSError:
+        pass
     try:
         for line in Path("/proc/self/smaps_rollup").read_text(encoding="utf-8").splitlines():
             if line.startswith("Pss:"):
@@ -97,9 +104,11 @@ def benchmark(iterations: int) -> dict:
     assert snapshot is not None
     snapshot_json = json.dumps(snapshot.as_dict(), separators=(",", ":"), allow_nan=False).encode()
     prometheus = collector.metrics.export_prometheus().encode()
-    max_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    if platform.system() == "Linux":
-        max_rss *= 1_024
+    max_rss = None
+    if resource is not None:
+        max_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        if platform.system() == "Linux":
+            max_rss *= 1_024
     context_before = before.get("voluntary_ctxt_switches", 0) + before.get("nonvoluntary_ctxt_switches", 0)
     context_after = after.get("voluntary_ctxt_switches", 0) + after.get("nonvoluntary_ctxt_switches", 0)
     cpu_model = "unknown"

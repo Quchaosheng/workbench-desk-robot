@@ -115,13 +115,13 @@ controllers:
 
 `ArmConfig`（`arm_config.py`）扩字段（保持 `frozen=True` dataclass 风格）。**注意：`vendor_description_pkg` / `ur_type` 的 YAML 字段虽已存在于 `arm.yaml:13-14`，但当前 `ArmConfig` dataclass（`arm_config.py:30`）并未解析它们**——阶段 2 需向 `ArmConfig` **新增**这两个字段并由 `parse_arm_config()` 解析：
 ```python
-vendor_description_pkg: str       # 新增，来自 arm.vendor_description_pkg（YAML 已有，dataclass 未解析）
-ur_type: str                      # 新增，来自 arm.ur_type（YAML 已有，dataclass 未解析）
-driver_joint: str                 # 来自 gripper.driver_joint
-update_rate_hz: int               # controllers.update_rate_hz
-arm_trajectory_controller: str    # controllers.arm_trajectory_controller
-gripper_controller: str           # controllers.gripper_controller
-joint_state_broadcaster: str      # controllers.joint_state_broadcaster
+vendor_description_pkg: str  # 新增，来自 arm.vendor_description_pkg（YAML 已有，dataclass 未解析）
+ur_type: str  # 新增，来自 arm.ur_type（YAML 已有，dataclass 未解析）
+driver_joint: str  # 来自 gripper.driver_joint
+update_rate_hz: int  # controllers.update_rate_hz
+arm_trajectory_controller: str  # controllers.arm_trajectory_controller
+gripper_controller: str  # controllers.gripper_controller
+joint_state_broadcaster: str  # controllers.joint_state_broadcaster
 ```
 `parse_arm_config()` 对应解析；缺 `controllers`/`gripper.driver_joint` 段时给显式错误（不静默默认）——命名与路径是安全相关配置，fail closed。测试：`test_arm_config.py` 加断言 `vendor_description_pkg == "ur_description"`、`ur_type == "ur5e"`、`driver_joint == "robotiq_85_left_knuckle_joint"`、控制器名齐全。
 

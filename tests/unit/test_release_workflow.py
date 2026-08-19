@@ -41,3 +41,15 @@ def test_kernel_fault_suite_cannot_be_skipped_as_green() -> None:
     assert "FAIL" in summary_step
     assert 'test "$status" = PASS' in summary_step
     assert "GITHUB_STEP_SUMMARY" in summary_step
+
+
+def test_kernel_module_builds_against_lts_and_runner_headers() -> None:
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+    kernel_job = workflow.split("  kernel-module:", maxsplit=1)[1].split("\n  mcu-qemu:", maxsplit=1)[0]
+    build_step = _step_block(kernel_job, "name: Build and check wbcan.ko")
+
+    assert "linux-headers-generic" in kernel_job
+    assert "/usr/src/linux-headers-*-generic" in build_step
+    assert 'KDIR="$headers"' in build_step
+    assert "make -C kernel/wbcan clean" in build_step
+    assert "make -C kernel/wbcan checkpatch" in build_step

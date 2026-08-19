@@ -52,10 +52,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             "linux-headers-$(uname -r)" \
+            linux-headers-generic \
             "linux-modules-extra-$(uname -r)" \
             can-utils build-essential
       - name: Build and check wbcan.ko
         run: |
+          for headers in /usr/src/linux-headers-*-generic; do
+            make -C kernel/wbcan clean KDIR="$headers"
+            make -C kernel/wbcan KDIR="$headers"
+          done
+          make -C kernel/wbcan clean
           make -C kernel/wbcan
           make -C kernel/wbcan checkpatch
       - name: Load the module and bring the interface up

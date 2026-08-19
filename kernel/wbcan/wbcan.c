@@ -355,11 +355,22 @@ static int wbcan_set_mode(struct net_device *dev, enum can_mode mode)
 	}
 }
 
+static int wbcan_change_mtu(struct net_device *dev, int new_mtu)
+{
+	if (dev->flags & IFF_UP)
+		return -EBUSY;
+	if (new_mtu != CAN_MTU)
+		return -EINVAL;
+
+	WRITE_ONCE(dev->mtu, new_mtu);
+	return 0;
+}
+
 static const struct net_device_ops wbcan_netdev_ops = {
 	.ndo_open	= wbcan_open,
 	.ndo_stop	= wbcan_stop,
 	.ndo_start_xmit	= wbcan_start_xmit,
-	.ndo_change_mtu	= can_change_mtu,
+	.ndo_change_mtu	= wbcan_change_mtu,
 };
 
 /* --------------------------------------------------------------- debugfs ABI

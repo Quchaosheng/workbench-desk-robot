@@ -172,6 +172,32 @@ out=$(capture 300 & sleep 0.1; cansend "$IFACE" 400#F0; wait)
 check "bit-flip changes byte 0 bit 0" \
       "1" "$(grep -ci 'F1' <<<"$out")"
 
+clear_fault
+arm "bit-flip 1 0 any 7 0"
+before_injected=$(stat injected)
+cansend "$IFACE" 401#AA
+cansend "$IFACE" 401#R8
+cansend "$IFACE" 401#
+check "ineligible bit-flip keeps its shot" "1" "$(stat shots_left)"
+check "ineligible bit-flip is not counted" \
+      "$before_injected" "$(stat injected)"
+out=$(capture 300 & sleep 0.1; cansend "$IFACE" 401#0000000000000000; wait)
+check "bit-flip waits for an eligible payload" \
+      "1" "$(grep -ci '0000000000000001' <<<"$out")"
+check "eligible bit-flip consumes its shot" "0" "$(stat shots_left)"
+
+clear_fault
+before_tx_bytes=$(cat "/sys/class/net/$IFACE/statistics/tx_bytes")
+before_rx_bytes=$(cat "/sys/class/net/$IFACE/statistics/rx_bytes")
+out=$(capture 300 & sleep 0.1; cansend "$IFACE" 402#R8; wait)
+after_tx_bytes=$(cat "/sys/class/net/$IFACE/statistics/tx_bytes")
+after_rx_bytes=$(cat "/sys/class/net/$IFACE/statistics/rx_bytes")
+check "RTR frame is delivered" "1" "$(grep -ci '402.*R' <<<"$out")"
+check "RTR contributes zero TX payload bytes" \
+      "0" "$((after_tx_bytes - before_tx_bytes))"
+check "RTR contributes zero RX payload bytes" \
+      "0" "$((after_rx_bytes - before_rx_bytes))"
+
 # --- 6. id filter: only the matching id takes the fault -------------------
 clear_fault
 arm "drop-tx 5 0 123"          # only id 0x123

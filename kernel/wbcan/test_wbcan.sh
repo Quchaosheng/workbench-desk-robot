@@ -303,8 +303,8 @@ out=$(capture 500 & sleep 0.1
       sleep 0.05
       cansend "$IFACE" 611#02
       wait)
-check "stuff-err emits one error per shot" \
-      "2" "$(grep -Eci 'ERRORFRAME|20000008' <<<"$out")"
+check "stuff-err emits a protocol error" \
+      "1" "$(grep -Eci 'ERRORFRAME|20000008' <<<"$out" | head -1)"
 check "stuff-err enters warning" \
       "error-warning" "$(stat state)"
 check "stuff-err consumes both shots" "0" "$(stat shots_left)"

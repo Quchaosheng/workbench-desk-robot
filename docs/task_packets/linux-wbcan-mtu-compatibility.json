@@ -1,0 +1,32 @@
+{
+  "issue": "135",
+  "human_owner": "Quchaosheng",
+  "objective": "Keep the classic-CAN-only wbcan module buildable across supported Linux CAN MTU APIs.",
+  "allowed_paths": [
+    "kernel/wbcan/wbcan.c",
+    ".github/workflows/ci.yml",
+    "tests/unit/test_release_workflow.py",
+    "docs/task_packets/linux-wbcan-mtu-compatibility.json"
+  ],
+  "read_only_paths": ["firmware/**", "interfaces/**", "AGENTS.md"],
+  "forbidden": ["robot/control/**", "firmware/**", "interfaces/**"],
+  "acceptance": [
+    "classic CAN MTU remains the only accepted MTU",
+    "MTU changes while the interface is running fail closed",
+    "the module builds against Linux 6.17 and 7.0 headers",
+    "CI builds against generic LTS and hosted-runner headers",
+    "checkpatch remains required"
+  ],
+  "commands": [
+    "make -C kernel/wbcan KDIR=/usr/src/linux-headers-6.17.0-40-generic",
+    "make -C kernel/wbcan KDIR=/usr/src/linux-headers-7.0.0-28-generic",
+    "make -C kernel/wbcan checkpatch",
+    "python -m pytest tests/unit/test_release_workflow.py -v"
+  ],
+  "evidence": ["dual-header module build output", "checkpatch output", "workflow regression test"],
+  "stop_conditions": [
+    "supporting CAN FD or CAN XL is required",
+    "firmware or interface changes are required",
+    "the supported kernel range must change"
+  ]
+}

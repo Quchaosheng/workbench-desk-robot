@@ -74,7 +74,8 @@ struct wbcan_priv {
 	enum wbcan_fault	fault;
 	u32			fault_count;	/* frames left to affect; 0 = off */
 	u32			fault_after;	/* skip this many first */
-	u16			match_id;	/* 0xFFFF = any */
+	canid_t			match_id;	/* includes CAN_EFF_FLAG */
+	bool			match_any;
 	u8			flip_byte;
 	u8			flip_bit;
 
@@ -93,12 +94,21 @@ struct wbcan_priv {
 /* Decide whether this frame takes the fault, and consume one shot if so.
  * Called with the lock held.
  */
-static bool wbcan_should_inject(struct wbcan_priv *priv, canid_t id)
+static canid_t wbcan_match_key(canid_t id)
+{
+	if (id & CAN_EFF_FLAG)
+		return CAN_EFF_FLAG | (id & CAN_EFF_MASK);
+	return id & CAN_SFF_MASK;
+}
+
+static bool wbcan_should_inject(struct wbcan_priv *priv, canid_t id,
+				enum wbcan_fault *fault, u8 *flip_byte,
+				u8 *flip_bit)
 {
 	if (priv->fault == WBCAN_FAULT_NONE || priv->fault_count == 0)
 		return false;
 
-	if (priv->match_id != 0xFFFF && (id & CAN_EFF_MASK) != priv->match_id)
+	if (!priv->match_any && wbcan_match_key(id) != priv->match_id)
 		return false;
 
 	priv->stat_seen++;
@@ -110,6 +120,9 @@ static bool wbcan_should_inject(struct wbcan_priv *priv, canid_t id)
 
 	priv->fault_count--;
 	priv->stat_injected++;
+	*fault = priv->fault;
+	*flip_byte = priv->flip_byte;
+	*flip_bit = priv->flip_bit;
 	return true;
 }
 
@@ -213,6 +226,8 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	struct can_frame *cf = (struct can_frame *)skb->data;
 	struct sk_buff *rx_skb;
 	enum wbcan_fault fault = WBCAN_FAULT_NONE;
+	u8 flip_byte = 0;
+	u8 flip_bit = 0;
 	bool loop;
 	unsigned long flags;
 
@@ -238,8 +253,7 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 		return NETDEV_TX_OK;
 	}
 
-	if (wbcan_should_inject(priv, cf->can_id))
-		fault = priv->fault;
+	wbcan_should_inject(priv, cf->can_id, &fault, &flip_byte, &flip_bit);
 
 	priv->stat_tx++;
 	spin_unlock_irqrestore(&priv->lock, flags);
@@ -310,13 +324,11 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
 	if (fault == WBCAN_FAULT_BIT_FLIP) {
 		struct can_frame *rcf = (struct can_frame *)rx_skb->data;
-		u8 byte = priv->flip_byte;
-		u8 bit = priv->flip_bit & 0x7;
 
-		if (byte < rcf->len) {
-			rcf->data[byte] ^= (1u << bit);
+		if (flip_byte < rcf->len) {
+			rcf->data[flip_byte] ^= (1u << flip_bit);
 			netdev_dbg(dev, "flipped byte %u bit %u of id 0x%x\n",
-				   byte, bit, rcf->can_id);
+				   flip_byte, flip_bit, rcf->can_id);
 		}
 	}
 
@@ -391,21 +403,60 @@ static const struct net_device_ops wbcan_netdev_ops = {
  * echo "<mode> <count> [after] [id] [byte] [bit]" > /sys/kernel/debug/wbcan/<dev>/inject
  *
  *   arm 3 frames of drop-tx:            echo "drop-tx 3" > inject
- *   flip bit 2 of byte 0, 4th frame on: echo "bit-flip 1 3 ffff 0 2" > inject
- *   bus-off only for id 0x123:          echo "bus-off 1 0 123" > inject
+ *   flip bit 2 of byte 0, 4th frame on: echo "bit-flip 1 3 any 0 2" > inject
+ *   bus-off only for standard id 0x123: echo "bus-off 1 0 s:123" > inject
+ *   drop extended id 0x123:             echo "drop-tx 1 0 e:123" > inject
  *
  * Text, not ioctl: a shell script in CI has to drive this, and a text ABI is
  * one line of bash instead of a helper binary.
  */
 
+static int wbcan_parse_match_id(const char *value, bool *match_any,
+				canid_t *match_id)
+{
+	const char *number = value;
+	bool extended = false;
+	u32 id;
+
+	if (sysfs_streq(value, "any") || sysfs_streq(value, "ffff")) {
+		*match_any = true;
+		*match_id = 0;
+		return 0;
+	}
+
+	if (!strncmp(value, "s:", 2)) {
+		number += 2;
+	} else if (!strncmp(value, "e:", 2)) {
+		number += 2;
+		extended = true;
+	}
+	if (kstrtou32(number, 16, &id))
+		return -EINVAL;
+	if (!strncmp(value, "s:", 2) && id > CAN_SFF_MASK)
+		return -ERANGE;
+	if (!strncmp(value, "e:", 2) && id > CAN_EFF_MASK)
+		return -ERANGE;
+	if (value == number && id > CAN_SFF_MASK) {
+		if (id > CAN_EFF_MASK)
+			return -ERANGE;
+		extended = true;
+	}
+
+	*match_any = false;
+	*match_id = id | (extended ? CAN_EFF_FLAG : 0);
+	return 0;
+}
+
 static ssize_t wbcan_inject_write(struct file *file, const char __user *ubuf,
 				  size_t len, loff_t *ppos)
 {
 	struct wbcan_priv *priv = file->private_data;
-	char buf[96], mode[24];
-	u32 count = 1, after = 0, id = 0xFFFF, byte = 0, bit = 0;
+	char buf[96], **argv;
+	canid_t match_id = 0;
+	bool match_any = true;
+	u32 count = 0, after = 0, byte = 0, bit = 0;
 	unsigned long flags;
-	int i, matched, fault = -1;
+	int argc, i, err = 0, fault = -1;
 
 	if (len == 0 || len >= sizeof(buf))
 		return -EINVAL;
@@ -413,39 +464,74 @@ static ssize_t wbcan_inject_write(struct file *file, const char __user *ubuf,
 		return -EFAULT;
 	buf[len] = '\0';
 
-	matched = sscanf(buf, "%23s %u %u %x %u %u",
-			 mode, &count, &after, &id, &byte, &bit);
-	if (matched < 1)
-		return -EINVAL;
+	argv = argv_split(GFP_KERNEL, buf, &argc);
+	if (!argv)
+		return -ENOMEM;
+	if (argc < 1) {
+		err = -EINVAL;
+		goto out;
+	}
 
 	for (i = 0; i < WBCAN_FAULT_MAX; i++) {
-		if (wbcan_fault_names[i] && sysfs_streq(mode, wbcan_fault_names[i])) {
+		if (wbcan_fault_names[i] && sysfs_streq(argv[0], wbcan_fault_names[i])) {
 			fault = i;
 			break;
 		}
 	}
 	if (fault < 0) {
-		pr_warn("unknown fault mode '%s'\n", mode);
-		return -EINVAL;
+		pr_warn("unknown fault mode '%s'\n", argv[0]);
+		err = -EINVAL;
+		goto out;
 	}
 
-	if (bit > 7 || byte > 7)
-		return -EINVAL;
+	if (fault == WBCAN_FAULT_NONE) {
+		if (argc > 2 || (argc == 2 && (kstrtou32(argv[1], 10, &count) || count))) {
+			err = -EINVAL;
+			goto out;
+		}
+		goto apply;
+	}
+	if ((fault == WBCAN_FAULT_BIT_FLIP && argc != 6) ||
+	    (fault != WBCAN_FAULT_BIT_FLIP && (argc < 2 || argc > 4)) ||
+	    kstrtou32(argv[1], 10, &count) || count == 0) {
+		err = -EINVAL;
+		goto out;
+	}
+	if (argc >= 3 && kstrtou32(argv[2], 10, &after)) {
+		err = -EINVAL;
+		goto out;
+	}
+	if (argc >= 4 && wbcan_parse_match_id(argv[3], &match_any, &match_id)) {
+		err = -EINVAL;
+		goto out;
+	}
+	if (fault == WBCAN_FAULT_BIT_FLIP &&
+	    (kstrtou32(argv[4], 10, &byte) || byte > 7 ||
+	     kstrtou32(argv[5], 10, &bit) || bit > 7)) {
+		err = -EINVAL;
+		goto out;
+	}
 
+apply:
 	spin_lock_irqsave(&priv->lock, flags);
 	priv->fault       = fault;
-	priv->fault_count = (fault == WBCAN_FAULT_NONE) ? 0 : count;
+	priv->fault_count = count;
 	priv->fault_after = after;
-	priv->match_id    = (u16)id;
+	priv->match_id    = match_id;
+	priv->match_any   = match_any;
 	priv->flip_byte   = (u8)byte;
 	priv->flip_bit    = (u8)bit;
 	priv->stat_seen   = 0;
 	spin_unlock_irqrestore(&priv->lock, flags);
 
-	netdev_info(priv->dev, "armed %s count=%u after=%u id=0x%x\n",
-		    wbcan_fault_names[fault], count, after, id);
+	netdev_info(priv->dev, "armed %s count=%u after=%u match=%s0x%x\n",
+		    wbcan_fault_names[fault], count, after,
+		    match_any ? "any/" : (match_id & CAN_EFF_FLAG) ? "e:" : "s:",
+		    match_id & CAN_EFF_MASK);
 
-	return len;
+out:
+	argv_free(argv);
+	return err ? err : len;
 }
 
 static int wbcan_status_show(struct seq_file *s, void *unused)
@@ -464,7 +550,12 @@ static int wbcan_status_show(struct seq_file *s, void *unused)
 	seq_printf(s, "armed_fault   %s\n", wbcan_fault_names[priv->fault]);
 	seq_printf(s, "shots_left    %u\n", priv->fault_count);
 	seq_printf(s, "skip_first    %u\n", priv->fault_after);
-	seq_printf(s, "match_id      0x%x\n", priv->match_id);
+	if (priv->match_any)
+		seq_puts(s, "match_id      any\n");
+	else
+		seq_printf(s, "match_id      %c:%x\n",
+			   priv->match_id & CAN_EFF_FLAG ? 'e' : 's',
+			   priv->match_id & CAN_EFF_MASK);
 	seq_printf(s, "tx_frames     %llu\n", priv->stat_tx);
 	seq_printf(s, "rx_frames     %llu\n", priv->stat_rx);
 	seq_printf(s, "candidates    %llu\n", priv->stat_seen);
@@ -523,7 +614,7 @@ static int __init wbcan_init(void)
 	priv->dev = wbcan_dev;
 	spin_lock_init(&priv->lock);
 	priv->fault = WBCAN_FAULT_NONE;
-	priv->match_id = 0xFFFF;
+	priv->match_any = true;
 
 	wbcan_dev->netdev_ops = &wbcan_netdev_ops;
 	wbcan_dev->flags |= IFF_ECHO;

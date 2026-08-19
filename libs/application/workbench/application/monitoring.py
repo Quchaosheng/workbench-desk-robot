@@ -743,7 +743,7 @@ class SystemMetrics:
                 count, total, counts = histograms[(sample.name, sample.labels)]
                 for bucket, bucket_count in zip(self.histogram_buckets, counts, strict=True):
                     lines.append(f"{name}_bucket{_format_labels((*sample.labels, ('le', str(bucket))))} {bucket_count}")
-                lines.append(f'{name}_bucket{_format_labels((*sample.labels, ("le", "+Inf")))} {count}')
+                lines.append(f"{name}_bucket{_format_labels((*sample.labels, ('le', '+Inf')))} {count}")
                 lines.append(f"{name}_count{labels} {count}")
                 lines.append(f"{name}_sum{labels} {total}")
             else:

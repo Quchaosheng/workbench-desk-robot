@@ -3,7 +3,9 @@
   "human_owner": "zhangjia-1111",
   "objective": "Collect a bounded in-process robot health snapshot from fixed, injectable metric sources.",
   "allowed_paths": [
+    "Dockerfile",
     "libs/application/workbench/application/monitoring.py",
+    "tests/unit/test_container_baseline.py",
     "tests/unit/test_monitoring.py",
     "tools/scripts/benchmark_monitoring.py",
     "docs/performance/monitoring-local-2026-08-19.md",

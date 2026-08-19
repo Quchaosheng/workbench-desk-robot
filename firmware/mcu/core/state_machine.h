@@ -102,6 +102,9 @@ typedef struct {
 
 void mcu_sm_init(mcu_state_machine_t *machine);
 bool mcu_sm_is_valid(const mcu_state_machine_t *machine);
+/* A missing result buffer is invalid caller input for ordinary events and
+ * fails closed. STOP is still dispatched so a missing diagnostic buffer can
+ * never suppress the safety action. */
 void mcu_sm_dispatch(mcu_state_machine_t *machine,
                      const mcu_event_t *event,
                      mcu_transition_result_t *result);

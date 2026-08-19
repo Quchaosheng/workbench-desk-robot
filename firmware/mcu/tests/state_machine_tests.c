@@ -297,8 +297,17 @@ static void test_invalid_inputs_fail_closed(mcu_test_report_t *report)
     mcu_sm_init(&machine);
     init_event(&event, MCU_EVENT_BEGIN_MOVE);
     mcu_sm_dispatch(&machine, &event, 0);
-    check(report, machine.state == MCU_STATE_IDLE);
-    check(report, machine.device_mode == MCU_DEVICE_MODE_IDLE);
+    check(report, machine.state == MCU_STATE_FAULT);
+    check(report, machine.device_mode == MCU_DEVICE_MODE_FAULTED);
+    check(report, machine.fault_code == MCU_FAULT_MALFORMED_FRAME);
+    check(report, mcu_sm_is_valid(&machine));
+
+    mcu_sm_init(&machine);
+    DISPATCH_KIND(&machine, MCU_EVENT_BEGIN_MOVE, &result);
+    init_event(&event, MCU_EVENT_STOP);
+    mcu_sm_dispatch(&machine, &event, 0);
+    check(report, machine.state == MCU_STATE_SAFE_STOP);
+    check(report, machine.device_mode == MCU_DEVICE_MODE_STOPPED);
     check(report, machine.fault_code == MCU_FAULT_NONE);
     check(report, mcu_sm_is_valid(&machine));
 
@@ -309,7 +318,7 @@ static void test_invalid_inputs_fail_closed(mcu_test_report_t *report)
     check(report, result.force_safe_outputs);
 }
 
-static void test_nominal_virtual_mcu_parity_vector(mcu_test_report_t *report)
+static void test_nominal_safety_vector(mcu_test_report_t *report)
 {
     mcu_state_machine_t machine;
     mcu_event_t reset;
@@ -381,6 +390,6 @@ void mcu_state_machine_run_tests(mcu_test_report_t *report)
     test_reset_requires_both_trusted_gates(report);
     test_watchdog_and_faults_are_latched(report);
     test_invalid_inputs_fail_closed(report);
-    test_nominal_virtual_mcu_parity_vector(report);
+    test_nominal_safety_vector(report);
     test_deterministic_replay(report);
 }

@@ -11,6 +11,7 @@
     "firmware/mcu/tests/state_machine_tests.h",
     "firmware/mcu/tests/state_machine_tests.c",
     "firmware/mcu/tests/main_host.c",
+    "firmware/mcu/README.md",
     "docs/task_packets/issue-53-mcu-safety-state-machine.json"
   ],
   "read_only_paths": [
@@ -40,7 +41,7 @@
     "Invalid events and invalid event arguments return a rejection and fail closed without heap allocation.",
     "The core includes no vendor or platform headers, dynamic allocation, floating point, or hardware register access.",
     "The shared transition tests cover every state and event boundary and run against the same core source on Host and QEMU.",
-    "Python VirtualMcu parity expectations are represented by the C transition vectors; Python behavior is not silently changed in this issue."
+    "The C core and shared C transition suite are authoritative; firmware/virtual_mcu is retired as a safety reference and parity oracle, remaining only as a legacy compatibility stub."
   ],
   "commands": [
     "python3 tools/scripts/check_task_packet.py docs/task_packets/issue-53-mcu-safety-state-machine.json",
@@ -66,6 +67,6 @@
     "The implementation needs CAN layout, frame decoding, retry deduplication or watchdog timer scheduling from #54, #61 or #60.",
     "The implementation needs vendor headers, board registers, motor control, PID or physical hardware claims.",
     "The C state machine cannot run unchanged in both Host and QEMU targets.",
-    "The Python model would need behavior changes outside this Task Packet, especially unknown-command handling from #63."
+    "The Python VirtualMcu would need behavior changes or a parity claim outside this Task Packet; handle that separately, especially unknown-command handling from #63."
   ]
 }

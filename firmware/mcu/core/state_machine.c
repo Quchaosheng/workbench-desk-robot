@@ -164,10 +164,16 @@ void mcu_sm_dispatch(mcu_state_machine_t *machine,
                      const mcu_event_t *event,
                      mcu_transition_result_t *result)
 {
+    mcu_transition_result_t ignored_result;
+    bool result_missing;
     mcu_state_t previous_state;
 
-    if (result == 0) {
-        return;
+    result_missing = result == 0;
+    if (result_missing) {
+        /* A caller cannot suppress safety processing by omitting the output
+         * buffer. The local buffer preserves the normal dispatch path for
+         * STOP, while non-STOP events are rejected below as invalid input. */
+        result = &ignored_result;
     }
     if (machine == 0) {
         null_machine_result(result);
@@ -188,6 +194,16 @@ void mcu_sm_dispatch(mcu_state_machine_t *machine,
         return;
     }
     if (event == 0) {
+        enter_fault(machine, MCU_FAULT_MALFORMED_FRAME);
+        make_result(result,
+                    machine,
+                    previous_state,
+                    MCU_RESULT_REJECTED,
+                    MCU_REASON_INVALID_ARGUMENT,
+                    MCU_FAULT_MALFORMED_FRAME);
+        return;
+    }
+    if (result_missing && event->kind != MCU_EVENT_STOP) {
         enter_fault(machine, MCU_FAULT_MALFORMED_FRAME);
         make_result(result,
                     machine,

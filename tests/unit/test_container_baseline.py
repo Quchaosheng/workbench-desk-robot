@@ -15,6 +15,7 @@ def test_runtime_container_copies_installable_workbench_packages_before_install(
     install_offset = dockerfile.index("python -m pip install --no-compile .")
 
     for package_copy in (
+        "COPY libs/application ./libs/application",
         "COPY libs/hardware ./libs/hardware",
         "COPY libs/kernel ./libs/kernel",
     ):

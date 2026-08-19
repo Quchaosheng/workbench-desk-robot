@@ -25,6 +25,7 @@ docs = [
 
 [tool.setuptools]
 packages = [
+  "workbench.application",
   "workbench.hardware",
   "workbench.kernel",
   "workbench_agent_runtime",
@@ -35,6 +36,7 @@ packages = [
 ]
 
 [tool.setuptools.package-dir]
+"workbench.application" = "libs/application/workbench/application"
 "workbench.hardware" = "libs/hardware/workbench/hardware"
 "workbench.kernel" = "libs/kernel/workbench/kernel"
 workbench_agent_runtime = "services/agent_runtime/workbench_agent_runtime"

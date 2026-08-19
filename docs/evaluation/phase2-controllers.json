@@ -1,0 +1,211 @@
+{
+  "all_passed": true,
+  "arm": "ur5e+robotiq_2f_85",
+  "commit": "95a44bc6f34ec2601bfe007a27a8e67b5f96a7fa",
+  "config_hashes": {
+    "arm.yaml": "sha256:6542db9c1f694f7e5b7b279c273df1a0a8db371dfdffbf18dc6ecfe64b4a7b88",
+    "controllers.yaml": "sha256:d43ed0584b035dc7117dd6be8119bd3c7d582edf9bd89a1f5217f8012c3f76c4"
+  },
+  "controllers": [
+    {
+      "name": "gripper_controller",
+      "state": "active",
+      "type": "position_controllers/GripperActionController"
+    },
+    {
+      "name": "arm_trajectory_controller",
+      "state": "active",
+      "type": "joint_trajectory_controller/JointTrajectoryController"
+    },
+    {
+      "name": "joint_state_broadcaster",
+      "state": "active",
+      "type": "joint_state_broadcaster/JointStateBroadcaster"
+    }
+  ],
+  "generated_at": "2026-08-19T10:55:58+0800",
+  "git_dirty": false,
+  "gripper_mimic": {
+    "all_ok": true,
+    "control_declaration": "explicit_followers_with_vendor_multipliers",
+    "driver_joint": "robotiq_85_left_knuckle_joint",
+    "followers": [
+      {
+        "joint": "robotiq_85_right_knuckle_joint",
+        "nominal_multiplier": -1.0,
+        "observed_ratio": -0.999086599452041,
+        "ok": true
+      },
+      {
+        "joint": "robotiq_85_left_inner_knuckle_joint",
+        "nominal_multiplier": 1.0,
+        "observed_ratio": 0.9990869862892185,
+        "ok": true
+      },
+      {
+        "joint": "robotiq_85_right_inner_knuckle_joint",
+        "nominal_multiplier": -1.0,
+        "observed_ratio": -0.9990869862892194,
+        "ok": true
+      },
+      {
+        "joint": "robotiq_85_left_finger_tip_joint",
+        "nominal_multiplier": -1.0,
+        "observed_ratio": -0.9990869862891454,
+        "ok": true
+      },
+      {
+        "joint": "robotiq_85_right_finger_tip_joint",
+        "nominal_multiplier": 1.0,
+        "observed_ratio": 0.9990869862890565,
+        "ok": true
+      }
+    ],
+    "tolerance_abs": 0.02
+  },
+  "legal_trajectory": {
+    "collision": {
+      "all_valid": true,
+      "first_invalid": null,
+      "resolution_rad": 0.05,
+      "source": "moveit",
+      "states_checked": 1052
+    },
+    "joint_states_after": {
+      "positions": {
+        "elbow_joint": -8.446826697624434e-08,
+        "robotiq_85_left_finger_tip_joint": -8.467904417085283e-09,
+        "robotiq_85_left_inner_knuckle_joint": 8.467902966096609e-09,
+        "robotiq_85_left_knuckle_joint": 8.467903576893691e-09,
+        "robotiq_85_right_finger_tip_joint": 8.467902963479467e-09,
+        "robotiq_85_right_inner_knuckle_joint": -8.46790420440675e-09,
+        "robotiq_85_right_knuckle_joint": -1.9776367367192802e-07,
+        "shoulder_lift_joint": -1.5699999475223898,
+        "shoulder_pan_joint": 0.0494999866906217,
+        "wrist_1_joint": -1.5699997264276822,
+        "wrist_2_joint": -1.4710009181069706e-07,
+        "wrist_3_joint": -3.0051794790847096e-07
+      },
+      "stamp_s": 8.126
+    },
+    "joint_states_before": {
+      "positions": {
+        "elbow_joint": -8.446827072645523e-08,
+        "robotiq_85_left_finger_tip_joint": -8.467904262360557e-09,
+        "robotiq_85_left_inner_knuckle_joint": 8.46790280686253e-09,
+        "robotiq_85_left_knuckle_joint": 8.467903434442493e-09,
+        "robotiq_85_right_finger_tip_joint": 8.467902795613399e-09,
+        "robotiq_85_right_inner_knuckle_joint": -8.467904054774965e-09,
+        "robotiq_85_right_knuckle_joint": -1.9613676644764334e-07,
+        "shoulder_lift_joint": -1.5699999475223927,
+        "shoulder_pan_joint": 1.4165451150891466e-07,
+        "wrist_1_joint": -1.5699997264276944,
+        "wrist_2_joint": -1.471000858544228e-07,
+        "wrist_3_joint": -3.00517946551055e-07
+      },
+      "stamp_s": 6.026
+    },
+    "smoothness": {
+      "max_velocity_jump_rad_s": 0.03553094722386019,
+      "overshoot_free": true,
+      "overshoot_tolerance_rad": 0.01,
+      "reason": null,
+      "samples_checked": 1051,
+      "valid": true,
+      "velocity_continuous": true,
+      "velocity_jump_limit_rad_s": 1.0
+    },
+    "tracking_ok": true,
+    "tracking_tolerance_rad": 0.05
+  },
+  "observed_controller_over_limit_behavior": {
+    "gate": "fail",
+    "is_phase4_bypass_risk": true,
+    "joint_states_after": {
+      "positions": {
+        "elbow_joint": -8.446826350926824e-08,
+        "robotiq_85_left_finger_tip_joint": -8.467904271281387e-09,
+        "robotiq_85_left_inner_knuckle_joint": 8.467902806489841e-09,
+        "robotiq_85_left_knuckle_joint": 8.467903434423215e-09,
+        "robotiq_85_right_finger_tip_joint": 8.46790279873308e-09,
+        "robotiq_85_right_inner_knuckle_joint": -8.467904062891648e-09,
+        "robotiq_85_right_knuckle_joint": -2.0036803814293037e-07,
+        "shoulder_lift_joint": -1.5699999475224358,
+        "shoulder_pan_joint": 6.283185243623778,
+        "wrist_1_joint": -1.5699997264276722,
+        "wrist_2_joint": -1.4710008930952605e-07,
+        "wrist_3_joint": -3.0051794913197045e-07
+      },
+      "stamp_s": 11.076
+    },
+    "joint_states_before": {
+      "positions": {
+        "elbow_joint": -8.446826693098695e-08,
+        "robotiq_85_left_finger_tip_joint": -8.467904262364134e-09,
+        "robotiq_85_left_inner_knuckle_joint": 8.467902806866481e-09,
+        "robotiq_85_left_knuckle_joint": 8.467903434446032e-09,
+        "robotiq_85_right_finger_tip_joint": 8.46790279561764e-09,
+        "robotiq_85_right_inner_knuckle_joint": -8.467904054779643e-09,
+        "robotiq_85_right_knuckle_joint": -1.961367664490621e-07,
+        "shoulder_lift_joint": -1.5699999475223927,
+        "shoulder_pan_joint": 0.05000014165411944,
+        "wrist_1_joint": -1.5699997264276848,
+        "wrist_2_joint": -1.4710009188913244e-07,
+        "wrist_3_joint": -3.005179479083485e-07
+      },
+      "stamp_s": 8.524000000000001
+    },
+    "kind": "clamped",
+    "over_limit_joints": [],
+    "requested_limit_excess": [
+      {
+        "bound": 6.283185307179586,
+        "excess": 0.09999999999999964,
+        "joint": "shoulder_pan_joint",
+        "requested": 6.383185307179586
+      }
+    ],
+    "requested_target": {
+      "elbow_joint": -8.446827072645523e-08,
+      "shoulder_lift_joint": -1.5699999475223927,
+      "shoulder_pan_joint": 6.383185307179586,
+      "wrist_1_joint": -1.5699997264276944,
+      "wrist_2_joint": -1.471000858544228e-07,
+      "wrist_3_joint": -3.00517946551055e-07
+    }
+  },
+  "tf_chain": {
+    "expected": [
+      "world",
+      "base_link",
+      "base_link_inertia",
+      "shoulder_link",
+      "upper_arm_link",
+      "forearm_link",
+      "wrist_1_link",
+      "wrist_2_link",
+      "wrist_3_link",
+      "flange",
+      "tool0",
+      "grasp_tcp"
+    ],
+    "missing": [],
+    "present": true,
+    "stale": []
+  },
+  "validator_violation": {
+    "bound": 6.283184307179586,
+    "joint": "shoulder_pan_joint",
+    "kind": "position",
+    "message": "shoulder_pan_joint position is outside limits",
+    "point_index": 0,
+    "value": 6.383185307179586
+  },
+  "versions": {
+    "gripper_controllers": "4.40.1-1noble.20260615.171453",
+    "gz": "8.11.0",
+    "gz_ros2_control": "1.2.19-1noble.20260615.171757",
+    "jtc": "4.40.1-1noble.20260615.171409",
+    "ros_distro": "jazzy"
+  }
+}

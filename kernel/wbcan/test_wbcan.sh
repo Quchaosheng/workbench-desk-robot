@@ -32,10 +32,23 @@ arm()   { echo "$*" > "$DBG/inject"; }
 clear_fault() { arm "none 0"; }
 stat()  { awk -v k="$1" '$1==k{print $2}' "$DBG/status"; }
 
-# Capture for a fixed window. candump -T exits on its own, so no stray kill.
+wait_for_state() {
+	local want="$1" attempts="${2:-40}"
+	local current
+	while [ "$attempts" -gt 0 ]; do
+		current=$(stat state)
+		[ "$current" = "$want" ] && return 0
+		sleep 0.05
+		attempts=$((attempts - 1))
+	done
+	return 1
+}
+
+# Capture compact data and error frames for a fixed window. candump -T exits
+# on its own, so no stray kill.
 capture() {
 	local ms="$1"
-	candump -T "$ms" -n 100 "$IFACE" 2>/dev/null
+	candump -L -T "$ms" -n 100 "$IFACE,0:0,#FFFFFFFF" 2>/dev/null
 }
 
 check() {
@@ -125,24 +138,55 @@ check "id filter spares non-matching" \
 
 # --- 7. bus-off produces an error frame and changes state -----------------
 # This is the case a userspace shim cannot fake.
+ip link set "$IFACE" down
+ip link set "$IFACE" type can restart-ms 500
+ip link set "$IFACE" up
 clear_fault
 arm "bus-off 1"
-out=$(capture 400 & sleep 0.1; cansend "$IFACE" 500#01 2>/dev/null; wait)
+out=$(capture 250 & sleep 0.05; cansend "$IFACE" 500#01 2>/dev/null; wait)
 check "bus-off emits an error frame" \
       "1" "$(grep -c '20000040\|ERRORFRAME' <<<"$out" | head -1)"
 check "bus-off moves controller state" \
       "bus-off" "$(stat state)"
 
-# --- 8. restart clears state and the armed fault --------------------------
-ip link set "$IFACE" down
-ip link set "$IFACE" up
-sleep 0.2
-check "restart returns to error-active" \
-      "error-active" "$(stat state)"
-check "restart clears the armed fault" \
+# --- 8. restart-ms automatically clears state and the armed fault ---------
+if wait_for_state "error-active" 40; then
+	restarted="error-active"
+else
+	restarted=$(stat state)
+fi
+check "restart-ms returns to error-active" \
+      "error-active" "$restarted"
+check "automatic restart clears the armed fault" \
       "none" "$(stat armed_fault)"
+out=$(capture 300 & sleep 0.1; cansend "$IFACE" 501#02; wait)
+check "automatic restart restores transmission" \
+      "1" "$(grep -c '501.*02' <<<"$out")"
 
-# --- 9. arb-lost is an error but not terminal ------------------------------
+# --- 9. manual CAN-core restart remains supported --------------------------
+ip link set "$IFACE" down
+ip link set "$IFACE" type can restart-ms 0
+ip link set "$IFACE" up
+clear_fault
+arm "bus-off 1"
+cansend "$IFACE" 502#03 2>/dev/null
+if wait_for_state "bus-off" 10; then
+	manual_bus_off="bus-off"
+else
+	manual_bus_off=$(stat state)
+fi
+check "manual restart setup reaches bus-off" \
+      "bus-off" "$manual_bus_off"
+ip link set "$IFACE" type can restart
+check "manual restart returns to error-active" \
+      "error-active" "$(stat state)"
+check "manual restart clears the armed fault" \
+      "none" "$(stat armed_fault)"
+out=$(capture 300 & sleep 0.1; cansend "$IFACE" 503#04; wait)
+check "manual restart restores transmission" \
+      "1" "$(grep -c '503.*04' <<<"$out")"
+
+# --- 10. arb-lost is an error but not terminal -----------------------------
 clear_fault
 arm "arb-lost 1"
 out=$(capture 300 & sleep 0.1; cansend "$IFACE" 600#01; wait)
@@ -151,7 +195,7 @@ check "arb-lost emits an error frame" \
 check "arb-lost leaves the bus usable" \
       "error-active" "$(stat state)"
 
-# --- 10. counters are trustworthy -----------------------------------------
+# --- 11. counters are trustworthy -----------------------------------------
 clear_fault
 before=$(stat tx_frames)
 cansend "$IFACE" 700#01
@@ -160,7 +204,7 @@ after=$(stat tx_frames)
 check "tx counter advances" \
       "1" "$(( after - before ))"
 
-# --- 11. rejecting a bad ABI write ----------------------------------------
+# --- 12. rejecting a bad ABI write ----------------------------------------
 if echo "not-a-mode 1" > "$DBG/inject" 2>/dev/null; then
 	check "bad fault name rejected" "rejected" "accepted"
 else

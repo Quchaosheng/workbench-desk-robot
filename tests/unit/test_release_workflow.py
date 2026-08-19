@@ -2,6 +2,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github" / "workflows" / "release-image.yml"
+CI_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
 
 
 def _step_block(workflow: str, marker: str) -> str:
@@ -24,3 +25,19 @@ def test_sbom_generation_keeps_release_workflow_least_privileged() -> None:
     artifact_step = _step_block(workflow, "uses: actions/upload-artifact@")
     assert "name: workbench-1-sbom" in artifact_step
     assert "path: workbench-1.spdx.json" in artifact_step
+
+
+def test_kernel_fault_suite_cannot_be_skipped_as_green() -> None:
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+    kernel_job = workflow.split("  kernel-module:", maxsplit=1)[1].split("\n  mcu-qemu:", maxsplit=1)[0]
+    summary_step = _step_block(kernel_job, "name: Report runtime fault result")
+
+    assert "continue-on-error" not in kernel_job
+    assert "id: module_load" in kernel_job
+    assert "id: fault_suite" in kernel_job
+    assert "if: always()" in summary_step
+    assert "PASS" in summary_step
+    assert "NOT_EXECUTED" in summary_step
+    assert "FAIL" in summary_step
+    assert 'test "$status" = PASS' in summary_step
+    assert "GITHUB_STEP_SUMMARY" in summary_step

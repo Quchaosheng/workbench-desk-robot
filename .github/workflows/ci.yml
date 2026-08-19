@@ -51,28 +51,52 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            "linux-headers-$(uname -r)" can-utils build-essential
+            "linux-headers-$(uname -r)" \
+            "linux-modules-extra-$(uname -r)" \
+            can-utils build-essential
       - name: Build and check wbcan.ko
         run: |
           make -C kernel/wbcan
           make -C kernel/wbcan checkpatch
       - name: Load the module and bring the interface up
-        id: load-module
-        continue-on-error: true
+        id: module_load
         run: |
-          sudo modprobe can can-raw can-dev
+          sudo modprobe can
+          sudo modprobe can_raw
+          modinfo can-dev
+          sudo modprobe can-dev
           sudo insmod kernel/wbcan/wbcan.ko
           sudo ip link set wbcan0 type can restart-ms 100
           sudo ip link set wbcan0 up
           ip -details link show wbcan0
 
       - name: Run the fault suite
-        if: steps.load-module.outcome == 'success'
+        id: fault_suite
         run: sudo ./kernel/wbcan/test_wbcan.sh wbcan0
 
-      - name: Report unavailable kernel runtime
-        if: steps.load-module.outcome == 'failure'
-        run: echo "::warning title=Kernel runtime unavailable::The hosted runner built wbcan.ko but cannot load it; run the fault suite on a privileged Linux host."
+      - name: Report runtime fault result
+        if: always()
+        env:
+          MODULE_LOAD_OUTCOME: ${{ steps.module_load.outcome }}
+          FAULT_SUITE_OUTCOME: ${{ steps.fault_suite.outcome }}
+        run: |
+          case "$FAULT_SUITE_OUTCOME" in
+            success) status=PASS ;;
+            failure) status=FAIL ;;
+            *) status=NOT_EXECUTED ;;
+          esac
+          {
+            echo "### wbcan runtime fault suite"
+            echo
+            echo "Status: **$status**"
+            echo
+            echo "| Phase | Outcome |"
+            echo "| --- | --- |"
+            echo "| Module insertion | $MODULE_LOAD_OUTCOME |"
+            echo "| Fault suite | $FAULT_SUITE_OUTCOME |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          test "$status" = PASS
+
       - name: Dump kernel log on failure
         if: failure()
         run: sudo dmesg | tail -50

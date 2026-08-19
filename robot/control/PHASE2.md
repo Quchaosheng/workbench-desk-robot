@@ -405,7 +405,7 @@ validator_violation{joint, kind, value, bound}             # check_trajectory �
 关节前后状态从 `/joint_states` 采。**无穿模证据路径唯一定为 MoveIt `/check_state_validity`**（仓库无 Gazebo contact sensor/bridge，合并 URDF 是 MoveIt 碰撞权威）——`/joint_states` + 无 warning 不足以证明无穿模（review 小修项）。**一条命令产全套证据**：见 §6 的 `phase2_probe` 控制台脚本。
 
 **probe 健壮性（回应 review）**：
-- JSON 原子写：先写临时文件，校验 schema 通过后 `os.replace()` 覆盖目标。**注意**：`os.replace()` 只保证原子覆盖，**不会**在新运行失败时清除旧证据——失败路径直接非零退出，不产任何 JSON，调用方依据退出码判定失败（不因空 JSON 或旧 JSON 被误导为通过）。
+- JSON 原子写：先写临时文件，校验 schema 通过后 `os.replace()` 覆盖目标。六分类一旦完成就发布证据：`clamped` 的 controller-protection gate 仍为 fail 且标记 phase-4 bypass risk，但按 Issue #116 不阻塞 phase-2；`executed_over_limit`/`timeout`/`unclassified` 发布诊断证据后退出 1。端点、TF、合法轨迹、碰撞或 mimic 证据不完整时退出 2 且不发布新 JSON。
 - 记录 git 状态：`"git_dirty": bool`（`git status --porcelain` 非空时 true；`git diff-index` 不含未跟踪文件，不够全）。
 - 记录关键配置 hash：`"config_hashes": {"arm.yaml": "sha256:...", "controllers.yaml": "sha256:..."}`（防配置漂移后误用旧证据）。
 - 碰撞检查插值口径冻结为 0.05 rad 关节步（线性插值加密轨迹点；若后续需匹配 JTC 样条真实路径，留阶段 4/6 升级）。

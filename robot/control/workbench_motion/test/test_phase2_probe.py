@@ -14,6 +14,7 @@ from workbench_motion.joint_limits import JointLimit
 from workbench_motion.phase2_probe import (
     FAIL_BEHAVIORS,
     FOLLOWERS,
+    PHASE2_ACCEPTED_BEHAVIORS,
     ActionObservation,
     JointSnapshot,
     RosProbeIO,
@@ -123,6 +124,7 @@ def test_six_class_over_limit_behavior(observation, expected):
 
 def test_last_four_classes_fail_gate():
     assert FAIL_BEHAVIORS == {"clamped", "executed_over_limit", "timeout", "unclassified"}
+    assert PHASE2_ACCEPTED_BEHAVIORS == {"rejected", "aborted", "clamped"}
 
 
 def test_executed_over_limit_in_an_intermediate_sample_is_not_hidden_by_final_state():
@@ -309,7 +311,18 @@ class FakeIO:
             return ActionObservation(True, "succeeded", False, dict(target), before, self.now, (self.now,))
         if self.over_kind == "rejected":
             return ActionObservation(False, "rejected", False, dict(target), before, before)
-        raise AssertionError("unused fake behavior")
+        if self.over_kind == "aborted":
+            return ActionObservation(True, "aborted", False, dict(target), before, before)
+        if self.over_kind == "timeout":
+            return ActionObservation(True, "unknown", True, dict(target), before, before)
+        after_positions = dict(before.positions)
+        after_positions[ARM.joints[0]] = {
+            "clamped": LIMITS[ARM.joints[0]].max_position,
+            "executed_over_limit": LIMITS[ARM.joints[0]].max_position + 0.05,
+            "unclassified": 0.5,
+        }[self.over_kind]
+        after = JointSnapshot(after_positions, 10.2)
+        return ActionObservation(True, "succeeded", False, dict(target), before, after)
 
     def collision_check(self, states):
         return {
@@ -369,3 +382,32 @@ def test_successful_mock_probe_publishes_complete_json(tmp_path, monkeypatch):
     assert report["observed_controller_over_limit_behavior"]["kind"] == "rejected"
     assert report["gripper_mimic"]["all_ok"]
     assert report["tf_chain"]["present"]
+
+
+def test_clamped_controller_publishes_phase4_risk_evidence(tmp_path, monkeypatch):
+    from workbench_motion import phase2_probe
+
+    monkeypatch.setattr(phase2_probe, "_git_metadata", lambda repo: ("abc123", False))
+    output = tmp_path / "phase2.json"
+    rc = run_probe(FakeIO(over_kind="clamped"), arm=ARM, limits=LIMITS, output=output, repo=tmp_path, config_dir=CONFIG)
+    assert rc == 0
+    report = json.loads(output.read_text(encoding="utf-8"))
+    behavior = report["observed_controller_over_limit_behavior"]
+    assert behavior["kind"] == "clamped"
+    assert behavior["gate"] == "fail"
+    assert behavior["is_phase4_bypass_risk"] is True
+    assert behavior["requested_limit_excess"][0]["excess"] == pytest.approx(0.1)
+    assert report["all_passed"] is True
+
+
+@pytest.mark.parametrize("kind", ["executed_over_limit", "timeout", "unclassified"])
+def test_unsafe_or_inconclusive_behavior_publishes_diagnostic_evidence(kind, tmp_path, monkeypatch):
+    from workbench_motion import phase2_probe
+
+    monkeypatch.setattr(phase2_probe, "_git_metadata", lambda repo: ("abc123", False))
+    output = tmp_path / "phase2.json"
+    rc = run_probe(FakeIO(over_kind=kind), arm=ARM, limits=LIMITS, output=output, repo=tmp_path, config_dir=CONFIG)
+    assert rc == 1
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["observed_controller_over_limit_behavior"]["kind"] == kind
+    assert report["all_passed"] is False

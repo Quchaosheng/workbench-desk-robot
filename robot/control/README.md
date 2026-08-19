@@ -201,9 +201,12 @@ ros2 run workbench_motion phase2_probe
 ```
 
 `phase2_probe` refuses to send its over-limit test unless robot_description
-contains `gz_ros2_control/GazeboSimSystem`. On a fully passing run it atomically
-publishes `docs/evaluation/phase2-controllers.json`; endpoint, stale-data,
-collision, mimic, or unsafe controller behavior failures exit nonzero without
+contains `gz_ros2_control/GazeboSimSystem`. Once controller behavior has been
+observed, it atomically publishes `docs/evaluation/phase2-controllers.json`.
+`clamped` remains a controller-protection gate failure and is recorded as a
+phase-4 bypass risk, but it does not block phase-2 acceptance. Actual over-limit,
+timeout, or unclassified behavior publishes diagnostic evidence and exits 1.
+Missing endpoints, stale data, collision, or mimic failures exit 2 without
 publishing a new artifact.
 
 An arm swap must additionally update the joint list and names in

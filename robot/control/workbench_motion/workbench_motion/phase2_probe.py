@@ -35,6 +35,7 @@ from workbench_motion.joint_limits import (
 
 SAFE_BEHAVIORS = frozenset({"rejected", "aborted"})
 FAIL_BEHAVIORS = frozenset({"clamped", "executed_over_limit", "timeout", "unclassified"})
+PHASE2_ACCEPTED_BEHAVIORS = SAFE_BEHAVIORS | {"clamped"}
 FOLLOWERS = {
     "robotiq_85_right_knuckle_joint": -1.0,
     "robotiq_85_left_inner_knuckle_joint": 1.0,
@@ -360,6 +361,25 @@ def _violation_dict(violation: Violation | None) -> dict[str, Any] | None:
     return asdict(violation) if violation is not None else None
 
 
+def _requested_limit_excess(
+    requested: Mapping[str, float], limits: Mapping[str, JointLimit]
+) -> list[dict[str, float | str]]:
+    excess = []
+    for joint, value in requested.items():
+        limit = limits.get(joint)
+        if limit is None:
+            continue
+        if value < limit.min_position:
+            excess.append(
+                {"joint": joint, "requested": value, "bound": limit.min_position, "excess": limit.min_position - value}
+            )
+        elif value > limit.max_position:
+            excess.append(
+                {"joint": joint, "requested": value, "bound": limit.max_position, "excess": value - limit.max_position}
+            )
+    return excess
+
+
 def run_probe(
     io: ProbeIO,
     *,
@@ -472,16 +492,23 @@ def run_probe(
                 "kind": kind,
                 "gate": gate,
                 "is_phase4_bypass_risk": kind in {"clamped", "executed_over_limit"},
+                "requested_target": over.requested,
+                "requested_limit_excess": _requested_limit_excess(over.requested, limits),
                 "joint_states_before": _snapshot_dict(over.before),
                 "joint_states_after": _snapshot_dict(over.after),
                 "over_limit_joints": _outside(over.after, limits),
             },
             "validator_violation": _violation_dict(validator),
-            "all_passed": gate == "safe" and mimic["all_ok"] and collision["all_valid"] and tf_report["present"],
+            "all_passed": (
+                kind in PHASE2_ACCEPTED_BEHAVIORS
+                and mimic["all_ok"]
+                and collision["all_valid"]
+                and tf_report["present"]
+            ),
         }
+        atomic_write_report(output, report)
         if not report["all_passed"]:
             return fail(1, f"observed controller over-limit behavior is {kind!r}")
-        atomic_write_report(output, report)
         return 0
     except (KeyError, ValueError, RuntimeError, OSError, subprocess.SubprocessError) as exc:
         return fail(2, f"{type(exc).__name__}: {exc}")

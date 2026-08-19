@@ -213,6 +213,7 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	struct can_frame *cf = (struct can_frame *)skb->data;
 	struct sk_buff *rx_skb;
 	enum wbcan_fault fault = WBCAN_FAULT_NONE;
+	bool loop;
 	unsigned long flags;
 
 	if (can_dev_dropped_skb(dev, skb))
@@ -283,14 +284,27 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
 	dev->stats.tx_packets++;
 	dev->stats.tx_bytes += cf->len;
+	loop = skb->pkt_type == PACKET_LOOPBACK;
+	if (!loop) {
+		consume_skb(skb);
+		return NETDEV_TX_OK;
+	}
 
 	/*
-	 * Deliver to local sockets. skb_clone because the RX path consumes it
-	 * and the TX echo may still want the original.
+	 * Preserve the originating socket so CAN_RAW_RECV_OWN_MSGS and receive
+	 * confirmation flags retain their standard SocketCAN meaning. Bit-flip
+	 * needs a private data copy because packet taps may hold shared clones.
 	 */
-	rx_skb = skb_clone(skb, GFP_ATOMIC);
+	if (fault == WBCAN_FAULT_BIT_FLIP) {
+		rx_skb = skb_copy(skb, GFP_ATOMIC);
+		if (rx_skb)
+			can_skb_set_owner(rx_skb, skb->sk);
+		consume_skb(skb);
+	} else {
+		rx_skb = can_create_echo_skb(skb);
+	}
 	if (!rx_skb) {
-		kfree_skb(skb);
+		dev->stats.rx_dropped++;
 		return NETDEV_TX_OK;
 	}
 
@@ -322,7 +336,6 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 		netif_rx(rx_skb);
 	}
 
-	consume_skb(skb);
 	return NETDEV_TX_OK;
 }
 

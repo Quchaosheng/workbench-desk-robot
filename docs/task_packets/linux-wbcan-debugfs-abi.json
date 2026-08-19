@@ -1,0 +1,32 @@
+{
+  "issue": "137",
+  "human_owner": "Quchaosheng",
+  "objective": "Parse wbcan fault commands strictly and snapshot each selected fault configuration atomically.",
+  "allowed_paths": [
+    "kernel/wbcan/wbcan.c",
+    "kernel/wbcan/test_wbcan.sh",
+    "docs/task_packets/linux-wbcan-debugfs-abi.json"
+  ],
+  "read_only_paths": ["firmware/**", "interfaces/**", "AGENTS.md"],
+  "forbidden": ["robot/control/**", "firmware/**", "interfaces/**"],
+  "acceptance": [
+    "the entire command and mode-specific arity are validated",
+    "rejected writes do not change the armed configuration",
+    "standard and 29-bit extended identifiers are distinct and untruncated",
+    "any matching uses no valid CAN identifier sentinel",
+    "fault and bit-flip parameters are selected under one lock",
+    "concurrent writes cannot mix two configurations"
+  ],
+  "commands": [
+    "make -C kernel/wbcan",
+    "make -C kernel/wbcan checkpatch",
+    "sudo make -C kernel/wbcan reload",
+    "sudo make -C kernel/wbcan test"
+  ],
+  "evidence": ["module build output", "checkpatch output", "strict ABI and concurrent runtime assertions"],
+  "stop_conditions": [
+    "the numeric fault mode ABI would need renumbering",
+    "firmware or interface changes are required",
+    "a production control API is required"
+  ]
+}

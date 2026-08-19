@@ -166,7 +166,7 @@ check "skip-first drops the third" \
 
 # --- 5. bit-flip corrupts exactly one bit ---------------------------------
 clear_fault
-arm "bit-flip 1 0 ffff 0 0"    # byte 0, bit 0
+arm "bit-flip 1 0 any 0 0"    # byte 0, bit 0
 out=$(capture 300 & sleep 0.1; cansend "$IFACE" 400#F0; wait)
 # 0xF0 with bit 0 flipped is 0xF1.
 check "bit-flip changes byte 0 bit 0" \
@@ -264,6 +264,41 @@ if echo "bit-flip 1 0 ffff 0 9" > "$DBG/inject" 2>/dev/null; then
 else
 	check "out-of-range bit rejected" "rejected" "rejected"
 fi
+
+arm "drop-tx 2 0 s:123"
+before="$(stat armed_fault):$(stat shots_left):$(stat match_id)"
+if echo "drop-tx 2 trailing garbage" > "$DBG/inject" 2>/dev/null; then
+	check "trailing malformed input rejected" "rejected" "accepted"
+else
+	check "trailing malformed input rejected" "rejected" "rejected"
+fi
+after="$(stat armed_fault):$(stat shots_left):$(stat match_id)"
+check "rejected input leaves configuration unchanged" "$before" "$after"
+
+clear_fault
+arm "drop-tx 1 0 e:1abcde"
+out=$(capture 300 & sleep 0.1; cansend "$IFACE" 001ABCDE#AA; wait)
+check "29-bit extended filter is not truncated" \
+      "0" "$(grep -ci '1ABCDE.*AA' <<<"$out")"
+check "extended filter consumes its shot" "0" "$(stat shots_left)"
+
+# Concurrent reconfiguration may select either whole configuration, never a
+# byte from one and a bit from the other.
+clear_fault
+out=$(capture 1200 &
+	sleep 0.1
+	(
+		for _ in $(seq 1 100); do
+			arm "bit-flip 1 0 any 0 0"
+			arm "bit-flip 1 0 any 1 1"
+		done
+	) &
+	for _ in $(seq 1 100); do
+		cansend "$IFACE" 720#0000
+	done
+	wait)
+mixed=$(grep '720' <<<"$out" | grep -Evc '(0100|0002|0000)$' || true)
+check "concurrent arm uses one complete configuration" "0" "$mixed"
 
 clear_fault
 restart_if_bus_off

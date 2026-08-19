@@ -1,0 +1,68 @@
+{
+  "issue": 169,
+  "human_owner": "zhangjia-1111",
+  "objective": "Collect a bounded in-process robot health snapshot from fixed, injectable metric sources.",
+  "allowed_paths": [
+    "libs/application/workbench/application/monitoring.py",
+    "tests/unit/test_monitoring.py",
+    "tools/scripts/benchmark_monitoring.py",
+    "docs/performance/monitoring-local-2026-08-19.md",
+    "docs/task_packets/monitoring-health-snapshot-169.json",
+    "pyproject.toml"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "interfaces/**",
+    "services/**",
+    "firmware/**",
+    "robot/**",
+    "hardware/**"
+  ],
+  "forbidden": [
+    "Prometheus server",
+    "Grafana",
+    "OpenTelemetry collector",
+    "time-series database",
+    "cloud telemetry",
+    "background monitoring daemon",
+    "raw image or model-prompt metrics"
+  ],
+  "acceptance": [
+    "fixed metric names define type, unit, domain, freshness and criticality",
+    "unknown metrics, invalid values, incompatible clocks and unapproved labels fail closed",
+    "gauges/counters are thread-safe and bounded",
+    "histograms use fixed bucket aggregates and do not retain every sample",
+    "missing, stale and faulted critical inputs produce unknown or fault health",
+    "a complete fresh fixture produces a serializable healthy snapshot",
+    "collector and snapshot updates are safe under concurrent access",
+    "fixed sources, timestamp ordering and equal-time conflicts fail closed",
+    "Linux and component or ROS-diagnostic readers are injectable",
+    "local CPU, RSS, scheduler, thread and output-size evidence is reproducible",
+    "target-hardware and physical-source evidence remains NOT_EXECUTED when unavailable"
+  ],
+  "commands": [
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/monitoring-health-snapshot-169.json",
+    "python3 -m pytest tests/unit/test_monitoring.py -q",
+    "python3 tools/scripts/benchmark_monitoring.py --output runs/performance/monitoring.json",
+    "python3 -m ruff check libs/application/workbench/application/monitoring.py tests/unit/test_monitoring.py tools/scripts/benchmark_monitoring.py",
+    "python3 -m ruff format --check libs/application/workbench/application/monitoring.py tests/unit/test_monitoring.py tools/scripts/benchmark_monitoring.py",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check"
+  ],
+  "evidence": [
+    "focused monitoring test output",
+    "full repository test output",
+    "fixed registry and bounded histogram assertions",
+    "healthy, missing, stale and fault snapshot projections",
+    "docs/performance/monitoring-local-2026-08-19.md with target and physical evidence marked NOT_EXECUTED"
+  ],
+  "stop_conditions": [
+    "interface schema change is required",
+    "a component needs a new control or safety authority",
+    "a source cannot provide a monotonic timestamp",
+    "a production design requires an unbounded buffer or external service",
+    "physical sensor or E-stop evidence is requested without a connected bench"
+  ]
+}

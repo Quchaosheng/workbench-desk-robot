@@ -646,7 +646,7 @@ static int __init wbcan_init(void)
 
 	wbcan_dev->netdev_ops = &wbcan_netdev_ops;
 	wbcan_dev->flags |= IFF_ECHO;
-	strscpy(wbcan_dev->name, "wbcan%d", IFNAMSIZ);
+	strscpy(wbcan_dev->name, "wbcan0", IFNAMSIZ);
 
 	/*
 	 * No real bit timing: there is no wire. Advertising fixed bitrate

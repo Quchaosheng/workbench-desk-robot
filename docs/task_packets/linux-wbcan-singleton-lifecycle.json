@@ -17,7 +17,7 @@
     "the module no longer advertises an unimplemented RTNL link kind",
     "ip link add type wbcan is rejected without creating a second device",
     "module unload removes the singleton device and debugfs tree",
-    "name collision and duplicate module insertion fail without partial state",
+    "the fixed wbcan0 name makes collision and duplicate module insertion fail without partial state",
     "CI verifies cleanup after the runtime suite"
   ],
   "commands": [

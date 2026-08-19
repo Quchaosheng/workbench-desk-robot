@@ -1,3 +1,5 @@
+import json
+
 from pydantic import BaseModel, Field
 from workbench_contracts import WorldEvent, WorldEventType
 
@@ -53,8 +55,51 @@ def apply_event(state: WorldState, event: WorldEvent) -> WorldState:
     return next_state
 
 
+def _canonical_event_content(event: WorldEvent) -> str:
+    return json.dumps(
+        event.model_dump(mode="json"),
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+
+
+def _validated_event_stream(run_id: str, events: list[WorldEvent]) -> list[WorldEvent]:
+    if not run_id:
+        raise ValueError("run_id must be non-empty")
+
+    content_by_event_id: dict[str, str] = {}
+    event_id_by_sequence: dict[int, str] = {}
+    unique_events: list[WorldEvent] = []
+
+    for event in events:
+        if event.run_id != run_id:
+            raise ValueError(f"event run_id {event.run_id!r} does not match requested run_id {run_id!r}")
+
+        event_content = _canonical_event_content(event)
+        previous_content = content_by_event_id.get(event.event_id)
+        if previous_content is not None:
+            if previous_content != event_content:
+                raise ValueError(f"event_id {event.event_id!r} is duplicated with different complete content")
+            continue
+
+        sequence_owner = event_id_by_sequence.get(event.sequence_no)
+        if sequence_owner is not None:
+            raise ValueError(
+                f"sequence_no {event.sequence_no} is shared by event_id {sequence_owner!r} and {event.event_id!r}"
+            )
+
+        content_by_event_id[event.event_id] = event_content
+        event_id_by_sequence[event.sequence_no] = event.event_id
+        unique_events.append(event)
+
+    return sorted(unique_events, key=lambda item: item.sequence_no)
+
+
 def reduce_events(run_id: str, events: list[WorldEvent]) -> WorldState:
+    """Preflight the full stream, fold exact duplicates, then replay by ascending sequence_no."""
+    ordered_events = _validated_event_stream(run_id, events)
     state = WorldState(run_id=run_id)
-    for event in sorted(events, key=lambda item: item.sequence_no):
+    for event in ordered_events:
         state = apply_event(state, event)
     return state

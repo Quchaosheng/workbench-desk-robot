@@ -1,0 +1,67 @@
+{
+  "issue": 46,
+  "human_owner": "kukuboring",
+  "objective": "Make SQLiteEventStore reject conflicting event identities and sequence numbers while preserving exact duplicate idempotency and deterministic replay.",
+  "allowed_paths": [
+    "services/world_model/workbench_world_model/event_store.py",
+    "tests/unit/test_world_event_store.py",
+    "docs/task_packets/issue-46-world-event-store-integrity.json"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "CONTRIBUTING.md",
+    "docs/architecture/system.md",
+    "interfaces/json_schema/world_event.schema.json",
+    "libs/contracts/workbench_contracts/models.py",
+    "services/world_model/workbench_world_model/__init__.py",
+    "tests/conftest.py",
+    "tests/integration/test_observe_plan_act.py"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "services/world_model/workbench_world_model/reducer.py",
+    "services/world_model/workbench_world_model/verifier.py",
+    "services/backend/**",
+    "robot/control/**",
+    "firmware/**"
+  ],
+  "acceptance": [
+    "Exact re-append of the same WorldEvent is idempotent and leaves exactly one stored row.",
+    "Reusing an event_id with different canonical event content raises a typed integrity error and preserves the original event.",
+    "Two different events cannot use the same run_id and sequence_no; the conflicting append raises a typed integrity error.",
+    "Every append is transactional and a failed append leaves no partial or additional row.",
+    "list_run returns events in deterministic sequence_no order.",
+    "Closing and reopening the database preserves stored events and all identity and sequence invariants.",
+    "Opening a legacy world_events table without the required sequence uniqueness constraint fails closed with an actionable backup-and-rebuild recovery instruction; automatic migration is not implemented.",
+    "Concurrent conflicting appends through separate SQLite connections result in exactly one stored event and an explicit failure for the conflicting writer."
+  ],
+  "commands": [
+    "python3 -m pytest tests/unit/test_world_event_store.py -v",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "make demo-scripted",
+    "make check"
+  ],
+  "evidence": [
+    "Targeted unit test output covering normal, boundary, conflict, reopen, legacy database and concurrent behavior.",
+    "Stored row count and original event content after duplicate and conflicting append attempts.",
+    "Deterministic sequence_no ordering from list_run.",
+    "Database reopen test output proving constraints remain active.",
+    "Legacy database failure message containing backup-and-rebuild recovery instructions.",
+    "Concurrent conflict test proving only one event is stored.",
+    "Required repository check outputs."
+  ],
+  "stop_conditions": [
+    "Implementation requires changing interfaces/** or libs/contracts/**.",
+    "Implementation requires changing reducer, verifier, backend, robot control or firmware.",
+    "A public WorldEvent schema or Pydantic model change is required.",
+    "Legacy database handling requires automatic or destructive migration instead of the approved fail-closed strategy.",
+    "The typed integrity error requires an unapproved package-level API change outside event_store.py.",
+    "Concurrent correctness cannot be demonstrated with temporary SQLite databases and separate connections.",
+    "A safety, interface or cross-module conflict is discovered.",
+    "Any required modification falls outside allowed_paths."
+  ]
+}

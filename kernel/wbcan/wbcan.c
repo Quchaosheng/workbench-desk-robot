@@ -619,6 +619,11 @@ static const struct file_operations wbcan_status_fops = {
 static struct net_device *wbcan_dev;
 static struct dentry *wbcan_dbg_root;
 
+/*
+ * Lifecycle is intentionally singleton-only: module load creates wbcan0 and
+ * module unload removes it. This is not an RTNL link kind, so `ip link add
+ * ... type wbcan` is intentionally unsupported.
+ */
 static int __init wbcan_init(void)
 {
 	struct wbcan_priv *priv;
@@ -690,4 +695,3 @@ module_exit(wbcan_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Virtual CAN device with programmable fault injection");
-MODULE_ALIAS_RTNL_LINK("wbcan");

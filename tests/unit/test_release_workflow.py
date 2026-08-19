@@ -55,3 +55,15 @@ def test_kernel_module_builds_against_lts_and_runner_headers() -> None:
     assert 'KDIR="$headers"' in build_step
     assert "make -C kernel/wbcan clean" in build_step
     assert "make -C kernel/wbcan checkpatch" in build_step
+
+
+def test_kernel_module_unload_verifies_singleton_cleanup() -> None:
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+    load_step = _step_block(workflow, "name: Load the module and bring the interface up")
+    unload_step = _step_block(workflow, "name: Unload")
+
+    assert "sudo ip link add wbcan0 type vcan" in load_step
+    assert "name collision" in load_step
+    assert "duplicate module insertion" in load_step
+    assert "test ! -e /sys/class/net/wbcan0" in unload_step
+    assert "test ! -e /sys/kernel/debug/wbcan" in unload_step

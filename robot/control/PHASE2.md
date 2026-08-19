@@ -378,9 +378,9 @@ arm(=arm.yaml arm_label), controllers[{name,type,state}],
 tf_chain{expected: ["world","base_link",…,"tool0","grasp_tcp"], present: bool, missing: []},  # C2 的 TF 验收
 gripper_mimic{
     tolerance_abs: 0.02,                                    # |observed_ratio - nominal| ≤ tol 判 ok
-    driver_joint, 
+    driver_joint,
     followers[{
-        joint, 
+        joint,
         nominal_multiplier,                                 # 来自 URDF <mimic multiplier="...">
         observed_ratio,                                     # Δfollower / Δdriver（开→关增量比，非绝对位置比）
         ok: bool                                            # |observed - nominal| ≤ tolerance_abs
@@ -392,7 +392,7 @@ legal_trajectory{
         source: "moveit",                                   # 唯一路径: /check_state_validity
         resolution_rad: 0.05,                               # 固定（冻结）：线性插值加密到 ≤0.05 rad 关节步
         states_checked: N,                                  # 轨迹点加密后数量 + 实测 /joint_states 采样数
-        all_valid: bool, 
+        all_valid: bool,
         first_invalid: {...}|null
     }},
 observed_controller_over_limit_behavior{                   # 实测六分类，不预设

@@ -147,3 +147,68 @@ override for ad-hoc probing, but with no flags the values come from arm.yaml
 macro instantiation are still hand-edited per arm — that is the "config edit",
 not a Python edit. Acceptance: the swap touches no `.py` files under
 `workbench_motion/workbench_motion/`.
+
+## Phase 2: limits + ros2_control
+
+Install the Jazzy/Harmonic runtime packages (apt/rosdep, not uv):
+
+```bash
+sudo apt-get install -y \
+  ros-jazzy-gz-ros2-control \
+  ros-jazzy-controller-manager \
+  ros-jazzy-joint-trajectory-controller \
+  ros-jazzy-joint-state-broadcaster \
+  ros-jazzy-gripper-controllers \
+  ros-jazzy-ros-gz-sim \
+  ros-jazzy-ros-gz-bridge \
+  ros-jazzy-ros2controlcli
+```
+
+On ROS 2 Jazzy/Noble, these packages pull Gazebo Harmonic through the
+`ros-jazzy-gz-*-vendor` dependency chain. A separate `gz-harmonic` package is
+not required and may not exist in a ROS-only apt configuration.
+`ros_gz_bridge` is used only for the Gazebo-to-ROS `/clock` bridge required by
+nodes running with `use_sim_time=true`; collision evidence remains exclusively
+MoveIt's `/check_state_validity`, with no Gazebo contact bridge.
+
+The gripper package is `gripper_controllers`, while its Jazzy plugin type is
+the historical `position_controllers/GripperActionController`. It is not the
+real-hardware `robotiq_controllers` plugin.
+
+The arm JTC has an explicit `0.02 rad` goal tolerance per joint and a `0.5 s`
+goal-time allowance. This makes an unreachable, hard-limit-clamped target end
+as an aborted action instead of being reported as a successful clamped goal.
+
+Build and validate the opt-in control expansion:
+
+```bash
+source /opt/ros/jazzy/setup.bash
+colcon build --packages-select workbench_motion
+source install/setup.bash
+xacro $(ros2 pkg prefix workbench_motion)/share/workbench_motion/config/arm_on_workbench.urdf.xacro \
+  sim_gz:=true > /tmp/wb_ctrl.urdf
+check_urdf /tmp/wb_ctrl.urdf
+ros2 launch workbench_motion sim_control.launch.py
+```
+
+In a second sourced shell, verify the controller types/states and run the
+single evidence probe:
+
+```bash
+ros2 control list_controller_types | grep -i gripper
+ros2 control list_controllers
+ros2 run workbench_motion phase2_probe
+```
+
+`phase2_probe` refuses to send its over-limit test unless robot_description
+contains `gz_ros2_control/GazeboSimSystem`. Once controller behavior has been
+observed, it atomically publishes `docs/evaluation/phase2-controllers.json`.
+`clamped` remains a controller-protection gate failure and is recorded as a
+phase-4 bypass risk, but it does not block phase-2 acceptance. Actual over-limit,
+timeout, or unclassified behavior publishes diagnostic evidence and exits 1.
+Missing endpoints, stale data, collision, or mimic failures exit 2 without
+publishing a new artifact.
+
+An arm swap must additionally update the joint list and names in
+`config/controllers.yaml`, review `config/joint_limits.hw_override.yaml`, and
+rerun this probe. Vendor hard limits remain dynamic; never copy them here.

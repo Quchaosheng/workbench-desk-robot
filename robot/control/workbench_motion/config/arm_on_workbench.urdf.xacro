@@ -14,9 +14,8 @@
     defaults mirrored in config/arm.yaml. Swapping the arm is a config edit, never
     an adapter-logic edit (phase-1 acceptance gate + README swap checklist).
 
-  Phase boundary: this file is description only. ros2_control / controllers land
-  in phase 2; grasp/attach logic in phase 5. `include_ros2_control` on the gripper
-  is therefore false here.
+  ros2_control is opt-in through sim_gz:=true. The default remains false so the
+  phase-1 MoveIt/reachability expansion is byte-for-byte free of control plugins.
 
   Validate:
     xacro robot/control/config/arm_on_workbench.urdf.xacro > /tmp/wb_arm.urdf
@@ -29,6 +28,9 @@
        swap touches. -->
   <xacro:arg name="ur_type"        default="ur5e"/>
   <xacro:arg name="tf_prefix"      default=""/>
+  <xacro:arg name="sim_gz"         default="false"/>
+  <xacro:arg name="driver_joint"   default="robotiq_85_left_knuckle_joint"/>
+  <xacro:arg name="controllers_yaml" default="$(find workbench_motion)/config/controllers.yaml"/>
 
   <!-- Arm base placement in the workbench `world` frame. The arm mounts on the
        table surface (world z = table_height = 0.75), offset toward -y and yawed
@@ -98,5 +100,14 @@
     <child  link="$(arg tf_prefix)grasp_tcp"/>
     <origin xyz="0 0 $(arg tcp_z)" rpy="0 0 0"/>
   </joint>
+
+  <!-- ==================================================== simulation control -->
+  <xacro:if value="$(arg sim_gz)">
+    <xacro:include filename="$(find workbench_motion)/config/ros2_control.xacro"/>
+    <xacro:workbench_ros2_control
+      tf_prefix="$(arg tf_prefix)"
+      driver_joint="$(arg driver_joint)"
+      controllers_yaml="$(arg controllers_yaml)"/>
+  </xacro:if>
 
 </robot>

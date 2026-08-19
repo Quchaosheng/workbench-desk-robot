@@ -32,6 +32,8 @@ class ArmConfig:
     """Typed view over arm.yaml. Attribute access, not dict rummaging."""
 
     model: str
+    vendor_description_pkg: str
+    ur_type: str
     planning_group: str
     base_link: str
     ee_link: str
@@ -40,6 +42,11 @@ class ArmConfig:
     base_frame: str
     gripper_model: str
     gripper_group: str
+    driver_joint: str
+    update_rate_hz: int
+    joint_state_broadcaster: str
+    arm_trajectory_controller: str
+    gripper_controller: str
 
     @property
     def dof(self) -> int:
@@ -79,23 +86,65 @@ def parse_arm_config(data: dict[str, Any]) -> ArmConfig:
     Kept separate from file IO so the unit tests can exercise the mapping->object
     contract on a literal dict without touching the filesystem or ROS.
     """
-    arm = data["arm"]
-    gripper = data.get("gripper", {})
+    try:
+        arm = data["arm"]
+        gripper = data["gripper"]
+        controllers = data["controllers"]
+    except KeyError as exc:
+        raise ValueError(f"missing required arm configuration section: {exc.args[0]}") from exc
     placement = data.get("base_placement", {})
-    joints = tuple(arm["joints"])
+    try:
+        model = arm["model"]
+        joints = tuple(arm["joints"])
+        vendor_description_pkg = arm["vendor_description_pkg"]
+        ur_type = arm["ur_type"]
+        planning_group = arm["planning_group"]
+        base_link = arm["base_link"]
+        ee_link = arm["ee_link"]
+        ik_tip_link = arm["ik_tip_link"]
+        gripper_model = gripper["model"]
+        gripper_group = gripper["planning_group"]
+        driver_joint = gripper["driver_joint"]
+        update_rate_hz = controllers["update_rate_hz"]
+        joint_state_broadcaster = controllers["joint_state_broadcaster"]
+        arm_trajectory_controller = controllers["arm_trajectory_controller"]
+        gripper_controller = controllers["gripper_controller"]
+    except (KeyError, TypeError) as exc:
+        missing = exc.args[0] if isinstance(exc, KeyError) else "invalid mapping"
+        raise ValueError(f"missing or invalid required arm configuration field: {missing}") from exc
     if not joints:
         raise ValueError("arm.joints must be non-empty")
+    text_fields = {
+        "arm.vendor_description_pkg": vendor_description_pkg,
+        "arm.ur_type": ur_type,
+        "gripper.driver_joint": driver_joint,
+        "controllers.joint_state_broadcaster": joint_state_broadcaster,
+        "controllers.arm_trajectory_controller": arm_trajectory_controller,
+        "controllers.gripper_controller": gripper_controller,
+    }
+    for label, value in text_fields.items():
+        if not isinstance(value, str) or not value:
+            raise ValueError(f"{label} must be a non-empty string")
+    if isinstance(update_rate_hz, bool) or not isinstance(update_rate_hz, int) or update_rate_hz <= 0:
+        raise ValueError("controllers.update_rate_hz must be a positive integer")
     return ArmConfig(
-        model=arm["model"],
-        planning_group=arm["planning_group"],
-        base_link=arm["base_link"],
-        ee_link=arm["ee_link"],
-        ik_tip_link=arm["ik_tip_link"],
+        model=model,
+        vendor_description_pkg=vendor_description_pkg,
+        ur_type=ur_type,
+        planning_group=planning_group,
+        base_link=base_link,
+        ee_link=ee_link,
+        ik_tip_link=ik_tip_link,
         joints=joints,
         # The IK/planning frame is the workbench world root the base is fixed to.
         base_frame=placement.get("frame", "world"),
-        gripper_model=gripper.get("model", "none"),
-        gripper_group=gripper.get("planning_group", "gripper"),
+        gripper_model=gripper_model,
+        gripper_group=gripper_group,
+        driver_joint=driver_joint,
+        update_rate_hz=update_rate_hz,
+        joint_state_broadcaster=joint_state_broadcaster,
+        arm_trajectory_controller=arm_trajectory_controller,
+        gripper_controller=gripper_controller,
     )
 
 

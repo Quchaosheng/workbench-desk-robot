@@ -32,6 +32,7 @@ setup(
         "console_scripts": [
             "scaffold_node = workbench_motion.scaffold_node:main",
             "reachability_check = workbench_motion.reachability_check:main",
+            "phase2_probe = workbench_motion.phase2_probe:main",
         ],
     },
 )

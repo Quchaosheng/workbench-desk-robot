@@ -1,0 +1,5 @@
+# Real-hardware safety overrides (C13/P3). P0 simulation intentionally has no
+# overrides. Missing joints mean "use the vendor hard limit". Any future entry
+# must be strictly within the vendor interval/magnitudes; unknown joints,
+# malformed values, or looser limits fail closed in load_hw_override().
+joint_limits: {}

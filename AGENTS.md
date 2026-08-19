@@ -8,14 +8,14 @@
 - Keep `robot/control/` and `firmware/` out of AI write tasks unless the human Owner explicitly approves them.
 - Never claim a task is complete without a command, test result and evidence reference.
 
-## Ownership boundaries
+## Review boundaries
 
-- `interfaces/` changes require the Runtime Owner, the World Model Owner and the Integration Owner (three-way approval, matching `.github/CODEOWNERS`). The affected producer and every consumer must be notified before merge.
+- `interfaces/` changes require three independent human approvals. The affected producer and every consumer must be notified before merge.
 - A PR that changes a schema in `interfaces/` MUST update the matching Pydantic model in `libs/contracts/` in the same PR, with `make contract` passing. Splitting them across two PRs is how the schema and the model drifted apart before.
-- `sim/` changes require Simulation; robot kinematics/control changes require Motion.
-- `services/world_model/` owns state meaning and verification; it does not own UI or robot control.
-- `services/agent_runtime/` owns planning and typed tools; it does not write WorldState facts.
-- Linux owns build, launch, CI and integration configuration.
+- `sim/` changes require simulation validation; robot kinematics/control changes require motion validation.
+- `services/world_model/` defines state meaning and verification; it does not define UI or robot control.
+- `services/agent_runtime/` defines planning and typed tools; it does not write WorldState facts.
+- Build, launch, CI and integration configuration changes require integration review.
 
 ## AI task rule
 

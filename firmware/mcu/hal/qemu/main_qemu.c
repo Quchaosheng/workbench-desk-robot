@@ -16,6 +16,7 @@
  *   - mtime advances, so FW5's watchdog has a clock to trust
  */
 #include "hal.h"
+#include "state_machine_tests.h"
 
 /* Deliberately uninitialised: if crt0 skipped the .bss loop this is garbage
  * and the check below fails. QEMU happens to hand out zeroed RAM, so this
@@ -76,6 +77,21 @@ static int check_stack_sane(void)
     return 0;
 }
 
+static int run_state_machine_tests(void)
+{
+    mcu_test_report_t report;
+
+    mcu_state_machine_run_tests(&report);
+    hal_puts("[mcu] state-machine assertions=");
+    hal_put_u32(report.assertions);
+    hal_puts(" failures=");
+    hal_put_u32(report.failures);
+    hal_puts(" first_failure=");
+    hal_put_u32(report.first_failure);
+    hal_putc('\n');
+    return report.failures == 0u ? 0 : 4;
+}
+
 int main(void)
 {
     hal_puts("\n[mcu] FW1/FW2 smoke test\n");
@@ -84,6 +100,7 @@ int main(void)
     rc |= check_bss_zeroed();
     rc |= check_clock_advances();
     rc |= check_stack_sane();
+    rc |= run_state_machine_tests();
 
     /* CAN is deliberately not checked: hal_can_init returns false until FW10,
      * and a smoke test that skipped over that would be misleading. */

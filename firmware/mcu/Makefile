@@ -16,14 +16,16 @@ HOSTCC  ?= cc
 
 BUILD   := build
 CORE    := $(wildcard core/*.c)
+SHARED_TESTS := tests/state_machine_tests.c
+HOST_TESTS := $(SHARED_TESTS) tests/main_host.c
 
 # rv32imac: no FPU. -mabi=ilp32 (not ilp32f/d) so a stray double is a link error
 # rather than silently pulling in soft-float.
 RVARCH  := -march=rv32imac_zicsr -mabi=ilp32
 RVFLAGS := $(RVARCH) -Os -g -ffreestanding -nostdlib -nostartfiles \
            -ffunction-sections -fdata-sections -Wl,--gc-sections \
-           -Wall -Wextra -Werror -Icore
-HOSTFLAGS := -O1 -g -Wall -Wextra -Werror -Icore -Ihal/host -DMCU_HOST_BUILD
+           -fno-builtin -Wall -Wextra -Werror -Icore
+HOSTFLAGS := -O1 -g -Wall -Wextra -Werror -Icore -Itests -Ihal/host -DMCU_HOST_BUILD
 
 # Size budget, enforced by FW16. Generous on purpose: 256KB flash / 64KB RAM.
 # Blowing it means the design drifted, not that the part is too small.
@@ -35,36 +37,29 @@ MAX_BSS  := 8192
 all: host qemu
 
 # ---------------------------------------------------------------- host target
-# Needs a main(), which lives in tests/. Until FW3 writes the state machine and
-# its tests there is nothing to link, so say so instead of failing with an
-# undefined-reference wall.
-host:
-	@if [ -z "$(wildcard tests/*.c)" ]; then \
-	  echo "tests/ is empty - host tests arrive with FW3. Nothing to build."; \
-	else \
-	  mkdir -p $(BUILD)/host; \
-	  $(HOSTCC) $(HOSTFLAGS) $(CORE) $(wildcard hal/host/*.c) \
-	    $(wildcard tests/*.c) -o $(BUILD)/host/test-runner; \
-	fi
+host: $(BUILD)/host/test-runner
+
+$(BUILD)/host/test-runner: $(CORE) $(HOST_TESTS)
+	@mkdir -p $(BUILD)/host
+	$(HOSTCC) $(HOSTFLAGS) $(CORE) $(wildcard hal/host/*.c) $(HOST_TESTS) -o $@
 
 test-host: host
-	@if [ -x $(BUILD)/host/test-runner ]; then $(BUILD)/host/test-runner; \
-	 else echo "no host test binary yet (FW3)"; fi
+	@$(BUILD)/host/test-runner
 
 # ---------------------------------------------------------------- qemu target
 qemu: $(BUILD)/qemu/mcu.elf
 
 # main() for this target is hal/qemu/main_qemu.c, picked up by the glob.
 # core/ deliberately has no entry point.
-$(BUILD)/qemu/mcu.elf: $(CORE) $(wildcard hal/qemu/*.c) hal/qemu/crt0.S hal/qemu/link.ld
+$(BUILD)/qemu/mcu.elf: $(CORE) $(SHARED_TESTS) $(wildcard hal/qemu/*.c) hal/qemu/crt0.S hal/qemu/link.ld
 	@command -v $(RVCC) >/dev/null 2>&1 || { \
 	  echo "$(RVCC) not found."; \
 	  echo "  apt:   sudo apt-get install gcc-riscv64-unknown-elf"; \
 	  echo "  xpack: make CROSS=riscv-none-elf-"; \
 	  exit 1; }
 	@mkdir -p $(BUILD)/qemu
-	$(RVCC) $(RVFLAGS) -Ihal/qemu -T hal/qemu/link.ld \
-	  hal/qemu/crt0.S $(CORE) $(wildcard hal/qemu/*.c) -o $@
+	$(RVCC) $(RVFLAGS) -Itests -Ihal/qemu -T hal/qemu/link.ld \
+	  hal/qemu/crt0.S $(CORE) $(SHARED_TESTS) $(wildcard hal/qemu/*.c) -o $@
 	@$(RVSIZE) $@
 
 # QEMU virt machine, no BIOS: it jumps straight to our entry at 0x80000000.

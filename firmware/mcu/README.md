@@ -24,6 +24,15 @@ writing a new `hal/`, not touching `core/`.
 belongs in `hal/`. An `#ifdef CH32V307` inside `core/` means the boundary has
 been violated.
 
+## Authority boundary
+
+The C safety state machine under `core/` and its shared Host/QEMU transition
+suite are authoritative for MCU safety behavior. `firmware/virtual_mcu/` is
+retired as a safety reference and parity oracle. It remains only as a legacy
+compatibility stub for earlier Python consumers and is not evidence of C
+protocol, firmware, or physical safety behavior. Changes to that model require
+a separate issue and must not silently be treated as C parity work.
+
 ## What QEMU proves and doesn't
 
 QEMU models SJA1000 and CTU CAN FD, not the CH32V307 CAN peripheral.
@@ -49,6 +58,6 @@ make test-qemu   # fault suite in QEMU, what CI runs
 
 ## Status
 
-Skeleton only. First task is FW1 (toolchain and build system). Until
-`core/*.c` exists, the `mcu-qemu` CI job reports "not implemented yet" and
-passes — it must not report green as if the suite had run.
+The platform-independent C safety state machine is implemented and verified by
+Issue #53. The strict frame codec, watchdog timing path, and deduplication
+remain separate follow-up tasks.

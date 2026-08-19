@@ -1,0 +1,41 @@
+{
+  "issue": "141",
+  "human_owner": "Quchaosheng",
+  "objective": "Fail closed when the wbcan debugfs fault plane is unavailable and report readiness truthfully.",
+  "allowed_paths": [
+    "kernel/wbcan/wbcan.c",
+    "kernel/wbcan/test_wbcan.sh",
+    ".github/workflows/ci.yml",
+    "tests/unit/test_release_workflow.py",
+    "docs/task_packets/linux-wbcan-debugfs-readiness.json"
+  ],
+  "read_only_paths": ["firmware/**", "interfaces/**", "AGENTS.md"],
+  "forbidden": ["robot/control/**", "firmware/**", "interfaces/**"],
+  "acceptance": [
+    "debugfs directory and file creation results are checked for NULL and ERR_PTR",
+    "any fault-plane setup failure unregisters the CAN device and removes partial debugfs state",
+    "module logs readiness only after inject and status exist",
+    "an injected creation failure leaves no device or debugfs tree",
+    "CI reports fault-plane readiness as PASS, NOT_EXECUTED, or FAIL"
+  ],
+  "commands": [
+    "make -C kernel/wbcan",
+    "make -C kernel/wbcan checkpatch",
+    "python -m pytest tests/unit/test_release_workflow.py -v",
+    "sudo insmod kernel/wbcan/wbcan.ko fail_debugfs=1",
+    "sudo make -C kernel/wbcan reload",
+    "sudo make -C kernel/wbcan test"
+  ],
+  "evidence": [
+    "module build output",
+    "checkpatch output",
+    "workflow regression output",
+    "injected debugfs failure cleanup assertions",
+    "fault-plane readiness line in job summary"
+  ],
+  "stop_conditions": [
+    "debugfs must become a stable production control API",
+    "firmware or interface changes are required",
+    "the hosted runner cannot test module-init cleanup"
+  ]
+}

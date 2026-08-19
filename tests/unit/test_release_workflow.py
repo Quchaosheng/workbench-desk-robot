@@ -41,6 +41,8 @@ def test_kernel_fault_suite_cannot_be_skipped_as_green() -> None:
     assert "FAIL" in summary_step
     assert "Fault-mode coverage" in summary_step
     assert "PASS (7/7 advertised modes)" in summary_step
+    assert "Fault-plane readiness" in summary_step
+    assert "NOT_EXECUTED" in summary_step
     assert 'test "$status" = PASS' in summary_step
     assert "GITHUB_STEP_SUMMARY" in summary_step
 
@@ -65,5 +67,6 @@ def test_kernel_module_unload_verifies_singleton_cleanup() -> None:
     assert "sudo ip link add wbcan0 type vcan" in load_step
     assert "name collision" in load_step
     assert "duplicate module insertion" in load_step
+    assert "fail_debugfs=1" in load_step
     assert "test ! -e /sys/class/net/wbcan0" in unload_step
     assert "test ! -e /sys/kernel/debug/wbcan" in unload_step

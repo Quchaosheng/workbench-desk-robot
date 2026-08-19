@@ -30,6 +30,7 @@
 #include <linux/netdevice.h>
 #include <linux/if_arp.h>
 #include <linux/debugfs.h>
+#include <linux/err.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 #include <linux/string.h>
@@ -618,6 +619,16 @@ static const struct file_operations wbcan_status_fops = {
 
 static struct net_device *wbcan_dev;
 static struct dentry *wbcan_dbg_root;
+static bool fail_debugfs;
+module_param(fail_debugfs, bool, 0400);
+MODULE_PARM_DESC(fail_debugfs, "fail debugfs setup to test init cleanup");
+
+static int wbcan_debugfs_err(const struct dentry *entry)
+{
+	if (IS_ERR(entry))
+		return PTR_ERR(entry);
+	return entry ? 0 : -ENODEV;
+}
 
 /*
  * Lifecycle is intentionally singleton-only: module load creates wbcan0 and
@@ -627,6 +638,7 @@ static struct dentry *wbcan_dbg_root;
 static int __init wbcan_init(void)
 {
 	struct wbcan_priv *priv;
+	struct dentry *entry;
 	int err;
 
 	/*
@@ -661,22 +673,49 @@ static int __init wbcan_init(void)
 	priv->can.state = CAN_STATE_STOPPED;
 
 	err = register_candev(wbcan_dev);
-	if (err) {
-		free_candev(wbcan_dev);
-		wbcan_dev = NULL;
-		return err;
-	}
+	if (err)
+		goto err_free;
 
 	wbcan_dbg_root = debugfs_create_dir(KBUILD_MODNAME, NULL);
+	err = wbcan_debugfs_err(wbcan_dbg_root);
+	if (err) {
+		wbcan_dbg_root = NULL;
+		goto err_unregister;
+	}
 	priv->dbg_dir = debugfs_create_dir(wbcan_dev->name, wbcan_dbg_root);
-	debugfs_create_file("inject", 0200, priv->dbg_dir, priv,
-			    &wbcan_inject_fops);
-	debugfs_create_file("status", 0444, priv->dbg_dir, priv,
-			    &wbcan_status_fops);
+	err = wbcan_debugfs_err(priv->dbg_dir);
+	if (err) {
+		priv->dbg_dir = NULL;
+		goto err_debugfs;
+	}
+	if (fail_debugfs) {
+		err = -EIO;
+		goto err_debugfs;
+	}
+	entry = debugfs_create_file("inject", 0200, priv->dbg_dir, priv,
+				    &wbcan_inject_fops);
+	err = wbcan_debugfs_err(entry);
+	if (err)
+		goto err_debugfs;
+	entry = debugfs_create_file("status", 0444, priv->dbg_dir, priv,
+				    &wbcan_status_fops);
+	err = wbcan_debugfs_err(entry);
+	if (err)
+		goto err_debugfs;
 
-	netdev_info(wbcan_dev, "registered; arm faults via debugfs %s/%s/inject\n",
+	netdev_info(wbcan_dev, "registered; fault plane ready at %s/%s/inject\n",
 		    KBUILD_MODNAME, wbcan_dev->name);
 	return 0;
+
+err_debugfs:
+	debugfs_remove_recursive(wbcan_dbg_root);
+	wbcan_dbg_root = NULL;
+err_unregister:
+	unregister_candev(wbcan_dev);
+err_free:
+	free_candev(wbcan_dev);
+	wbcan_dev = NULL;
+	return err;
 }
 
 static void __exit wbcan_exit(void)
@@ -685,6 +724,7 @@ static void __exit wbcan_exit(void)
 		return;
 
 	debugfs_remove_recursive(wbcan_dbg_root);
+	wbcan_dbg_root = NULL;
 	unregister_candev(wbcan_dev);
 	free_candev(wbcan_dev);
 	wbcan_dev = NULL;

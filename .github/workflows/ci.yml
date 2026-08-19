@@ -79,6 +79,12 @@ jobs:
           fi
           test ! -e /sys/kernel/debug/wbcan
           sudo ip link del wbcan0
+          if sudo insmod kernel/wbcan/wbcan.ko fail_debugfs=1; then
+            echo "wbcan unexpectedly loaded with injected debugfs failure"
+            exit 1
+          fi
+          test ! -e /sys/class/net/wbcan0
+          test ! -e /sys/kernel/debug/wbcan
           sudo insmod kernel/wbcan/wbcan.ko
           if sudo insmod kernel/wbcan/wbcan.ko; then
             echo "wbcan unexpectedly allowed duplicate module insertion"
@@ -112,6 +118,13 @@ jobs:
             echo "| --- | --- |"
             echo "| Module insertion | $MODULE_LOAD_OUTCOME |"
             echo "| Fault suite | $FAULT_SUITE_OUTCOME |"
+            if [ "$MODULE_LOAD_OUTCOME" = success ] && [ "$FAULT_SUITE_OUTCOME" = success ]; then
+              echo "| Fault-plane readiness | PASS |"
+            elif [ "$MODULE_LOAD_OUTCOME" = skipped ] || [ "$FAULT_SUITE_OUTCOME" = skipped ]; then
+              echo "| Fault-plane readiness | NOT_EXECUTED |"
+            else
+              echo "| Fault-plane readiness | FAIL |"
+            fi
             if [ "$status" = PASS ]; then
               echo "| Fault-mode coverage | PASS (7/7 advertised modes) |"
             else

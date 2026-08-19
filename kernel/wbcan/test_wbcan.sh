@@ -28,6 +28,13 @@ need python3
 
 [ -d "$DBG" ] || { red "no debugfs dir at $DBG - is the module loaded?"; exit 1; }
 ip link show "$IFACE" >/dev/null 2>&1 || { red "no interface $IFACE"; exit 1; }
+if [ -w "$DBG/inject" ] && [ -r "$DBG/status" ]; then
+	green "PASS  fault-plane readiness: PASS"
+	PASS=$((PASS + 1))
+else
+	red "FAIL  fault-plane readiness: FAIL"
+	FAIL=$((FAIL + 1))
+fi
 
 arm()   { echo "$*" > "$DBG/inject"; }
 clear_fault() { arm "none 0"; }

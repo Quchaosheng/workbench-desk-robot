@@ -24,6 +24,7 @@ need() {
 }
 need cansend
 need candump
+need python3
 
 [ -d "$DBG" ] || { red "no debugfs dir at $DBG - is the module loaded?"; exit 1; }
 ip link show "$IFACE" >/dev/null 2>&1 || { red "no interface $IFACE"; exit 1; }
@@ -78,6 +79,54 @@ clear_fault
 out=$(capture 300 & sleep 0.1; cansend "$IFACE" 123#DEADBEEF; wait)
 check "baseline delivers frame" \
       "1" "$(grep -c 'DEADBEEF' <<<"$out")"
+
+# SocketCAN own-message and local-loopback options must keep their standard
+# meaning even though this driver performs the echo itself.
+read -r own_default peer_default own_confirm loopback_off < <(
+	python3 - "$IFACE" <<'PY'
+import select
+import socket
+import struct
+import sys
+
+iface = sys.argv[1]
+frame = struct.Struct("=IB3x8s")
+
+
+def raw_socket():
+    sock = socket.socket(socket.AF_CAN, socket.SOCK_RAW, socket.CAN_RAW)
+    sock.bind((iface,))
+    return sock
+
+
+def readable(sock):
+    return bool(select.select([sock], [], [], 0.2)[0])
+
+
+sender = raw_socket()
+peer = raw_socket()
+sender.send(frame.pack(0x710, 1, b"\x01" + b"\0" * 7))
+peer_default = int(readable(peer))
+if peer_default:
+    peer.recv(frame.size)
+own_default = int(readable(sender))
+
+sender.setsockopt(socket.SOL_CAN_RAW, socket.CAN_RAW_RECV_OWN_MSGS, 1)
+sender.send(frame.pack(0x711, 1, b"\x02" + b"\0" * 7))
+peer.recv(frame.size)
+_, _, flags, _ = sender.recvmsg(frame.size)
+own_confirm = int(bool(flags & socket.MSG_CONFIRM))
+
+sender.setsockopt(socket.SOL_CAN_RAW, socket.CAN_RAW_LOOPBACK, 0)
+sender.send(frame.pack(0x712, 1, b"\x03" + b"\0" * 7))
+loopback_off = int(readable(peer) or readable(sender))
+print(own_default, peer_default, own_confirm, loopback_off)
+PY
+)
+check "sender does not receive own frame by default" "0" "$own_default"
+check "peer receives local loopback" "1" "$peer_default"
+check "opted-in own frame carries confirmation" "1" "$own_confirm"
+check "disabled local loopback delivers nothing" "0" "$loopback_off"
 
 # --- 2. drop-tx: accepted, counted, never delivered ------------------------
 # The nastiest failure mode for firmware: no error, no frame.

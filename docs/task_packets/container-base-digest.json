@@ -9,7 +9,6 @@
     "docs/task_packets/container-base-digest.json"
   ],
   "read_only_paths": [
-    "interfaces/**",
     "AGENTS.md"
   ],
   "forbidden": [

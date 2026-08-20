@@ -9,7 +9,6 @@
     "docs/task_packets/kernel-version-registry.json"
   ],
   "read_only_paths": [
-    "interfaces/**",
     "AGENTS.md"
   ],
   "forbidden": [

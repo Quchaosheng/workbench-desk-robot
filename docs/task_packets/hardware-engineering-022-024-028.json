@@ -10,7 +10,7 @@
     "tests/hardware/**",
     "docs/task_packets/hardware-engineering-022-024-028.json"
   ],
-  "read_only_paths": ["interfaces/**", "hardware/pcb/**", "hardware/manufacturing/**"],
+  "read_only_paths": ["hardware/pcb/**", "hardware/manufacturing/**"],
   "forbidden": ["robot/control/**", "firmware/**", "services/**", "interfaces/**"],
   "acceptance": [
     "procurement package has a controlled BOM, quote-request register, supplier scorecard, cost/lead-time model, PO checklist, and inventory policy without inventing supplier quotes",

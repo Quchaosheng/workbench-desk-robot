@@ -25,6 +25,7 @@ jobs:
       - run: make scenario-check
       - run: make golden-check
       - run: make context-check
+      - run: python tools/scripts/check_task_packet.py --all
       - run: make docs
       - run: make demo-scripted
       - run: make demo-offline

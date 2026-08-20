@@ -9,7 +9,6 @@
     "docs/task_packets/production-optimization-lint.json"
   ],
   "read_only_paths": [
-    "interfaces/**",
     "AGENTS.md"
   ],
   "forbidden": [

@@ -9,7 +9,6 @@
     "docs/task_packets/kernel-startup-config.json"
   ],
   "read_only_paths": [
-    "interfaces/**",
     "AGENTS.md"
   ],
   "forbidden": [

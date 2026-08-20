@@ -17,8 +17,6 @@
   "read_only_paths": [
     "AGENTS.md",
     "docs/architecture/mcu-protocol-v1.md",
-    "interfaces/json_schema/mcu_protocol.schema.json",
-    "interfaces/examples/mcu-frame-stop-ack.json",
     "firmware/mcu/core/hal.h",
     "firmware/virtual_mcu/**",
     "tests/unit/test_virtual_mcu.py",

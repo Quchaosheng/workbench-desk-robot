@@ -16,7 +16,7 @@ PACKET_DIR = ROOT / "docs/task_packets"
 PATH_FIELDS = ("allowed_paths", "read_only_paths", "forbidden")
 COMMAND_CONTROL_CHARACTERS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 COMMAND_PREFIX = re.compile(
-    r"^(?:[A-Z_][A-Z0-9_]*=\S+\s+)*(?:make|python3?|docker|uv|colcon|xacro|ros2|<[^>]+>/bin/python)(?:\s|$)"
+    r"^(?:[A-Z_][A-Z0-9_]*=\S+\s+)*(?:sudo\s+)?(?:make|python3?|docker|git|insmod|source|uv|colcon|xacro|ros2|<[^>]+>/bin/python)(?:\s|$)"
 )
 
 

@@ -11,7 +11,7 @@
     "docs/architecture/system.md",
     "docs/task_packets/api-read-only-contract.json"
   ],
-  "read_only_paths": ["interfaces/**", "robot/control/**", "firmware/**"],
+  "read_only_paths": [],
   "forbidden": ["interfaces/**", "robot/control/**", "firmware/**"],
   "acceptance": [
     "checked-in OpenAPI v1 lists methods, statuses, limits, and read-only policy",

@@ -7,7 +7,7 @@
     "kernel/wbcan/test_wbcan.sh",
     "docs/task_packets/linux-wbcan-rtr-accounting.json"
   ],
-  "read_only_paths": ["firmware/**", "interfaces/**", "AGENTS.md"],
+  "read_only_paths": ["AGENTS.md"],
   "forbidden": ["robot/control/**", "firmware/**", "interfaces/**"],
   "acceptance": [
     "RTR frames contribute zero TX and RX payload bytes",

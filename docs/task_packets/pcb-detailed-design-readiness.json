@@ -7,7 +7,7 @@
     "tests/hardware/**",
     "docs/task_packets/pcb-detailed-design-readiness.json"
   ],
-  "read_only_paths": ["interfaces/**", "hardware/procurement/**"],
+  "read_only_paths": ["hardware/procurement/**"],
   "forbidden": ["robot/control/**", "firmware/**", "interfaces/**"],
   "acceptance": [
     "all fifteen pending BOM references have an approval owner and evidence slots",

@@ -7,7 +7,7 @@
     "kernel/wbcan/test_wbcan.sh",
     "docs/task_packets/linux-wbcan-debugfs-abi.json"
   ],
-  "read_only_paths": ["firmware/**", "interfaces/**", "AGENTS.md"],
+  "read_only_paths": ["AGENTS.md"],
   "forbidden": ["robot/control/**", "firmware/**", "interfaces/**"],
   "acceptance": [
     "the entire command and mode-specific arity are validated",

@@ -37,7 +37,8 @@
     "acceptance": { "$ref": "#/$defs/nonEmptyUniqueStrings" },
     "commands": { "$ref": "#/$defs/nonEmptyUniqueStrings" },
     "evidence": { "$ref": "#/$defs/nonEmptyUniqueStrings" },
-    "stop_conditions": { "$ref": "#/$defs/nonEmptyUniqueStrings" }
+    "stop_conditions": { "$ref": "#/$defs/nonEmptyUniqueStrings" },
+    "risks_and_fallbacks": { "$ref": "#/$defs/nonEmptyUniqueStrings" }
   },
   "$defs": {
     "nonBlankString": { "type": "string", "minLength": 1, "pattern": ".*\\S.*" },

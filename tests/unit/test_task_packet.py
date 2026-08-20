@@ -155,6 +155,17 @@ def test_command_validation_rejects_arbitrary_or_ambiguous_text(command: str) ->
         task_packet._validate_commands([command])
 
 
+def test_command_validation_accepts_approved_evidence_wrappers() -> None:
+    task_packet._validate_commands(
+        [
+            "git diff --check",
+            "sudo make -C kernel/wbcan test",
+            "sudo insmod kernel/wbcan/wbcan.ko fail_debugfs=1",
+            "source /opt/ros/jazzy/setup.bash && colcon build",
+        ]
+    )
+
+
 def test_validate_packet_reads_a_valid_repository_packet() -> None:
     task_packet.validate_packet(ROOT / "docs/task_packets/example-001-world-reducer.json")
 

@@ -9,11 +9,7 @@
     ".github/workflows/ci.yml",
     "docs/task_packets/linux-wbcan-recovery.json"
   ],
-  "read_only_paths": [
-    "firmware/**",
-    "interfaces/**",
-    "AGENTS.md"
-  ],
+  "read_only_paths": ["AGENTS.md"],
   "forbidden": [
     "robot/control/**",
     "firmware/**",

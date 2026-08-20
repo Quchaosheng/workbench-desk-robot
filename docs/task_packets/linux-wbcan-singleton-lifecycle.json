@@ -10,7 +10,7 @@
     "tests/unit/test_release_workflow.py",
     "docs/task_packets/linux-wbcan-singleton-lifecycle.json"
   ],
-  "read_only_paths": ["firmware/**", "interfaces/**", "AGENTS.md"],
+  "read_only_paths": ["AGENTS.md"],
   "forbidden": ["robot/control/**", "firmware/**", "interfaces/**"],
   "acceptance": [
     "module load creates one documented wbcan device",

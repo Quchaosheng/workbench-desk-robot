@@ -13,11 +13,8 @@
     "tools/scripts/validate_contracts.py"
   ],
   "read_only_paths": [
-    "firmware/mcu/**",
-    "firmware/virtual_mcu/**",
     "services/agent_runtime/**",
-    "services/world_model/**",
-    "robot/control/**"
+    "services/world_model/**"
   ],
   "forbidden": [
     "firmware/**",

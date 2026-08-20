@@ -9,7 +9,7 @@
     "tests/unit/test_release_workflow.py",
     "docs/task_packets/linux-wbcan-debugfs-readiness.json"
   ],
-  "read_only_paths": ["firmware/**", "interfaces/**", "AGENTS.md"],
+  "read_only_paths": ["AGENTS.md"],
   "forbidden": ["robot/control/**", "firmware/**", "interfaces/**"],
   "acceptance": [
     "debugfs directory and file creation results are checked for NULL and ERR_PTR",

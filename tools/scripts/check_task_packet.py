@@ -118,8 +118,7 @@ def _validate_boundaries(payload: dict[str, Any]) -> None:
             for right in normalized[right_field]:
                 if _patterns_overlap(left, right):
                     raise TaskPacketError(
-                        f"boundary overlap: {left_field} entry {left!r} conflicts with "
-                        f"{right_field} entry {right!r}"
+                        f"boundary overlap: {left_field} entry {left!r} conflicts with {right_field} entry {right!r}"
                     )
 
 

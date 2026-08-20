@@ -3,7 +3,11 @@
   "human_owner": "Quchaosheng",
   "objective": "Harden the read-only dashboard across responsive and keyboard use while preserving evidence and robot-authority boundaries.",
   "allowed_paths": [
-    "apps/dashboard/**",
+    "apps/dashboard/*.js",
+    "apps/dashboard/*.css",
+    "apps/dashboard/*.html",
+    "apps/dashboard/*.md",
+    "apps/dashboard/vendor/**",
     "docs/design/**",
     "docs/task_packets/dashboard-accessibility-ux.json",
     "tests/unit/test_dashboard_accessibility.py",
@@ -50,4 +54,3 @@
     "a layout or interaction cannot be verified at the target viewport"
   ]
 }
-

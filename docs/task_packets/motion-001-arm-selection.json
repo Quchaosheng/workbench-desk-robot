@@ -10,8 +10,6 @@
     "THIRD_PARTY_REVIEW.md"
   ],
   "read_only_paths": [
-    "interfaces/**",
-    "robot/description/**",
     "docs/architecture/**",
     "AGENTS.md"
   ],

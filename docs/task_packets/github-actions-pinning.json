@@ -9,14 +9,12 @@
     "docs/task_packets/github-actions-pinning.json"
   ],
   "read_only_paths": [
-    "interfaces/**",
     "AGENTS.md"
   ],
   "forbidden": [
     "robot/control/**",
     "firmware/**",
-    "interfaces/**",
-    ".github/workflows/** outside the listed files"
+    "interfaces/**"
   ],
   "acceptance": [
     "all third-party uses references in the listed workflows are 40-character commit SHAs",

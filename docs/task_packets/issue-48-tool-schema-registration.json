@@ -1,0 +1,45 @@
+{
+  "issue": 48,
+  "human_owner": "Quchaosheng",
+  "objective": "Reject malformed tool schemas atomically at the ToolRegistry registration boundary.",
+  "allowed_paths": [
+    "services/agent_runtime/workbench_agent_runtime/tool_registry.py",
+    "tests/unit/test_tool_registry.py",
+    "docs/task_packets/issue-48-tool-schema-registration.json"
+  ],
+  "read_only_paths": [
+    "services/agent_runtime/workbench_agent_runtime/tool_schemas.py",
+    "interfaces/**",
+    "libs/contracts/**"
+  ],
+  "forbidden": [
+    "firmware/**",
+    "robot/control/**",
+    "services/world_model/**"
+  ],
+  "acceptance": [
+    "registration rejects missing and unknown schema keys",
+    "required_params and optional_params are disjoint string sets",
+    "every allowed parameter has exactly one explicitly supported type",
+    "target_id_required is a bool",
+    "invalid registration leaves the registry unchanged",
+    "every accepted schema can be validated without an internal exception",
+    "default six-tool registration passes"
+  ],
+  "commands": [
+    "python -m pytest tests/unit/test_tool_registry.py -v",
+    "make test",
+    "make contract",
+    "make context-check"
+  ],
+  "evidence": [
+    "tool registry regression test output",
+    "full test output",
+    "contract and context check output"
+  ],
+  "stop_conditions": [
+    "interface or contract change is required",
+    "a write outside allowed_paths is required",
+    "a supported parameter type must be added"
+  ]
+}

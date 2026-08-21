@@ -16,7 +16,7 @@ HOSTCC  ?= cc
 
 BUILD   := build
 CORE    := $(wildcard core/*.c)
-SHARED_TESTS := tests/state_machine_tests.c
+SHARED_TESTS := tests/state_machine_tests.c tests/frame_codec_tests.c
 HOST_TESTS := $(SHARED_TESTS) tests/main_host.c
 
 # rv32imac: no FPU. -mabi=ilp32 (not ilp32f/d) so a stray double is a link error
@@ -26,13 +26,14 @@ RVFLAGS := $(RVARCH) -Os -g -ffreestanding -nostdlib -nostartfiles \
            -ffunction-sections -fdata-sections -Wl,--gc-sections \
            -fno-builtin -Wall -Wextra -Werror -Icore
 HOSTFLAGS := -O1 -g -Wall -Wextra -Werror -Icore -Itests -Ihal/host -DMCU_HOST_BUILD
+HOSTSANFLAGS := $(HOSTFLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer
 
 # Size budget, enforced by FW16. Generous on purpose: 256KB flash / 64KB RAM.
 # Blowing it means the design drifted, not that the part is too small.
 MAX_TEXT := 32768
 MAX_BSS  := 8192
 
-.PHONY: all host qemu board test-host test-qemu size-check verify-no-fp clean
+.PHONY: all host host-sanitize qemu board test-host test-host-sanitize test-qemu size-check verify-no-fp clean
 
 all: host qemu
 
@@ -45,6 +46,17 @@ $(BUILD)/host/test-runner: $(CORE) $(HOST_TESTS)
 
 test-host: host
 	@$(BUILD)/host/test-runner
+
+host-sanitize: $(BUILD)/host/test-runner-sanitize
+
+$(BUILD)/host/test-runner-sanitize: $(CORE) $(HOST_TESTS)
+	@mkdir -p $(BUILD)/host
+	$(HOSTCC) $(HOSTSANFLAGS) $(CORE) $(wildcard hal/host/*.c) $(HOST_TESTS) -o $@
+
+test-host-sanitize: host-sanitize
+	@ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 \
+	 UBSAN_OPTIONS=halt_on_error=1 \
+	 $(BUILD)/host/test-runner-sanitize
 
 # ---------------------------------------------------------------- qemu target
 qemu: $(BUILD)/qemu/mcu.elf

@@ -27,7 +27,10 @@ been violated.
 ## Authority boundary
 
 The C safety state machine under `core/` and its shared Host/QEMU transition
-suite are authoritative for MCU safety behavior. `firmware/virtual_mcu/` is
+suite are authoritative for MCU safety behavior. The allocation-free Wire V1
+codec under `core/frame_codec.[ch]`, its binary contract in
+`docs/architecture/mcu-wire-v1.md`, and the shared Host/QEMU golden vectors are
+authoritative for the Classic CAN payload encoding. `firmware/virtual_mcu/` is
 retired as a safety reference and parity oracle. It remains only as a legacy
 compatibility stub for earlier Python consumers and is not evidence of C
 protocol, firmware, or physical safety behavior. Changes to that model require
@@ -53,11 +56,13 @@ make qemu        # rv32imac ELF for QEMU
 make board       # rv32imac ELF to flash (P3)
 
 make test-host   # logic tests, seconds
+make test-host-sanitize  # Host corpus under ASan and UBSan
 make test-qemu   # fault suite in QEMU, what CI runs
 ```
 
 ## Status
 
-The platform-independent C safety state machine is implemented and verified by
-Issue #53. The strict frame codec, watchdog timing path, and deduplication
-remain separate follow-up tasks.
+The platform-independent C safety state machine is implemented by Issue #53.
+Issue #54 adds the strict Classic CAN Wire V1 codec and shared Host/QEMU golden
+vectors. The HAL CAN driver, watchdog timing path, command deduplication and
+physical CAN validation remain separate follow-up tasks.

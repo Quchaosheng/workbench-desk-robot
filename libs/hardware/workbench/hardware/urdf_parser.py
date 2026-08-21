@@ -34,7 +34,10 @@ def _required_float(value: str | None, field: str, joint_name: str, *, positive:
     return parsed
 
 
-def _transmission_reductions(root: ElementTree.Element) -> dict[str, float]:
+def _transmission_reductions(
+    root: ElementTree.Element,
+    supported_joint_names: set[str],
+) -> dict[str, float]:
     reductions: dict[str, float] = {}
     transmission_joints: set[str] = set()
     for transmission in root.findall("./transmission"):
@@ -47,9 +50,15 @@ def _transmission_reductions(root: ElementTree.Element) -> dict[str, float]:
             )
         joint_name = joint_elements[0].get("name")
         if not joint_name or not joint_name.strip():
-            raise UrdfMotorConfigError("a transmission joint is missing its name")
+            raise UrdfMotorConfigError(f"transmission {transmission_name!r} has a blank joint reference")
+        if joint_name not in supported_joint_names:
+            raise UrdfMotorConfigError(
+                f"transmission {transmission_name!r} references unknown or unsupported joint {joint_name!r}"
+            )
         if joint_name in transmission_joints:
-            raise UrdfMotorConfigError(f"joint {joint_name!r} has multiple transmission declarations")
+            raise UrdfMotorConfigError(
+                f"transmission {transmission_name!r} duplicates transmission reference to joint {joint_name!r}"
+            )
         transmission_joints.add(joint_name)
 
         actuator = actuator_elements[0]
@@ -121,7 +130,7 @@ def parse_urdf_motor_config(
     if not selected_names:
         raise UrdfMotorConfigError("expanded URDF contains no actuated joints")
 
-    reductions = _transmission_reductions(root)
+    reductions = _transmission_reductions(root, set(joints))
     configs: list[MotorConfig] = []
     for joint_name in selected_names:
         joint = joints.get(joint_name)

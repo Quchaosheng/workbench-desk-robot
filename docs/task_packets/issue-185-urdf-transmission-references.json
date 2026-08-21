@@ -1,0 +1,53 @@
+{
+  "issue": 185,
+  "human_owner": "TH3478",
+  "objective": "Make the expanded-URDF motor configuration parser reject dangling, unsupported, duplicate, blank, or otherwise ambiguous transmission joint references before publishing motor configuration.",
+  "allowed_paths": [
+    "libs/hardware/workbench/hardware/urdf_parser.py",
+    "tests/unit/test_hardware_urdf.py",
+    "docs/task_packets/issue-185-urdf-transmission-references.json"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "libs/hardware/README.md",
+    "docs/task_packets/hw1-urdf-parser.json",
+    "robot/control/**",
+    "robot/description/**"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "firmware/**",
+    "robot/control/**",
+    "libs/hardware/workbench/hardware/can_driver_safe.py"
+  ],
+  "acceptance": [
+    "Every transmission joint references exactly one declared continuous or revolute joint in the expanded URDF.",
+    "Dangling, blank, fixed, unsupported, duplicate, and structurally ambiguous transmission references fail with UrdfMotorConfigError that identifies the transmission and relevant joint reference.",
+    "A valid transmission for a supported actuated joint outside the requested joint_names selection remains valid.",
+    "An expanded URDF with no transmissions remains valid and reports mechanical_reduction as unknown.",
+    "Selected joints retain validated finite positive mechanical reductions from valid transmissions.",
+    "Focused tests cover the dangling-reference reproduction, invalid reference classes, unselected valid transmissions, no-transmission input, and valid multi-joint reductions."
+  ],
+  "commands": [
+    "python3 -m pytest tests/unit/test_hardware_urdf.py -v",
+    "python3 -m ruff check libs/hardware/workbench/hardware/urdf_parser.py tests/unit/test_hardware_urdf.py",
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/issue-185-urdf-transmission-references.json",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check"
+  ],
+  "evidence": [
+    "Focused URDF parser regression output covering invalid and valid transmission references.",
+    "Task Packet validation and changed-path boundary output.",
+    "Full repository test, contract, scenario, and context-check output.",
+    "Final git diff --check and changed-path review."
+  ],
+  "stop_conditions": [
+    "The fix requires a general URDF or Xacro evaluator.",
+    "The fix requires changing interfaces, firmware, robot control, CAN transport, or motion safety behavior.",
+    "A transmission reference would need to be guessed or normalized instead of validated against the expanded URDF.",
+    "A write outside the allowed paths is required.",
+    "The existing valid official UR5e extraction can no longer be represented without inventing hardware data."
+  ]
+}

@@ -112,8 +112,99 @@ class HardwareUrdfTests(unittest.TestCase):
 """,
         )
 
-        with self.assertRaises(UrdfMotorConfigError):
+        with self.assertRaisesRegex(
+            UrdfMotorConfigError,
+            "shoulder_pan_trans_duplicate.*shoulder_pan_joint",
+        ):
             parse_urdf_motor_config(duplicate, ARM_JOINTS)
+
+    def test_rejects_dangling_transmission_joint_reference(self) -> None:
+        dangling = UR5E_SHAPE_URDF.replace(
+            '<joint name="shoulder_pan_joint"/>',
+            '<joint name="typo_joint"/>',
+            1,
+        )
+
+        with self.assertRaisesRegex(UrdfMotorConfigError, "shoulder_pan_trans.*typo_joint"):
+            parse_urdf_motor_config(dangling, ARM_JOINTS)
+
+    def test_rejects_unsupported_and_blank_transmission_joint_references(self) -> None:
+        cases = {
+            "fixed joint": (
+                UR5E_SHAPE_URDF.replace(
+                    '<joint name="shoulder_pan_joint"/>',
+                    '<joint name="world_joint"/>',
+                    1,
+                ),
+                "world_joint",
+            ),
+            "unknown joint": (
+                UR5E_SHAPE_URDF.replace(
+                    '<joint name="shoulder_pan_joint"/>',
+                    '<joint name="not_declared"/>',
+                    1,
+                ),
+                "not_declared",
+            ),
+            "blank joint": (
+                UR5E_SHAPE_URDF.replace(
+                    '<joint name="shoulder_pan_joint"/>',
+                    '<joint name="   "/>',
+                    1,
+                ),
+                "blank joint reference",
+            ),
+        }
+
+        for label, (urdf_xml, expected_reference) in cases.items():
+            with (
+                self.subTest(label=label),
+                self.assertRaisesRegex(
+                    UrdfMotorConfigError,
+                    f"shoulder_pan_trans.*{expected_reference}",
+                ),
+            ):
+                parse_urdf_motor_config(urdf_xml, ARM_JOINTS)
+
+    def test_valid_unselected_transmission_is_validated_but_not_selected(self) -> None:
+        with_reduction = UR5E_SHAPE_URDF.replace(
+            "</robot>",
+            """
+  <transmission name="elbow_trans">
+    <joint name="elbow_joint"/>
+    <actuator name="elbow_motor"><mechanicalReduction>2</mechanicalReduction></actuator>
+  </transmission>
+</robot>
+""",
+        )
+
+        configs = parse_urdf_motor_config(with_reduction, ("shoulder_pan_joint",))
+
+        self.assertEqual(len(configs), 1)
+        self.assertEqual(configs[0].name, "shoulder_pan_joint")
+        self.assertEqual(configs[0].mechanical_reduction, 1.0)
+
+        selected_configs = parse_urdf_motor_config(
+            with_reduction,
+            ("shoulder_pan_joint", "elbow_joint"),
+        )
+        self.assertEqual(
+            tuple(config.mechanical_reduction for config in selected_configs),
+            (1.0, 2.0),
+        )
+
+    def test_urdf_without_transmissions_keeps_reduction_unknown(self) -> None:
+        without_transmissions = UR5E_SHAPE_URDF.replace(
+            '  <transmission name="shoulder_pan_trans">\n'
+            '    <joint name="shoulder_pan_joint"/>\n'
+            '    <actuator name="shoulder_pan_motor"><mechanicalReduction>1</mechanicalReduction></actuator>\n'
+            "  </transmission>\n",
+            "",
+        )
+
+        configs = parse_urdf_motor_config(without_transmissions, ("shoulder_pan_joint",))
+
+        self.assertIsNone(configs[0].mechanical_reduction)
 
     def test_rejects_duplicate_limit_elements(self) -> None:
         duplicate = UR5E_SHAPE_URDF.replace(

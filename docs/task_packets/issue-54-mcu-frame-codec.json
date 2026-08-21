@@ -17,15 +17,10 @@
   "read_only_paths": [
     "AGENTS.md",
     "docs/architecture/mcu-protocol-v1.md",
-    "interfaces/json_schema/mcu_protocol.schema.json",
-    "interfaces/examples/mcu-frame-stop-ack.json",
     "firmware/mcu/core/hal.h",
     "firmware/mcu/core/state_machine.h",
     "firmware/mcu/core/state_machine.c",
-    "firmware/mcu/hal/qemu/hal_qemu.c",
-    "firmware/virtual_mcu/**",
-    "libs/contracts/**",
-    "robot/control/**"
+    "firmware/mcu/hal/qemu/hal_qemu.c"
   ],
   "forbidden": [
     "interfaces/**",

@@ -3,6 +3,7 @@ import json
 import sys
 import tempfile
 import threading
+import tomllib
 import unittest
 import urllib.error
 import urllib.request
@@ -14,7 +15,7 @@ sys.path.insert(0, str(ROOT / "services" / "backend"))
 from workbench_backend.expression import ExpressionMachine, ExpressionState, derive_expression
 from workbench_backend.logging import StructuredLogger
 from workbench_backend.read_model import DashboardReadModel, ReadModelError
-from workbench_backend.server import create_server
+from workbench_backend.server import OPENAPI_RESOURCE, create_server
 
 
 def stored_event(run_id: object, sequence_no: object, event_type: object) -> dict:
@@ -296,6 +297,13 @@ class DashboardApiTests(unittest.TestCase):
         self.assertEqual(missing.exception.code, 404)
         with urllib.request.urlopen(f"{self.base_url}/api/v1/runs", timeout=2) as response:
             self.assertEqual(response.headers["X-API-Version"], "1")
+
+    def test_openapi_contract_is_packaged_and_matches_checked_in_docs(self) -> None:
+        packaged = json.loads(OPENAPI_RESOURCE.read_text(encoding="utf-8"))
+        checked_in = json.loads((ROOT / "docs" / "api-openapi-v1.json").read_text(encoding="utf-8"))
+        project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+        self.assertEqual(packaged, checked_in)
+        self.assertIn("api-openapi-v1.json", project["tool"]["setuptools"]["package-data"]["workbench_backend"])
 
     def test_oversized_api_response_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

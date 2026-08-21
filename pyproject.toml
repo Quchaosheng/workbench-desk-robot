@@ -45,6 +45,9 @@ workbench_contracts = "libs/contracts/workbench_contracts"
 workbench_virtual_mcu = "firmware/virtual_mcu/workbench_virtual_mcu"
 workbench_world_model = "services/world_model/workbench_world_model"
 
+[tool.setuptools.package-data]
+workbench_backend = ["api-openapi-v1.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests", "libs/kernel/tests"]
 python_files = ["test_*.py"]

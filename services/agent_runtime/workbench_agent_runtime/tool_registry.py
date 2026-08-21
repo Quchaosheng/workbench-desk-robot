@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from math import isfinite
 from types import MappingProxyType
 
 from workbench_contracts import ActionType, SemanticAction
@@ -22,9 +23,22 @@ from . import tool_schemas as _schemas
 
 _TARGET_REQUIRED_ACTIONS: frozenset[ActionType] = frozenset({ActionType.GRASP, ActionType.PLACE})
 _SCHEMA_KEYS: frozenset[str] = frozenset(
-    {"description", "target_id_required", "required_params", "optional_params", "param_types"}
+    {
+        "description",
+        "target_id_required",
+        "required_params",
+        "optional_params",
+        "param_types",
+        "param_constraints",
+        "relational_constraints",
+    }
 )
 _SUPPORTED_PARAM_TYPES: frozenset[type] = frozenset({str, int, float, bool, list})
+_CONSTRAINT_KEYS: frozenset[str] = frozenset({"non_blank", "finite", "minimum", "maximum"})
+_SUPPORTED_RELATIONAL_CONSTRAINTS: frozenset[str] = frozenset({"destination_counts_consistent"})
+_DESTINATION_COUNT_PARAMS: frozenset[str] = frozenset(
+    {"destination_capacity", "destination_occupancy_after", "destination_remaining_after"}
+)
 
 
 @dataclass(frozen=True)
@@ -72,7 +86,9 @@ class ToolRegistry:
     4. **Type safety** — every parameter value must match its declared type.
        ``bool`` is checked *before* ``int`` so that ``True`` / ``False`` can
        never silently pass an integer slot.
-    5. **Semantic constraints** — emotion_state enum, observe attribute
+    5. **Schema constraints** — finite numeric ranges, non-blank strings, and
+       declared relationships between parameters.
+    6. **Semantic constraints** — emotion_state enum, observe attribute
        allow-list.
     """
 
@@ -165,8 +181,14 @@ class ToolRegistry:
         required: frozenset[str] = schema["required_params"]
         optional: frozenset[str] = schema["optional_params"]
         allowed: frozenset[str] = required | optional
-        param_types: dict[str, type | object] = schema["param_types"]
-        params: dict[str, object] = action.parameters or {}
+        param_types: Mapping[str, type | object] = schema["param_types"]
+        raw_params = action.parameters
+        if not isinstance(raw_params, Mapping):
+            return ValidationResult.fail(
+                action.action_id,
+                [ValidationError("parameters", f"expected a mapping, got {type(raw_params).__name__!r}")],
+            )
+        params: Mapping[str, object] = raw_params
 
         # ---- 2. target_id ---------------------------------------------------
         if target_id_required:
@@ -283,7 +305,15 @@ class ToolRegistry:
                     )
                 )
 
-        # ---- 5. semantic constraints ----------------------------------------
+        # Do not compare or inspect values that failed their declared type.
+        if errors:
+            return ValidationResult.fail(action.action_id, errors)
+
+        # ---- 5. schema constraints -----------------------------------------
+        errors.extend(_validate_parameter_values(params, schema["param_constraints"]))
+        errors.extend(_validate_parameter_relations(params, schema["relational_constraints"]))
+
+        # ---- 6. semantic constraints ----------------------------------------
         if action.action_type is ActionType.EXPRESS:
             emotion = params.get("emotion_state")
             if isinstance(emotion, str) and emotion not in _schemas.EXPRESS_EMOTION_STATES:
@@ -379,6 +409,62 @@ def _validate_schema(schema: Mapping[str, object]) -> None:
         labels = {name: _type_name(value) for name, value in unsupported.items()}
         raise ValueError(f"param_types contains unsupported types: {labels}")
 
+    _validate_param_constraints(schema["param_constraints"], allowed, param_types)
+    relations = _validate_param_set("relational_constraints", schema["relational_constraints"])
+    unsupported_relations = relations - _SUPPORTED_RELATIONAL_CONSTRAINTS
+    if unsupported_relations:
+        raise ValueError(f"relational_constraints contains unsupported constraints: {sorted(unsupported_relations)}")
+    if "destination_counts_consistent" in relations:
+        if not _DESTINATION_COUNT_PARAMS <= allowed:
+            raise ValueError("destination_counts_consistent requires all destination count parameters")
+        if any(param_types[name] is not int for name in _DESTINATION_COUNT_PARAMS):
+            raise ValueError("destination_counts_consistent requires integer destination count parameters")
+
+
+def _validate_param_constraints(
+    constraints: object,
+    allowed: frozenset[str],
+    param_types: Mapping[str, object],
+) -> None:
+    if not isinstance(constraints, Mapping):
+        raise ValueError("schema 'param_constraints' must be a mapping")
+    names = set(constraints)
+    if any(not isinstance(name, str) for name in names):
+        raise ValueError("schema 'param_constraints' keys must be strings")
+    unknown_names = names - allowed
+    if unknown_names:
+        raise ValueError(f"param_constraints contains unknown parameters: {sorted(unknown_names)}")
+
+    for name, raw_rules in constraints.items():
+        if not isinstance(raw_rules, Mapping):
+            raise ValueError(f"param_constraints for '{name}' must be a mapping")
+        rule_names = set(raw_rules)
+        if any(not isinstance(rule, str) for rule in rule_names):
+            raise ValueError(f"param_constraints for '{name}' must have string keys")
+        unknown_rules = rule_names - _CONSTRAINT_KEYS
+        if unknown_rules:
+            raise ValueError(f"param_constraints for '{name}' has unknown rules: {sorted(unknown_rules)}")
+
+        expected_type = param_types[name]
+        for flag in ("non_blank", "finite"):
+            if flag in raw_rules and raw_rules[flag] is not True:
+                raise ValueError(f"constraint '{flag}' for '{name}' must be true")
+        if "non_blank" in raw_rules and expected_type is not str:
+            raise ValueError(f"constraint 'non_blank' for '{name}' requires a string parameter")
+        numeric_rules = rule_names & {"finite", "minimum", "maximum"}
+        if numeric_rules and expected_type not in {int, float}:
+            raise ValueError(f"numeric constraints for '{name}' require an int or float parameter")
+
+        for bound_name in ("minimum", "maximum"):
+            if bound_name not in raw_rules:
+                continue
+            bound = raw_rules[bound_name]
+            if isinstance(bound, bool) or not isinstance(bound, int | float) or not _is_finite_number(bound):
+                raise ValueError(f"constraint '{bound_name}' for '{name}' must be a finite number")
+        if "minimum" in raw_rules and "maximum" in raw_rules:
+            if raw_rules["minimum"] > raw_rules["maximum"]:
+                raise ValueError(f"constraint minimum exceeds maximum for '{name}'")
+
 
 def _validate_param_set(name: str, value: object) -> frozenset[str]:
     if not isinstance(value, set | frozenset):
@@ -389,10 +475,59 @@ def _validate_param_set(name: str, value: object) -> frozenset[str]:
     return frozenset(value)
 
 
+def _validate_parameter_values(
+    params: Mapping[str, object], constraints: Mapping[str, object]
+) -> list[ValidationError]:
+    errors: list[ValidationError] = []
+    for name, raw_rules in constraints.items():
+        if name not in params:
+            continue
+        rules: Mapping[str, object] = raw_rules
+        value = params[name]
+        field = f"parameters.{name}"
+        if rules.get("non_blank") and isinstance(value, str) and not value.strip():
+            errors.append(ValidationError(field, "must be a non-empty, non-whitespace string"))
+        if rules.get("finite") and isinstance(value, int | float) and not _is_finite_number(value):
+            errors.append(ValidationError(field, "must be finite"))
+            continue
+        if "minimum" in rules and value < rules["minimum"]:
+            errors.append(ValidationError(field, f"must be greater than or equal to {rules['minimum']}"))
+        if "maximum" in rules and value > rules["maximum"]:
+            errors.append(ValidationError(field, f"must be less than or equal to {rules['maximum']}"))
+    return errors
+
+
+def _validate_parameter_relations(params: Mapping[str, object], constraints: frozenset[str]) -> list[ValidationError]:
+    errors: list[ValidationError] = []
+    if "destination_counts_consistent" in constraints and _DESTINATION_COUNT_PARAMS & set(params):
+        missing = _DESTINATION_COUNT_PARAMS - set(params)
+        if missing:
+            errors.append(
+                ValidationError(
+                    "parameters",
+                    f"destination count snapshot is incomplete; missing: {sorted(missing)}",
+                )
+            )
+        elif params["destination_capacity"] != (
+            params["destination_occupancy_after"] + params["destination_remaining_after"]
+        ):
+            errors.append(
+                ValidationError(
+                    "parameters",
+                    "destination counts must satisfy capacity = occupancy_after + remaining_after",
+                )
+            )
+    return errors
+
+
 def _type_label(value: object) -> str:
     if isinstance(value, bool):
         return "bool"
     return type(value).__name__
+
+
+def _is_finite_number(value: int | float) -> bool:
+    return isinstance(value, int) or isfinite(value)
 
 
 def _freeze_mapping(value: Mapping[object, object]) -> Mapping:

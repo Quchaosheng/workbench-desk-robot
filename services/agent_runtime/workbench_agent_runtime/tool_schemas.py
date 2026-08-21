@@ -24,6 +24,10 @@ TOOL_SCHEMAS: dict[ActionType, dict[str, object]] = {
             "required_confidence": float,
             "attributes": list,
         },
+        "param_constraints": {
+            "required_confidence": {"finite": True, "minimum": 0.0, "maximum": 1.0},
+        },
+        "relational_constraints": frozenset[str](),
     },
     ActionType.GRASP: {
         "description": "Grasp a known entity.  target_id is required — a grasp "
@@ -32,6 +36,8 @@ TOOL_SCHEMAS: dict[ActionType, dict[str, object]] = {
         "required_params": frozenset[str](),
         "optional_params": frozenset[str](),
         "param_types": {},
+        "param_constraints": {},
+        "relational_constraints": frozenset[str](),
     },
     ActionType.PLACE: {
         "description": "Place a grasped entity into a destination.  target_id and destination_id are required.",
@@ -62,6 +68,19 @@ TOOL_SCHEMAS: dict[ActionType, dict[str, object]] = {
             "destination_occupancy_after": int,
             "destination_remaining_after": int,
         },
+        "param_constraints": {
+            "destination_id": {"non_blank": True},
+            "routing_reason": {"non_blank": True},
+            "routing_priority": {"non_blank": True},
+            "policy_version": {"non_blank": True},
+            "identity_guard": {"non_blank": True},
+            "manifest_guard": {"non_blank": True},
+            "manifest_id": {"non_blank": True},
+            "destination_capacity": {"minimum": 0},
+            "destination_occupancy_after": {"minimum": 0},
+            "destination_remaining_after": {"minimum": 0},
+        },
+        "relational_constraints": frozenset({"destination_counts_consistent"}),
     },
     ActionType.ASK_CONFIRM: {
         "description": "Ask a human operator for confirmation before proceeding.",
@@ -72,6 +91,11 @@ TOOL_SCHEMAS: dict[ActionType, dict[str, object]] = {
             "question": str,
             "timeout_s": int,
         },
+        "param_constraints": {
+            "question": {"non_blank": True},
+            "timeout_s": {"minimum": 1, "maximum": 600},
+        },
+        "relational_constraints": frozenset[str](),
     },
     ActionType.EXPRESS: {
         "description": "Express an emotion state (idle / thinking / uncertain / pleased).",
@@ -82,6 +106,11 @@ TOOL_SCHEMAS: dict[ActionType, dict[str, object]] = {
             "emotion_state": str,
             "duration_ms": int,
         },
+        "param_constraints": {
+            "emotion_state": {"non_blank": True},
+            "duration_ms": {"minimum": 1, "maximum": 600000},
+        },
+        "relational_constraints": frozenset[str](),
     },
     ActionType.STOP: {
         "description": "Safe-stop the current run.  No required parameters.",
@@ -91,6 +120,10 @@ TOOL_SCHEMAS: dict[ActionType, dict[str, object]] = {
         "param_types": {
             "reason": str,
         },
+        "param_constraints": {
+            "reason": {"non_blank": True},
+        },
+        "relational_constraints": frozenset[str](),
     },
 }
 

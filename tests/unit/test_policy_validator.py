@@ -190,6 +190,68 @@ class PolicyValidatorBoolBeforeIntTests(unittest.TestCase):
         self.assertTrue(report.is_valid)
 
 
+class PolicyValidatorSchemaConstraintTests(unittest.TestCase):
+    """A5 consumes value and relational constraints from ToolRegistry."""
+
+    def setUp(self) -> None:
+        self.validator = PolicyValidator()
+
+    def test_non_finite_confidence_is_rejected(self) -> None:
+        report = self.validator.check(
+            _graph(_action(ActionType.OBSERVE, parameters={"required_confidence": float("nan")}))
+        )
+        self.assertFalse(report.is_valid)
+        self.assertTrue(any("finite" in finding.message for finding in report.findings))
+
+    def test_blank_question_and_out_of_range_timeout_are_rejected(self) -> None:
+        report = self.validator.check(
+            _graph(_action(ActionType.ASK_CONFIRM, parameters={"question": " ", "timeout_s": 601}))
+        )
+        self.assertFalse(report.is_valid)
+        self.assertEqual(
+            {finding.field for finding in report.findings},
+            {"parameters.question", "parameters.timeout_s"},
+        )
+
+    def test_inconsistent_destination_snapshot_is_rejected(self) -> None:
+        report = self.validator.check(
+            _graph(
+                _action(
+                    ActionType.PLACE,
+                    target_id="parcel",
+                    parameters={
+                        "destination_id": "bin",
+                        "destination_capacity": 5,
+                        "destination_occupancy_after": 2,
+                        "destination_remaining_after": 2,
+                    },
+                )
+            )
+        )
+        self.assertFalse(report.is_valid)
+        self.assertTrue(any("capacity = occupancy_after" in finding.message for finding in report.findings))
+
+    def test_valid_constraint_boundaries_are_accepted(self) -> None:
+        report = self.validator.check(
+            _graph(
+                _action(ActionType.OBSERVE, parameters={"required_confidence": 1.0}),
+                _action(ActionType.ASK_CONFIRM, parameters={"question": "continue?", "timeout_s": 600}),
+                _action(ActionType.EXPRESS, parameters={"emotion_state": "pleased", "duration_ms": 600000}),
+                _action(
+                    ActionType.PLACE,
+                    target_id="parcel",
+                    parameters={
+                        "destination_id": "bin",
+                        "destination_capacity": 0,
+                        "destination_occupancy_after": 0,
+                        "destination_remaining_after": 0,
+                    },
+                ),
+            )
+        )
+        self.assertTrue(report.is_valid, report.findings)
+
+
 class PolicyValidatorTypeMismatchTests(unittest.TestCase):
     def setUp(self) -> None:
         self.validator = PolicyValidator()

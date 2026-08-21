@@ -23,10 +23,9 @@ Three rules this module obeys and never crosses:
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import dataclass
 
-from workbench_contracts import ActionType, TaskGraph, TaskStep
+from workbench_contracts import TaskGraph, TaskStep
 
 from .tool_registry import ToolRegistry
 
@@ -97,142 +96,13 @@ class PolicyValidator:
 
     def _check_step(self, step: TaskStep) -> list[PolicyFinding]:
         action = step.action
-        findings: list[PolicyFinding] = []
-        step_id = step.step_id
-        action_id = action.action_id
-
-        # 0. action_type must be a registered ActionType
-        if not isinstance(action.action_type, ActionType):
-            return [
-                PolicyFinding(
-                    step_id,
-                    action_id,
-                    "action_type",
-                    f"expected an ActionType enum member, got {type(action.action_type).__name__!r}",
-                )
-            ]
-        if action.action_type not in self._registry.list_all():
-            return [
-                PolicyFinding(
-                    step_id,
-                    action_id,
-                    "action_type",
-                    f"unknown action_type '{action.action_type.value}'",
-                )
-            ]
-
-        schema = self._registry.get(action.action_type)
-        target_id_required: bool = schema.get("target_id_required", False)
-        required: frozenset[str] = schema["required_params"]
-        optional: frozenset[str] = schema["optional_params"]
-        allowed: frozenset[str] = required | optional
-        param_types: Mapping[str, type | object] = schema["param_types"]
-
-        # 1. target_id requirement (physical-safety boundary)
-        if target_id_required and (not isinstance(action.target_id, str) or not action.target_id.strip()):
-            findings.append(
-                PolicyFinding(
-                    step_id,
-                    action_id,
-                    "target_id",
-                    f"'{action.action_type.value}' requires a non-empty target_id",
-                )
-            )
-
-        # 2. parameters must be a mapping — fail-closed on malformed input
-        params = action.parameters
-        if not isinstance(params, Mapping):
-            findings.append(
-                PolicyFinding(
-                    step_id,
-                    action_id,
-                    "parameters",
-                    f"expected a mapping, got {type(params).__name__!r}",
-                )
-            )
-            return findings
-
-        # 3. exact field-set equality: reject extra and missing keys
-        actual_keys = set(params)
-        extra = actual_keys - allowed
-        missing = required - actual_keys
-        if extra:
-            findings.append(
-                PolicyFinding(
-                    step_id,
-                    action_id,
-                    "parameters",
-                    f"forbidden keys for '{action.action_type.value}': {sorted(extra)}; allowed: {sorted(allowed)}",
-                )
-            )
-        if missing:
-            findings.append(
-                PolicyFinding(
-                    step_id,
-                    action_id,
-                    "parameters",
-                    f"missing required keys for '{action.action_type.value}': {sorted(missing)}",
-                )
-            )
-
-        # 4. type safety (bool-before-int) — only for keys in the allow-list
-        for key, value in params.items():
-            expected_type = param_types.get(key)
-            if expected_type is None:
-                # undeclared key — already reported as forbidden, or permissive
-                continue
-            type_error = _type_error(key, value, expected_type)
-            if type_error is not None:
-                findings.append(PolicyFinding(step_id, action_id, f"parameters.{key}", type_error))
-
-        return findings
+        result = self._registry.validate(action)
+        return [PolicyFinding(step.step_id, action.action_id, error.field, error.message) for error in result.errors]
 
 
 # ---------------------------------------------------------------------------
 # helpers
 # ---------------------------------------------------------------------------
-
-
-def _type_error(key: str, value: object, expected: type | object) -> str | None:
-    """Return an error message if *value* violates *expected*; ``None`` if ok.
-
-    ``bool`` is checked before ``int`` / ``float`` because ``bool`` subclasses
-    ``int`` in Python.  ``duration_ms`` and any other integer slot must reject
-    ``True`` / ``False`` rather than coercing them to ``1`` / ``0``.
-    """
-    if expected is bool:
-        if not isinstance(value, bool):
-            return f"expected bool, got {_type_label(value)}"
-        return None
-    if expected is int:
-        if isinstance(value, bool):
-            return "expected int, got bool (bool is not int)"
-        if not isinstance(value, int):
-            return f"expected int, got {_type_label(value)}"
-        return None
-    if expected is float:
-        if isinstance(value, bool):
-            return "expected float, got bool"
-        if not isinstance(value, int | float):
-            return f"expected float, got {_type_label(value)}"
-        return None
-    if expected is str:
-        if not isinstance(value, str):
-            return f"expected str, got {_type_label(value)}"
-        return None
-    if expected is list:
-        if not isinstance(value, list):
-            return f"expected list, got {_type_label(value)}"
-        return None
-    if not isinstance(value, expected):
-        return f"expected {getattr(expected, '__name__', str(expected))}, got {_type_label(value)}"
-    return None
-
-
-def _type_label(value: object) -> str:
-    if isinstance(value, bool):
-        return "bool"
-    return type(value).__name__
 
 
 def _format_findings(findings: tuple[PolicyFinding, ...]) -> str:

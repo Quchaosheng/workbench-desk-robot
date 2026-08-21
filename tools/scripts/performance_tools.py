@@ -50,6 +50,14 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def hardware_log_hashes(paths: list[Path]) -> dict[str, str]:
+    names = [path.name for path in paths]
+    duplicates = sorted({name for name in names if names.count(name) > 1})
+    if duplicates:
+        raise RuntimeError(f"hardware evidence log names must be unique: {', '.join(duplicates)}")
+    return {path.name: file_sha256(path) for path in paths}
+
+
 def _telemetry_paths(inputs: list[Path]) -> list[Path]:
     paths: list[Path] = []
     for item in inputs:
@@ -105,7 +113,7 @@ def validate_hardware_evidence(paths: list[Path], evidence_path: Path | None) ->
     expected = evidence["logs"]
     if not isinstance(expected, dict):
         raise RuntimeError("hardware evidence logs must map file names to SHA-256 digests")
-    actual = {path.name: file_sha256(path) for path in paths}
+    actual = hardware_log_hashes(paths)
     if actual != expected:
         raise RuntimeError("hardware evidence log hashes do not match the analyzed files")
     return evidence

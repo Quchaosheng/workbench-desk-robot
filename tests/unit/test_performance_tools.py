@@ -2,15 +2,18 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from performance_tools import (
     file_sha256,
+    hardware_log_hashes,
     load_telemetry,
     parse_memory_bytes,
     summarize_resource_samples,
     summarize_telemetry,
     validate_hardware_evidence,
 )
+from register_hardware_evidence import main as register_hardware_evidence
 
 
 def record(source: str, run_id: str, sequence: int, stage: str, duration_ms: float) -> dict:
@@ -69,6 +72,56 @@ class TelemetryTests(unittest.TestCase):
             log_path.write_text(log_path.read_text(encoding="utf-8") + "\n", encoding="utf-8")
             with self.assertRaisesRegex(RuntimeError, "hashes"):
                 validate_hardware_evidence(paths, evidence_path)
+
+    def test_hardware_evidence_rejects_colliding_log_names(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first = root / "first" / "run.jsonl"
+            second = root / "second" / "run.jsonl"
+            first.parent.mkdir()
+            second.parent.mkdir()
+            first.write_text("first", encoding="utf-8")
+            second.write_text("second", encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "names must be unique"):
+                hardware_log_hashes([first, second])
+
+            evidence_path = root / "evidence.json"
+            evidence_path.write_text(
+                json.dumps(
+                    {
+                        "evidence_kind": "operator_attested_real_hardware",
+                        "hardware_id": "arm-01",
+                        "operator": "tester",
+                        "captured_at": "2026-08-08T00:00:00Z",
+                        "logs": {"run.jsonl": file_sha256(second)},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(RuntimeError, "names must be unique"):
+                validate_hardware_evidence([first, second], evidence_path)
+
+            output = root / "generated.json"
+            with (
+                patch(
+                    "sys.argv",
+                    [
+                        "register_hardware_evidence.py",
+                        str(first),
+                        str(second),
+                        "--hardware-id",
+                        "arm-01",
+                        "--operator",
+                        "tester",
+                        "--output",
+                        str(output),
+                    ],
+                ),
+                self.assertRaisesRegex(RuntimeError, "names must be unique"),
+            ):
+                register_hardware_evidence()
+            self.assertFalse(output.exists())
 
     def test_resource_units_and_percentiles(self) -> None:
         self.assertEqual(parse_memory_bytes("1.5MiB"), 1572864)

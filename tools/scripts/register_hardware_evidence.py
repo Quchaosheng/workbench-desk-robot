@@ -6,7 +6,7 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
-from performance_tools import file_sha256
+from performance_tools import hardware_log_hashes
 
 
 def main() -> int:
@@ -24,7 +24,7 @@ def main() -> int:
         "hardware_id": args.hardware_id,
         "operator": args.operator,
         "captured_at": datetime.now(UTC).isoformat(),
-        "logs": {path.name: file_sha256(path) for path in args.logs},
+        "logs": hardware_log_hashes(args.logs),
         "attestation": "The named operator confirms these logs were captured from the identified physical system.",
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)

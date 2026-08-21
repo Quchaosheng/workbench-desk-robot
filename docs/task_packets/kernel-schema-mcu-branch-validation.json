@@ -23,6 +23,7 @@
     "generated MCU frames enforce branch-required fields",
     "generated MCU frames reject branch-forbidden fields including legacy sent_at",
     "generated MCU frames enforce current branch const and enum relationships",
+    "generated MCU frames serialize without absent branch fields and round-trip through their own validator",
     "valid repository MCU frame vectors remain accepted",
     "general schema compiler behavior remains bounded"
   ],
@@ -34,7 +35,7 @@
     "make context-check"
   ],
   "evidence": [
-    "generated-model acceptance matches the canonical MCU schema corpus",
+    "generated-model acceptance and serialization round trips match the canonical MCU schema corpus",
     "focused unit and contract checks",
     "Task Packet boundary validation"
   ],

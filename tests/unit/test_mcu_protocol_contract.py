@@ -261,7 +261,10 @@ def test_repository_schema_compiler_enforces_protocol_branches(tmp_path: Path) -
     exec(compile(generated.read_text(encoding="utf-8"), str(generated), "exec"), namespace)
     generated_model = namespace["McuFrame"]
     for label, payload in VALID_FRAMES.items():
-        assert generated_model.model_validate(payload), label
+        frame = generated_model.model_validate(payload)
+        serialized = frame.model_dump(mode="json")
+        assert serialized == payload, label
+        assert generated_model.model_validate(serialized) == frame, label
     for payload in INVALID_FRAMES.values():
         with pytest.raises(ValidationError):
             generated_model.model_validate(payload)

@@ -211,6 +211,28 @@ class ReadModelTests(unittest.TestCase):
                 model.list_runs()
             self.assertFalse(model.ready())
 
+    def test_duplicate_json_keys_fail_closed_at_every_object_depth(self) -> None:
+        event = stored_event("run-duplicate", 0, "task_accepted")
+        event["payload"] = {"status": "confirmed"}
+        encoded = json.dumps(event)
+        cases = {
+            "run_id": encoded.replace(
+                '"run_id": "run-duplicate"',
+                '"run_id": "forged", "run_id": "run-duplicate"',
+            ),
+            "status": encoded.replace(
+                '"status": "confirmed"',
+                '"status": "forged", "status": "confirmed"',
+            ),
+        }
+        for duplicate_key, contents in cases.items():
+            with self.subTest(duplicate_key=duplicate_key), tempfile.TemporaryDirectory() as temp_dir:
+                Path(temp_dir, "duplicate.jsonl").write_text(contents + "\n", encoding="utf-8")
+                model = DashboardReadModel(temp_dir)
+                with self.assertRaisesRegex(ReadModelError, rf"duplicate JSON key: '{duplicate_key}'"):
+                    model.list_runs()
+                self.assertFalse(model.ready())
+
     def test_non_scalar_identifiers_are_rejected_as_data_errors(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "bad-types.jsonl"

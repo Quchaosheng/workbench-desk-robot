@@ -1,0 +1,47 @@
+{
+  "issue": 196,
+  "human_owner": "Quchaosheng",
+  "objective": "Reject canonical ActionResult and VerificationResult values whose cross-field states contradict their completion claim.",
+  "allowed_paths": [
+    "libs/contracts/workbench_contracts/models.py",
+    "tests/unit/test_contract_state_invariants.py",
+    "docs/task_packets/contract-state-invariants.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "services/world_model/**",
+    "services/agent_runtime/**"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "firmware/**",
+    "robot/control/**",
+    "services/backend/**"
+  ],
+  "acceptance": [
+    "completed actions require sent dispatch and confirmed device state",
+    "send-failed or rejected actions cannot report completed",
+    "confirmed verification cannot use a failure reason",
+    "confirmed verification cannot be incomplete or request recovery",
+    "non-confirmed verification cannot use goal_satisfied",
+    "valid existing timeout and three-valued verification states remain accepted"
+  ],
+  "commands": [
+    "python -m pytest tests/unit/test_contract_state_invariants.py tests/unit/test_world_model.py -v",
+    "python -m ruff check libs/contracts/workbench_contracts/models.py tests/unit/test_contract_state_invariants.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/contract-state-invariants.json",
+    "make contract",
+    "make context-check"
+  ],
+  "evidence": [
+    "focused contradictory-state regression output",
+    "World Model verifier regression output",
+    "contract validation output",
+    "Task Packet and context validation output"
+  ],
+  "stop_conditions": [
+    "an interface enum or JSON Schema change is required",
+    "a valid existing verifier output is rejected",
+    "a write outside allowed_paths is required"
+  ]
+}

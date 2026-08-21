@@ -273,6 +273,14 @@ class ActionResult(BaseModel):
     resulting_location: str | None = None
     evidence_refs: list[str] = Field(default_factory=list)
 
+    @model_validator(mode="after")
+    def validate_completion_state(self) -> "ActionResult":
+        if self.outcome is ActionOutcome.COMPLETED and (
+            self.dispatch_state is not DispatchState.SENT or self.device_state is not DeviceState.CONFIRMED
+        ):
+            raise ValueError("completed action requires sent dispatch and confirmed device state")
+        return self
+
 
 class WorldEvent(BaseModel):
     event_id: str
@@ -338,6 +346,19 @@ class VerificationResult(BaseModel):
     verified_at: str
     clock_id: ClockId = ClockId.MONOTONIC
     rule_version: str = "unversioned"
+
+    @model_validator(mode="after")
+    def validate_status_semantics(self) -> "VerificationResult":
+        if self.status is VerificationStatus.CONFIRMED:
+            if self.reason_code not in {None, ReasonCode.GOAL_SATISFIED}:
+                raise ValueError("confirmed verification cannot use a non-success reason")
+            if self.completeness is not None and self.completeness != 1.0:
+                raise ValueError("confirmed verification completeness must be 1")
+            if self.recovery_hint is not RecoveryHint.NONE:
+                raise ValueError("confirmed verification cannot request recovery")
+        elif self.reason_code is ReasonCode.GOAL_SATISFIED:
+            raise ValueError("non-confirmed verification cannot use goal_satisfied")
+        return self
 
     @property
     def completed(self) -> bool:

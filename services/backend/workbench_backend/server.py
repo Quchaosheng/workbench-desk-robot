@@ -5,6 +5,7 @@ import os
 import re
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from importlib import resources
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
@@ -20,7 +21,7 @@ SOURCE_ROOT = Path(__file__).resolve().parents[3]
 ROOT = Path.cwd() if (Path.cwd() / "apps" / "dashboard").is_dir() else SOURCE_ROOT
 DEFAULT_STATIC_DIR = ROOT / "apps" / "dashboard"
 DEFAULT_DATA_DIR = DEFAULT_STATIC_DIR / "data"
-OPENAPI_PATH = SOURCE_ROOT / "docs" / "api-openapi-v1.json"
+OPENAPI_RESOURCE = resources.files("workbench_backend").joinpath("api-openapi-v1.json")
 API_VERSION = "1"
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 RUN_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
@@ -141,7 +142,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             return
         if route in {"/api/openapi.json", "/api/v1/openapi.json"}:
             try:
-                contract = json.loads(OPENAPI_PATH.read_text(encoding="utf-8"))
+                contract = json.loads(OPENAPI_RESOURCE.read_text(encoding="utf-8"))
             except (OSError, UnicodeError, json.JSONDecodeError):
                 self._send_json(
                     {"error": "contract_unavailable"}, HTTPStatus.SERVICE_UNAVAILABLE, api_version=api_version

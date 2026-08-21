@@ -65,6 +65,23 @@ static bool record_frame_encodes(const mcu_watchdog_record_t *record)
            length == MCU_WIRE_DLC;
 }
 
+static bool frames_equal(const mcu_wire_frame_t *left, const mcu_wire_frame_t *right)
+{
+    return left->kind == right->kind && left->command_id == right->command_id &&
+           left->sequence_no == right->sequence_no && left->opcode == right->opcode &&
+           left->retry_count == right->retry_count && left->result_code == right->result_code &&
+           left->fault_code == right->fault_code && left->device_mode == right->device_mode;
+}
+
+static bool records_equal(const mcu_watchdog_record_t *left,
+                          const mcu_watchdog_record_t *right)
+{
+    return left->kind == right->kind && left->fault == right->fault &&
+           left->observed_at_us == right->observed_at_us &&
+           left->deadline_us == right->deadline_us && left->command_id == right->command_id &&
+           left->retry_count == right->retry_count && frames_equal(&left->frame, &right->frame);
+}
+
 static void test_controlled_constants(mcu_test_report_t *report)
 {
     check(report, MCU_HEARTBEAT_PERIOD_US > 0u);
@@ -229,6 +246,44 @@ static void test_stop_ack_within_bound(mcu_test_report_t *report)
     check(report, machine.state == MCU_STATE_SAFE_STOP);
 }
 
+static void test_stop_ack_retry_replays_original_after_fault(mcu_test_report_t *report)
+{
+    mcu_watchdog_t watchdog;
+    mcu_state_machine_t machine;
+    mcu_wire_frame_t stop;
+    mcu_watchdog_record_t first_record;
+    mcu_watchdog_record_t retry_record;
+    mcu_transition_result_t transition;
+    mcu_event_t event;
+    uint64_t now_us = 70000u;
+    uint64_t deadline;
+
+    mcu_watchdog_init(&watchdog, 0u);
+    start_move(&machine);
+    make_stop(&stop, MCU_STOP_ID_MIN + 10u, 3u);
+    check(report, mcu_watchdog_receive_stop(&watchdog, &machine, &stop, now_us, &first_record));
+    deadline = watchdog.stop_deadline_us;
+    check(report, first_record.frame.result_code == MCU_WIRE_RESULT_ACCEPTED);
+    check(report, first_record.frame.fault_code == MCU_WIRE_FAULT_NONE);
+    check(report, first_record.frame.device_mode == MCU_WIRE_MODE_STOPPED);
+
+    event.kind = MCU_EVENT_RAISE_FAULT;
+    event.fault_code = MCU_FAULT_MALFORMED_FRAME;
+    event.reset_authorized = false;
+    event.cause_cleared = false;
+    mcu_sm_dispatch(&machine, &event, &transition);
+    check(report, machine.state == MCU_STATE_FAULT);
+    check(report, !watchdog.watchdog_cause_active);
+    check(report, !watchdog.stop_timeout_cause_active);
+
+    check(report,
+          mcu_watchdog_receive_stop(
+            &watchdog, &machine, &stop, now_us + 1u, &retry_record));
+    check(report, records_equal(&retry_record, &first_record));
+    check(report, watchdog.stop_deadline_us == deadline);
+    check(report, watchdog.stop_ack_pending);
+}
+
 static void test_stop_timeout_is_distinct_and_latched(mcu_test_report_t *report)
 {
     mcu_watchdog_t watchdog;
@@ -308,6 +363,8 @@ static void test_hardware_feed_policy_in_latched_fault(mcu_test_report_t *report
     mcu_watchdog_t watchdog;
     mcu_state_machine_t machine;
     mcu_watchdog_record_t record;
+    mcu_transition_result_t transition;
+    mcu_event_t event;
     fake_clock_t clock = {.now_us = 21u};
 
     mcu_watchdog_init(&watchdog, 0u);
@@ -325,7 +382,18 @@ static void test_hardware_feed_policy_in_latched_fault(mcu_test_report_t *report
     mcu_watchdog_mark_causes_cleared(&watchdog);
     check(report, machine.state == MCU_STATE_FAULT);
     check(report, !watchdog.watchdog_cause_active);
-    check(report, mcu_watchdog_should_feed_hardware(&watchdog, &machine));
+    check(report, !mcu_watchdog_should_feed_hardware(&watchdog, &machine));
+
+    mcu_sm_init(&machine);
+    event.kind = MCU_EVENT_RAISE_FAULT;
+    event.fault_code = MCU_FAULT_MALFORMED_FRAME;
+    event.reset_authorized = false;
+    event.cause_cleared = false;
+    mcu_sm_dispatch(&machine, &event, &transition);
+    check(report, machine.state == MCU_STATE_FAULT);
+    check(report, !watchdog.watchdog_cause_active);
+    check(report, !watchdog.stop_timeout_cause_active);
+    check(report, !mcu_watchdog_should_feed_hardware(&watchdog, &machine));
 }
 
 static void test_invalid_inputs_and_hardware_feed_gate(mcu_test_report_t *report)
@@ -376,6 +444,7 @@ void mcu_watchdog_run_tests(mcu_test_report_t *report)
     test_watchdog_deadline_and_single_record(report);
     test_uint64_wraparound(report);
     test_stop_ack_within_bound(report);
+    test_stop_ack_retry_replays_original_after_fault(report);
     test_stop_timeout_is_distinct_and_latched(report);
     test_watchdog_reset_requires_live_cause_clear(report);
     test_hardware_feed_policy_in_latched_fault(report);

@@ -27,6 +27,31 @@ static void clear_frame(mcu_wire_frame_t *frame)
     frame->device_mode = MCU_WIRE_MODE_IDLE;
 }
 
+static void copy_frame(mcu_wire_frame_t *destination, const mcu_wire_frame_t *source)
+{
+    destination->kind = source->kind;
+    destination->command_id = source->command_id;
+    destination->sequence_no = source->sequence_no;
+    destination->opcode = source->opcode;
+    destination->retry_count = source->retry_count;
+    destination->result_code = source->result_code;
+    destination->fault_code = source->fault_code;
+    destination->device_mode = source->device_mode;
+}
+
+static void clear_stop_ack_cache(mcu_watchdog_t *watchdog)
+{
+    watchdog->stop_ack_observed_at_us = 0u;
+    clear_frame(&watchdog->stop_ack_frame);
+}
+
+static void cache_stop_ack(mcu_watchdog_t *watchdog,
+                           const mcu_watchdog_record_t *record)
+{
+    watchdog->stop_ack_observed_at_us = record->observed_at_us;
+    copy_frame(&watchdog->stop_ack_frame, &record->frame);
+}
+
 static void clear_record(mcu_watchdog_record_t *record)
 {
     record->kind = MCU_WATCHDOG_RECORD_NONE;
@@ -130,6 +155,7 @@ void mcu_watchdog_init(mcu_watchdog_t *watchdog, uint32_t first_telemetry_sequen
     watchdog->stop_deadline_us = 0u;
     watchdog->stop_command_id = 0u;
     watchdog->stop_retry_count = 0u;
+    clear_stop_ack_cache(watchdog);
 }
 
 bool mcu_watchdog_is_valid(const mcu_watchdog_t *watchdog)
@@ -187,6 +213,7 @@ bool mcu_watchdog_poll(mcu_watchdog_t *watchdog,
         record->command_id = watchdog->stop_command_id;
         record->retry_count = watchdog->stop_retry_count;
         watchdog->stop_ack_pending = false;
+        clear_stop_ack_cache(watchdog);
         watchdog->stop_timeout_cause_active = true;
         watchdog->stop_timeout_record_emitted = true;
         return true;
@@ -246,23 +273,11 @@ bool mcu_watchdog_receive_stop(mcu_watchdog_t *watchdog,
         }
         clear_record(record);
         record->kind = MCU_WATCHDOG_RECORD_STOP_ACK;
-        record->observed_at_us = now_us;
+        record->observed_at_us = watchdog->stop_ack_observed_at_us;
         record->deadline_us = watchdog->stop_deadline_us;
         record->command_id = stop->command_id;
         record->retry_count = stop->retry_count;
-        record->frame.kind = MCU_WIRE_FRAME_STOP_ACK;
-        record->frame.command_id = stop->command_id;
-        record->frame.opcode = MCU_WIRE_OPCODE_STOP;
-        record->frame.retry_count = stop->retry_count;
-        record->frame.result_code = machine->state == MCU_STATE_FAULT
-                                      ? MCU_WIRE_RESULT_REJECTED
-                                      : MCU_WIRE_RESULT_ACCEPTED;
-        record->frame.fault_code = machine->state == MCU_STATE_FAULT
-                                     ? MCU_WIRE_FAULT_STOP_REJECTED
-                                     : MCU_WIRE_FAULT_NONE;
-        record->frame.device_mode = machine->state == MCU_STATE_FAULT
-                                      ? MCU_WIRE_MODE_FAULTED
-                                      : MCU_WIRE_MODE_STOPPED;
+        copy_frame(&record->frame, &watchdog->stop_ack_frame);
         return true;
     }
 
@@ -277,6 +292,11 @@ bool mcu_watchdog_receive_stop(mcu_watchdog_t *watchdog,
     watchdog->stop_command_id = stop->command_id;
     watchdog->stop_retry_count = stop->retry_count;
     make_stop_ack(stop, &transition, now_us, watchdog->stop_deadline_us, record);
+    if (watchdog->stop_ack_pending) {
+        cache_stop_ack(watchdog, record);
+    } else {
+        clear_stop_ack_cache(watchdog);
+    }
     return true;
 }
 
@@ -292,6 +312,7 @@ bool mcu_watchdog_confirm_stop_ack(mcu_watchdog_t *watchdog,
     }
 
     watchdog->stop_ack_pending = false;
+    clear_stop_ack_cache(watchdog);
     return true;
 }
 
@@ -333,6 +354,7 @@ bool mcu_watchdog_request_reset(mcu_watchdog_t *watchdog,
     watchdog->watchdog_cause_active = false;
     watchdog->watchdog_record_emitted = false;
     watchdog->stop_ack_pending = false;
+    clear_stop_ack_cache(watchdog);
     watchdog->stop_timeout_cause_active = false;
     watchdog->stop_timeout_record_emitted = false;
     return true;
@@ -342,5 +364,6 @@ bool mcu_watchdog_should_feed_hardware(const mcu_watchdog_t *watchdog,
                                        const mcu_state_machine_t *machine)
 {
     return mcu_watchdog_is_valid(watchdog) && machine != 0 && mcu_sm_is_valid(machine) &&
-           !watchdog->watchdog_cause_active && !watchdog->stop_timeout_cause_active;
+           machine->state != MCU_STATE_FAULT && !watchdog->watchdog_cause_active &&
+           !watchdog->stop_timeout_cause_active;
 }

@@ -21,6 +21,10 @@ from . import tool_schemas as _schemas
 # ---------------------------------------------------------------------------
 
 _TARGET_REQUIRED_ACTIONS: frozenset[ActionType] = frozenset({ActionType.GRASP, ActionType.PLACE})
+_SCHEMA_KEYS: frozenset[str] = frozenset(
+    {"description", "target_id_required", "required_params", "optional_params", "param_types"}
+)
+_SUPPORTED_PARAM_TYPES: frozenset[type] = frozenset({str, int, float, bool, list})
 
 
 @dataclass(frozen=True)
@@ -89,7 +93,11 @@ class ToolRegistry:
             raise ValueError(f"action_type must be an ActionType enum member, got {type(action_type).__name__!r}")
         if action_type in self._tool_param_schemas:
             raise ValueError(f"ActionType '{action_type.value}' is already registered")
-        self._tool_param_schemas[action_type] = _freeze_mapping(schema)
+        if not isinstance(schema, Mapping):
+            raise ValueError(f"schema must be a mapping, got {type(schema).__name__!r}")
+        frozen_schema = _freeze_mapping(schema)
+        _validate_schema(frozen_schema)
+        self._tool_param_schemas[action_type] = frozen_schema
 
     def get(self, action_type: ActionType) -> Mapping[str, object]:
         """Return the schema for *action_type*.
@@ -320,6 +328,65 @@ class ToolRegistry:
 # ---------------------------------------------------------------------------
 # helpers
 # ---------------------------------------------------------------------------
+
+
+def _validate_schema(schema: Mapping[str, object]) -> None:
+    """Reject schemas that could make :meth:`ToolRegistry.validate` raise."""
+    if not isinstance(schema, Mapping):
+        raise ValueError(f"schema must be a mapping, got {type(schema).__name__!r}")
+
+    actual_keys = set(schema)
+    if any(not isinstance(key, str) for key in actual_keys):
+        raise ValueError("schema keys must be strings")
+    missing_keys = _SCHEMA_KEYS - actual_keys
+    unknown_keys = actual_keys - _SCHEMA_KEYS
+    if missing_keys:
+        raise ValueError(f"schema is missing keys: {sorted(missing_keys)}")
+    if unknown_keys:
+        raise ValueError(f"schema has unknown keys: {sorted(unknown_keys)}")
+
+    description = schema["description"]
+    if not isinstance(description, str):
+        raise ValueError("schema 'description' must be a string")
+    if not isinstance(schema["target_id_required"], bool):
+        raise ValueError("schema 'target_id_required' must be a bool")
+
+    required = _validate_param_set("required_params", schema["required_params"])
+    optional = _validate_param_set("optional_params", schema["optional_params"])
+    overlap = required & optional
+    if overlap:
+        raise ValueError(f"required_params and optional_params overlap: {sorted(overlap)}")
+
+    param_types = schema["param_types"]
+    if not isinstance(param_types, Mapping):
+        raise ValueError("schema 'param_types' must be a mapping")
+    allowed = required | optional
+    declared = set(param_types)
+    if any(not isinstance(key, str) for key in declared):
+        raise ValueError("schema 'param_types' keys must be strings")
+    missing_types = allowed - declared
+    unknown_types = declared - allowed
+    if missing_types:
+        raise ValueError(f"param_types is missing allowed parameters: {sorted(missing_types)}")
+    if unknown_types:
+        raise ValueError(f"param_types contains unknown parameters: {sorted(unknown_types)}")
+    unsupported = {
+        name: value
+        for name, value in param_types.items()
+        if not any(value is supported_type for supported_type in _SUPPORTED_PARAM_TYPES)
+    }
+    if unsupported:
+        labels = {name: _type_name(value) for name, value in unsupported.items()}
+        raise ValueError(f"param_types contains unsupported types: {labels}")
+
+
+def _validate_param_set(name: str, value: object) -> frozenset[str]:
+    if not isinstance(value, set | frozenset):
+        raise ValueError(f"schema '{name}' must be a set or frozenset of strings")
+    non_strings = [item for item in value if not isinstance(item, str)]
+    if non_strings:
+        raise ValueError(f"schema '{name}' must contain only strings")
+    return frozenset(value)
 
 
 def _type_label(value: object) -> str:

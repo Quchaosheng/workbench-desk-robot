@@ -45,6 +45,27 @@ def _action(
     )
 
 
+class _ChangingSchema(Mapping):
+    def __init__(self) -> None:
+        valid = dict(TOOL_SCHEMAS[ActionType.STOP])
+        changed = dict(valid)
+        changed["optional_params"] = frozenset({"reason", "untyped"})
+        self._versions = (valid, changed)
+        self._current = valid
+        self._iterations = 0
+
+    def __getitem__(self, key: object) -> object:
+        return self._current[key]
+
+    def __iter__(self):
+        self._current = self._versions[min(self._iterations, 1)]
+        self._iterations += 1
+        return iter(self._current)
+
+    def __len__(self) -> int:
+        return len(self._current)
+
+
 # ---------------------------------------------------------------------------
 # tests
 # ---------------------------------------------------------------------------
@@ -108,6 +129,8 @@ class ToolRegistryRegistrationTests(unittest.TestCase):
 
     def test_register_defensively_copies_caller_schema(self) -> None:
         schema = {
+            "description": "Stop with a reason.",
+            "target_id_required": False,
             "required_params": {"reason"},
             "optional_params": set(),
             "param_types": {"reason": str},
@@ -119,6 +142,88 @@ class ToolRegistryRegistrationTests(unittest.TestCase):
 
         self.assertFalse(registry.validate(_action(ActionType.STOP)).is_valid)
         self.assertTrue(registry.validate(_action(ActionType.STOP, parameters={"reason": "operator"})).is_valid)
+
+    def test_register_rejects_empty_schema_without_mutating_registry(self) -> None:
+        registry = ToolRegistry(load_defaults=False)
+
+        with self.assertRaisesRegex(ValueError, "missing keys"):
+            registry.register(ActionType.STOP, {})
+
+        self.assertEqual(registry.list_all(), ())
+
+    def test_register_rejects_unknown_schema_key(self) -> None:
+        schema = dict(TOOL_SCHEMAS[ActionType.STOP])
+        schema["unexpected"] = True
+
+        with self.assertRaisesRegex(ValueError, "unknown keys"):
+            ToolRegistry(load_defaults=False).register(ActionType.STOP, schema)
+
+    def test_register_rejects_overlapping_parameter_sets(self) -> None:
+        schema = dict(TOOL_SCHEMAS[ActionType.STOP])
+        schema["required_params"] = {"reason"}
+
+        with self.assertRaisesRegex(ValueError, "overlap"):
+            ToolRegistry(load_defaults=False).register(ActionType.STOP, schema)
+
+    def test_register_rejects_non_string_parameter_names(self) -> None:
+        schema = dict(TOOL_SCHEMAS[ActionType.STOP])
+        schema["optional_params"] = {"reason", 42}
+
+        with self.assertRaisesRegex(ValueError, "only strings"):
+            ToolRegistry(load_defaults=False).register(ActionType.STOP, schema)
+
+    def test_register_rejects_missing_parameter_type(self) -> None:
+        schema = dict(TOOL_SCHEMAS[ActionType.STOP])
+        schema["param_types"] = {}
+
+        with self.assertRaisesRegex(ValueError, "missing allowed parameters"):
+            ToolRegistry(load_defaults=False).register(ActionType.STOP, schema)
+
+    def test_register_rejects_unsupported_parameter_type(self) -> None:
+        schema = dict(TOOL_SCHEMAS[ActionType.STOP])
+        schema["param_types"] = {"reason": []}
+
+        with self.assertRaisesRegex(ValueError, "unsupported types"):
+            ToolRegistry(load_defaults=False).register(ActionType.STOP, schema)
+
+    def test_register_rejects_truthy_non_bool_target_requirement(self) -> None:
+        schema = dict(TOOL_SCHEMAS[ActionType.STOP])
+        schema["target_id_required"] = 1
+
+        with self.assertRaisesRegex(ValueError, "must be a bool"):
+            ToolRegistry(load_defaults=False).register(ActionType.STOP, schema)
+
+    def test_rejected_schema_mutation_does_not_change_registry(self) -> None:
+        schema = dict(TOOL_SCHEMAS[ActionType.STOP])
+        schema["param_types"] = {}
+        registry = ToolRegistry(load_defaults=False)
+
+        with self.assertRaises(ValueError):
+            registry.register(ActionType.STOP, schema)
+        schema["param_types"]["reason"] = str
+
+        self.assertEqual(registry.list_all(), ())
+
+    def test_register_validates_the_same_snapshot_it_stores(self) -> None:
+        registry = ToolRegistry(load_defaults=False)
+        registry.register(ActionType.STOP, _ChangingSchema())
+
+        self.assertFalse(registry.validate(_action(ActionType.STOP, parameters={"untyped": object()})).is_valid)
+
+    def test_register_rejects_non_string_schema_keys(self) -> None:
+        schema = dict(TOOL_SCHEMAS[ActionType.STOP])
+        schema.update({1: object(), "unexpected": object()})
+
+        with self.assertRaisesRegex(ValueError, "keys must be strings"):
+            ToolRegistry(load_defaults=False).register(ActionType.STOP, schema)
+
+    def test_every_accepted_schema_can_be_validated_without_raising(self) -> None:
+        registry = ToolRegistry(load_defaults=False)
+        registry.register(ActionType.STOP, TOOL_SCHEMAS[ActionType.STOP])
+
+        result = registry.validate(_action(ActionType.STOP, parameters={"reason": object()}))
+
+        self.assertFalse(result.is_valid)
 
     def test_get_rejects_non_action_type(self) -> None:
         with self.assertRaises(ValueError):

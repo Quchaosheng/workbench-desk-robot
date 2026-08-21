@@ -1,7 +1,10 @@
+import json
 import sys
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
+from jsonschema import Draft202012Validator
 from pydantic import BaseModel
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -89,14 +92,38 @@ def test_generated_models_validate_local_references(tmp_path: Path) -> None:
         observation(**valid)
 
 
-def test_generated_mcu_model_enforces_conditional_ranges(tmp_path: Path) -> None:
+def test_generated_mcu_model_enforces_protocol_branches(tmp_path: Path) -> None:
     mcu_frame = generated_model(tmp_path, "mcu_protocol", "McuFrame")
-    with pytest.raises(ValueError, match="frame_kind"):
-        mcu_frame(frame_id="f", frame_kind="command", command_id=40000, sent_at="t")
-    with pytest.raises(ValueError, match="frame_kind"):
-        mcu_frame(frame_id="f", frame_kind="stop", command_id=10, sent_at="t")
-    assert mcu_frame(frame_id="f", frame_kind="command", command_id=32767, sent_at="t")
-    assert mcu_frame(frame_id="f", frame_kind="stop", command_id=32768, sent_at="t")
+    schema = json.loads((ROOT / "interfaces/json_schema/mcu_protocol.schema.json").read_text(encoding="utf-8"))
+    valid = json.loads((ROOT / "interfaces/examples/mcu-frame-stop-ack.json").read_text(encoding="utf-8"))
+    invalid = []
+    for field in ("protocol_version", "opcode", "sent_at_us"):
+        payload = deepcopy(valid)
+        payload.pop(field)
+        invalid.append(payload)
+    for updates in (
+        {"sent_at": "legacy"},
+        {"opcode": "hold"},
+        {"result_code": 0, "fault_code": "stop_rejected", "device_mode": "faulted"},
+        {"result_code": 1, "fault_code": "none", "device_mode": "stopped"},
+    ):
+        payload = {**valid, **updates}
+        invalid.append(payload)
+
+    assert mcu_frame.model_validate(valid)
+    for payload in invalid:
+        assert list(Draft202012Validator(schema).iter_errors(payload))
+        with pytest.raises(ValueError):
+            mcu_frame.model_validate(payload)
+
+
+def test_generated_mcu_model_rejects_unknown_branch_keywords(tmp_path: Path) -> None:
+    compiler = SchemaCompiler(ROOT / "interfaces" / "json_schema")
+    compiler.load_schemas()
+    compiler.schemas["mcu_protocol"]["allOf"][0]["then"]["dependentRequired"] = {"opcode": ["command_id"]}
+
+    with pytest.raises(ValueError, match=r"unsupported runtime schema keyword.*dependentRequired"):
+        compiler.compile_all(tmp_path / "python", tmp_path / "typescript")
 
 
 def test_explicit_extra_forbid_and_unsupported_keywords_fail_closed(tmp_path: Path) -> None:

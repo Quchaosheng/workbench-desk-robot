@@ -251,7 +251,7 @@ def test_telemetry_sequence_half_range_vectors(last_accepted: int, candidate: in
     assert classify_telemetry_sequence(last_accepted, candidate) == expected
 
 
-def test_repository_schema_compiler_accepts_protocol_metadata(tmp_path: Path) -> None:
+def test_repository_schema_compiler_enforces_protocol_branches(tmp_path: Path) -> None:
     compiler = SchemaCompiler(ROOT / "interfaces" / "json_schema")
     compiler.load_schemas()
     compiler.compile_all(tmp_path / "python", tmp_path / "typescript")
@@ -260,8 +260,20 @@ def test_repository_schema_compiler_accepts_protocol_metadata(tmp_path: Path) ->
     namespace: dict[str, object] = {}
     exec(compile(generated.read_text(encoding="utf-8"), str(generated), "exec"), namespace)
     generated_model = namespace["McuFrame"]
-    generated_model(frame_id="f", frame_kind="command", command_id=32767, sent_at="compat")
-    generated_model(frame_id="f", frame_kind="stop", command_id=32768, sent_at="compat")
+    for label, payload in VALID_FRAMES.items():
+        assert generated_model.model_validate(payload), label
+    for payload in INVALID_FRAMES.values():
+        with pytest.raises(ValidationError):
+            generated_model.model_validate(payload)
+    frames_by_kind = {payload["frame_kind"]: payload for payload in VALID_FRAMES.values()}
+    for conditional in SCHEMA["allOf"]:
+        frame_kind = conditional["if"]["properties"]["frame_kind"]["const"]
+        for field in conditional["then"]["required"]:
+            missing = deepcopy(frames_by_kind[frame_kind])
+            missing.pop(field)
+            assert not schema_accepts(missing)
+            with pytest.raises(ValidationError):
+                generated_model.model_validate(missing)
 
 
 def test_committed_stop_ack_round_trips_through_schema_and_model() -> None:

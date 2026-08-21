@@ -1,0 +1,55 @@
+{
+  "issue": 189,
+  "human_owner": "Quchaosheng",
+  "objective": "Keep approved local-model HTTP requests direct by ignoring all process environment proxy configuration.",
+  "allowed_paths": [
+    "services/agent_runtime/workbench_agent_runtime/local_model.py",
+    "tests/unit/test_local_model.py",
+    "docs/task_packets/security-agent-local-model-no-proxy.json"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "services/agent_runtime/workbench_agent_runtime/planner.py",
+    "services/agent_runtime/workbench_agent_runtime/__init__.py",
+    "tools/scripts/check_task_packet.py",
+    "tools/schemas/task-packet-v1.schema.json"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "robot/control/**",
+    "firmware/**",
+    "services/world_model/**",
+    "services/backend/**"
+  ],
+  "acceptance": [
+    "Ollama HTTP calls ignore uppercase and lowercase environment proxy variables",
+    "a direct loopback response succeeds with no NO_PROXY exemption while an unreachable proxy is configured",
+    "endpoint validation redirect behavior response parsing and last_call semantics remain unchanged",
+    "the fix uses only the Python standard library and adds no dependency",
+    "the regression test makes no public network request"
+  ],
+  "commands": [
+    "python -m pytest tests/unit/test_local_model.py -v",
+    "python -m ruff check services/agent_runtime/workbench_agent_runtime/local_model.py tests/unit/test_local_model.py",
+    "python -m ruff format --check services/agent_runtime/workbench_agent_runtime/local_model.py tests/unit/test_local_model.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/security-agent-local-model-no-proxy.json",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check"
+  ],
+  "evidence": [
+    "focused local-model unit test output",
+    "Ruff check and format output",
+    "Task Packet validation output",
+    "required repository check outputs",
+    "GitHub Actions results"
+  ],
+  "stop_conditions": [
+    "redirect behavior or response-body policy would need to change",
+    "an interface contract would need to change",
+    "robot control firmware hardware safety or physical validation paths require modification",
+    "the direct connection cannot preserve the existing approved-host policy"
+  ]
+}

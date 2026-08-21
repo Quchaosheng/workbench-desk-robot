@@ -29,7 +29,7 @@ jobs:
       - run: make context-check
       - run: python tools/scripts/check_task_packet.py --all
       - if: github.event_name == 'pull_request'
-        run: python tools/scripts/check_task_packet.py --all --base "${{ github.event.pull_request.base.sha }}"
+        run: python tools/scripts/check_task_packet.py --all --base "${{ github.event.pull_request.base.sha }}" --head "${{ github.event.pull_request.head.sha }}"
       - run: make docs
       - run: make demo-scripted
       - run: make demo-offline

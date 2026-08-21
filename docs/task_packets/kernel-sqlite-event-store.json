@@ -9,7 +9,7 @@
     "libs/kernel/README.md",
     "docs/task_packets/kernel-sqlite-event-store.json"
   ],
-  "read_only_paths": ["AGENTS.md"],
+  "read_only_paths": ["interfaces/**", "AGENTS.md"],
   "forbidden": ["robot/control/**", "firmware/**", "interfaces/**"],
   "acceptance": [
     "SQLite stores strict events and checkpoints across restart",

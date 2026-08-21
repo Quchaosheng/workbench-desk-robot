@@ -12,6 +12,7 @@
     "services/agent_runtime/workbench_agent_runtime/tool_schemas.py",
     "services/agent_runtime/workbench_agent_runtime/planner.py",
     "services/agent_runtime/workbench_agent_runtime/local_model.py",
+    "interfaces/**",
     "libs/contracts/**"
   ],
   "forbidden": [

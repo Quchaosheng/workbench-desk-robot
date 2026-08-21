@@ -11,6 +11,8 @@
     "AGENTS.md",
     "CONTRIBUTING.md",
     "docs/architecture/system.md",
+    "interfaces/json_schema/world_event.schema.json",
+    "libs/contracts/workbench_contracts/models.py",
     "services/world_model/workbench_world_model/__init__.py",
     "tests/conftest.py",
     "tests/integration/test_observe_plan_act.py"

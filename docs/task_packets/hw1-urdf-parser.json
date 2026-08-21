@@ -15,6 +15,7 @@
     "tests/unit/test_hardware_urdf.py"
   ],
   "read_only_paths": [
+    "robot/control/**",
     "robot/description/**"
   ],
   "forbidden": [

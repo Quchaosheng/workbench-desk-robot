@@ -9,6 +9,8 @@
     ".gitignore"
   ],
   "read_only_paths": [
+    "interfaces/**",
+    "robot/description/**",
     "docs/context/**",
     "docs/architecture/**",
     "AGENTS.md"

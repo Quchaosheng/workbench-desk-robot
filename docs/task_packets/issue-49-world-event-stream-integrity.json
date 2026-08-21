@@ -14,6 +14,17 @@
     "docs/architecture/system.md",
     "docs/task_packets/example-001-world-reducer.json",
     "tools/scripts/check_task_packet.py",
+    "interfaces/json_schema/world_event.schema.json",
+    "interfaces/json_schema/world_state.schema.json",
+    "interfaces/json_schema/observation.schema.json",
+    "interfaces/json_schema/action_result.schema.json",
+    "interfaces/examples/observation-red-block.json",
+    "interfaces/examples/action-result-place-confirmed.json",
+    "interfaces/examples/world-state-block-in-tray.json",
+    "libs/contracts/workbench_contracts/models.py",
+    "services/world_model/workbench_world_model/__init__.py",
+    "services/world_model/workbench_world_model/event_store.py",
+    "services/world_model/workbench_world_model/verifier.py",
     "tests/integration/test_observe_plan_act.py"
   ],
   "forbidden": [

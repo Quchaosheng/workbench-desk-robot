@@ -97,7 +97,11 @@ Never carry a chaotic research conversation into a safety or interface implement
 
 ## 4. Task Packet contract
 
-No AI write operation starts without a complete packet:
+No AI write operation starts without a complete packet. The executable v1
+contract requires the ten core fields listed below. The governance fields in
+the example are optional in v1 while existing packets are migrated; when they
+are present, the v1 schema still validates their shape. Do not infer missing
+governance values.
 
 ```yaml
 issue: 123
@@ -112,7 +116,6 @@ read_only_paths:
 forbidden:
   - robot/control/**
   - firmware/**
-  - changing public schemas
 input_refs:
   - interfaces/examples/world_event.json
   - docs/decisions/ADR-0012-event-ordering.md
@@ -133,23 +136,30 @@ stop_conditions:
   - interface conflict
   - missing fixture
   - safety implication
+  - public schema change required
 max_iterations: 2
 data_classification: public
 model_policy: external_allowed
 ```
 
-Required fields:
+Required v1 fields:
 
 - one human Owner;
-- one measurable objective and decision;
+- one measurable objective;
 - allowed, read-only and forbidden paths;
-- exact input references and output artifacts;
 - acceptance criteria and commands;
 - evidence format;
-- stop conditions and retry limit;
+- stop conditions.
+
+Optional v1 governance fields, planned as required fields for a later version
+after packet-owner migration:
+
+- decision supported;
+- exact input references and output artifacts;
+- retry limit;
 - data classification and model policy.
 
-An AI must report a missing field or conflict. It must not invent scope, silently edit a forbidden path or keep retrying until a test happens to pass.
+An AI must report a missing required v1 field or conflict. It must not invent scope, silently edit a forbidden path or keep retrying until a test happens to pass.
 
 ## 5. Virtual AI roles
 

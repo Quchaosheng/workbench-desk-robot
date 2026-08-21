@@ -7,10 +7,10 @@
     "tools/schemas/task-packet-v1.schema.json",
     "tests/unit/test_task_packet.py",
     ".github/workflows/ci.yml",
+    "docs/AI-NATIVE-PLAYBOOK.md",
     "docs/task_packets/**"
   ],
   "read_only_paths": [
-    "docs/AI-NATIVE-PLAYBOOK.md",
     "Makefile",
     "pyproject.toml"
   ],
@@ -26,6 +26,8 @@
     "identity and instruction fields have strict scalar and list shapes",
     "commands are validated as evidence instructions and never executed",
     "CI validates every committed Task Packet",
+    "CI rejects Git-visible added, modified, deleted and renamed paths outside one active packet boundary",
+    "documentation distinguishes the changed-path consistency gate from filesystem sandboxing and human approval",
     "adversarial and valid packet tests pass"
   ],
   "commands": [
@@ -39,6 +41,7 @@
   "evidence": [
     "task packet unit test output",
     "example packet validation output",
+    "Git-visible changed-path boundary rejection output",
     "required repository check output"
   ],
   "stop_conditions": [

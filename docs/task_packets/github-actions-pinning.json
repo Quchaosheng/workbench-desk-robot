@@ -9,6 +9,7 @@
     "docs/task_packets/github-actions-pinning.json"
   ],
   "read_only_paths": [
+    "interfaces/**",
     "AGENTS.md"
   ],
   "forbidden": [
@@ -35,6 +36,7 @@
   "stop_conditions": [
     "an action tag cannot be resolved to a commit",
     "workflow behavior changes are required",
-    "robot-control or firmware changes are required"
+    "robot-control or firmware changes are required",
+    "a workflow outside the listed files must change"
   ]
 }

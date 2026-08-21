@@ -8,6 +8,7 @@
     "docs/task_packets/kernel-envelope-lifecycle.json"
   ],
   "read_only_paths": [
+    "interfaces/**",
     "AGENTS.md"
   ],
   "forbidden": [

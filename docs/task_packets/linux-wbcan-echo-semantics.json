@@ -7,7 +7,7 @@
     "kernel/wbcan/test_wbcan.sh",
     "docs/task_packets/linux-wbcan-echo-semantics.json"
   ],
-  "read_only_paths": ["AGENTS.md"],
+  "read_only_paths": ["firmware/**", "interfaces/**", "AGENTS.md"],
   "forbidden": ["robot/control/**", "firmware/**", "interfaces/**"],
   "acceptance": [
     "the sender does not receive its own frame by default",

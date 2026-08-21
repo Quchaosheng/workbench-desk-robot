@@ -1,5 +1,6 @@
 import copy
 import importlib.util
+import subprocess
 import sys
 from pathlib import Path
 
@@ -69,6 +70,34 @@ def test_schema_rejects_missing_and_unknown_fields(valid_packet: dict[str, objec
         task_packet._validate_schema(extra)
 
 
+def test_schema_accepts_and_validates_v1_governance_fields(valid_packet: dict[str, object]) -> None:
+    payload = copy.deepcopy(valid_packet)
+    payload.update(
+        {
+            "decision_supported": "Can this change stay inside its approved boundary?",
+            "input_refs": ["docs/AI-NATIVE-PLAYBOOK.md"],
+            "outputs": ["implementation", "tests"],
+            "max_iterations": 2,
+            "data_classification": "public",
+            "model_policy": "external_allowed",
+        }
+    )
+    task_packet._validate_schema(payload)
+    task_packet._validate_boundaries(payload)
+
+    payload["max_iterations"] = 0
+    with pytest.raises(task_packet.TaskPacketError, match="max_iterations"):
+        task_packet._validate_schema(payload)
+
+
+def test_input_refs_must_be_exact_repository_paths(valid_packet: dict[str, object]) -> None:
+    payload = copy.deepcopy(valid_packet)
+    payload["input_refs"] = ["docs/**"]
+    task_packet._validate_schema(payload)
+    with pytest.raises(task_packet.TaskPacketError, match="exact repository path"):
+        task_packet._validate_boundaries(payload)
+
+
 @pytest.mark.parametrize(
     "path",
     [
@@ -82,6 +111,10 @@ def test_schema_rejects_missing_and_unknown_fields(valid_packet: dict[str, objec
         " tools/**",
         "tools/** ",
         "tools/a**/file.py",
+        "docs/[",
+        "docs/[]",
+        "docs/control\nfile.py",
+        "docs/control\x00file.py",
     ],
 )
 def test_path_validation_rejects_escape_and_ambiguous_forms(path: str) -> None:
@@ -111,8 +144,19 @@ def test_path_validation_rejects_link_below_wildcard_boundary(tmp_path: Path, mo
     link.mkdir(parents=True)
     monkeypatch.setattr(task_packet, "ROOT", tmp_path)
     monkeypatch.setattr(task_packet, "_is_link", lambda path: path == link)
-    with pytest.raises(task_packet.TaskPacketError, match="wildcard boundary contains a link"):
+    with pytest.raises(task_packet.TaskPacketError, match="directory boundary contains a link"):
         task_packet._normalize_repo_path("allowed/**", field="allowed_paths")
+
+
+def test_path_validation_allows_future_paths_but_rejects_changed_links(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(task_packet, "ROOT", tmp_path)
+    assert task_packet._normalize_repo_path("new/path/**", field="allowed_paths") == "new/path/**"
+    link = tmp_path / "new"
+    link.symlink_to(tmp_path / "outside")
+    with pytest.raises(task_packet.TaskPacketError, match="symbolic links"):
+        task_packet._validate_write_boundary({"new"}, [{"allowed_paths": ["new/**"]}])
 
 
 @pytest.mark.parametrize(
@@ -134,10 +178,17 @@ def test_boundary_validation_rejects_unsafe_overlap(
         task_packet._validate_boundaries(payload)
 
 
-def test_read_only_and_forbidden_overlap_is_rejected_as_contradictory(valid_packet: dict[str, object]) -> None:
+def test_read_only_and_forbidden_overlap_preserves_a_protected_input(valid_packet: dict[str, object]) -> None:
     payload = copy.deepcopy(valid_packet)
     payload["read_only_paths"] = ["interfaces/**"]
     payload["forbidden"] = ["interfaces/**"]
+    task_packet._validate_boundaries(payload)
+
+
+def test_forbidden_path_with_spaces_cannot_hide_inside_allowed_boundary(valid_packet: dict[str, object]) -> None:
+    payload = copy.deepcopy(valid_packet)
+    payload["allowed_paths"] = ["docs/**"]
+    payload["forbidden"] = ["docs/private files/**"]
     with pytest.raises(task_packet.TaskPacketError, match="boundary overlap"):
         task_packet._validate_boundaries(payload)
 
@@ -149,7 +200,21 @@ def test_command_is_data_and_unsafe_multiline_ambiguity_is_reported(valid_packet
         task_packet._validate_commands(commands)
 
 
-@pytest.mark.parametrize("command", ["do something", "python -c 'unterminated", " make test"])
+@pytest.mark.parametrize(
+    "command",
+    [
+        "do something",
+        "python -c 'unterminated",
+        " make test",
+        "python -m pytest; rm -rf outside",
+        "make test && curl https://example.invalid",
+        "git reset --hard",
+        "/tmp/make test",
+        "BASH_ENV=/tmp/evil make test",
+        "python -m pytest $(curl https://example.invalid)",
+        "source /tmp/arbitrary.sh",
+    ],
+)
 def test_command_validation_rejects_arbitrary_or_ambiguous_text(command: str) -> None:
     with pytest.raises(task_packet.TaskPacketError, match="command"):
         task_packet._validate_commands([command])
@@ -162,6 +227,7 @@ def test_command_validation_accepts_approved_evidence_wrappers() -> None:
             "sudo make -C kernel/wbcan test",
             "sudo insmod kernel/wbcan/wbcan.ko fail_debugfs=1",
             "source /opt/ros/jazzy/setup.bash && colcon build",
+            "python -c 'print(\"quoted | text\")'",
         ]
     )
 
@@ -178,7 +244,7 @@ def test_all_mode_validates_each_packet_without_executing_commands(
     for name in ("one.json", "two.json"):
         (packet_dir / name).write_text("{}", encoding="utf-8")
     seen: list[str] = []
-    monkeypatch.setattr(task_packet, "PACKET_DIR", packet_dir)
+    monkeypatch.setattr(task_packet, "_committed_packet_paths", lambda: sorted(packet_dir.glob("*.json")))
     monkeypatch.setattr(task_packet, "validate_packet", lambda path: seen.append(path.name))
     assert task_packet.main(["--all"]) == 0
     assert seen == ["one.json", "two.json"]
@@ -189,3 +255,95 @@ def test_invalid_json_reports_a_validation_error(tmp_path: Path) -> None:
     packet.write_text("{", encoding="utf-8")
     with pytest.raises(task_packet.TaskPacketError, match="cannot read JSON"):
         task_packet._load_json(packet)
+
+
+def test_duplicate_json_keys_are_rejected(tmp_path: Path) -> None:
+    packet = tmp_path / "duplicate.json"
+    packet.write_text('{"allowed_paths": [], "allowed_paths": ["robot/**"]}', encoding="utf-8")
+    with pytest.raises(task_packet.TaskPacketError, match="duplicate JSON key"):
+        task_packet._load_json(packet)
+
+
+def test_name_status_includes_both_sides_of_renames() -> None:
+    output = b"M\0changed.py\0D\0deleted.py\0R100\0old.py\0new.py\0"
+    assert task_packet._parse_name_status(output) == {"changed.py", "deleted.py", "old.py", "new.py"}
+
+
+def test_changed_paths_tracks_final_git_visible_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def git(*arguments: str) -> str:
+        result = subprocess.run(
+            ["git", *arguments],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return result.stdout.strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Task Packet Test")
+    git("config", "user.email", "task-packet@example.invalid")
+    (tmp_path / ".gitignore").write_text("ignored.txt\n", encoding="utf-8")
+    for name in ("deleted.py", "modified.py", "old.py", "reverted.py", "staged.py"):
+        (tmp_path / name).write_text(f"base {name}\n", encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "base")
+    base = git("rev-parse", "HEAD")
+
+    (tmp_path / "added.py").write_text("added\n", encoding="utf-8")
+    (tmp_path / "modified.py").write_text("modified\n", encoding="utf-8")
+    (tmp_path / "reverted.py").write_text("temporary change\n", encoding="utf-8")
+    (tmp_path / "deleted.py").unlink()
+    git("mv", "old.py", "new.py")
+    git("add", "-A")
+    git("commit", "-qm", "change files")
+
+    (tmp_path / "reverted.py").write_text("base reverted.py\n", encoding="utf-8")
+    (tmp_path / "staged.py").write_text("staged\n", encoding="utf-8")
+    git("add", "reverted.py", "staged.py")
+    (tmp_path / "staged.py").write_text("unstaged after staged\n", encoding="utf-8")
+    (tmp_path / "untracked.py").write_text("untracked\n", encoding="utf-8")
+    (tmp_path / "ignored.txt").write_text("ignored\n", encoding="utf-8")
+
+    monkeypatch.setattr(task_packet, "ROOT", tmp_path)
+    assert task_packet._changed_paths(base) == {
+        "added.py",
+        "deleted.py",
+        "modified.py",
+        "new.py",
+        "old.py",
+        "staged.py",
+        "untracked.py",
+    }
+
+
+def test_write_boundary_checks_every_changed_path(valid_packet: dict[str, object]) -> None:
+    task_packet._validate_write_boundary(
+        {"tools/scripts/check_task_packet.py", "tests/unit/test_task_packet.py"},
+        [valid_packet],
+    )
+    with pytest.raises(task_packet.TaskPacketError, match=r"robot/control/dispatcher\.py"):
+        task_packet._validate_write_boundary(
+            {"tools/scripts/check_task_packet.py", "robot/control/dispatcher.py"},
+            [valid_packet],
+        )
+
+
+def test_write_boundary_does_not_union_separate_packet_permissions(valid_packet: dict[str, object]) -> None:
+    other_packet = copy.deepcopy(valid_packet)
+    other_packet["allowed_paths"] = ["robot/control/**"]
+    other_packet["forbidden"] = ["tools/**"]
+    task_packet._validate_boundaries(valid_packet)
+    task_packet._validate_boundaries(other_packet)
+
+    with pytest.raises(task_packet.TaskPacketError, match="no single active Task Packet"):
+        task_packet._validate_write_boundary(
+            {"tools/scripts/check_task_packet.py", "robot/control/dispatcher.py"},
+            [valid_packet, other_packet],
+        )
+
+
+def test_path_matching_does_not_let_single_star_cross_directories() -> None:
+    assert task_packet._path_matches("apps/dashboard/*.js", "apps/dashboard/app.js")
+    assert not task_packet._path_matches("apps/dashboard/*.js", "apps/dashboard/vendor/app.js")
+    assert task_packet._path_matches("apps/dashboard/**", "apps/dashboard/vendor/app.js")

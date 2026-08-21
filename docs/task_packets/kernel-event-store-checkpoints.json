@@ -11,6 +11,7 @@
     "docs/task_packets/kernel-event-store-checkpoints.json"
   ],
   "read_only_paths": [
+    "interfaces/**",
     "AGENTS.md"
   ],
   "forbidden": [

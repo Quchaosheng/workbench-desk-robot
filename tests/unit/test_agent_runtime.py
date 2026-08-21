@@ -7,6 +7,7 @@ sys.path[:0] = [str(ROOT / "libs/contracts"), str(ROOT / "services/agent_runtime
 
 from local_runner import plan_offline
 from workbench_agent_runtime import (
+    build_inspection_plan,
     build_kitting_plan,
     build_parcel_sorting_plan,
     build_policy_routed_parcel_plan,
@@ -67,6 +68,25 @@ class PlannerTests(unittest.TestCase):
         for routes in invalid_routes:
             with self.subTest(parcel_routes=routes), self.assertRaises(ValueError):
                 build_parcel_sorting_plan("Sort the parcels", routes)
+
+    def test_kitting_and_inspection_step_ids_survive_normalization_collisions(self) -> None:
+        for builder in (build_kitting_plan, build_inspection_plan):
+            with self.subTest(builder=builder.__name__):
+                first = builder("Handle colliding entity IDs", ["box_a", "box-a"])
+                second = builder("Handle colliding entity IDs", ["box_a", "box-a"])
+                step_ids = [step.step_id for step in first.steps]
+                self.assertEqual(step_ids, [step.step_id for step in second.steps])
+                self.assertEqual(len(step_ids), len(set(step_ids)))
+                self.assertTrue(all(dependency in step_ids for step in first.steps for dependency in step.depends_on))
+
+    def test_kitting_and_inspection_preserve_ordinary_step_tokens(self) -> None:
+        for builder, expected in (
+            (build_kitting_plan, ("observe-BoxA", "grasp-BoxA", "place-BoxA")),
+            (build_inspection_plan, ("inspect-box.a",)),
+        ):
+            with self.subTest(builder=builder.__name__):
+                plan = builder("Preserve ordinary entity IDs", ["BoxA"] if builder is build_kitting_plan else ["box.a"])
+                self.assertEqual(tuple(step.step_id for step in plan.steps), expected)
 
     def test_parcel_plan_requires_inspection_before_bounded_routing(self) -> None:
         plan = build_parcel_sorting_plan("核对快递标签并分拣")

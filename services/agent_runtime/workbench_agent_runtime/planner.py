@@ -66,16 +66,21 @@ def _validate_entity_ids(values: Sequence[str], label: str) -> tuple[str, ...]:
     return normalized
 
 
-def _unique_step_tokens(entity_ids: Sequence[str]) -> dict[str, str]:
+def _unique_step_tokens(entity_ids: Sequence[str], *, preserve_legacy_tokens: bool = False) -> dict[str, str]:
     """Create readable, deterministic tokens without collapsing distinct IDs."""
     tokens: dict[str, str] = {}
     used: set[str] = set()
     for index, entity_id in enumerate(entity_ids, start=1):
-        base = re.sub(r"[^a-z0-9]+", "-", entity_id.lower()).strip("-") or f"entity-{index}"
+        base = (
+            entity_id.replace("_", "-")
+            if preserve_legacy_tokens
+            else re.sub(r"[^a-z0-9]+", "-", entity_id.lower()).strip("-")
+        ) or f"entity-{index}"
         token = base
         suffix = 2
         while token in used:
-            token = f"{base}-{suffix}"
+            collision_base = re.sub(r"[^a-z0-9]+", "-", entity_id.lower()).strip("-") or f"entity-{index}"
+            token = f"{collision_base}-{suffix}"
             suffix += 1
         tokens[entity_id] = token
         used.add(token)
@@ -170,10 +175,11 @@ def build_kitting_plan(
 ) -> TaskGraph:
     part_ids = _validate_entity_ids(part_ids, "kitting")
     tray_id = _validate_identifier(tray_id, "tray_id")
+    step_tokens = _unique_step_tokens(part_ids, preserve_legacy_tokens=True)
     steps: list[TaskStep] = []
     action_index = 1
     for part_id in part_ids:
-        suffix = part_id.replace("_", "-")
+        suffix = step_tokens[part_id]
         observe_step = f"observe-{suffix}"
         grasp_step = f"grasp-{suffix}"
         steps.extend(
@@ -217,9 +223,10 @@ def build_inspection_plan(
     entity_ids: Sequence[str] = DEFAULT_INSPECTION_ENTITIES,
 ) -> TaskGraph:
     entity_ids = _validate_entity_ids(entity_ids, "inspection")
+    step_tokens = _unique_step_tokens(entity_ids, preserve_legacy_tokens=True)
     steps = [
         TaskStep(
-            step_id=f"inspect-{entity_id.replace('_', '-')}",
+            step_id=f"inspect-{step_tokens[entity_id]}",
             action=SemanticAction(
                 action_id=f"act-{index:03d}",
                 action_type=ActionType.OBSERVE,

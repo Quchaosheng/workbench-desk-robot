@@ -1,0 +1,45 @@
+{
+  "issue": 199,
+  "human_owner": "Quchaosheng",
+  "objective": "Keep hardware performance evidence log identities one-to-one with the analyzed files.",
+  "allowed_paths": [
+    "tools/scripts/register_hardware_evidence.py",
+    "tools/scripts/performance_tools.py",
+    "tests/unit/test_performance_tools.py",
+    "docs/task_packets/hardware-evidence-log-identity.json"
+  ],
+  "read_only_paths": [
+    "docs/performance/**",
+    "interfaces/**"
+  ],
+  "forbidden": [
+    "firmware/**",
+    "robot/control/**",
+    "hardware/validation/**",
+    "services/**"
+  ],
+  "acceptance": [
+    "duplicate hardware log basenames fail before manifest creation",
+    "evidence validation independently rejects colliding analyzed paths",
+    "every analyzed log maps to exactly one manifest hash",
+    "ordinary unique log names remain compatible",
+    "changed log contents still fail hash validation"
+  ],
+  "commands": [
+    "python -m pytest tests/unit/test_performance_tools.py -v",
+    "python -m ruff check tools/scripts/register_hardware_evidence.py tools/scripts/performance_tools.py tests/unit/test_performance_tools.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/hardware-evidence-log-identity.json",
+    "make context-check"
+  ],
+  "evidence": [
+    "colliding-basename regression output",
+    "performance evidence unit-test output",
+    "Task Packet boundary validation",
+    "context validation output"
+  ],
+  "stop_conditions": [
+    "telemetry schema or report semantics must change",
+    "a write outside allowed_paths is required",
+    "existing unique-name manifests become incompatible"
+  ]
+}

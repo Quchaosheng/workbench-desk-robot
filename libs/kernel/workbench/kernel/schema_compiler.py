@@ -31,6 +31,14 @@ PROPERTY_KEYWORDS = {
     "required",
     "type",
 }
+RUNTIME_SCHEMA_KEYWORDS = (ROOT_KEYWORDS | PROPERTY_KEYWORDS) - {"$ref"} | {
+    "anyOf",
+    "const",
+    "else",
+    "if",
+    "not",
+    "then",
+}
 
 
 class SchemaValidationError(ValueError):
@@ -59,6 +67,20 @@ def _enum_contains(enum: list[Any], value: Any) -> bool:
     return any(type(candidate) is type(value) and candidate == value for candidate in enum)
 
 
+def _schema_matches(
+    value: Any,
+    schema: dict[str, Any],
+    *,
+    references: dict[str, dict[str, Any]] | None,
+    location: str,
+) -> bool:
+    try:
+        validate_schema_instance(value, schema, references=references, location=location)
+    except SchemaValidationError:
+        return False
+    return True
+
+
 def validate_schema_instance(
     value: Any,
     schema: dict[str, Any],
@@ -76,6 +98,9 @@ def validate_schema_instance(
             raise SchemaValidationError(f"unresolved schema reference {reference!r} at {location}")
         validate_schema_instance(value, referenced, references=references, location=location)
         return
+
+    if "const" in schema and (type(value) is not type(schema["const"]) or value != schema["const"]):
+        raise SchemaValidationError(f"value at {location} does not match const {schema['const']!r}")
 
     if "enum" in schema:
         enum = schema["enum"]
@@ -129,22 +154,24 @@ def validate_schema_instance(
                     location=f"{location}.{field_name}",
                 )
 
-    for conditional in schema.get("allOf", []):
-        condition_properties = conditional.get("if", {}).get("properties", {})
-        condition_matches = (
-            all(
-                field_name in value
-                and isinstance(definition, dict)
-                and "const" in definition
-                and type(value[field_name]) is type(definition["const"])
-                and value[field_name] == definition["const"]
-                for field_name, definition in condition_properties.items()
-            )
-            if isinstance(value, dict)
-            else False
-        )
-        if condition_matches:
-            validate_schema_instance(value, conditional.get("then", {}), references=references, location=location)
+    any_of = schema.get("anyOf")
+    if any_of is not None and not any(
+        _schema_matches(value, candidate, references=references, location=location) for candidate in any_of
+    ):
+        raise SchemaValidationError(f"value at {location} does not match any allowed schema")
+
+    excluded = schema.get("not")
+    if excluded is not None and _schema_matches(value, excluded, references=references, location=location):
+        raise SchemaValidationError(f"value at {location} matches a forbidden schema")
+
+    for constraint in schema.get("allOf", []):
+        validate_schema_instance(value, constraint, references=references, location=location)
+
+    condition = schema.get("if")
+    if condition is not None:
+        branch = "then" if _schema_matches(value, condition, references=references, location=location) else "else"
+        if branch in schema:
+            validate_schema_instance(value, schema[branch], references=references, location=location)
 
 
 def _model_name(value: str) -> str:
@@ -264,7 +291,59 @@ def _validate_definition(definition: dict[str, Any], location: str) -> None:
             _validate_definition(nested, f"{location}.{field_name}")
 
 
+def _validate_runtime_schema(schema: dict[str, Any], location: str) -> None:
+    unsupported = set(schema) - RUNTIME_SCHEMA_KEYWORDS
+    if unsupported:
+        raise ValueError(f"unsupported runtime schema keyword(s) at {location}: {sorted(unsupported)}")
+    required = schema.get("required")
+    if required is not None and (
+        not isinstance(required, list) or any(not isinstance(field_name, str) for field_name in required)
+    ):
+        raise ValueError(f"required must be a string list at {location}")
+    properties = schema.get("properties")
+    if properties is not None:
+        if not isinstance(properties, dict):
+            raise ValueError(f"properties must be an object at {location}")
+        for field_name, definition in properties.items():
+            if not isinstance(definition, dict):
+                raise ValueError(f"property definition must be an object: {location}.{field_name}")
+            _validate_runtime_schema(definition, f"{location}.{field_name}")
+    items = schema.get("items")
+    if items is not None:
+        if not isinstance(items, dict):
+            raise ValueError(f"items must be an object at {location}")
+        _validate_runtime_schema(items, f"{location}.items")
+    for schema_keyword in ("allOf", "anyOf"):
+        branches = schema.get(schema_keyword)
+        if branches is not None:
+            if not isinstance(branches, list) or not branches:
+                raise ValueError(f"{schema_keyword} must be a non-empty list at {location}")
+            for index, branch in enumerate(branches, start=1):
+                if not isinstance(branch, dict):
+                    raise ValueError(f"{schema_keyword} entry must be an object at {location}[{index}]")
+                _validate_runtime_schema(branch, f"{location}.{schema_keyword}[{index}]")
+    for schema_keyword in ("if", "then", "else", "not"):
+        branch = schema.get(schema_keyword)
+        if branch is not None:
+            if not isinstance(branch, dict):
+                raise ValueError(f"{schema_keyword} must be an object at {location}")
+            _validate_runtime_schema(branch, f"{location}.{schema_keyword}")
+
+
 def _conditional_validators(schema: dict[str, Any], name: str) -> tuple[list[str], list[dict[str, Any]]]:
+    if name == "mcu_protocol":
+        _validate_runtime_schema(schema, name)
+        return (
+            [
+                "",
+                '    @model_validator(mode="before")',
+                "    @classmethod",
+                "    def _validate_mcu_protocol(cls, value):",
+                "        validate_schema_instance(value, MCU_PROTOCOL_SCHEMA)",
+                "        return value",
+            ],
+            schema.get("allOf", []),
+        )
     lines: list[str] = []
     metadata: list[dict[str, Any]] = []
     for index, conditional in enumerate(schema.get("allOf", []), start=1):
@@ -461,8 +540,12 @@ class SchemaCompiler:
             self._append_python_model(model_name, schema, name, class_blocks, {})
             python_code = (
                 "from typing import Annotated, Any, Literal\n\n"
-                "from pydantic import BaseModel, ConfigDict, Field, model_validator\n\n\n" + "\n\n".join(class_blocks)
+                "from pydantic import BaseModel, ConfigDict, Field, model_validator\n"
             )
+            if name == "mcu_protocol":
+                python_code += "from workbench.kernel.schema_compiler import validate_schema_instance\n"
+                python_code += f"\n\nMCU_PROTOCOL_SCHEMA = {schema!r}\n"
+            python_code += "\n\n" + "\n\n".join(class_blocks)
             typescript_body = "\n".join(typescript_fields)
             metadata = {
                 "fields": constraint_metadata,

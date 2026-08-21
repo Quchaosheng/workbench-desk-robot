@@ -1,0 +1,47 @@
+{
+  "issue": "204",
+  "human_owner": "Quchaosheng",
+  "objective": "Make the generated MCU Pydantic model enforce the current protocol branch semantics without changing the canonical interface.",
+  "allowed_paths": [
+    "libs/kernel/workbench/kernel/schema_compiler.py",
+    "tests/unit/test_kernel_schema_compiler.py",
+    "tests/unit/test_mcu_protocol_contract.py",
+    "docs/task_packets/kernel-schema-mcu-branch-validation.json"
+  ],
+  "read_only_paths": [
+    "interfaces/json_schema/mcu_protocol.schema.json",
+    "interfaces/examples/mcu-frame-stop-ack.json",
+    "libs/contracts/workbench_contracts/models.py",
+    "AGENTS.md"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "firmware/**",
+    "robot/control/**"
+  ],
+  "acceptance": [
+    "generated MCU frames enforce branch-required fields",
+    "generated MCU frames reject branch-forbidden fields including legacy sent_at",
+    "generated MCU frames enforce current branch const and enum relationships",
+    "valid repository MCU frame vectors remain accepted",
+    "general schema compiler behavior remains bounded"
+  ],
+  "commands": [
+    "python -m pytest tests/unit/test_kernel_schema_compiler.py tests/unit/test_mcu_protocol_contract.py -q",
+    "python -m ruff check libs/kernel/workbench/kernel/schema_compiler.py tests/unit/test_kernel_schema_compiler.py tests/unit/test_mcu_protocol_contract.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/kernel-schema-mcu-branch-validation.json --base origin/main",
+    "make contract",
+    "make context-check"
+  ],
+  "evidence": [
+    "generated-model acceptance matches the canonical MCU schema corpus",
+    "focused unit and contract checks",
+    "Task Packet boundary validation"
+  ],
+  "stop_conditions": [
+    "an interfaces schema change is required",
+    "the canonical contracts package must change",
+    "firmware or robot-control changes are required",
+    "a general JSON Schema compiler rewrite is required"
+  ]
+}

@@ -1,8 +1,11 @@
 import json
+import os
+import socket
 import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import ClassVar
+from unittest.mock import patch
 
 from workbench_agent_runtime import (
     LocalModelError,
@@ -75,6 +78,22 @@ class LocalModelTests(unittest.TestCase):
         self.assertEqual(FakeOllamaHandler.request_payload["format"]["additionalProperties"], False)
         self.assertEqual(provider.last_call["endpoint_host"], "127.0.0.1")
         self.assertIsInstance(provider.last_call["latency_ms"], float)
+
+    def test_model_request_ignores_environment_proxies(self) -> None:
+        with socket.socket() as blocked_proxy:
+            blocked_proxy.bind(("127.0.0.1", 0))
+            proxy = f"http://127.0.0.1:{blocked_proxy.getsockname()[1]}"
+            proxies = {
+                name: proxy
+                for name in ("HTTP_PROXY", "http_proxy", "HTTPS_PROXY", "https_proxy", "ALL_PROXY", "all_proxy")
+            }
+            proxies.update({"NO_PROXY": "", "no_proxy": ""})
+            with patch.dict(os.environ, proxies, clear=True):
+                provider = OllamaModelProvider("test-model", endpoint=self.endpoint)
+                decision = provider.route("Handle everything waiting in the intake zone")
+
+        self.assertEqual(decision.task_family, "parcel_sorting")
+        self.assertEqual(provider.last_call["endpoint_host"], "127.0.0.1")
 
     def test_unsafe_route_fails_closed_before_building_actions(self) -> None:
         FakeOllamaHandler.route = {

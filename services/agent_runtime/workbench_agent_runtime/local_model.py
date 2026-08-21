@@ -133,6 +133,7 @@ class OllamaModelProvider:
         self.model = model.strip()
         self.endpoint = validate_local_endpoint(endpoint, allowed_hosts)
         self.timeout_s = timeout_s
+        self._opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
         self.last_call: dict[str, object] = {}
 
     def route(self, goal: str) -> RouteDecision:
@@ -156,7 +157,7 @@ class OllamaModelProvider:
         )
         started = time.perf_counter()
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout_s) as response:
+            with self._opener.open(request, timeout=self.timeout_s) as response:
                 payload = json.loads(response.read())
         except (OSError, TimeoutError, urllib.error.URLError, json.JSONDecodeError) as exc:
             raise LocalModelError(f"local model request failed: {exc}") from exc

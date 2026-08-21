@@ -1,3 +1,4 @@
+import io
 import json
 import tempfile
 import threading
@@ -5,11 +6,34 @@ import unittest
 import urllib.error
 import urllib.request
 from pathlib import Path
+from unittest import mock
 
+from workbench_backend.read_model import ReadModelError, RemoteDashboardReadModel
 from workbench_backend.server import create_server
 
 
 class MultiHostReadModelTests(unittest.TestCase):
+    def test_remote_json_rejects_top_level_and_nested_duplicate_keys(self) -> None:
+        model = RemoteDashboardReadModel("http://127.0.0.1:1")
+        cases = {
+            "runs": b'{"runs":[],"runs":[]}',
+            "task_id": b'{"runs":[{"task_id":"secret-marker","task_id":"trusted"}]}',
+        }
+        for duplicate_key, body in cases.items():
+            with (
+                self.subTest(duplicate_key=duplicate_key),
+                mock.patch("workbench_backend.read_model.urllib.request.urlopen", return_value=io.BytesIO(body)),
+                self.assertRaisesRegex(ReadModelError, rf"duplicate JSON key: '{duplicate_key}'") as caught,
+            ):
+                model.list_runs()
+            self.assertNotIn("secret-marker", str(caught.exception))
+
+        with mock.patch(
+            "workbench_backend.read_model.urllib.request.urlopen",
+            return_value=io.BytesIO(b'{"status":"not_ready","status":"ready"}'),
+        ):
+            self.assertFalse(model.ready())
+
     def test_controller_reads_remote_source_and_fails_ready_when_peer_is_down(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             data_dir = Path(directory)

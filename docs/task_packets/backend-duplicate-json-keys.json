@@ -1,0 +1,46 @@
+{
+  "issue": 190,
+  "human_owner": "Quchaosheng",
+  "objective": "Reject duplicate JSON object keys before local or remote Dashboard event-source data is trusted.",
+  "allowed_paths": [
+    "services/backend/workbench_backend/read_model.py",
+    "tests/unit/test_dashboard_backend.py",
+    "tests/unit/test_multi_host.py",
+    "docs/task_packets/backend-duplicate-json-keys.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "services/backend/workbench_backend/server.py",
+    "robot/control/**",
+    "firmware/**"
+  ],
+  "forbidden": ["interfaces/**", "robot/control/**", "firmware/**"],
+  "acceptance": [
+    "local JSONL rejects top-level and nested duplicate object keys before caching or readiness",
+    "remote JSON rejects top-level and nested duplicate object keys before projection or display",
+    "duplicate-key failures retain the existing ReadModelError boundary without leaking response bodies",
+    "valid local and split-host behavior remains unchanged"
+  ],
+  "commands": [
+    "python3 -m pytest tests/unit/test_dashboard_backend.py tests/unit/test_multi_host.py -v",
+    "python3 -m ruff check services/backend/workbench_backend/read_model.py tests/unit/test_dashboard_backend.py tests/unit/test_multi_host.py",
+    "python3 -m ruff format --check services/backend/workbench_backend/read_model.py tests/unit/test_dashboard_backend.py tests/unit/test_multi_host.py",
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/backend-duplicate-json-keys.json --base origin/main",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check"
+  ],
+  "evidence": [
+    "focused local and remote duplicate-key test output",
+    "full repository test output",
+    "Task Packet boundary validation",
+    "contract scenario and context check output"
+  ],
+  "stop_conditions": [
+    "an interfaces schema change is required",
+    "a dependency or generalized JSON framework is required",
+    "a write or control endpoint is requested",
+    "a modification outside allowed_paths is required"
+  ]
+}

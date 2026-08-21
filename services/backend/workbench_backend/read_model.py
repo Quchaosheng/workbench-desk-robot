@@ -51,6 +51,19 @@ class ReadModelResponseTooLarge(ReadModelError):
     """Raised when a local or remote projection exceeds the HTTP contract."""
 
 
+class _DuplicateJsonKey(ValueError):
+    """Raised before JSON decoding can silently discard an object member."""
+
+
+def _object_without_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in payload:
+            raise _DuplicateJsonKey(f"duplicate JSON key: {key!r}")
+        payload[key] = value
+    return payload
+
+
 class DashboardReadModel:
     def __init__(self, data_dir: str | Path) -> None:
         self.data_dir = Path(data_dir)
@@ -93,7 +106,13 @@ class DashboardReadModel:
             if contents is None or stable_stat is None:
                 raise ReadModelError(f"event source changed while being read: {path.name}")
             try:
-                events = [json.loads(line) for line in contents.splitlines() if line.strip()]
+                events = [
+                    json.loads(line, object_pairs_hook=_object_without_duplicates)
+                    for line in contents.splitlines()
+                    if line.strip()
+                ]
+            except _DuplicateJsonKey as exc:
+                raise ReadModelError(f"event log contains {exc}: {path.name}") from exc
             except json.JSONDecodeError as exc:
                 raise ReadModelError(f"event log is not valid JSONL: {path.name}") from exc
             if not events or len(events) > MAX_EVENTS_PER_RUN:
@@ -215,13 +234,15 @@ class RemoteDashboardReadModel(DashboardReadModel):
                 body = response.read(MAX_REMOTE_RESPONSE_BYTES + 1)
                 if len(body) > MAX_REMOTE_RESPONSE_BYTES:
                     raise ReadModelError("remote event source response is too large")
-                payload = json.loads(body)
+                payload = json.loads(body, object_pairs_hook=_object_without_duplicates)
         except urllib.error.HTTPError as exc:
             if exc.code == 404:
                 raise KeyError(path) from None
             if exc.code == 413:
                 raise ReadModelResponseTooLarge("remote event source response is too large") from None
             raise ReadModelError(f"remote event source unavailable: {self.base_url}") from exc
+        except _DuplicateJsonKey as exc:
+            raise ReadModelError(f"remote event source returned {exc}: {self.base_url}") from exc
         except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
             raise ReadModelError(f"remote event source unavailable: {self.base_url}") from exc
         if not isinstance(payload, dict):

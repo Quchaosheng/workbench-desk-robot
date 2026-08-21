@@ -12,6 +12,7 @@ set -uo pipefail
 
 IFACE="${1:-wbcan0}"
 DBG="/sys/kernel/debug/wbcan/${IFACE}"
+FAIL_ERROR_SKB="/sys/module/wbcan/parameters/fail_error_skb"
 PASS=0
 FAIL=0
 
@@ -26,6 +27,13 @@ need cansend
 need candump
 need python3
 
+restore_error_skb_allocation() {
+	if [ -w "$FAIL_ERROR_SKB" ]; then
+		printf '0\n' > "$FAIL_ERROR_SKB" || true
+	fi
+}
+trap restore_error_skb_allocation EXIT
+
 [ -d "$DBG" ] || { red "no debugfs dir at $DBG - is the module loaded?"; exit 1; }
 ip link show "$IFACE" >/dev/null 2>&1 || { red "no interface $IFACE"; exit 1; }
 if [ -w "$DBG/inject" ] && [ -r "$DBG/status" ]; then
@@ -35,10 +43,37 @@ else
 	red "FAIL  fault-plane readiness: FAIL"
 	FAIL=$((FAIL + 1))
 fi
+if [ -w "$FAIL_ERROR_SKB" ] && [ -r "$FAIL_ERROR_SKB" ]; then
+	green "PASS  error-SKB failure injection readiness: PASS"
+	PASS=$((PASS + 1))
+else
+	red "FAIL  error-SKB failure injection readiness: FAIL"
+	FAIL=$((FAIL + 1))
+fi
 
 arm()   { echo "$*" > "$DBG/inject"; }
 clear_fault() { arm "none 0"; }
 stat()  { awk -v k="$1" '$1==k{print $2}' "$DBG/status"; }
+can_xstat() {
+	local key="$1"
+
+	ip -details -statistics link show "$IFACE" |
+		awk -v key="$key" '
+			$1 == "re-started" {
+				for (field = 1; field <= NF; field++)
+					header[field] = $field
+				if (getline <= 0)
+					exit 1
+				for (field = 1; field <= NF; field++)
+					if (header[field] == key) {
+						print $field
+						found = 1
+						exit
+					}
+			}
+			END { if (!found) exit 1 }
+		'
+}
 
 wait_for_state() {
 	local want="$1" attempts="${2:-40}"
@@ -326,7 +361,7 @@ out=$(capture 500 & sleep 0.1
       cansend "$IFACE" 611#02
       wait)
 check "stuff-err emits a protocol error" \
-      "1" "$(grep -Eci 'ERRORFRAME|20000008' <<<"$out" | head -1)"
+      "1" "$(grep -Eci 'ERRORFRAME|2000000C' <<<"$out" | head -1)"
 check "stuff-err enters warning" \
       "error-warning" "$(stat state)"
 check "stuff-err consumes both shots" "0" "$(stat shots_left)"
@@ -339,7 +374,44 @@ check "first good frame after stuff-err is delivered" \
 check "first good frame recovers to active" \
       "error-active" "$(stat state)"
 
-# --- 12. counters are trustworthy -----------------------------------------
+# --- 12. error effects survive optional error-SKB allocation failure -------
+# This simulates allocation pressure; it is not evidence from a physical bus.
+printf '1\n' > "$FAIL_ERROR_SKB"
+
+clear_fault
+before_arb_lost=$(can_xstat arbit-lost)
+arm "arb-lost 1"
+out=$(capture 300 & sleep 0.1; cansend "$IFACE" 613#04; wait)
+check "arb-lost allocation failure emits no error frame" \
+      "0" "$(grep -Eci 'ERRORFRAME|20000002' <<<"$out" | head -1)"
+check "arb-lost allocation failure consumes its shot" \
+      "0" "$(stat shots_left)"
+check "arb-lost allocation failure increments its counter" \
+      "1" "$(( $(can_xstat arbit-lost) - before_arb_lost ))"
+check "arb-lost allocation failure leaves the bus active" \
+      "error-active" "$(stat state)"
+
+clear_fault
+before_bus_errors=$(stat bus_errors)
+arm "stuff-err 1"
+out=$(capture 300 & sleep 0.1; cansend "$IFACE" 614#05; wait)
+check "stuff-err allocation failure emits no error frame" \
+      "0" "$(grep -Eci 'ERRORFRAME|2000000C' <<<"$out" | head -1)"
+check "stuff-err allocation failure consumes its shot" \
+      "0" "$(stat shots_left)"
+check "stuff-err allocation failure increments its counter" \
+      "1" "$(( $(stat bus_errors) - before_bus_errors ))"
+check "stuff-err allocation failure enters warning" \
+      "error-warning" "$(stat state)"
+
+printf '0\n' > "$FAIL_ERROR_SKB"
+out=$(capture 300 & sleep 0.1; cansend "$IFACE" 615#06; wait)
+check "allocation recovery restores normal delivery" \
+      "1" "$(grep -c '615.*06' <<<"$out")"
+check "allocation recovery returns to active" \
+      "error-active" "$(stat state)"
+
+# --- 13. counters are trustworthy -----------------------------------------
 clear_fault
 before=$(stat tx_frames)
 cansend "$IFACE" 700#01
@@ -348,7 +420,7 @@ after=$(stat tx_frames)
 check "tx counter advances" \
       "1" "$(( after - before ))"
 
-# --- 13. rejecting a bad ABI write ----------------------------------------
+# --- 14. rejecting a bad ABI write ----------------------------------------
 if echo "not-a-mode 1" > "$DBG/inject" 2>/dev/null; then
 	check "bad fault name rejected" "rejected" "accepted"
 else

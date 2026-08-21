@@ -65,6 +65,10 @@ static const char *const wbcan_fault_names[] = {
 	[WBCAN_FAULT_STUFF_ERR]	= "stuff-err",
 };
 
+static bool fail_error_skb;
+module_param(fail_error_skb, bool, 0600);
+MODULE_PARM_DESC(fail_error_skb, "fail CAN error SKB allocation for testing");
+
 struct wbcan_priv {
 	struct can_priv		can;	/* must be first: can_priv contract */
 	struct net_device	*dev;
@@ -142,12 +146,12 @@ static bool wbcan_should_inject(struct wbcan_priv *priv, struct sk_buff *skb,
 static void wbcan_emit_error(struct net_device *dev, enum wbcan_fault fault)
 {
 	struct wbcan_priv *priv = netdev_priv(dev);
-	struct can_frame *cf;
+	struct can_frame *cf = NULL;
 	struct sk_buff *skb;
 	enum can_state tx_state = priv->can.state;
 	enum can_state rx_state = priv->can.state;
 
-	skb = alloc_can_err_skb(dev, &cf);
+	skb = READ_ONCE(fail_error_skb) ? NULL : alloc_can_err_skb(dev, &cf);
 
 	switch (fault) {
 	case WBCAN_FAULT_BUS_OFF:
@@ -165,22 +169,18 @@ static void wbcan_emit_error(struct net_device *dev, enum wbcan_fault fault)
 		break;
 
 	case WBCAN_FAULT_ARB_LOST:
+		priv->can.can_stats.arbitration_lost++;
 		if (!cf)
-			return;
+			break;
 		cf->can_id |= CAN_ERR_LOSTARB;
 		/*
 		 * Bit position that lost. 0 means unspecified, which is
 		 * honest here: we are not modelling a real bit timeline.
 		 */
 		cf->data[0] = 0;
-		priv->can.can_stats.arbitration_lost++;
 		break;
 
 	case WBCAN_FAULT_STUFF_ERR:
-		if (!cf)
-			return;
-		cf->can_id |= CAN_ERR_PROT;
-		cf->data[2] = CAN_ERR_PROT_STUFF;
 		/*
 		 * This is a bounded protocol-error model: one warning per
 		 * injected frame, then the next fault-free frame recovers to
@@ -189,6 +189,10 @@ static void wbcan_emit_error(struct net_device *dev, enum wbcan_fault fault)
 		priv->can.can_stats.bus_error++;
 		tx_state = CAN_STATE_ERROR_WARNING;
 		can_change_state(dev, cf, tx_state, rx_state);
+		if (!cf)
+			break;
+		cf->can_id |= CAN_ERR_PROT;
+		cf->data[2] = CAN_ERR_PROT_STUFF;
 		break;
 
 	default:

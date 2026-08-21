@@ -24,6 +24,7 @@
     "replay success below 95 percent prevents GO",
     "mean observed entities below two prevents GO",
     "missing evidence for any published threshold prevents GO",
+    "non-finite or non-numeric published metrics prevent GO",
     "exact boundary values pass"
   ],
   "commands": [

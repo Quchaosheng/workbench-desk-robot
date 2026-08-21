@@ -292,6 +292,24 @@ class EvaluationPipelineTests(unittest.TestCase):
                 candidate.pop(metric)
                 self.assertIn(expected_reason, release_reasons(candidate))
 
+        all_numeric_thresholds = {
+            "vtcr": "VTCR 低于 80%",
+            "task_duration_p95_s": "任务 P95 缺失或未低于 120 秒",
+            "evidence_coverage": "验证证据覆盖率不是 100%",
+            "recovery_rate": "恢复率缺失或低于 70%",
+            "state_hash_consistency": "state hash 一致性不是 100%",
+            "replay_success_rate": "回放成功率缺失或低于 95%",
+            "task_family_count": "评测任务族少于 5 类",
+            "complex_task_rate": "复杂任务占比低于 50%",
+            "mean_observed_entities": "平均观测实体数缺失或低于 2",
+            "goal_condition_coverage": "目标条件覆盖率不是 100%",
+        }
+        for metric, expected_reason in all_numeric_thresholds.items():
+            for invalid_value in (float("nan"), float("inf"), "not-a-number", True):
+                with self.subTest(metric=metric, invalid_value=invalid_value):
+                    candidate = {**metrics, metric: invalid_value}
+                    self.assertIn(expected_reason, release_reasons(candidate))
+
 
 if __name__ == "__main__":
     unittest.main()

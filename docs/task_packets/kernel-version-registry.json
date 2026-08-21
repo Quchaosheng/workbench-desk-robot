@@ -1,7 +1,7 @@
 {
   "issue": "97",
   "human_owner": "Quchaosheng",
-  "objective": "Prevent published schema versions from being silently overwritten while preserving idempotent registration.",
+  "objective": "Prevent stale registry instances and concurrent writers from losing or replacing published schema versions.",
   "allowed_paths": [
     "libs/kernel/workbench/kernel/version_registry.py",
     "libs/kernel/tests/test_k1_k10.py",
@@ -24,6 +24,8 @@
     "failed persistence does not update in-memory state",
     "identical registration is idempotent and does not rewrite the registry",
     "conflicting content for an existing schema version is rejected before persistence",
+    "stale instances preserve unrelated versions and recheck conflicts against disk",
+    "concurrent writers serialize read-modify-write and use unique temporary files",
     "repository lint and tests pass"
   ],
   "commands": [
@@ -36,6 +38,7 @@
     "registry reopen regression assertions",
     "malformed and failed-write assertions",
     "idempotent and conflicting registration assertions",
+    "stale-instance and concurrent-writer regression assertions",
     "K1-K10 integration test output",
     "repository test output"
   ],

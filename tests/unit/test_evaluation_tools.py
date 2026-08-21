@@ -267,13 +267,30 @@ class EvaluationPipelineTests(unittest.TestCase):
             "vtcr": 0.8,
             "task_duration_p95_s": 119,
             "evidence_coverage": 1.0,
+            "recovery_rate": 0.7,
+            "state_hash_consistency": 1.0,
+            "replay_success_rate": 0.95,
             "task_family_count": 4,
             "complex_task_rate": 0.5,
+            "mean_observed_entities": 2.0,
             "goal_condition_coverage": 1.0,
         }
         self.assertIn("评测任务族少于 5 类", release_reasons(metrics))
         metrics["task_family_count"] = 5
         self.assertEqual(release_reasons(metrics), [])
+
+        published_thresholds = {
+            "recovery_rate": (0.0, "恢复率缺失或低于 70%"),
+            "state_hash_consistency": (0.0, "state hash 一致性不是 100%"),
+            "replay_success_rate": (0.0, "回放成功率缺失或低于 95%"),
+            "mean_observed_entities": (0.0, "平均观测实体数缺失或低于 2"),
+        }
+        for metric, (failed_value, expected_reason) in published_thresholds.items():
+            with self.subTest(metric=metric):
+                candidate = {**metrics, metric: failed_value}
+                self.assertIn(expected_reason, release_reasons(candidate))
+                candidate.pop(metric)
+                self.assertIn(expected_reason, release_reasons(candidate))
 
 
 if __name__ == "__main__":

@@ -52,10 +52,18 @@ def release_reasons(metrics: dict[str, Any]) -> list[str]:
         reasons.append("任务 P95 缺失或未低于 120 秒")
     if metrics.get("evidence_coverage") != 1.0:
         reasons.append("验证证据覆盖率不是 100%")
+    if metrics.get("recovery_rate") is None or metrics["recovery_rate"] < 0.7:
+        reasons.append("恢复率缺失或低于 70%")
+    if metrics.get("state_hash_consistency") != 1.0:
+        reasons.append("state hash 一致性不是 100%")
+    if metrics.get("replay_success_rate") is None or metrics["replay_success_rate"] < 0.95:
+        reasons.append("回放成功率缺失或低于 95%")
     if metrics.get("task_family_count", 0) < 5:
         reasons.append("评测任务族少于 5 类")
     if metrics.get("complex_task_rate", 0.0) < 0.5:
         reasons.append("复杂任务占比低于 50%")
+    if metrics.get("mean_observed_entities") is None or metrics["mean_observed_entities"] < 2:
+        reasons.append("平均观测实体数缺失或低于 2")
     if metrics.get("goal_condition_coverage") != 1.0:
         reasons.append("目标条件覆盖率不是 100%")
     return reasons

@@ -116,11 +116,14 @@ class ToolRegistryRegistrationTests(unittest.TestCase):
     def test_get_does_not_expose_mutable_registry_state(self) -> None:
         schema = self.registry.get(ActionType.PLACE)
         param_types = schema["param_types"]
+        capacity_constraints = schema["param_constraints"]["destination_capacity"]
 
         with self.assertRaises(TypeError):
             schema["required_params"] = frozenset()  # type: ignore[index]
         with self.assertRaises(TypeError):
             param_types["destination_id"] = int  # type: ignore[index]
+        with self.assertRaises(TypeError):
+            capacity_constraints["minimum"] = -1  # type: ignore[index]
 
         result = self.registry.validate(
             _action(ActionType.PLACE, target_id="red_block", parameters={"destination_id": "tray"})
@@ -134,11 +137,14 @@ class ToolRegistryRegistrationTests(unittest.TestCase):
             "required_params": {"reason"},
             "optional_params": set(),
             "param_types": {"reason": str},
+            "param_constraints": {"reason": {"non_blank": True}},
+            "relational_constraints": set(),
         }
         registry = ToolRegistry(load_defaults=False)
         registry.register(ActionType.STOP, schema)
         schema["required_params"].clear()
         schema["param_types"]["reason"] = int
+        schema["param_constraints"]["reason"]["non_blank"] = False
 
         self.assertFalse(registry.validate(_action(ActionType.STOP)).is_valid)
         self.assertTrue(registry.validate(_action(ActionType.STOP, parameters={"reason": "operator"})).is_valid)
@@ -191,6 +197,27 @@ class ToolRegistryRegistrationTests(unittest.TestCase):
         schema["target_id_required"] = 1
 
         with self.assertRaisesRegex(ValueError, "must be a bool"):
+            ToolRegistry(load_defaults=False).register(ActionType.STOP, schema)
+
+    def test_register_rejects_unknown_or_mistyped_value_constraints(self) -> None:
+        cases = (
+            ({"reason": {"unknown": True}}, "unknown rules"),
+            ({"reason": {"minimum": 0}}, "require an int or float"),
+            ({"reason": {"non_blank": False}}, "must be true"),
+            ({"not_allowed": {"non_blank": True}}, "unknown parameters"),
+        )
+        for constraints, message in cases:
+            with self.subTest(constraints=constraints):
+                schema = dict(TOOL_SCHEMAS[ActionType.STOP])
+                schema["param_constraints"] = constraints
+                with self.assertRaisesRegex(ValueError, message):
+                    ToolRegistry(load_defaults=False).register(ActionType.STOP, schema)
+
+    def test_register_rejects_unknown_relational_constraint(self) -> None:
+        schema = dict(TOOL_SCHEMAS[ActionType.STOP])
+        schema["relational_constraints"] = {"unknown_relation"}
+
+        with self.assertRaisesRegex(ValueError, "unsupported constraints"):
             ToolRegistry(load_defaults=False).register(ActionType.STOP, schema)
 
     def test_rejected_schema_mutation_does_not_change_registry(self) -> None:
@@ -252,6 +279,18 @@ class ToolRegistryValidationTests(unittest.TestCase):
         result = self.registry.validate(_action(ActionType.OBSERVE, parameters={"required_confidence": 0.95}))
         self.assertTrue(result.is_valid)
 
+    def test_confidence_accepts_inclusive_boundaries(self) -> None:
+        for value in (0, 0.0, 1, 1.0):
+            with self.subTest(value=value):
+                result = self.registry.validate(_action(ActionType.OBSERVE, parameters={"required_confidence": value}))
+                self.assertTrue(result.is_valid, result.errors)
+
+    def test_confidence_rejects_non_finite_and_out_of_range_values(self) -> None:
+        for value in (float("nan"), float("inf"), float("-inf"), -0.01, 1.01):
+            with self.subTest(value=value):
+                result = self.registry.validate(_action(ActionType.OBSERVE, parameters={"required_confidence": value}))
+                self.assertFalse(result.is_valid)
+
     def test_grasp_with_target_id_is_valid(self) -> None:
         result = self.registry.validate(_action(ActionType.GRASP, target_id="red_block"))
         self.assertTrue(result.is_valid)
@@ -285,6 +324,66 @@ class ToolRegistryValidationTests(unittest.TestCase):
             )
         )
         self.assertTrue(result.is_valid)
+
+    def test_positive_time_boundaries_are_valid(self) -> None:
+        cases = (
+            (ActionType.ASK_CONFIRM, {"question": "continue?", "timeout_s": 1}),
+            (ActionType.ASK_CONFIRM, {"question": "continue?", "timeout_s": 600}),
+            (ActionType.EXPRESS, {"emotion_state": "pleased", "duration_ms": 1}),
+            (ActionType.EXPRESS, {"emotion_state": "pleased", "duration_ms": 600000}),
+        )
+        for action_type, parameters in cases:
+            with self.subTest(action_type=action_type, parameters=parameters):
+                self.assertTrue(self.registry.validate(_action(action_type, parameters=parameters)).is_valid)
+
+    def test_time_values_outside_documented_bounds_are_rejected(self) -> None:
+        cases = (
+            (ActionType.ASK_CONFIRM, {"question": "continue?", "timeout_s": 0}),
+            (ActionType.ASK_CONFIRM, {"question": "continue?", "timeout_s": 601}),
+            (ActionType.EXPRESS, {"emotion_state": "pleased", "duration_ms": 0}),
+            (ActionType.EXPRESS, {"emotion_state": "pleased", "duration_ms": 600001}),
+        )
+        for action_type, parameters in cases:
+            with self.subTest(action_type=action_type, parameters=parameters):
+                self.assertFalse(self.registry.validate(_action(action_type, parameters=parameters)).is_valid)
+
+    def test_destination_counts_are_non_negative_complete_and_consistent(self) -> None:
+        invalid_snapshots = (
+            {"destination_capacity": -1, "destination_occupancy_after": 0, "destination_remaining_after": 0},
+            {"destination_capacity": 1, "destination_occupancy_after": -1, "destination_remaining_after": 2},
+            {"destination_capacity": 1, "destination_occupancy_after": 0, "destination_remaining_after": -1},
+            {"destination_capacity": 5},
+            {"destination_capacity": 5, "destination_occupancy_after": 2, "destination_remaining_after": 2},
+        )
+        for snapshot in invalid_snapshots:
+            with self.subTest(snapshot=snapshot):
+                parameters = {"destination_id": "bin", **snapshot}
+                result = self.registry.validate(_action(ActionType.PLACE, target_id="parcel", parameters=parameters))
+                self.assertFalse(result.is_valid)
+
+        for snapshot in (
+            {"destination_capacity": 0, "destination_occupancy_after": 0, "destination_remaining_after": 0},
+            {"destination_capacity": 5, "destination_occupancy_after": 2, "destination_remaining_after": 3},
+        ):
+            with self.subTest(snapshot=snapshot):
+                parameters = {"destination_id": "bin", **snapshot}
+                result = self.registry.validate(_action(ActionType.PLACE, target_id="parcel", parameters=parameters))
+                self.assertTrue(result.is_valid, result.errors)
+
+    def test_string_parameters_reject_empty_or_whitespace_only_values(self) -> None:
+        cases = (
+            (ActionType.PLACE, "parcel", {"destination_id": " "}),
+            (ActionType.PLACE, "parcel", {"destination_id": "bin", "routing_reason": ""}),
+            (ActionType.PLACE, "parcel", {"destination_id": "bin", "policy_version": "\t"}),
+            (ActionType.PLACE, "parcel", {"destination_id": "bin", "manifest_id": "\n"}),
+            (ActionType.ASK_CONFIRM, None, {"question": " "}),
+            (ActionType.EXPRESS, None, {"emotion_state": " "}),
+            (ActionType.STOP, None, {"reason": ""}),
+        )
+        for action_type, target_id, parameters in cases:
+            with self.subTest(action_type=action_type, parameters=parameters):
+                result = self.registry.validate(_action(action_type, target_id=target_id, parameters=parameters))
+                self.assertFalse(result.is_valid)
 
     def test_ask_confirm_is_valid(self) -> None:
         result = self.registry.validate(_action(ActionType.ASK_CONFIRM, parameters={"question": "proceed?"}))

@@ -1,0 +1,50 @@
+{
+  "issue": 201,
+  "human_owner": "Quchaosheng",
+  "objective": "Reject contradictory parcel identity fields before emitting a manifest-matched plan.",
+  "allowed_paths": [
+    "services/agent_runtime/workbench_agent_runtime/planner.py",
+    "tests/unit/test_agent_runtime.py",
+    "docs/task_packets/parcel-manifest-identity-conflicts.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "services/world_model/**"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "hardware/safety/**"
+  ],
+  "input_refs": [
+    "interfaces/json_schema/task_graph.schema.json",
+    "interfaces/json_schema/semantic_action.schema.json",
+    "interfaces/examples/semantic-action-place.json",
+    "evaluation/golden-set-parcel-v0.1.json"
+  ],
+  "acceptance": [
+    "every parcel identity key present in both observation and manifest normalizes to the same value",
+    "a conflicting shared identity fails before a TaskGraph is returned",
+    "at least one normalized identity match remains required",
+    "cross-field identity fallback and no-manifest planning remain compatible"
+  ],
+  "commands": [
+    "python -m pytest tests/unit/test_agent_runtime.py -q",
+    "python -m ruff check services/agent_runtime/workbench_agent_runtime/planner.py tests/unit/test_agent_runtime.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/parcel-manifest-identity-conflicts.json --base origin/main",
+    "python tools/scripts/check_context.py",
+    "make contract"
+  ],
+  "evidence": [
+    "focused planner regression test output",
+    "Ruff output",
+    "Task Packet boundary check",
+    "contract and context validation output"
+  ],
+  "stop_conditions": [
+    "an interface or contract change is required",
+    "World Model verification must change in the same pull request",
+    "motion, firmware, or physical hardware behavior is affected"
+  ]
+}

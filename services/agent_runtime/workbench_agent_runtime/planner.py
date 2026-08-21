@@ -467,7 +467,18 @@ def _validate_parcel_manifest(
         expected_values = set(manifest_identities[parcel_id].values())
         if not expected_values:
             raise ValueError(f"parcel manifest requires an identity for {parcel_id}")
-        observed_values = set(_parcel_identity_values(parcel_attributes[parcel_id]).values())
+        observed_identities = _parcel_identity_values(parcel_attributes[parcel_id])
+        conflicting_keys = [
+            key
+            for key, expected_value in manifest_identities[parcel_id].items()
+            if key in observed_identities and observed_identities[key] != expected_value
+        ]
+        if conflicting_keys:
+            raise ValueError(
+                f"parcel {parcel_id} identity conflicts with manifest {normalized_manifest_id}: "
+                f"{', '.join(conflicting_keys)}"
+            )
+        observed_values = set(observed_identities.values())
         if not observed_values:
             raise ValueError(f"parcel {parcel_id} has no readable identity for manifest {normalized_manifest_id}")
         if expected_values.isdisjoint(observed_values):

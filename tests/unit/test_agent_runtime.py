@@ -202,14 +202,29 @@ class PlannerTests(unittest.TestCase):
             "first": {"label_status": "verified", "condition": "intact", "tracking_id": "EXPECTED-1"},
             "second": {"label_status": "verified", "condition": "intact", "barcode": "WRONG-2"},
         }
-        with self.assertRaisesRegex(ValueError, "second identity does not match manifest"):
+        with self.assertRaisesRegex(ValueError, "second identity conflicts with manifest"):
             build_policy_routed_parcel_plan(
                 "Reject a parcel that is not on the inbound manifest",
                 observed,
                 parcel_manifest=manifest,
                 manifest_id="manifest-7",
             )
+        observed["second"] = {
+            "label_status": "verified",
+            "condition": "intact",
+            "tracking_id": "EXPECTED-2",
+            "barcode": "WRONG-2",
+        }
+        manifest["second"]["tracking_id"] = "EXPECTED-2"
+        with self.assertRaisesRegex(ValueError, "second identity conflicts with manifest manifest-7: barcode"):
+            build_policy_routed_parcel_plan(
+                "Reject conflicting identity fields",
+                observed,
+                parcel_manifest=manifest,
+                manifest_id="manifest-7",
+            )
         observed["second"].pop("barcode")
+        observed["second"].pop("tracking_id")
         with self.assertRaisesRegex(ValueError, "second has no readable identity"):
             build_policy_routed_parcel_plan(
                 "Reject a parcel whose manifest identity is missing",

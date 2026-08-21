@@ -1,0 +1,44 @@
+{
+  "issue": 188,
+  "human_owner": "Quchaosheng",
+  "objective": "Keep generated kitting and inspection TaskGraph step IDs unique after readable entity-ID normalization.",
+  "allowed_paths": [
+    "services/agent_runtime/workbench_agent_runtime/planner.py",
+    "tests/unit/test_agent_runtime.py",
+    "docs/task_packets/agent-unique-step-ids.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "libs/contracts/**"
+  ],
+  "forbidden": [
+    "firmware/**",
+    "robot/control/**",
+    "services/world_model/**",
+    "services/backend/**"
+  ],
+  "acceptance": [
+    "distinct accepted entity IDs always produce unique step IDs",
+    "normalization collisions receive deterministic readable suffixes",
+    "dependencies reference the generated step IDs",
+    "ordinary existing entity IDs retain their current step IDs"
+  ],
+  "commands": [
+    "python -m pytest tests/unit/test_agent_runtime.py -v",
+    "python -m ruff check services/agent_runtime/workbench_agent_runtime/planner.py tests/unit/test_agent_runtime.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/agent-unique-step-ids.json",
+    "make contract",
+    "make context-check"
+  ],
+  "evidence": [
+    "focused collision regression output",
+    "Agent Runtime unit-test output",
+    "Task Packet boundary validation",
+    "contract and context validation output"
+  ],
+  "stop_conditions": [
+    "an interface or canonical contract change is required",
+    "a write outside allowed_paths is required",
+    "generated plans no longer pass the existing tool registry"
+  ]
+}

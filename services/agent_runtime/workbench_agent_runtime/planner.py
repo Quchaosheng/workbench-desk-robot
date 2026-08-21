@@ -170,10 +170,11 @@ def build_kitting_plan(
 ) -> TaskGraph:
     part_ids = _validate_entity_ids(part_ids, "kitting")
     tray_id = _validate_identifier(tray_id, "tray_id")
+    step_tokens = _unique_step_tokens(part_ids)
     steps: list[TaskStep] = []
     action_index = 1
     for part_id in part_ids:
-        suffix = part_id.replace("_", "-")
+        suffix = step_tokens[part_id]
         observe_step = f"observe-{suffix}"
         grasp_step = f"grasp-{suffix}"
         steps.extend(
@@ -217,9 +218,10 @@ def build_inspection_plan(
     entity_ids: Sequence[str] = DEFAULT_INSPECTION_ENTITIES,
 ) -> TaskGraph:
     entity_ids = _validate_entity_ids(entity_ids, "inspection")
+    step_tokens = _unique_step_tokens(entity_ids)
     steps = [
         TaskStep(
-            step_id=f"inspect-{entity_id.replace('_', '-')}",
+            step_id=f"inspect-{step_tokens[entity_id]}",
             action=SemanticAction(
                 action_id=f"act-{index:03d}",
                 action_type=ActionType.OBSERVE,

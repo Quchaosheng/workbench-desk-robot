@@ -68,10 +68,12 @@ never evidence that stopped confirmation was received. The safe state remains
 active and trusted reset cannot clear the timing cause until the owner marks it
 cleared.
 
-An exact STOP retry while the pending slot is live returns the same correlated
-STOP ACK record and does not extend the deadline. A different pending STOP is
-rejected by the bounded single-slot implementation; retry deduplication and
-multi-command windows remain separate work.
+An exact STOP retry while the pending slot is live replays the cached original
+STOP ACK record, including its observed timestamp, wire result, fault and
+device mode, and does not extend the deadline. The replay remains unchanged if
+the state machine enters a fault after the first ACK was created. A different
+pending STOP is rejected by the bounded single-slot implementation; retry
+deduplication and multi-command windows remain separate work.
 
 ## Hardware watchdog and HAL boundary
 
@@ -86,7 +88,9 @@ The QEMU HAL maps time to the virt machine CLINT `mtime`, dispatches a real
 machine-timer interrupt through `crt0.S`, and models the hardware watchdog as a
 finite deadline. The timer callback runs the same `mcu_watchdog_poll()` source
 as Host and feeds the modeled hardware watchdog only while the timing core and
-state machine remain valid without an active timing cause.
+state machine remain valid, the state is not `FAULT`, and no active timing
+cause exists. Clearing a timing cause does not make a latched `FAULT` state
+feed-eligible.
 
 QEMU proves timer-interrupt routing, deadline arithmetic, single-record
 emission and the HAL feed decision. It does not prove CH32V307 register

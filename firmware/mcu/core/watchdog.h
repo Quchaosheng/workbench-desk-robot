@@ -65,6 +65,8 @@ typedef struct {
     uint64_t stop_deadline_us;
     uint16_t stop_command_id;
     uint8_t stop_retry_count;
+    uint64_t stop_ack_observed_at_us;
+    mcu_wire_frame_t stop_ack_frame;
 } mcu_watchdog_t;
 
 void mcu_watchdog_init(mcu_watchdog_t *watchdog, uint32_t first_telemetry_sequence);
@@ -115,9 +117,9 @@ bool mcu_watchdog_request_reset(mcu_watchdog_t *watchdog,
                                 bool cause_cleared,
                                 mcu_transition_result_t *result);
 
-/* Hardware watchdog feed is a liveness action for a running firmware loop
- * without an active timing cause. A hung loop or a timed-out safety path cannot
- * call this function successfully. */
+/* Hardware watchdog feed is allowed only for a valid non-fault state without
+ * an active timing cause. A hung loop or a timed-out safety path cannot call
+ * this function successfully. */
 bool mcu_watchdog_should_feed_hardware(const mcu_watchdog_t *watchdog,
                                        const mcu_state_machine_t *machine);
 

@@ -60,7 +60,7 @@ def _validate_parcel_manifest(
     required: set[str],
     parcel_manifest: Mapping[str, Mapping[str, str]] | None,
     manifest_id: str | None,
-) -> tuple[str | None, dict[str, set[str]]]:
+) -> tuple[str | None, dict[str, dict[str, str]]]:
     if parcel_manifest is None:
         if manifest_id is not None:
             raise ValueError("manifest_id requires parcel_manifest")
@@ -72,7 +72,7 @@ def _validate_parcel_manifest(
     if set(parcel_manifest) != required:
         raise ValueError("parcel_manifest must contain exactly the required parcel IDs")
 
-    expected_identities: dict[str, set[str]] = {}
+    expected_identities: dict[str, dict[str, str]] = {}
     seen: dict[str, tuple[str, str]] = {}
     for parcel_id, attributes in parcel_manifest.items():
         if not isinstance(attributes, Mapping):
@@ -80,7 +80,7 @@ def _validate_parcel_manifest(
         unsupported = set(attributes) - set(PARCEL_IDENTITY_KEYS)
         if unsupported:
             raise ValueError(f"parcel manifest contains unsupported identity keys: {', '.join(sorted(unsupported))}")
-        expected_identities[parcel_id] = set()
+        expected_identities[parcel_id] = {}
         for key in PARCEL_IDENTITY_KEYS:
             if attributes.get(key) is None:
                 continue
@@ -91,7 +91,7 @@ def _validate_parcel_manifest(
                     f"duplicate parcel manifest identity: {previous[0]}.{previous[1]} and {parcel_id}.{key}"
                 )
             seen[identity] = (parcel_id, key)
-            expected_identities[parcel_id].add(identity)
+            expected_identities[parcel_id][key] = identity
         if not expected_identities[parcel_id]:
             raise ValueError(f"parcel manifest requires an identity for {parcel_id}")
     return manifest_id.strip(), expected_identities
@@ -377,7 +377,7 @@ def verify_parcel_policy(
             missing_attributes.append(f"{parcel_id}.label_status")
         if not isinstance(condition, str) or not condition.strip():
             missing_attributes.append(f"{parcel_id}.condition")
-        observed_identities: set[str] = set()
+        observed_identities: dict[str, str] = {}
         for identity_key in PARCEL_IDENTITY_KEYS:
             identity_value = observed.get(identity_key)
             if identity_value is None:
@@ -387,7 +387,7 @@ def verify_parcel_policy(
             except ValueError:
                 missing_attributes.append(f"{parcel_id}.{identity_key}")
                 continue
-            observed_identities.add(identity)
+            observed_identities[identity_key] = identity
             previous = seen_identities.get(identity)
             if previous is not None and previous[0] != parcel_id:
                 duplicate_identities.append(
@@ -398,7 +398,10 @@ def verify_parcel_policy(
         if normalized_manifest_id is not None:
             if not observed_identities:
                 missing_manifest_identities.append(parcel_id)
-            elif expected_identities[parcel_id].isdisjoint(observed_identities):
+            elif any(
+                key in expected_identities[parcel_id] and expected_identities[parcel_id][key] != identity
+                for key, identity in observed_identities.items()
+            ) or set(expected_identities[parcel_id].values()).isdisjoint(observed_identities.values()):
                 manifest_mismatches.append(parcel_id)
         if (
             not isinstance(label_status, str)

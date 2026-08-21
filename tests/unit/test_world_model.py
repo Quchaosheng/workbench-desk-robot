@@ -409,6 +409,21 @@ class WorldModelTests(unittest.TestCase):
         self.assertIn("box-b", result.claim)
         self.assertIn("label_unreadable", result.claim)
 
+        manifest["box-a"]["barcode"] = "BARCODE-A"
+        state.entity_attributes["box-a"]["barcode"] = "WRONG-BARCODE"
+        result = verify_parcel_policy(
+            state,
+            "task-sort-parcels",
+            ["box-a", "box-b", "box-c"],
+            parcel_manifest=manifest,
+            manifest_id="manifest-7",
+        )
+        self.assertEqual(result.status, VerificationStatus.REFUTED)
+        self.assertEqual(result.reason_code, ReasonCode.GOAL_NOT_SATISFIED)
+        self.assertIn("manifest_mismatches=['box-a']", result.claim)
+        manifest["box-a"].pop("barcode")
+        state.entity_attributes["box-a"].pop("barcode")
+
         state.entity_locations["box-b"] = "in:pickup_shelf"
         result = verify_parcel_policy(
             state,

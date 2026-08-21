@@ -1,0 +1,50 @@
+{
+  "issue": 205,
+  "human_owner": "Quchaosheng",
+  "objective": "Refute contradictory parcel identity fields during independent World Model verification.",
+  "allowed_paths": [
+    "services/world_model/workbench_world_model/verifier.py",
+    "tests/unit/test_world_model.py",
+    "docs/task_packets/world-model-parcel-manifest-identity-conflicts.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "services/agent_runtime/**"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "hardware/safety/**"
+  ],
+  "input_refs": [
+    "interfaces/json_schema/verification_result.schema.json",
+    "interfaces/json_schema/world_state.schema.json",
+    "interfaces/examples/verification-insufficient-evidence.json",
+    "evaluation/golden-set-parcel-v0.1.json"
+  ],
+  "acceptance": [
+    "every identity key present in both WorldState attributes and manifest normalizes to the same value",
+    "a conflicting shared identity produces a refuted goal-not-satisfied result",
+    "at least one normalized identity match remains required",
+    "cross-field identity fallback and missing-evidence outcomes remain compatible"
+  ],
+  "commands": [
+    "python -m pytest tests/unit/test_world_model.py -q",
+    "python -m ruff check services/world_model/workbench_world_model/verifier.py tests/unit/test_world_model.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/world-model-parcel-manifest-identity-conflicts.json --base origin/main",
+    "python tools/scripts/check_context.py",
+    "make contract"
+  ],
+  "evidence": [
+    "focused verifier regression test output",
+    "Ruff output",
+    "Task Packet boundary check",
+    "contract and context validation output"
+  ],
+  "stop_conditions": [
+    "an interface or contract change is required",
+    "agent planner behavior must change in the same pull request",
+    "motion, firmware, or physical hardware behavior is affected"
+  ]
+}

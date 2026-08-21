@@ -16,7 +16,7 @@ HOSTCC  ?= cc
 
 BUILD   := build
 CORE    := $(wildcard core/*.c)
-SHARED_TESTS := tests/state_machine_tests.c tests/frame_codec_tests.c
+SHARED_TESTS := tests/state_machine_tests.c tests/frame_codec_tests.c tests/watchdog_tests.c
 HOST_TESTS := $(SHARED_TESTS) tests/main_host.c
 
 # rv32imac: no FPU. -mabi=ilp32 (not ilp32f/d) so a stray double is a link error
@@ -107,8 +107,8 @@ verify-no-fp: qemu
 	@echo "ok: no FP, no allocator"
 
 size-check: qemu
-	@text=$$($(RVSIZE) -A $(BUILD)/qemu/mcu.elf | awk '/^\.text/{print $$2}'); \
-	 bss=$$($(RVSIZE) -A $(BUILD)/qemu/mcu.elf | awk '/^\.bss/{print $$2}'); \
+	@text=$$($(RVSIZE) -A $(BUILD)/qemu/mcu.elf | awk '/^[[:space:]]*\.text/{print $$2}'); \
+	 bss=$$($(RVSIZE) -A $(BUILD)/qemu/mcu.elf | awk '/^[[:space:]]*\.bss/{print $$2}'); \
 	 echo ".text=$$text (max $(MAX_TEXT))  .bss=$$bss (max $(MAX_BSS))"; \
 	 [ "$${text:-0}" -le $(MAX_TEXT) ] || { echo "FAIL: .text over budget"; exit 1; }; \
 	 [ "$${bss:-0}" -le $(MAX_BSS) ] || { echo "FAIL: .bss over budget"; exit 1; }

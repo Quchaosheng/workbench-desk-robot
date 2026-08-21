@@ -1,0 +1,47 @@
+{
+  "issue": 192,
+  "human_owner": "Quchaosheng",
+  "objective": "Make every published evaluation threshold participate in the Go/No-Go release decision.",
+  "allowed_paths": [
+    "tools/scripts/generate_report.py",
+    "tests/unit/test_evaluation_tools.py",
+    "docs/task_packets/evaluation-release-thresholds.json"
+  ],
+  "read_only_paths": [
+    "tools/scripts/collect_metrics.py",
+    "interfaces/**",
+    "libs/contracts/**"
+  ],
+  "forbidden": [
+    "firmware/**",
+    "robot/control/**",
+    "services/world_model/**",
+    "services/agent_runtime/**"
+  ],
+  "acceptance": [
+    "recovery rate below 70 percent prevents GO",
+    "state hash consistency below 100 percent prevents GO",
+    "replay success below 95 percent prevents GO",
+    "mean observed entities below two prevents GO",
+    "missing evidence for any published threshold prevents GO",
+    "non-finite or non-numeric published metrics prevent GO",
+    "exact boundary values pass"
+  ],
+  "commands": [
+    "python -m pytest tests/unit/test_evaluation_tools.py -v",
+    "python -m ruff check tools/scripts/generate_report.py tests/unit/test_evaluation_tools.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/evaluation-release-thresholds.json",
+    "make context-check"
+  ],
+  "evidence": [
+    "focused release-threshold regression output",
+    "evaluation unit-test output",
+    "Task Packet boundary validation",
+    "context validation output"
+  ],
+  "stop_conditions": [
+    "metric collection semantics must change",
+    "an interface or canonical contract change is required",
+    "a write outside allowed_paths is required"
+  ]
+}

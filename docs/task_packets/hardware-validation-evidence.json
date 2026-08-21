@@ -1,7 +1,7 @@
 {
   "issue": 87,
   "human_owner": "Quchaosheng",
-  "objective": "Bind physical fault-validation results to immutable raw evidence and keep release status fail closed.",
+  "objective": "Atomically bind physical fault-validation results to immutable raw evidence and keep release status fail closed.",
   "allowed_paths": [
     "hardware/validation/**",
     "tests/hardware/**",
@@ -22,17 +22,20 @@
     "every fault scenario has an owner, procedure, expected safe response, and evidence requirement",
     "registration binds scenario, unit, revisions, people, instruments, calibration, timestamp, result, and raw-file hashes",
     "duplicate identifiers, unknown scenarios, wrong revisions, missing files, and changed files fail closed",
+    "concurrent Linux threads and processes cannot create duplicate identifiers or lose distinct records",
+    "a failed append restores the previously valid JSONL register",
     "summary CSV edits cannot promote a scenario to PASS",
     "reports distinguish simulation, bench, and physical evidence"
   ],
   "commands": [
     "python tools/scripts/check_task_packet.py docs/task_packets/hardware-validation-evidence.json",
     "python hardware/validation/tools/validate_validation.py",
-    "python -m pytest tests/hardware -k validation -v"
+    "python -m pytest tests/hardware -k validation -v",
+    "python -m ruff check hardware/validation/tools/evidence.py tests/hardware/test_engineering_packages.py"
   ],
   "evidence": [
     "hardware/validation/generated/validation_report.json",
-    "hardware validation test output"
+    "hardware validation test output including process, thread, and short-write regressions"
   ],
   "stop_conditions": [
     "physical execution would be claimed without a valid evidence record",

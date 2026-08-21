@@ -303,6 +303,31 @@ static void test_watchdog_reset_requires_live_cause_clear(mcu_test_report_t *rep
     check(report, !watchdog.watchdog_record_emitted);
 }
 
+static void test_hardware_feed_policy_in_latched_fault(mcu_test_report_t *report)
+{
+    mcu_watchdog_t watchdog;
+    mcu_state_machine_t machine;
+    mcu_watchdog_record_t record;
+    fake_clock_t clock = {.now_us = 21u};
+
+    mcu_watchdog_init(&watchdog, 0u);
+    start_move(&machine);
+    check(report,
+          mcu_watchdog_note_activity(
+            &watchdog, &machine, MCU_WATCHDOG_ACTIVITY_VALID_NEW, clock.now_us));
+    check(report,
+          mcu_watchdog_poll(
+            &watchdog, &machine, clock.now_us + MCU_SOFTWARE_WATCHDOG_TIMEOUT_US, &record));
+    check(report, machine.state == MCU_STATE_FAULT);
+    check(report, watchdog.watchdog_cause_active);
+    check(report, !mcu_watchdog_should_feed_hardware(&watchdog, &machine));
+
+    mcu_watchdog_mark_causes_cleared(&watchdog);
+    check(report, machine.state == MCU_STATE_FAULT);
+    check(report, !watchdog.watchdog_cause_active);
+    check(report, mcu_watchdog_should_feed_hardware(&watchdog, &machine));
+}
+
 static void test_invalid_inputs_and_hardware_feed_gate(mcu_test_report_t *report)
 {
     mcu_watchdog_t watchdog;
@@ -353,5 +378,6 @@ void mcu_watchdog_run_tests(mcu_test_report_t *report)
     test_stop_ack_within_bound(report);
     test_stop_timeout_is_distinct_and_latched(report);
     test_watchdog_reset_requires_live_cause_clear(report);
+    test_hardware_feed_policy_in_latched_fault(report);
     test_invalid_inputs_and_hardware_feed_gate(report);
 }

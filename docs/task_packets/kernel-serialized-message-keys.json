@@ -1,0 +1,46 @@
+{
+  "issue": 208,
+  "human_owner": "Quchaosheng",
+  "objective": "Reject non-string serialized message keys through the kernel integrity-error boundary.",
+  "allowed_paths": [
+    "libs/kernel/workbench/kernel/communication.py",
+    "tests/unit/test_kernel_envelope_lifecycle.py",
+    "docs/task_packets/kernel-serialized-message-keys.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "libs/contracts/**"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**"
+  ],
+  "input_refs": [
+    "interfaces/json_schema/world_event.schema.json",
+    "interfaces/examples/observation-red-block.json",
+    "interfaces/examples/action-result-place-confirmed.json"
+  ],
+  "acceptance": [
+    "non-string serialized message keys raise MessageIntegrityError",
+    "string-only reserved-field operations never receive a non-string key",
+    "valid round trips, reserved-field rejection, and checksum tamper detection remain unchanged"
+  ],
+  "commands": [
+    "python -m pytest tests/unit/test_kernel_envelope_lifecycle.py -q",
+    "python -m ruff check libs/kernel/workbench/kernel/communication.py tests/unit/test_kernel_envelope_lifecycle.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/kernel-serialized-message-keys.json --base origin/main",
+    "python tools/scripts/check_context.py",
+    "make contract"
+  ],
+  "evidence": [
+    "focused kernel envelope regression output",
+    "Ruff output",
+    "Task Packet boundary check",
+    "contract and context validation output"
+  ],
+  "stop_conditions": [
+    "an interface or contract change is required",
+    "broker or lifecycle semantics must change",
+    "robot control or firmware behavior is affected"
+  ]
+}

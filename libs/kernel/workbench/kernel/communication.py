@@ -120,6 +120,8 @@ class Message:
     def from_dict(cls, value: Mapping[str, Any]) -> "Message":
         if not isinstance(value, Mapping):
             raise MessageIntegrityError("serialized message must be an object")
+        if any(not isinstance(key, str) for key in value):
+            raise MessageIntegrityError("serialized message keys must be strings")
         required = {"_message_type", "_version", "_checksum", "_actor"}
         missing = required - set(value)
         if missing:

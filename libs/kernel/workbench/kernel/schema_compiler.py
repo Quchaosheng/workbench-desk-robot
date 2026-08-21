@@ -341,6 +341,10 @@ def _conditional_validators(schema: dict[str, Any], name: str) -> tuple[list[str
                 "    def _validate_mcu_protocol(cls, value):",
                 "        validate_schema_instance(value, MCU_PROTOCOL_SCHEMA)",
                 "        return value",
+                "",
+                '    @model_serializer(mode="wrap")',
+                "    def _serialize_mcu_protocol(self, handler):",
+                "        return {key: item for key, item in handler(self).items() if item is not None}",
             ],
             schema.get("allOf", []),
         )
@@ -538,10 +542,10 @@ class SchemaCompiler:
             _, conditional_metadata = _conditional_validators(schema, name)
             class_blocks: list[str] = []
             self._append_python_model(model_name, schema, name, class_blocks, {})
-            python_code = (
-                "from typing import Annotated, Any, Literal\n\n"
-                "from pydantic import BaseModel, ConfigDict, Field, model_validator\n"
-            )
+            pydantic_imports = "BaseModel, ConfigDict, Field, model_validator"
+            if name == "mcu_protocol":
+                pydantic_imports = "BaseModel, ConfigDict, Field, model_serializer, model_validator"
+            python_code = f"from typing import Annotated, Any, Literal\n\nfrom pydantic import {pydantic_imports}\n"
             if name == "mcu_protocol":
                 python_code += "from workbench.kernel.schema_compiler import validate_schema_instance\n"
                 python_code += f"\n\nMCU_PROTOCOL_SCHEMA = {schema!r}\n"

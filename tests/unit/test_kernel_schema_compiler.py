@@ -103,6 +103,7 @@ def test_generated_mcu_model_enforces_protocol_branches(tmp_path: Path) -> None:
         invalid.append(payload)
     for updates in (
         {"sent_at": "legacy"},
+        {"sequence_no": None},
         {"opcode": "hold"},
         {"result_code": 0, "fault_code": "stop_rejected", "device_mode": "faulted"},
         {"result_code": 1, "fault_code": "none", "device_mode": "stopped"},
@@ -110,7 +111,10 @@ def test_generated_mcu_model_enforces_protocol_branches(tmp_path: Path) -> None:
         payload = {**valid, **updates}
         invalid.append(payload)
 
-    assert mcu_frame.model_validate(valid)
+    frame = mcu_frame.model_validate(valid)
+    serialized = frame.model_dump(mode="json")
+    assert serialized == valid
+    assert mcu_frame.model_validate(serialized) == frame
     for payload in invalid:
         assert list(Draft202012Validator(schema).iter_errors(payload))
         with pytest.raises(ValueError):

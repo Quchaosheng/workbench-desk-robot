@@ -1,0 +1,45 @@
+{
+  "issue": 215,
+  "human_owner": "Quchaosheng",
+  "objective": "Preserve wbcan error effects when optional CAN error SKB allocation fails.",
+  "allowed_paths": [
+    "kernel/wbcan/wbcan.c",
+    "kernel/wbcan/test_wbcan.sh",
+    "docs/task_packets/linux-wbcan-error-skb-failure.json"
+  ],
+  "read_only_paths": [
+    ".github/workflows/ci.yml",
+    "AGENTS.md"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "firmware/**",
+    "robot/control/**"
+  ],
+  "acceptance": [
+    "arbitration loss increments its CAN statistic even when the optional error SKB allocation fails",
+    "stuff error increments its CAN statistic and enters warning even when the optional error SKB allocation fails",
+    "successful allocation retains the existing error frame and transmission behavior",
+    "the privileged regression restores allocation behavior before exit",
+    "the change does not alter CAN state synchronization owned by issue 153"
+  ],
+  "commands": [
+    "make -C kernel/wbcan",
+    "make -C kernel/wbcan checkpatch",
+    "sudo make -C kernel/wbcan reload",
+    "sudo make -C kernel/wbcan test",
+    "python tools/scripts/check_task_packet.py docs/task_packets/linux-wbcan-error-skb-failure.json --base origin/main",
+    "git diff --check origin/main...HEAD"
+  ],
+  "evidence": [
+    "kernel module build output",
+    "checkpatch output",
+    "privileged allocation-pressure simulation counter and state assertions; missing error frames are not physical CAN evidence",
+    "existing seven-mode fault-suite output"
+  ],
+  "stop_conditions": [
+    "CAN core APIs must change",
+    "state transition serialization from issue 153 must change",
+    "firmware interfaces or physical CAN claims are required"
+  ]
+}

@@ -33,7 +33,8 @@
     "colcon build --packages-select workbench_motion && source install/setup.bash",
     "xacro $(ros2 pkg prefix workbench_motion)/share/workbench_motion/config/arm_on_workbench.urdf.xacro > /tmp/wb_arm.urdf && check_urdf /tmp/wb_arm.urdf",
     "uv run pytest",
-    "ros2 launch workbench_motion move_group.launch.py (then) ros2 run workbench_motion reachability_check --seed 0 --samples 20",
+    "ros2 launch workbench_motion move_group.launch.py",
+    "ros2 run workbench_motion reachability_check --seed 0 --samples 20",
     "make lint && make test && make contract"
   ],
   "evidence": [

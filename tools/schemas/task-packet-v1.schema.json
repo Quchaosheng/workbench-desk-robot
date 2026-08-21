@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://workbench-1.local/schemas/task-packet-v1.schema.json",
+  "title": "Workbench-1 Task Packet v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "issue",
+    "human_owner",
+    "objective",
+    "allowed_paths",
+    "read_only_paths",
+    "forbidden",
+    "acceptance",
+    "commands",
+    "evidence",
+    "stop_conditions"
+  ],
+  "properties": {
+    "issue": {
+      "oneOf": [
+        { "type": "integer", "minimum": 1 },
+        { "type": "string", "minLength": 1, "pattern": ".*\\S.*" }
+      ]
+    },
+    "issues": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "integer", "minimum": 1 }
+    },
+    "human_owner": { "type": "string", "minLength": 1, "pattern": ".*\\S.*" },
+    "objective": { "type": "string", "minLength": 1, "pattern": ".*\\S.*" },
+    "decision_supported": { "$ref": "#/$defs/nonBlankString" },
+    "allowed_paths": { "$ref": "#/$defs/nonEmptyUniqueStrings" },
+    "read_only_paths": { "$ref": "#/$defs/uniqueStrings" },
+    "forbidden": { "$ref": "#/$defs/uniqueStrings" },
+    "input_refs": { "$ref": "#/$defs/nonEmptyUniqueStrings" },
+    "outputs": { "$ref": "#/$defs/nonEmptyUniqueStrings" },
+    "acceptance": { "$ref": "#/$defs/nonEmptyUniqueStrings" },
+    "commands": { "$ref": "#/$defs/nonEmptyUniqueStrings" },
+    "evidence": { "$ref": "#/$defs/nonEmptyUniqueStrings" },
+    "stop_conditions": { "$ref": "#/$defs/nonEmptyUniqueStrings" },
+    "max_iterations": { "type": "integer", "minimum": 1 },
+    "data_classification": { "$ref": "#/$defs/nonBlankString" },
+    "model_policy": { "$ref": "#/$defs/nonBlankString" },
+    "risks_and_fallbacks": { "$ref": "#/$defs/nonEmptyUniqueStrings" }
+  },
+  "$defs": {
+    "nonBlankString": { "type": "string", "minLength": 1, "pattern": ".*\\S.*" },
+    "uniqueStrings": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/nonBlankString" }
+    },
+    "nonEmptyUniqueStrings": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/nonBlankString" }
+    }
+  }
+}

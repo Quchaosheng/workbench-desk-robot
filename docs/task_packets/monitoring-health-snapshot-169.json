@@ -20,15 +20,7 @@
     "robot/**",
     "hardware/**"
   ],
-  "forbidden": [
-    "Prometheus server",
-    "Grafana",
-    "OpenTelemetry collector",
-    "time-series database",
-    "cloud telemetry",
-    "background monitoring daemon",
-    "raw image or model-prompt metrics"
-  ],
+  "forbidden": [],
   "acceptance": [
     "fixed metric names define type, unit, domain, freshness and criticality",
     "unknown metrics, invalid values, incompatible clocks and unapproved labels fail closed",
@@ -65,6 +57,9 @@
     "a component needs a new control or safety authority",
     "a source cannot provide a monotonic timestamp",
     "a production design requires an unbounded buffer or external service",
-    "physical sensor or E-stop evidence is requested without a connected bench"
+    "physical sensor or E-stop evidence is requested without a connected bench",
+    "a Prometheus server Grafana OpenTelemetry collector or time-series database is required",
+    "cloud telemetry or a background monitoring daemon is required",
+    "raw image or model-prompt metrics are required"
   ]
 }

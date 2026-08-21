@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: "3.12"
@@ -25,6 +27,9 @@ jobs:
       - run: make scenario-check
       - run: make golden-check
       - run: make context-check
+      - run: python tools/scripts/check_task_packet.py --all
+      - if: github.event_name == 'pull_request'
+        run: python tools/scripts/check_task_packet.py --all --base "${{ github.event.pull_request.base.sha }}"
       - run: make docs
       - run: make demo-scripted
       - run: make demo-offline

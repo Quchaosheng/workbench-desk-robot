@@ -15,8 +15,7 @@
   "forbidden": [
     "robot/control/**",
     "firmware/**",
-    "interfaces/**",
-    ".github/workflows/** outside the listed files"
+    "interfaces/**"
   ],
   "acceptance": [
     "all third-party uses references in the listed workflows are 40-character commit SHAs",
@@ -37,6 +36,7 @@
   "stop_conditions": [
     "an action tag cannot be resolved to a commit",
     "workflow behavior changes are required",
-    "robot-control or firmware changes are required"
+    "robot-control or firmware changes are required",
+    "a workflow outside the listed files must change"
   ]
 }

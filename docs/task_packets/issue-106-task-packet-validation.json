@@ -1,0 +1,52 @@
+{
+  "issue": 106,
+  "human_owner": "Quchaosheng",
+  "objective": "Make Task Packet validation a fail-closed, repository-scoped write authorization boundary.",
+  "allowed_paths": [
+    "tools/scripts/check_task_packet.py",
+    "tools/schemas/task-packet-v1.schema.json",
+    "tests/unit/test_task_packet.py",
+    ".github/workflows/ci.yml",
+    "docs/AI-NATIVE-PLAYBOOK.md",
+    "docs/task_packets/**"
+  ],
+  "read_only_paths": [
+    "Makefile",
+    "pyproject.toml"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "interfaces/**"
+  ],
+  "acceptance": [
+    "a versioned strict JSON Schema validates every field and non-empty constraint",
+    "repository paths are normalized, relative, contained, and free of symlink escapes",
+    "allowed paths cannot overlap read-only or forbidden boundaries",
+    "identity and instruction fields have strict scalar and list shapes",
+    "commands are validated as evidence instructions and never executed",
+    "CI validates every committed Task Packet",
+    "CI rejects Git-visible added, modified, deleted and renamed paths outside one active packet boundary",
+    "documentation distinguishes the changed-path consistency gate from filesystem sandboxing and human approval",
+    "adversarial and valid packet tests pass"
+  ],
+  "commands": [
+    "python -m pytest tests/unit -k task_packet -v",
+    "python tools/scripts/check_task_packet.py docs/task_packets/example-001-world-reducer.json",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check"
+  ],
+  "evidence": [
+    "task packet unit test output",
+    "example packet validation output",
+    "Git-visible changed-path boundary rejection output",
+    "required repository check output"
+  ],
+  "stop_conditions": [
+    "interfaces change required",
+    "robot control or firmware change required",
+    "existing packet cannot be migrated without changing its authorized scope"
+  ]
+}

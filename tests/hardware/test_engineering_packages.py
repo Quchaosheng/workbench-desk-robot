@@ -3,10 +3,14 @@ from __future__ import annotations
 import csv
 import importlib.util
 import json
+import multiprocessing
 import re
 import tempfile
+import threading
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -17,6 +21,23 @@ def load_module(name: str, path: Path):
     assert spec.loader is not None
     spec.loader.exec_module(module)
     return module
+
+
+def _register_evidence_process(module_path, register, root, record, barrier, results) -> None:
+    module = load_module("validation_evidence_process", module_path)
+    barrier.wait()
+    try:
+        module.register(
+            register,
+            record,
+            root=root,
+            scenarios={"VAL5-01"},
+            units={"UNIT-001": ("EVT1", "a" * 64)},
+        )
+    except module.EvidenceError as exc:
+        results.put(("rejected", str(exc)))
+    else:
+        results.put(("accepted", ""))
 
 
 class MechanicalPackageTests(unittest.TestCase):
@@ -202,6 +223,38 @@ class QualityPackageTests(unittest.TestCase):
 
 
 class ValidationPackageTests(unittest.TestCase):
+    def setUp(self) -> None:
+        tempdir = tempfile.TemporaryDirectory()
+        self.addCleanup(tempdir.cleanup)
+        self.root = Path(tempdir.name)
+        self.raw = self.root / "scope.csv"
+        self.raw.write_text("time,current\n0,0\n", encoding="utf-8")
+        self.module_path = ROOT / "hardware/validation/tools/evidence.py"
+        self.module = load_module("validation_evidence", self.module_path)
+        self.register = self.root / "register.jsonl"
+        self.kwargs = {
+            "root": self.root,
+            "scenarios": {"VAL5-01"},
+            "units": {"UNIT-001": ("EVT1", "a" * 64)},
+        }
+
+    def _record(self, evidence_id: str) -> dict:
+        return {
+            "evidence_id": evidence_id,
+            "scenario_id": "VAL5-01",
+            "unit_id": "UNIT-001",
+            "hardware_revision": "EVT1",
+            "config_hash": "a" * 64,
+            "operator": "operator",
+            "reviewer": "reviewer",
+            "captured_at": "2026-08-18T08:00:00Z",
+            "evidence_kind": "physical",
+            "instrument_refs": ["SCOPE-01"],
+            "calibration_refs": ["CAL-01"],
+            "raw_files": {"scope.csv": self.module.sha256(self.raw)},
+            "result": "PASS",
+        }
+
     def test_validation_package_has_fault_library_and_no_fake_units(self) -> None:
         module = load_module("validation_checks", ROOT / "hardware/validation/tools/validate_validation.py")
         report = module.validate()
@@ -211,41 +264,70 @@ class ValidationPackageTests(unittest.TestCase):
         self.assertEqual(report["physical_results"], "NOT_EXECUTED")
 
     def test_evidence_registration_fails_closed_and_accepts_valid_records(self) -> None:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            root = Path(tmpdir)
-            raw = root / "scope.csv"
-            raw.write_text("time,current\n0,0\n", encoding="utf-8")
-            module = load_module("validation_evidence", ROOT / "hardware/validation/tools/evidence.py")
-            base = {
-                "evidence_id": "EVIDENCE-001",
-                "scenario_id": "VAL5-01",
-                "unit_id": "UNIT-001",
-                "hardware_revision": "EVT1",
-                "config_hash": "a" * 64,
-                "operator": "operator",
-                "reviewer": "reviewer",
-                "captured_at": "2026-08-18T08:00:00Z",
-                "evidence_kind": "physical",
-                "instrument_refs": ["SCOPE-01"],
-                "calibration_refs": ["CAL-01"],
-                "raw_files": {"scope.csv": module.sha256(raw)},
-                "result": "PASS",
-            }
-            register = root / "register.jsonl"
-            kwargs = {
-                "root": root,
-                "scenarios": {"VAL5-01"},
-                "units": {"UNIT-001": ("EVT1", "a" * 64)},
-            }
-            module.register(register, base, **kwargs)
-            self.assertEqual(module.validate_register(register, **kwargs), [base])
-            with self.assertRaisesRegex(module.EvidenceError, "duplicate"):
-                module.register(register, base, **kwargs)
-            with self.assertRaisesRegex(module.EvidenceError, "revision mismatch"):
-                module.validate_record({**base, "hardware_revision": "EVT2"}, **kwargs)
-            raw.unlink()
-            with self.assertRaisesRegex(module.EvidenceError, "missing"):
-                module.validate_register(register, **kwargs)
+        base = self._record("EVIDENCE-001")
+        self.module.register(self.register, base, **self.kwargs)
+        self.assertEqual(self.module.validate_register(self.register, **self.kwargs), [base])
+        with self.assertRaisesRegex(self.module.EvidenceError, "duplicate"):
+            self.module.register(self.register, base, **self.kwargs)
+        with self.assertRaisesRegex(self.module.EvidenceError, "revision mismatch"):
+            self.module.validate_record({**base, "hardware_revision": "EVT2"}, **self.kwargs)
+        self.raw.unlink()
+        with self.assertRaisesRegex(self.module.EvidenceError, "missing"):
+            self.module.validate_register(self.register, **self.kwargs)
+
+    def test_concurrent_duplicate_evidence_id_has_one_process_winner(self) -> None:
+        record = self._record("EVIDENCE-DUPLICATE")
+        context = multiprocessing.get_context("fork")
+        barrier = context.Barrier(2)
+        results = context.Queue()
+        processes = [
+            context.Process(
+                target=_register_evidence_process,
+                args=(self.module_path, self.register, self.root, record, barrier, results),
+            )
+            for _ in range(2)
+        ]
+        for process in processes:
+            process.start()
+        for process in processes:
+            process.join(10)
+            if process.is_alive():
+                process.terminate()
+                process.join()
+            self.assertEqual(process.exitcode, 0)
+        outcomes = [results.get(timeout=2) for _ in processes]
+        self.assertEqual(sorted(status for status, _ in outcomes), ["accepted", "rejected"])
+        self.assertIn("duplicate evidence_id", next(message for status, message in outcomes if status == "rejected"))
+        self.assertEqual(self.module.validate_register(self.register, **self.kwargs), [record])
+
+    def test_concurrent_distinct_evidence_ids_are_both_retained(self) -> None:
+        barrier = threading.Barrier(2)
+
+        def register_record(record: dict) -> None:
+            barrier.wait()
+            self.module.register(self.register, record, **self.kwargs)
+
+        records = [self._record(f"EVIDENCE-{index}") for index in range(2)]
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            for future in [executor.submit(register_record, record) for record in records]:
+                future.result(timeout=10)
+        actual = self.module.validate_register(self.register, **self.kwargs)
+        self.assertEqual({record["evidence_id"] for record in actual}, {"EVIDENCE-0", "EVIDENCE-1"})
+
+    def test_failed_append_restores_the_valid_register(self) -> None:
+        first = self._record("EVIDENCE-001")
+        self.module.register(self.register, first, **self.kwargs)
+        original = self.register.read_bytes()
+        write = self.module.os.write
+
+        def short_write(descriptor: int, payload: bytes) -> int:
+            return write(descriptor, payload[: len(payload) // 2])
+
+        with mock.patch.object(self.module.os, "write", side_effect=short_write):
+            with self.assertRaisesRegex(OSError, "short write"):
+                self.module.register(self.register, self._record("EVIDENCE-002"), **self.kwargs)
+        self.assertEqual(self.register.read_bytes(), original)
+        self.assertEqual(self.module.validate_register(self.register, **self.kwargs), [first])
 
     def test_physical_result_requires_physical_pass_for_every_scenario(self) -> None:
         module = load_module("validation_result_derivation", ROOT / "hardware/validation/tools/validate_validation.py")

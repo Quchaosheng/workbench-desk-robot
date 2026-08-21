@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import json
+import os
 import re
 from datetime import UTC, datetime
 from pathlib import Path
@@ -138,10 +140,23 @@ def register(
     scenarios: set[str],
     units: dict[str, tuple[str, str]],
 ) -> None:
-    existing = validate_register(path, root=root, scenarios=scenarios, units=units)
-    if record.get("evidence_id") in {item["evidence_id"] for item in existing}:
-        raise EvidenceError("duplicate evidence_id")
-    validate_record(record, root=root, scenarios=scenarios, units=units)
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8", newline="\n") as handle:
-        handle.write(json.dumps(record, allow_nan=False, ensure_ascii=False, sort_keys=True) + "\n")
+    descriptor = os.open(path, os.O_APPEND | os.O_CREAT | os.O_RDWR, 0o666)
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        existing = validate_register(path, root=root, scenarios=scenarios, units=units)
+        if record.get("evidence_id") in {item["evidence_id"] for item in existing}:
+            raise EvidenceError("duplicate evidence_id")
+        validate_record(record, root=root, scenarios=scenarios, units=units)
+        payload = (json.dumps(record, allow_nan=False, ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8")
+        original_size = os.fstat(descriptor).st_size
+        try:
+            if os.write(descriptor, payload) != len(payload):
+                raise OSError("short write while appending evidence")
+            os.fsync(descriptor)
+        except OSError:
+            os.ftruncate(descriptor, original_size)
+            os.fsync(descriptor)
+            raise
+    finally:
+        os.close(descriptor)

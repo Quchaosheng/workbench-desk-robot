@@ -49,6 +49,11 @@ def test_message_round_trip_verifies_checksum_and_reserved_fields() -> None:
     with pytest.raises(MessageIntegrityError, match="reserved"):
         Message.from_dict(encoded)
 
+    encoded = Message({"target": "red_block"}, "grasp", "1.0.0", "planner").to_dict()
+    encoded[1] = "unsupported"
+    with pytest.raises(MessageIntegrityError, match="keys must be strings"):
+        Message.from_dict(encoded)
+
 
 def test_message_rejects_non_json_and_non_finite_payloads() -> None:
     with pytest.raises(ValueError, match="finite"):

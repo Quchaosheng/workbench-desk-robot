@@ -79,6 +79,15 @@ class PlannerTests(unittest.TestCase):
                 self.assertEqual(len(step_ids), len(set(step_ids)))
                 self.assertTrue(all(dependency in step_ids for step in first.steps for dependency in step.depends_on))
 
+    def test_kitting_and_inspection_preserve_ordinary_step_tokens(self) -> None:
+        for builder, expected in (
+            (build_kitting_plan, ("observe-BoxA", "grasp-BoxA", "place-BoxA")),
+            (build_inspection_plan, ("inspect-box.a",)),
+        ):
+            with self.subTest(builder=builder.__name__):
+                plan = builder("Preserve ordinary entity IDs", ["BoxA"] if builder is build_kitting_plan else ["box.a"])
+                self.assertEqual(tuple(step.step_id for step in plan.steps), expected)
+
     def test_parcel_plan_requires_inspection_before_bounded_routing(self) -> None:
         plan = build_parcel_sorting_plan("核对快递标签并分拣")
         self.assertEqual(plan.task_id, "task-sort-parcels")

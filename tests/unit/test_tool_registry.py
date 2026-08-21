@@ -45,6 +45,27 @@ def _action(
     )
 
 
+class _ChangingSchema(Mapping):
+    def __init__(self) -> None:
+        valid = dict(TOOL_SCHEMAS[ActionType.STOP])
+        changed = dict(valid)
+        changed["optional_params"] = frozenset({"reason", "untyped"})
+        self._versions = (valid, changed)
+        self._current = valid
+        self._iterations = 0
+
+    def __getitem__(self, key: object) -> object:
+        return self._current[key]
+
+    def __iter__(self):
+        self._current = self._versions[min(self._iterations, 1)]
+        self._iterations += 1
+        return iter(self._current)
+
+    def __len__(self) -> int:
+        return len(self._current)
+
+
 # ---------------------------------------------------------------------------
 # tests
 # ---------------------------------------------------------------------------
@@ -182,6 +203,19 @@ class ToolRegistryRegistrationTests(unittest.TestCase):
         schema["param_types"]["reason"] = str
 
         self.assertEqual(registry.list_all(), ())
+
+    def test_register_validates_the_same_snapshot_it_stores(self) -> None:
+        registry = ToolRegistry(load_defaults=False)
+        registry.register(ActionType.STOP, _ChangingSchema())
+
+        self.assertFalse(registry.validate(_action(ActionType.STOP, parameters={"untyped": object()})).is_valid)
+
+    def test_register_rejects_non_string_schema_keys(self) -> None:
+        schema = dict(TOOL_SCHEMAS[ActionType.STOP])
+        schema.update({1: object(), "unexpected": object()})
+
+        with self.assertRaisesRegex(ValueError, "keys must be strings"):
+            ToolRegistry(load_defaults=False).register(ActionType.STOP, schema)
 
     def test_every_accepted_schema_can_be_validated_without_raising(self) -> None:
         registry = ToolRegistry(load_defaults=False)

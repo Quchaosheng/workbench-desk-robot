@@ -93,8 +93,11 @@ class ToolRegistry:
             raise ValueError(f"action_type must be an ActionType enum member, got {type(action_type).__name__!r}")
         if action_type in self._tool_param_schemas:
             raise ValueError(f"ActionType '{action_type.value}' is already registered")
-        _validate_schema(schema)
-        self._tool_param_schemas[action_type] = _freeze_mapping(schema)
+        if not isinstance(schema, Mapping):
+            raise ValueError(f"schema must be a mapping, got {type(schema).__name__!r}")
+        frozen_schema = _freeze_mapping(schema)
+        _validate_schema(frozen_schema)
+        self._tool_param_schemas[action_type] = frozen_schema
 
     def get(self, action_type: ActionType) -> Mapping[str, object]:
         """Return the schema for *action_type*.
@@ -334,6 +337,8 @@ def _validate_schema(schema: Mapping[str, object]) -> None:
         raise ValueError(f"schema must be a mapping, got {type(schema).__name__!r}")
 
     actual_keys = set(schema)
+    if any(not isinstance(key, str) for key in actual_keys):
+        raise ValueError("schema keys must be strings")
     missing_keys = _SCHEMA_KEYS - actual_keys
     unknown_keys = actual_keys - _SCHEMA_KEYS
     if missing_keys:
@@ -358,6 +363,8 @@ def _validate_schema(schema: Mapping[str, object]) -> None:
         raise ValueError("schema 'param_types' must be a mapping")
     allowed = required | optional
     declared = set(param_types)
+    if any(not isinstance(key, str) for key in declared):
+        raise ValueError("schema 'param_types' keys must be strings")
     missing_types = allowed - declared
     unknown_types = declared - allowed
     if missing_types:

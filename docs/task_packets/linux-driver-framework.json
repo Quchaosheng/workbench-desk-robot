@@ -1,0 +1,50 @@
+{
+  "issue": "LINUX1",
+  "human_owner": "Quchaosheng",
+  "objective": "Publish the Linux driver-layer architecture and a reviewable boundary for SocketCAN, IRQ, DMA and recovery work.",
+  "allowed_paths": [
+    "hardware/linux_drivers/**",
+    "docs/architecture/linux-drivers.md",
+    "docs/task_packets/linux-driver-framework.json",
+    "mkdocs.yml"
+  ],
+  "read_only_paths": [
+    "kernel/wbcan/**",
+    "firmware/**",
+    "interfaces/**",
+    "robot/control/**",
+    "AGENTS.md"
+  ],
+  "forbidden": [
+    "firmware/**",
+    "interfaces/**",
+    "robot/control/**",
+    "kernel/wbcan/**"
+  ],
+  "acceptance": [
+    "the architecture identifies Linux subsystem boundaries and driver lifecycle rollback",
+    "SocketCAN, IRQ, DMA, locking and buffer ownership rules are explicit",
+    "the document distinguishes the wbcan software test device from physical hardware evidence",
+    "future CAN FD, UART/SPI, GPIO, DMA and interrupt work has stated prerequisites and stop conditions"
+  ],
+  "commands": [
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/linux-driver-framework.json",
+    "python3 -m mkdocs build --strict",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "git diff --check"
+  ],
+  "evidence": [
+    "Task Packet validation output",
+    "strict MkDocs build output",
+    "repository gate output",
+    "git diff --check output"
+  ],
+  "stop_conditions": [
+    "a physical controller model or register contract is required",
+    "the change would require firmware, interface or robot-control writes",
+    "a planning value would be presented as hardware performance evidence"
+  ]
+}

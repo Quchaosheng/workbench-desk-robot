@@ -222,14 +222,12 @@ class PcbPackageTests(unittest.TestCase):
         ]
         artifacts = {
             "design_data.py": (
-                f"{module.ISOLATED_POWER_TBD} {module.ISOLATED_POWER_TBD_FOOTPRINT} "
-                f"{module.ISOLATED_POWER_TBD_SYMBOL}"
+                f"{module.ISOLATED_POWER_TBD} {module.ISOLATED_POWER_TBD_FOOTPRINT} {module.ISOLATED_POWER_TBD_SYMBOL}"
             ),
             "fabrication/bom.csv": module.ISOLATED_POWER_TBD,
             "controller.kicad_pcb": f"{module.ISOLATED_POWER_TBD_FOOTPRINT} U2 LAND PATTERN TBD DO NOT FIT",
             "controller.kicad_sch": (
-                f"{module.ISOLATED_POWER_TBD} {module.ISOLATED_POWER_TBD_FOOTPRINT} "
-                f"{module.ISOLATED_POWER_TBD_SYMBOL}"
+                f"{module.ISOLATED_POWER_TBD} {module.ISOLATED_POWER_TBD_FOOTPRINT} {module.ISOLATED_POWER_TBD_SYMBOL}"
             ),
             "controller.kicad_sym": module.ISOLATED_POWER_TBD_SYMBOL,
             "controller.ses": module.ISOLATED_POWER_TBD_FOOTPRINT,

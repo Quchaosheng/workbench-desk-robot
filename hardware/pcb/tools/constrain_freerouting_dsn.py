@@ -57,7 +57,7 @@ def constrain_text(text: str, constraints: dict[str, tuple[str, ...]] = CLASS_LA
         indent = class_block[closing_line : circuit_end - 1]
         if indent.strip():
             raise ValueError(f"unexpected DSN circuit formatting for {class_name!r}")
-        layer_rule = f'{indent}  (use_layer {" ".join(layers)})\n'
+        layer_rule = f"{indent}  (use_layer {' '.join(layers)})\n"
         class_block = class_block[:closing_line] + layer_rule + class_block[closing_line:]
         text = text[:start] + class_block + text[end:]
     return text

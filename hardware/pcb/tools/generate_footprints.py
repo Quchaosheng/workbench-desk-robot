@@ -293,7 +293,7 @@ def main() -> None:
     ]:
         io.FootprintSave(str(LIBRARY), footprint)
     TABLE.write_text(
-        '(fp_lib_table\n  (lib (name "WB")(type "KiCad")' '(uri "${KIPRJMOD}/WB.pretty")(options "")(descr ""))\n)\n',
+        '(fp_lib_table\n  (lib (name "WB")(type "KiCad")(uri "${KIPRJMOD}/WB.pretty")(options "")(descr ""))\n)\n',
         encoding="utf-8",
     )
     print(f"saved {len(list(LIBRARY.glob('*.kicad_mod')))} footprints to {LIBRARY}")

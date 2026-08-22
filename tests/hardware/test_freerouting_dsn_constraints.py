@@ -27,7 +27,7 @@ def test_adds_layer_constraint_inside_each_class_circuit() -> None:
         start = constrained.index(f"(class {name} ")
         end = module.block_end(constrained, start)
         block = constrained[start:end]
-        assert f'(use_layer {" ".join(layers)})' in block
+        assert f"(use_layer {' '.join(layers)})" in block
 
 
 def test_scanner_ignores_parentheses_inside_strings() -> None:

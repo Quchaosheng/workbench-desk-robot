@@ -53,10 +53,7 @@ def raw_socket(iface: str, *, loopback: bool = True, own_messages: bool = False)
     sock.setsockopt(socket.SOL_CAN_RAW, socket.CAN_RAW_LOOPBACK, int(loopback))
     sock.setsockopt(socket.SOL_CAN_RAW, socket.CAN_RAW_RECV_OWN_MSGS, int(own_messages))
     flags = (
-        SOF_TIMESTAMPING_TX_SOFTWARE
-        | SOF_TIMESTAMPING_SOFTWARE
-        | SOF_TIMESTAMPING_OPT_ID
-        | SOF_TIMESTAMPING_OPT_TSONLY
+        SOF_TIMESTAMPING_TX_SOFTWARE | SOF_TIMESTAMPING_SOFTWARE | SOF_TIMESTAMPING_OPT_ID | SOF_TIMESTAMPING_OPT_TSONLY
     )
     sock.setsockopt(socket.SOL_SOCKET, SO_TIMESTAMPING, flags)
     sock.bind((iface,))
@@ -105,9 +102,7 @@ def timestamp_capabilities(iface: str) -> EthtoolTsInfo:
     info = EthtoolTsInfo(cmd=ETHTOOL_GET_TS_INFO)
     request = Ifreq(name=iface.encode("ascii"), data=ctypes.addressof(info))
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-        result = ctypes.CDLL(None, use_errno=True).ioctl(
-            sock.fileno(), SIOCETHTOOL, ctypes.byref(request)
-        )
+        result = ctypes.CDLL(None, use_errno=True).ioctl(sock.fileno(), SIOCETHTOOL, ctypes.byref(request))
     if result < 0:
         error = ctypes.get_errno()
         raise OSError(error, os.strerror(error))
@@ -144,16 +139,8 @@ def main() -> int:
         results.append(check("vcan reference emits one software TX timestamp", accepted and count == 1))
 
         info = timestamp_capabilities(iface)
-        software = (
-            SOF_TIMESTAMPING_TX_SOFTWARE
-            | SOF_TIMESTAMPING_RX_SOFTWARE
-            | SOF_TIMESTAMPING_SOFTWARE
-        )
-        hardware = (
-            SOF_TIMESTAMPING_TX_HARDWARE
-            | SOF_TIMESTAMPING_RX_HARDWARE
-            | SOF_TIMESTAMPING_RAW_HARDWARE
-        )
+        software = SOF_TIMESTAMPING_TX_SOFTWARE | SOF_TIMESTAMPING_RX_SOFTWARE | SOF_TIMESTAMPING_SOFTWARE
+        hardware = SOF_TIMESTAMPING_TX_HARDWARE | SOF_TIMESTAMPING_RX_HARDWARE | SOF_TIMESTAMPING_RAW_HARDWARE
         results.append(
             check(
                 "wbcan advertises software-only timestamp capabilities",

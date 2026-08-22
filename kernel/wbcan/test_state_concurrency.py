@@ -124,6 +124,15 @@ class Probe:
         finally:
             can_socket.close()
 
+    def assert_send_rejected(self, can_socket: socket.socket, can_id: int) -> None:
+        try:
+            can_socket.send(FRAME.pack(can_id, 1, b"X" + b"\0" * 7))
+        except OSError as exc:
+            if exc.errno not in ALLOWED_SEND_ERRORS:
+                raise
+        else:
+            raise AssertionError("CAN send unexpectedly succeeded while the link was stopped")
+
     def read_status(self, count: int) -> None:
         for _ in range(count):
             if self.abort.is_set():
@@ -279,11 +288,12 @@ class Probe:
                 self.command("ip", "link", "set", self.interface, "up")
                 before_restart = self.counter("restart_attempts")
                 before_stop = self.counter("stop_attempts")
-                # Hold restart in do_set_mode while stop is held between its
-                # first TX drain and STOPPED publication. This makes the
-                # overlap deterministic instead of relying on timer jitter.
+                # Hold stop on both sides of STOPPED publication. Restart
+                # deterministically wins after the first drain, then status
+                # observes the atomic STOPPED + queue-stopped commit before
+                # close_candev() can perform the final defensive drain.
                 self.restart_delay.write_text("100\n", encoding="ascii")
-                self.stop_delay.write_text("500\n", encoding="ascii")
+                self.stop_delay.write_text("250\n", encoding="ascii")
                 sender = self.raw_socket()
                 try:
                     self.arm("bus-off 1")
@@ -300,20 +310,21 @@ class Probe:
                     self.wait_for_counter("restart_attempts", before_restart + 1)
                     deadline = time.monotonic() + 1
                     saw_active = False
+                    saw_stopped = False
                     while down.is_alive() and time.monotonic() < deadline:
-                        saw_active |= self.state() == "error-active"
+                        current = self.state()
+                        saw_active |= current == "error-active"
+                        saw_stopped |= current == "stopped"
                         time.sleep(0.002)
                     if not saw_active:
                         raise AssertionError("restart did not commit while stop was draining")
+                    if not saw_stopped:
+                        raise AssertionError("STOPPED publication was not observable before stop completed")
                     down.join(timeout=2)
                     self.finish_threads(down)
                     self.wait_for_state("stopped")
                     stopped_tx = self.counter("tx_frames")
-                    try:
-                        sender.send(FRAME.pack(0x735, 1, b"X" + b"\0" * 7))
-                    except OSError as exc:
-                        if exc.errno not in ALLOWED_SEND_ERRORS:
-                            raise
+                    self.assert_send_rejected(sender, 0x735)
                     time.sleep(0.075)
                     if self.state() != "stopped":
                         raise AssertionError("restart raced past link stop")

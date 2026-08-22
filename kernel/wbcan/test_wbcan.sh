@@ -511,7 +511,20 @@ check "concurrent arm uses one complete configuration" "0" "$mixed"
 clear_fault
 restart_if_bus_off
 
-# --- 15. state, queue, and fault-plane concurrency stays bounded -----------
+# --- 15. standard software TX timestamp semantics --------------------------
+if python3 "$(dirname "$0")/test_tx_timestamp.py" "$IFACE" "$DBG"
+then
+	green "PASS  software TX timestamp paths match SocketCAN semantics"
+	PASS=$((PASS + 1))
+else
+	red "FAIL  software TX timestamp probe"
+	FAIL=$((FAIL + 1))
+fi
+
+clear_fault
+restart_if_bus_off
+
+# --- 16. state, queue, and fault-plane concurrency stays bounded -----------
 if python3 "$(dirname "$0")/test_state_concurrency.py" "$IFACE" "$DBG"
 then
 	green "PASS  concurrent state and queue transitions stay bounded"
@@ -552,4 +565,5 @@ fi
 echo
 echo "=== $PASS passed, $FAIL failed ==="
 echo "Fault-mode coverage: drop-tx drop-rx bit-flip bus-off tx-full arb-lost stuff-err"
+echo "Timestamp evidence: host software enqueue timing only; no wire, MCU, actuator, or hard-real-time claim"
 [ "$FAIL" -eq 0 ]

@@ -374,7 +374,6 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	skb_tx_timestamp(skb);
 
 	switch (fault) {
-
 	case WBCAN_FAULT_BUS_OFF:
 	case WBCAN_FAULT_ARB_LOST:
 	case WBCAN_FAULT_STUFF_ERR:

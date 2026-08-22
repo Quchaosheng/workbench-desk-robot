@@ -53,11 +53,16 @@ physical device / Linux driver
 
 - Use one blocking I/O worker per device or a documented bounded worker pool;
   never create an unbounded thread per message.
-- ROS 2 callback groups and a bounded `MultiThreadedExecutor` may dispatch
-  callbacks, but a DDS callback must not block on hardware I/O.
-- Every queue has a fixed capacity and an explicit policy: reject commands,
-  retry boundedly, or drop old telemetry with a counter. Queue-full, deadline,
-  link-loss, duplicate and late-frame outcomes are observable.
+- ROS 2 callback groups and a fixed-size `MultiThreadedExecutor` may dispatch
+  callbacks, but the executor is not a queue bound by itself. The implementation
+  must record its thread count, callback-group assignment, DDS History/Depth and
+  adapter queue capacity; a DDS callback must not block on hardware I/O.
+- Command/ACK, telemetry and health/provenance use separate bounded data
+  planes. A high-rate camera or touch stream must not consume the queue or
+  executor capacity needed to receive a drive ACK. Each plane has a fixed
+  capacity and explicit policy: reject commands, retry boundedly, or drop old
+  telemetry with counters for depth, drops, deadline misses and oldest age.
+  Queue-full, link-loss, duplicate and late-frame outcomes are observable.
 - Shutdown cancels producers first, drains or rejects according to the port
   contract, joins workers with a deadline, then destroys the DDS participant,
   timers and file descriptors. A timeout is an error, not a silent daemon.
@@ -87,6 +92,14 @@ the existing distinction between dispatch state, device state, verification
 state and evidence. Direct framework exposure is allowed only for validated,
 read-only telemetry and health. Commands continue through trusted Motion,
 MCU and Safety owners; the dashboard and HTTP API never gain a device writer.
+
+The envelope is immutable after ingress and contains source/interface identity,
+per-source sequence, monotonic timestamp, wall-clock observation time, health
+state and evidence references. Clock rollback, sequence reset/restart, duplicate
+and late-frame rules are explicit adapter errors or drop outcomes; they are not
+silently normalized. The external projection uses an allowlist of telemetry and
+health fields. Raw DDS topics, device handles and arbitrary `device_state`
+objects are never serialized directly into HTTP.
 
 Hardware and simulation adapters must emit the same consumer contract. A fake
 transport and ROS loopback can prove ordering, lifecycle and metadata, but they

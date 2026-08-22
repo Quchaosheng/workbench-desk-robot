@@ -23,7 +23,7 @@
 **证据优先验证**
 - 用 `confirmed`、`refuted`、`insufficient_evidence` 三值逻辑代替布尔成功
 - 验证结果携带结构化证据引用，而不只是通过/失败标志
-- 同一 seed 产生同一场景和事件序列，支持确定性评测
+- 同一 manifest + seed 产生同一物化场景 hash；事件顺序仍取决于实际执行
 
 **系统可靠性**
 - 控制端与仿真端分机部署，包含 readiness 探针和对端可用性检查
@@ -74,6 +74,7 @@
 - 五类任务的模板规划器(不需要模型)
 - 放置、精确齐套、检验置信度、工作区清障以及到件清单对账快递路由的专用验证器
 - 多实体只读看板、按序回放、恢复历史与证据查看
+- 诚实的仿真控制面：`doctor`、`list` 和有边界的 `run` artifact，明确区分 fixture、真实执行和未执行
 - 断网容器、健康端点、统一 JSON 日志、镜像/SBOM 工作流
 - localhost-only Ollama Runner: 模型只做五类任务路由,语义动作由受信模板生成
 - 启动、阶段 P50/P95、CPU/RAM 和真机日志哈希校验工具
@@ -118,14 +119,15 @@ make test             # 单元 + 契约测试
 make lint             # ruff 检查
 make check            # 核心 Python 检查和离线演示
 make docs             # 严格模式构建 MkDocs
+make sim-doctor       # 只诊断仿真依赖，不启动运动
+make sim-list         # 校验并列出场景及 scene hash
+make sim              # 尝试配置的 Gazebo runner；缺少 Gazebo 时为 NOT_EXECUTED
 ```
 
-Gazebo 集成就位之后:
-
-```bash
-make sim              # 启动世界 + 机械臂 + 相机
-make demo             # 完整运行,固定脚本
-```
+当前仓库还没有完整 Gazebo 世界或语义运动适配器。因此没有配置 runner
+时，`make sim` 会失败关闭，绝不会输出占位通过。离线链路 fixture 可用
+`python tools/scripts/sim_cli.py run normal-001 --runner scripted`，生成的
+artifact 会明确标记为 `SCRIPTED_FIXTURE` 且 `release_eligible: false`。
 
 任务看板不需要网络或 GPU:
 
@@ -253,7 +255,7 @@ v0.1 要达到的数字。标 **0** 的是发布阻断项。
 |---|---|
 | 同一事件日志 → 同一状态 | 100% |
 | 验证结论携带证据引用 | 100% |
-| 同一 seed → 同一场景配置 | 100% |
+| 同一 manifest + seed → 同一物化场景 hash | 100% |
 
 | 系统 | 目标 |
 |---|---|
@@ -276,7 +278,7 @@ v0.1 要达到的数字。标 **0** 的是发布阻断项。
 
 软件安全停止 ≠ 硬件急停。Gazebo 的数字不能不经重新验证就迁移到真机。
 
-脚本化评测 fixture 也不能证明 Gazebo 性能。它只验证事件顺序、证据覆盖、回放和报告链路,并始终标记为 `release_eligible: false`。见[已记录的 fixture 失败案例](docs/evaluation/failure-cases.md)和[容器运行手册](docs/deployment/container.md)。
+脚本化评测 fixture 也不能证明 Gazebo 性能。它只验证事件顺序、证据覆盖、回放和报告链路,并始终标记为 `release_eligible: false`。同一 seed 只约束场景物化 hash,不推断 Gazebo 物理、传感器噪声、进程时序或事件顺序。见[已记录的 fixture 失败案例](docs/evaluation/failure-cases.md)和[容器运行手册](docs/deployment/container.md)。
 
 快递处理明确限定为桌面入库区内已经放置的包裹:系统先扫描整批,只有标签已核验且外观完好的包裹进入取件架;外观异常件先于单纯标签异常件进入隔离区。容量预检会在任何搬运动作前拒绝放不下的整批任务,避免执行到一半才溢出。当前设备没有移动底盘、电梯或快递柜访问能力,因此“下楼/去快递柜取件”会失败关闭,不会伪造已取件证据。
 

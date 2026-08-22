@@ -2,7 +2,7 @@ PYTHON ?= python3
 
 .PHONY: bootstrap lint fmt test contract scenario-check golden-check evaluation-check evaluation-scripted context-check \
 	dashboard-test dashboard demo demo-scripted demo-offline demo-model model-provision performance-test benchmark-startup \
-	benchmark-resources docs task-check check container-smoke
+	benchmark-resources docs task-check check container-smoke sim sim-doctor sim-list sim-run
 
 bootstrap:
 	$(PYTHON) -m pip install --upgrade pip
@@ -50,6 +50,19 @@ demo-offline:
 	$(PYTHON) tools/scripts/local_runner.py --goal "Place the red block in the tray"
 
 demo: demo-offline
+
+# Simulation control is deliberately truthful: without a configured Gazebo
+# adapter, sim-run exits NOT_EXECUTED instead of manufacturing a pass.
+sim: sim-run
+
+sim-doctor:
+	$(PYTHON) tools/scripts/sim_cli.py doctor
+
+sim-list:
+	$(PYTHON) tools/scripts/sim_cli.py list
+
+sim-run:
+	$(PYTHON) tools/scripts/sim_cli.py run --all --runner gazebo
 
 demo-model:
 	$(PYTHON) tools/scripts/local_runner.py --provider ollama --goal "Sort the parcels already in the intake area"

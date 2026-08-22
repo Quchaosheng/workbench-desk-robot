@@ -23,7 +23,7 @@ This project combines systems integration, runtime architecture, and task verifi
 **Evidence-First Verification**
 - Three-valued logic (confirmed / refuted / insufficient_evidence) replaces boolean success
 - Verification carries structured evidence references, not just pass/fail flags
-- Same seed → same scene → same event sequence → deterministic evaluation
+- Same manifest + seed → same materialized scene hash; event ordering remains execution-dependent
 
 **System Reliability**
 - Split-host controller/simulation with readiness probes and peer availability checks
@@ -74,6 +74,7 @@ The model picks a goal, but cannot send joint positions or velocities. That boun
 - Template planner for five task families (no model needed)
 - Task-specific verification for placement, exact kit contents, inspection confidence, workspace clearance, and manifest-reconciled parcel routing
 - Read-only multi-entity dashboard with ordered replay, recovery history and evidence inspection
+- Truthful simulation control surface with `doctor`, `list`, and bounded `run` artifacts
 - Offline container, health endpoints, structured logs and release/SBOM workflow
 - A localhost-only Ollama runner: the model routes to five bounded families, while trusted code emits semantic actions
 - Reproducible startup, stage P50/P95, CPU/RAM and hash-bound hardware evidence tooling
@@ -118,14 +119,17 @@ make test             # unit + contract tests
 make lint             # ruff check
 make check            # core Python checks and offline demos
 make docs             # strict MkDocs build
+make sim-doctor       # diagnose simulator dependencies without launching motion
+make sim-list         # validate and list manifests with scene hashes
+make sim              # attempt the configured Gazebo runner; missing Gazebo is NOT_EXECUTED
 ```
 
-Once Gazebo integration lands:
-
-```bash
-make sim              # start world + arm + camera
-make demo             # full run, fixed script
-```
+The current repository does not yet ship a complete Gazebo world or semantic
+motion adapter. `make sim` therefore fails closed when no adapter is configured;
+it never reports a placeholder pass. For an offline pipeline fixture, run
+`python tools/scripts/sim_cli.py run normal-001 --runner scripted` and inspect
+the generated artifact. A scripted result is always marked `SCRIPTED_FIXTURE`
+and `release_eligible: false`.
 
 Task dashboard, no network or GPU required:
 
@@ -216,7 +220,7 @@ Key targets for v0.1. Safety metrics marked **0** are release blockers.
 | **Task** | Verified task completion rate | >= 80% |
 | | Recovery after first failure | >= 70% |
 | **Evidence** | Verification carries evidence refs | 100% |
-| | Same seed -> same scene config | 100% |
+| | Same manifest + seed -> same materialized scene hash | 100% |
 | **System** | Clone -> running demo, no model | < 90s |
 | | GPU required | no |
 
@@ -229,6 +233,9 @@ Simulation only. Software contracts and Gazebo behavior don't prove CAN electric
 **Software safe-stop is not a hardware emergency stop.** Gazebo numbers don't transfer to real grippers without re-validation.
 
 Scripted evaluation fixtures also do not prove Gazebo performance. They exercise event ordering, evidence coverage, replay and reporting, and are marked `release_eligible: false`. See [documented fixture failures](docs/evaluation/failure-cases.md) and the [container runbook](docs/deployment/container.md).
+
+The seed guarantee covers scene materialization only. Gazebo physics, sensor
+noise, process timing, and event ordering require their own captured evidence.
 
 Parcel handling is intentionally limited to parcels already on the tabletop intake area. It scans the complete batch before manipulation, routes only verified intact parcels to the pickup shelf, and isolates condition exceptions before label-only exceptions. Capacity preflight rejects a batch before any manipulation if the pickup or quarantine destination cannot hold it. The current arm has no mobile base, elevator, or parcel-locker access; those requests fail closed instead of being simulated as completed.
 

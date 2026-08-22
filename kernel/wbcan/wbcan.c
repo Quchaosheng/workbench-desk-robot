@@ -25,6 +25,7 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
+#include <linux/ethtool.h>
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/netdevice.h>
@@ -365,6 +366,14 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 		netif_wake_queue(dev);
 		return NETDEV_TX_BUSY;
 
+	default:
+		break;
+	}
+
+	/* The frame is now accepted and will not be retried by the stack. */
+	skb_tx_timestamp(skb);
+
+	switch (fault) {
 	case WBCAN_FAULT_BUS_OFF:
 	case WBCAN_FAULT_ARB_LOST:
 	case WBCAN_FAULT_STUFF_ERR:
@@ -519,6 +528,10 @@ static const struct net_device_ops wbcan_netdev_ops = {
 	.ndo_stop	= wbcan_stop,
 	.ndo_start_xmit	= wbcan_start_xmit,
 	.ndo_change_mtu	= wbcan_change_mtu,
+};
+
+static const struct ethtool_ops wbcan_ethtool_ops = {
+	.get_ts_info	= ethtool_op_get_ts_info,
 };
 
 /* --------------------------------------------------------------- debugfs ABI
@@ -779,6 +792,7 @@ static int __init wbcan_init(void)
 	priv->match_any = true;
 
 	wbcan_dev->netdev_ops = &wbcan_netdev_ops;
+	wbcan_dev->ethtool_ops = &wbcan_ethtool_ops;
 	wbcan_dev->flags |= IFF_ECHO;
 	strscpy(wbcan_dev->name, "wbcan0", IFNAMSIZ);
 

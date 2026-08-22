@@ -113,3 +113,57 @@ def test_broker_converts_malformed_schema_constraints_to_rejection(
     with pytest.raises(BrokerValidationError, match=error):
         boundary.publish(payload, "action", "1.0.0", "planner")
     assert boundary.message_log == []
+
+
+@pytest.mark.parametrize(
+    "schema, payload, error",
+    [
+        (
+            {
+                "anyOf": [
+                    {
+                        "type": "object",
+                        "properties": {"value": {"type": "string", "pattern": "["}},
+                    },
+                    {
+                        "type": "object",
+                        "properties": {"value": {"type": "string", "const": "ok"}},
+                    },
+                ]
+            },
+            {"value": "ok"},
+            "pattern",
+        ),
+        (
+            {
+                "not": {
+                    "type": "object",
+                    "properties": {"value": {"type": "string", "pattern": "["}},
+                },
+            },
+            {"value": "ok"},
+            "pattern",
+        ),
+        (
+            {
+                "if": {
+                    "type": "object",
+                    "properties": {"value": {"type": "string", "pattern": "["}},
+                },
+                "then": {"type": "object"},
+            },
+            {"value": "ok"},
+            "pattern",
+        ),
+    ],
+)
+def test_broker_rejects_malformed_combinator_schema_without_partial_log(
+    tmp_path: Path, schema: dict, payload: object, error: str
+) -> None:
+    registry = VersionRegistry(tmp_path / "versions.json")
+    registry.register_schema("action", "1.0.0", schema)
+    boundary = CommunicationBroker(registry)
+
+    with pytest.raises(BrokerValidationError, match=error):
+        boundary.publish(payload, "action", "1.0.0", "planner")
+    assert boundary.message_log == []

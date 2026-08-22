@@ -22,8 +22,9 @@
     "NaN and positive or negative infinity are rejected with SchemaValidationError",
     "malformed minimum and maximum bounds are reported as SchemaValidationError",
     "malformed regular-expression patterns are reported as SchemaValidationError",
+    "malformed anyOf, not, and if branches are not treated as value mismatches",
     "CommunicationBroker rejects malformed numeric payloads without appending to message_log",
-    "regression tests cover huge integers, non-finite floats, malformed bounds, malformed patterns, and broker rejection"
+    "regression tests cover huge integers, non-finite floats, malformed bounds, malformed combinator branches, and broker rejection"
   ],
   "commands": [
     "python3 tools/scripts/check_task_packet.py docs/task_packets/issue-223-schema-validation-error.json",

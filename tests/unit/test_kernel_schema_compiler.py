@@ -10,7 +10,33 @@ from pydantic import BaseModel
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "libs" / "kernel"))
 
-from workbench.kernel.schema_compiler import SchemaCompiler
+from workbench.kernel.schema_compiler import SchemaCompiler, SchemaValidationError, validate_schema_instance
+
+
+def test_runtime_number_validation_handles_large_integers_and_non_finite_floats() -> None:
+    for value in (10**400, 1, 1.5):
+        validate_schema_instance(value, {"type": "number"})
+
+    for value in (float("nan"), float("inf"), float("-inf")):
+        with pytest.raises(SchemaValidationError, match="finite"):
+            validate_schema_instance(value, {"type": "number"})
+
+
+@pytest.mark.parametrize(
+    "schema",
+    [
+        {"type": "number", "minimum": "not-a-number"},
+        {"type": "number", "maximum": "not-a-number"},
+        {"type": "number", "maximum": float("inf")},
+        {"type": "string", "pattern": "["},
+        {"type": "string", "pattern": 123},
+        {"type": "array", "minItems": "not-an-integer"},
+    ],
+)
+def test_runtime_validation_normalizes_malformed_constraints(schema: dict) -> None:
+    value = 1 if schema.get("type") == "number" else "value" if schema.get("type") == "string" else []
+    with pytest.raises(SchemaValidationError):
+        validate_schema_instance(value, schema)
 
 
 def test_generated_models_are_valid_and_typed(tmp_path: Path) -> None:

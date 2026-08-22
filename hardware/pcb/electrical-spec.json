@@ -17,15 +17,17 @@
     {"name": "sensors", "rail": "3V3_LOGIC", "maximum_w": 1},
     {"name": "motor driver auxiliaries", "rail": "12V_ISO", "maximum_w": 120}
   ],
-  "can": {"transceiver_class": "reinforced isolated CAN FD", "isolation_vrms": 5000, "bus_fault_v": 70, "termination_ohm": 120, "common_mode_choke": true, "tvs": "bidirectional CAN-rated"},
-  "protection": {"input_tvs_standoff_v": 58, "ov_trip_v": 62, "uv_trip_v": 34, "inrush_limit_a": 8, "reverse_polarity": "back-to-back 80 V MOSFET", "input_net_sequence": ["VBAT_RAW", "VBAT_FUSED", "VBAT_PROTECTED"], "estop": "dual-channel loop into independent safety gate; MOTOR_ENABLE_REQ cannot drive MOTOR_ENABLE_SAFE directly"},
+  "can": {"transceiver_class": "reinforced isolated CAN FD", "isolation_vrms": 5000, "bus_fault_v": 70, "termination_ohm": 120, "common_mode_choke": true, "tvs": "bidirectional CAN-rated", "u6_board_copper_clearance_mm": 8.1, "u6_all_copper_keepout_required": true, "u7_board_pad_edge_clearance_mm": 5.87, "u7_all_copper_keepout_required": true, "u7_candidate_safety_suitability_open": true, "isolated_power_creepage_review_required": true},
+  "protection": {"input_tvs_standoff_v": 58, "ov_trip_v": 62, "uv_trip_v": 34, "inrush_limit_a": 8, "reverse_polarity": "back-to-back 150 V MOSFET", "input_net_sequence": ["VBAT_RAW", "VBAT_FUSED", "VBAT_PROTECTED"], "estop": "dual-channel loop into independent safety gate; MOTOR_ENABLE_REQ cannot drive MOTOR_ENABLE_SAFE directly"},
   "stackup": [
-    {"layer": "L1", "function": "components and controlled signals", "copper_oz": 2},
-    {"layer": "L2", "function": "solid signal ground", "copper_oz": 1},
-    {"layer": "L3", "function": "power planes", "copper_oz": 2},
-    {"layer": "L4", "function": "power and low-speed signals", "copper_oz": 2},
-    {"layer": "L5", "function": "solid signal ground", "copper_oz": 1},
-    {"layer": "L6", "function": "components and low-speed signals", "copper_oz": 2}
+    {"layer": "L1", "kicad_layer": "F.Cu", "function": "components and high-current input", "copper_oz": 2, "dielectric_to_next_mm": 0.10, "impedance_control": "CAN field solve required"},
+    {"layer": "L2", "kicad_layer": "In1.Cu", "function": "primary ground reference and low-speed routing", "copper_oz": 1, "dielectric_to_next_mm": 0.18, "impedance_control": "CAN field solve required"},
+    {"layer": "L3", "kicad_layer": "In2.Cu", "function": "48V input and isolated 12V power distribution", "copper_oz": 2, "dielectric_to_next_mm": 0.18, "impedance_control": "none"},
+    {"layer": "L4", "kicad_layer": "In3.Cu", "function": "protected Jetson 12V and low-speed routing", "copper_oz": 1, "dielectric_to_next_mm": 0.26, "impedance_control": "CAN field solve required"},
+    {"layer": "L5", "kicad_layer": "In4.Cu", "function": "logic ground reference and low-speed routing", "copper_oz": 1, "dielectric_to_next_mm": 0.18, "impedance_control": "none"},
+    {"layer": "L6", "kicad_layer": "In5.Cu", "function": "3.3V logic and isolated CAN-side 5V distribution", "copper_oz": 2, "dielectric_to_next_mm": 0.18, "impedance_control": "none"},
+    {"layer": "L7", "kicad_layer": "In6.Cu", "function": "controlled logic and safety signals", "copper_oz": 1, "dielectric_to_next_mm": 0.10, "impedance_control": "none"},
+    {"layer": "L8", "kicad_layer": "B.Cu", "function": "components and low-speed return", "copper_oz": 2, "dielectric_to_next_mm": 0.0, "impedance_control": "none"}
   ],
-  "dfm": {"minimum_trace_mm": 0.15, "minimum_space_mm": 0.15, "minimum_drill_mm": 0.3, "minimum_annular_ring_mm": 0.15, "isolation_creepage_mm": 8, "board_thickness_mm": 1.6}
+  "dfm": {"minimum_trace_mm": 0.15, "minimum_space_mm": 0.15, "minimum_drill_mm": 0.3, "minimum_drill_scope": "mechanical through and blind drilling", "minimum_annular_ring_mm": 0.15, "laser_microvia_diameter_mm": 0.45, "laser_microvia_drill_mm": 0.15, "laser_microvia_layers": "F.Cu-In1.Cu", "laser_microvia_fill_cap_planarize_required": true, "laser_microvia_supplier_dfm_required": true, "raw_can_blind_via_diameter_mm": 0.6, "raw_can_blind_via_drill_mm": 0.3, "raw_can_blind_via_layers": "F.Cu-In3.Cu", "u6_ground_blind_via_layers": ["F.Cu-In1.Cu", "F.Cu-In2.Cu"], "blind_via_supplier_dfm_required": true, "isolation_creepage_mm": 8, "board_thickness_mm": 1.6, "board_thickness_tolerance_mm": 0.16, "board_thickness_basis": "finished_laminate_and_copper_excluding_solder_mask", "surface_finish": "ENIG", "nominal_copper_thickness_per_oz_mm": 0.035, "stackup_math_tolerance_mm": 0.005, "supplier_stackup_and_impedance_closure_required": true}
 }

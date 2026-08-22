@@ -1,6 +1,7 @@
 {
-  "blocker_count": 12,
+  "blocker_count": 13,
   "blockers": [
+    "REL-003A",
     "REL-004",
     "REL-005",
     "REL-006",
@@ -23,7 +24,7 @@
     "statuses_are_controlled": true,
     "upstream_reports_remain_fail_closed": true
   },
-  "gate_count": 15,
+  "gate_count": 16,
   "note": "PASS means repository evidence is present; it never substitutes for external physical or commercial evidence.",
   "package": "hardware-release-readiness",
   "pass": true,

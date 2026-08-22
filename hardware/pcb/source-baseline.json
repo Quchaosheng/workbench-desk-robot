@@ -1,6 +1,6 @@
 {
   "baseline_id": "WB1-HW-ICD-REV-A",
-  "review_date": "2026-08-07",
+  "review_date": "2026-08-21",
   "maturity": "EVT_REVIEWABLE_NOT_PRODUCTION_RELEASED",
   "sources": [
     {
@@ -48,20 +48,80 @@
       "vendor": "Texas Instruments",
       "title": "ISO1042 isolated CAN transceiver",
       "url": "https://www.ti.com/product/ISO1042",
-      "claim": "CAN FD up to 5 Mbps, 5 kVrms isolation, and 70 V bus-fault protection are supported by the selected transceiver family.",
+      "claim": "CAN FD up to 5 Mbps, 5 kVrms isolation, and 70 V bus-fault protection are supported by the selected transceiver family; the DW high-voltage land pattern provides 8.1 mm board-copper clearance between pad rows.",
       "confidence": "OFFICIAL_PRIMARY",
       "freeze_status": "CANDIDATE_NOT_FROZEN",
       "owner": "Electrical Owner"
     },
     {
-      "id": "SRC-TI-LM5069",
-      "vendor": "Texas Instruments",
-      "title": "LM5069 positive high-voltage hot-swap controller",
-      "url": "https://www.ti.com/product/LM5069",
-      "claim": "The 9 V to 80 V controller class covers the documented 36 V to 60 V battery envelope.",
+      "id": "SRC-MURATA-MEJ1S",
+      "vendor": "Murata",
+      "title": "MEJ1S0305SC 1 W isolated DC-DC converter",
+      "url": "https://www.murata.com/en-us/products/productdetail?partno=MEJ1S0305SC",
+      "claim": "The candidate is production-tested at 5.2 kVDC but specifies 2 mm creepage/clearance and 200 Vrms working voltage; it cannot close an 8 mm reinforced system-isolation claim without safety and vendor review.",
+      "confidence": "OFFICIAL_PRIMARY",
+      "freeze_status": "VENDOR_AND_SAFETY_REVIEW_REQUIRED",
+      "owner": "Electrical and Safety Owners"
+    },
+    {
+      "id": "SRC-ADI-LTC4368",
+      "vendor": "Analog Devices",
+      "title": "LTC4368 100 V UV/OV and reverse protection controller Rev. C",
+      "url": "https://www.analog.com/media/en/technical-documentation/data-sheets/ltc4368.pdf",
+      "claim": "The selected -2 option supports 100 V input protection, external back-to-back N-channel MOSFETs, and bidirectional current-fault sensing; the detailed design uses the documented MSOP-10 pinout.",
       "confidence": "OFFICIAL_PRIMARY",
       "freeze_status": "CANDIDATE_NOT_FROZEN",
       "owner": "Electrical Owner"
+    },
+    {
+      "id": "SRC-INF-BSC093N15NS5",
+      "vendor": "Infineon",
+      "title": "BSC093N15NS5 OptiMOS 5 150 V MOSFET",
+      "url": "https://www.infineon.com/part/BSC093N15NS5",
+      "claim": "The MOSFET candidate is a 150 V PG-TDSON-8 device; pins 1-3 are source, pin 4 is gate, and the repeated pad 5 is drain.",
+      "confidence": "OFFICIAL_PRIMARY",
+      "freeze_status": "CANDIDATE_NOT_FROZEN",
+      "owner": "Electrical Owner"
+    },
+    {
+      "id": "SRC-VICOR-DCM3623-EXCLUSION",
+      "vendor": "Vicor",
+      "title": "DCM3623T50M31C2T00 official datasheet (exclusion evidence)",
+      "url": "https://www.vicorpower.com/documents/datasheets/DCM3623x50M31C2yzz_ds.pdf",
+      "claim": "The official datasheet specifies a 16-50 V input range, 28 V output and nine-terminal through-hole ChiP package. DCM3623T50M31C2T00 is excluded because it cannot satisfy the required 36-60 V input and regulated 12 V output; this source is not candidate evidence.",
+      "confidence": "OFFICIAL_PRIMARY",
+      "freeze_status": "EXCLUDED_NOT_A_CANDIDATE",
+      "owner": "Electrical and Procurement Owners"
+    },
+    {
+      "id": "SRC-TI-TPS2663",
+      "vendor": "Texas Instruments",
+      "title": "TPS2663x 60 V 6 A industrial eFuse",
+      "url": "https://www.ti.com/product/TPS2663",
+      "claim": "TPS26633 is the candidate protected 12 V Jetson branch device; current limit, thermal behavior and the exposed-pad land pattern require loaded validation.",
+      "confidence": "OFFICIAL_PRIMARY",
+      "freeze_status": "CANDIDATE_NOT_FROZEN",
+      "owner": "Electrical Owner"
+    },
+    {
+      "id": "SRC-RECOM-RPL5",
+      "vendor": "RECOM",
+      "title": "RPL-5.0 5 A buck regulator module",
+      "url": "https://recom-power.com/en/products/switching-regulators/rec-s-RPL-5.0.html",
+      "claim": "RPL-5.0 is the 5 A logic-rail candidate; final pinout, output programming, land pattern and thermal limits require datasheet and vendor drawing closure.",
+      "confidence": "OFFICIAL_PRIMARY",
+      "freeze_status": "VENDOR_REVIEW_REQUIRED",
+      "owner": "Electrical Owner"
+    },
+    {
+      "id": "SRC-PANASONIC-SFM4",
+      "vendor": "Panasonic Industry",
+      "title": "SFM force-guided relay family",
+      "url": "https://industry.panasonic.com/global/en/products/control/relay/safety/sfm",
+      "claim": "SFM4-DC12V is a force-guided relay candidate only; exact contact numbering, footprint, diagnostic coverage and safety suitability require vendor drawing and safety-owner approval.",
+      "confidence": "OFFICIAL_PRIMARY",
+      "freeze_status": "SAFETY_AND_VENDOR_REVIEW_REQUIRED",
+      "owner": "Safety Owner"
     }
   ],
   "controlled_assumptions": [
@@ -90,7 +150,7 @@
       "interface": "isolated_dc_dc",
       "envelope": "36-60 V input, regulated 12 V, 240 W class",
       "confidence": "ENGINEERING_ENVELOPE",
-      "freeze_status": "ORDERABLE_MPN_REQUIRED",
+      "freeze_status": "MPN_AND_LAND_PATTERN_REQUIRED",
       "owner": "Electrical and Procurement Owners"
     },
     {

@@ -37,7 +37,7 @@ class MechanicalPackageTests(unittest.TestCase):
         generated = ROOT / "hardware/mechanical/generated"
         self.assertGreater((generated / "desk_robot_assembly.step").stat().st_size, 100_000)
         self.assertGreater((generated / "desk_robot_exploded.step").stat().st_size, 100_000)
-        self.assertEqual(len(list((generated / "parts").glob("*.step"))), 6)
+        self.assertEqual(len(list((generated / "parts").glob("*.step"))), 8)
         self.assertTrue((generated / "drawings/general-arrangement.svg").exists())
         screening = json.loads((generated / "drop-screening.json").read_text(encoding="utf-8"))
         self.assertEqual(screening["acceptance"]["peak_deceleration_g"], 35)
@@ -62,6 +62,35 @@ class PcbPackageTests(unittest.TestCase):
         self.assertIn("LAB_VALIDATION_REQUIRED", report["status"])
         self.assertEqual(set(report["load_cases"]), {"JETSON_15W", "JETSON_25W", "JETSON_40W_MAXN"})
         self.assertEqual(set(report["input_corner_currents_a"]), {"36V", "48V", "60V"})
+        self.assertTrue(report["checks"]["eight_layer_build_matches_board_thickness"])
+        self.assertTrue(report["checks"]["supplier_stackup_and_impedance_closure_is_required"])
+        self.assertEqual(report["nominal_stackup_thickness_mm"], 1.6)
+        can = json.loads((ROOT / "hardware/pcb/electrical-spec.json").read_text(encoding="utf-8"))["can"]
+        self.assertEqual(can["u7_board_pad_edge_clearance_mm"], 5.87)
+        self.assertTrue(can["u7_all_copper_keepout_required"])
+        self.assertTrue(can["u7_candidate_safety_suitability_open"])
+
+    def test_eight_layer_stackup_matches_controlled_spec(self) -> None:
+        spec = json.loads((ROOT / "hardware/pcb/electrical-spec.json").read_text(encoding="utf-8"))
+        with (ROOT / "hardware/pcb/fabrication/stackup.csv").open(newline="", encoding="utf-8") as handle:
+            stackup = list(csv.DictReader(handle))
+        expected_layers = ["F.Cu", "In1.Cu", "In2.Cu", "In3.Cu", "In4.Cu", "In5.Cu", "In6.Cu", "B.Cu"]
+        self.assertEqual([row["layer"] for row in stackup], expected_layers)
+        self.assertEqual([row["kicad_layer"] for row in spec["stackup"]], expected_layers)
+        self.assertEqual(
+            [(float(row["copper_oz"]), float(row["dielectric_to_next_mm"])) for row in stackup],
+            [(float(row["copper_oz"]), float(row["dielectric_to_next_mm"])) for row in spec["stackup"]],
+        )
+        dfm = spec["dfm"]
+        nominal_mm = sum(
+            float(row["dielectric_to_next_mm"]) + float(row["copper_oz"]) * dfm["nominal_copper_thickness_per_oz_mm"]
+            for row in stackup
+        )
+        self.assertAlmostEqual(nominal_mm, dfm["board_thickness_mm"], places=3)
+        self.assertEqual(dfm["board_thickness_tolerance_mm"], 0.16)
+        self.assertEqual(dfm["board_thickness_basis"], "finished_laminate_and_copper_excluding_solder_mask")
+        self.assertEqual(dfm["surface_finish"], "ENIG")
+        self.assertTrue(dfm["supplier_stackup_and_impedance_closure_required"])
 
     def test_every_external_connector_is_keyed_or_test_only(self) -> None:
         with (ROOT / "hardware/pcb/connectors.csv").open(newline="", encoding="utf-8") as handle:
@@ -69,13 +98,18 @@ class PcbPackageTests(unittest.TestCase):
         self.assertGreaterEqual(len(rows), 10)
         self.assertTrue(all(row["keying"] in {"mandatory", "polarized", "red keyed", "n/a"} for row in rows))
 
-    def test_board_declares_six_copper_layers_and_real_footprints(self) -> None:
+    def test_board_declares_eight_copper_layers_and_real_footprints(self) -> None:
         board = (ROOT / "hardware/pcb/kicad/controller.kicad_pcb").read_text(encoding="utf-8")
         copper_layers = re.findall(r'^\s*\(\d+ "(?:F|B|In\d+)\.Cu" signal\)$', board, flags=re.MULTILINE)
-        self.assertEqual(len(copper_layers), 6)
-        self.assertGreaterEqual(board.count("(footprint "), 29)
-        self.assertGreaterEqual(board.count("(segment"), 168)
-        self.assertGreaterEqual(board.count("(via"), 8)
+        self.assertEqual(len(copper_layers), 8)
+        self.assertEqual(
+            [layer.split('"')[1] for layer in copper_layers],
+            ["F.Cu", "In1.Cu", "In2.Cu", "In3.Cu", "In4.Cu", "In5.Cu", "In6.Cu", "B.Cu"],
+        )
+        self.assertEqual(board.count("(footprint "), 114)
+        self.assertGreaterEqual(board.count("(segment"), 1_000)
+        self.assertGreaterEqual(board.count("(via"), 150)
+        self.assertGreaterEqual(board.count("(zone"), 18)
         for signal in [
             "SPI_SCLK",
             "MOTOR_ENABLE_REQ",
@@ -92,35 +126,74 @@ class PcbPackageTests(unittest.TestCase):
         self.assertIn('property "Reference" "U7"', board)
         self.assertIn('property "Reference" "U8"', board)
         self.assertIn('property "Reference" "J11"', board)
+        self.assertIn('gr_text "U2 LAND PATTERN TBD"', board)
+        self.assertIn('gr_text "DO NOT FIT"', board)
+        self.assertIn('(title "Workbench-1 Controller")', board)
+        self.assertIn('(rev "EVT1")', board)
+
+    def test_testpoints_are_separated_by_electrical_domain(self) -> None:
+        generator = (ROOT / "hardware/pcb/tools/generate_kicad_board.py").read_text(encoding="utf-8")
+        positions = {
+            reference: (float(x), float(y))
+            for reference, x, y in re.findall(r'"(TP\d)": \(([0-9.]+), ([0-9.]+), 0\.0\)', generator)
+        }
+        self.assertEqual(set(positions), {f"TP{index}" for index in range(1, 9)})
+        self.assertLess(positions["TP1"][0], 46.0)
+        self.assertTrue(all(positions[reference][0] >= 56.0 for reference in ["TP2", "TP3", "TP4", "TP5", "TP8"]))
+        self.assertTrue(all(positions[reference][0] >= 140.0 for reference in ["TP6", "TP7"]))
 
     def test_pinout_and_release_audit_prevent_unsafe_order_release(self) -> None:
         module = load_module("release_readiness", ROOT / "hardware/pcb/tools/release_readiness.py")
         report = module.audit()
         self.assertTrue(report["engineering_package_pass"])
         self.assertEqual(report["status"], "ORDER_RELEASE_BLOCKED")
-        self.assertFalse(report["order_release_checks"]["detailed_schematic_has_symbols"])
+        self.assertTrue(report["order_release_checks"]["detailed_schematic_has_symbols"])
         self.assertFalse(report["order_release_checks"]["safety_analysis_approved"])
         self.assertTrue(report["engineering_checks"]["approval_register_covers_all_pending_bom_lines"])
-        self.assertEqual(len(report["procurement_hold_references"]), 15)
+        self.assertTrue(report["engineering_checks"]["bom_covers_all_board_components"])
+        self.assertTrue(report["engineering_checks"]["board_layout_hard_gates_pass"])
+        self.assertTrue(report["engineering_checks"]["fabrication_metadata_controlled"])
+        self.assertIn("u7_isolated_power_safety_suitability", report["layout_status"]["open_risks"])
+        self.assertTrue(
+            report["order_release_checks"]["isolated_power_excluded_part_absent_and_tbd_placeholders_consistent"]
+        )
+        self.assertFalse(report["order_release_checks"]["isolated_power_mpn_and_land_pattern_frozen"])
+        self.assertEqual(report["isolated_power_guard"]["incompatible_occurrences"], {})
+        self.assertEqual(report["isolated_power_guard"]["required_placeholder"], "TBD_36_60V_TO_12V_240W_ISOLATED")
+        self.assertEqual(report["layout_status"]["status"], "LAYOUT_HARD_GATES_PASS_RISKS_OPEN")
+        self.assertIn("can_differential_impedance", report["layout_status"]["open_risks"])
+        self.assertEqual(report["component_counts"], {"board_footprints": 114, "bom_references": 114})
+        self.assertEqual(len(report["procurement_hold_references"]), 68)
         self.assertTrue(report["engineering_checks"]["safety_truth_table_covers_channel_discrepancy"])
         with (ROOT / "hardware/pcb/connector-pinout.csv").open(newline="", encoding="utf-8") as handle:
             rows = list(csv.DictReader(handle))
         self.assertEqual(len([row for row in rows if row["reference"] == "J4"]), 20)
         self.assertEqual(len([row for row in rows if row["reference"] == "J10"]), 4)
         self.assertEqual(len([row for row in rows if row["reference"] == "J11"]), 4)
+        self.assertEqual(len([row for row in rows if row["reference"] == "J12"]), 4)
         self.assertEqual(len([row for row in rows if row["reference"] == "J2"]), 4)
         self.assertEqual(len([row for row in rows if row["reference"] == "J5"]), 4)
         self.assertEqual(len([row for row in rows if row["reference"] == "J6"]), 4)
         with (ROOT / "hardware/pcb/component-selection-matrix.csv").open(newline="", encoding="utf-8") as handle:
             components = list(csv.DictReader(handle))
-        self.assertEqual({row["reference"] for row in components}, {"U1", "U2", "U3", "U4", "U5", "U6", "U7", "U8"})
+        component_refs = {row["reference"] for row in components}
+        self.assertTrue({"U1", "U2", "U3", "U4", "U5", "U6", "U7", "U8"} <= component_refs)
+        self.assertTrue({"Q1 Q2", "K1 K2", "RS1"} <= component_refs)
+        u2 = next(row for row in components if row["reference"] == "U2")
+        self.assertEqual(u2["primary_candidate"], "TBD_36_60V_TO_12V_240W_ISOLATED")
+        with (ROOT / "hardware/pcb/component-approval-register.csv").open(newline="", encoding="utf-8") as handle:
+            approvals = list(csv.DictReader(handle))
+        u2_approval = next(row for row in approvals if row["reference"] == "U2")
+        self.assertEqual(u2_approval["candidate"], "TBD_36_60V_TO_12V_240W_ISOLATED")
         connectivity = json.loads(
             (ROOT / "hardware/pcb/generated/connectivity_report.json").read_text(encoding="utf-8")
         )
         self.assertTrue(connectivity["pass"])
-        self.assertEqual(connectivity["checked_pin_count"], 58)
+        self.assertEqual(connectivity["checked_pin_count"], 458)
         board = (ROOT / "hardware/pcb/kicad/controller.kicad_pcb").read_text(encoding="utf-8")
         self.assertTrue(all(f"TP{index}" in board for index in range(1, 9)))
+        self.assertIn("Isolated_48V_12V_240W_TBD", board)
+        self.assertNotIn("DCM3623", board)
 
     def test_official_sources_and_interface_freeze_states_are_explicit(self) -> None:
         baseline = json.loads((ROOT / "hardware/pcb/source-baseline.json").read_text(encoding="utf-8"))
@@ -130,6 +203,63 @@ class PcbPackageTests(unittest.TestCase):
         required = {"confidence", "freeze_status", "owner"}
         self.assertTrue(all(required <= item.keys() for item in baseline["sources"]))
         self.assertTrue(all(required <= item.keys() for item in baseline["controlled_assumptions"]))
+        exclusion = next(item for item in baseline["sources"] if item["id"] == "SRC-VICOR-DCM3623-EXCLUSION")
+        self.assertEqual(exclusion["freeze_status"], "EXCLUDED_NOT_A_CANDIDATE")
+        self.assertIn("16-50 V input", exclusion["claim"])
+        self.assertIn("28 V output", exclusion["claim"])
+        self.assertIn("not candidate evidence", exclusion["claim"])
+
+    def test_isolated_power_guard_rejects_excluded_part_and_non_tbd_bom(self) -> None:
+        module = load_module("release_readiness_u2_guard", ROOT / "hardware/pcb/tools/release_readiness.py")
+        component_matrix = [{"reference": "U2", "primary_candidate": module.ISOLATED_POWER_TBD}]
+        approval_register = [{"reference": "U2", "candidate": module.ISOLATED_POWER_TBD}]
+        bom = [
+            {
+                "reference": "U2",
+                "design_candidate": module.ISOLATED_POWER_TBD,
+                "package_or_module": module.ISOLATED_POWER_TBD_LAND_PATTERN,
+            }
+        ]
+        artifacts = {
+            "design_data.py": (
+                f"{module.ISOLATED_POWER_TBD} {module.ISOLATED_POWER_TBD_FOOTPRINT} "
+                f"{module.ISOLATED_POWER_TBD_SYMBOL}"
+            ),
+            "fabrication/bom.csv": module.ISOLATED_POWER_TBD,
+            "controller.kicad_pcb": f"{module.ISOLATED_POWER_TBD_FOOTPRINT} U2 LAND PATTERN TBD DO NOT FIT",
+            "controller.kicad_sch": (
+                f"{module.ISOLATED_POWER_TBD} {module.ISOLATED_POWER_TBD_FOOTPRINT} "
+                f"{module.ISOLATED_POWER_TBD_SYMBOL}"
+            ),
+            "controller.kicad_sym": module.ISOLATED_POWER_TBD_SYMBOL,
+            "controller.ses": module.ISOLATED_POWER_TBD_FOOTPRINT,
+            "controller.net": f"{module.ISOLATED_POWER_TBD} {module.ISOLATED_POWER_TBD_FOOTPRINT}",
+            "fabrication/positions.csv": module.ISOLATED_POWER_TBD_FOOTPRINT,
+            "WB.pretty": module.ISOLATED_POWER_TBD_FOOTPRINT,
+        }
+        report = module.check_isolated_power_tbd_guard(component_matrix, approval_register, bom, artifacts)
+        self.assertTrue(report["pass"])
+        self.assertEqual(report["missing_placeholder_markers"], {})
+
+        stale_artifacts = {**artifacts, "controller.kicad_sch": "Vicor DCM3623T50M31C2T00"}
+        report = module.check_isolated_power_tbd_guard(
+            component_matrix,
+            approval_register,
+            bom,
+            stale_artifacts,
+        )
+        self.assertFalse(report["pass"])
+        self.assertIn("DCM3623", report["incompatible_occurrences"]["controller.kicad_sch"])
+
+        stale_bom = [{**bom[0], "package_or_module": "WB:Vicor_DCM3623"}]
+        report = module.check_isolated_power_tbd_guard(
+            component_matrix,
+            approval_register,
+            stale_bom,
+            artifacts,
+        )
+        self.assertFalse(report["pass"])
+        self.assertFalse(report["fabrication_bom_uses_tbd"])
 
     def test_kicad_cli_release_reports_are_clean_and_fabrication_exists(self) -> None:
         pcb = ROOT / "hardware/pcb"
@@ -140,7 +270,31 @@ class PcbPackageTests(unittest.TestCase):
         self.assertIn("0  Errors 0  Warnings", erc)
         gerbers = list((pcb / "fabrication/gerbers").glob("controller-*"))
         self.assertGreaterEqual(len(gerbers), 15)
+        self.assertTrue((pcb / "fabrication/gerbers/controller-F_Paste.gtp").exists())
+        self.assertTrue((pcb / "fabrication/gerbers/controller-B_Paste.gbp").exists())
         self.assertTrue((pcb / "fabrication/controller.d356").exists())
+        self.assertTrue((pcb / "fabrication/drawings/assembly.pdf").exists())
+        self.assertTrue((pcb / "fabrication/drawings/routing-review.pdf").exists())
+        self.assertTrue((pcb / "fabrication/drawings/controller-schematic.pdf").exists())
+        board_stats = json.loads((pcb / "fabrication/board-stats.json").read_text(encoding="utf-8"))
+        self.assertEqual(board_stats["vias"]["total"], 180)
+        self.assertEqual(
+            board_stats["design_counts"]["copper_layers"],
+            ["F.Cu", "In1.Cu", "In2.Cu", "In3.Cu", "In4.Cu", "In5.Cu", "In6.Cu", "B.Cu"],
+        )
+        self.assertNotIn("", board_stats["vias"])
+        self.assertIn("FAB-003", (pcb / "fabrication/fabrication-notes.csv").read_text(encoding="utf-8"))
+
+    def test_board_stats_normalizer_replaces_locale_dependent_via_keys(self) -> None:
+        module = load_module("export_fabrication_stats", ROOT / "hardware/pcb/tools/export_fabrication.py")
+        with tempfile.TemporaryDirectory() as directory:
+            stats_path = Path(directory) / "stats.json"
+            stats_path.write_text(json.dumps({"vias": {"": 9}, "pads": {"焊盘": 1}}), encoding="utf-8")
+            module.normalize_board_stats(stats_path, ROOT / "hardware/pcb/kicad/controller.kicad_pcb")
+            stats = json.loads(stats_path.read_text(encoding="utf-8"))
+        self.assertEqual(stats["vias"], {"total": 180})
+        self.assertEqual(stats["kicad_raw_via_summary"], {"unlabeled": 9})
+        self.assertEqual(stats["design_counts"]["track_segments"], 1070)
 
     def test_project_enforces_documented_dfm_minimums(self) -> None:
         project = json.loads((ROOT / "hardware/pcb/kicad/controller.kicad_pro").read_text(encoding="utf-8"))
@@ -149,6 +303,10 @@ class PcbPackageTests(unittest.TestCase):
         self.assertEqual(rules["min_track_width"], 0.15)
         self.assertEqual(rules["min_through_hole_diameter"], 0.3)
         self.assertEqual(rules["min_via_annular_width"], 0.15)
+        custom_rules = (ROOT / "hardware/pcb/kicad/controller.kicad_dru").read_text(encoding="utf-8")
+        self.assertIn("constraint clearance (min 8mm)", custom_rules)
+        self.assertIn("VBAT_PROTECTED", custom_rules)
+        self.assertIn("GND_PWR", custom_rules)
 
 
 class ManufacturingPackageTests(unittest.TestCase):
@@ -263,6 +421,7 @@ class ReleaseReadinessTests(unittest.TestCase):
         self.assertTrue(report["pass"])
         self.assertEqual(report["status"], "RELEASE_BLOCKED")
         self.assertGreaterEqual(report["blocker_count"], 10)
+        self.assertIn("REL-003A", report["blockers"])
         self.assertIn("REL-004", report["blockers"])
         self.assertIn("REL-014", report["blockers"])
 

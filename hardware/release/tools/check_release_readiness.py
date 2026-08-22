@@ -33,6 +33,8 @@ def validate() -> dict:
         ),
         "upstream_reports_remain_fail_closed": (
             load_report("hardware/pcb/generated/release_readiness.json")["status"] == "ORDER_RELEASE_BLOCKED"
+            and load_report("hardware/motor_driver/generated/release-readiness.json")["status"]
+            == "ORDER_RELEASE_BLOCKED"
             and load_report("hardware/procurement/generated/procurement_report.json")["status"]
             == "ORDER_RELEASE_BLOCKED"
             and load_report("hardware/qa/generated/qa_report.json")["physical_results"] == "NOT_EXECUTED"

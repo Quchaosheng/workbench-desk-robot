@@ -60,3 +60,35 @@ assembly trial, and resolved DFM actions for the production revision.
 
 The estimate is recorded in `mass-ledger.csv`; `interference-checklist.csv`
 enumerates the CAD and guarded-test evidence still required.
+
+## Chassis traction integration
+
+The mobile chassis reserves two symmetric traction motor volumes, four wheel
+volumes at the controlled wheelbase/track, and a separate field-replaceable
+motor-driver childboard volume. These are maximum space claims
+for integration studies, not selected component geometry. Both motor MPNs,
+technology, gear ratio, shaft and mounting interface, mass, torque reaction, and
+thermal boundary remain `TBD_NOT_SELECTED`. The childboard final outline,
+connector faces, component height, retention hardware, mass, and cooling path
+also remain TBD.
+
+The two traction motors are distinct from the six UR5e joint motors. UR5e joints
+remain connected to and controlled by the vendor controller cabinet; this
+mechanical package does not create substitute motor, brake, gearbox, or arm-drive
+mounting provisions.
+
+The reserved childboard volume sits above the controller service volume, retains
+an upward extraction path, and leaves a rear connector corridor. Physical release
+requires an approved motor and childboard, tolerance-stack review, bracket load
+analysis, wheel/hub/tyre/bearing selection, wheel load and traction review,
+fastener selection, harness bend/strain-relief review, guarded wheel sweep,
+thermal testing, and a demonstrated service-removal trial. The analytical
+clearances in `generated/analysis.json` are not measured results.
+
+The battery is reserved as a low, central `80 x 100 x 40 mm` envelope at
+`[0, 0, 52]` with a removable restraint and service disconnect still TBD. The
+generator checks its analytical separation from motors, wheels, the controller
+tray, and the traction childboard; impact retention, pack chemistry, BMS, and
+thermal measurements remain release gates. The childboard is carried on a
+separate provisional plate/standoff assembly rather than floating in the CAD
+model; its datum and shock retention are still not frozen.

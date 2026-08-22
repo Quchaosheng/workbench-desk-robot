@@ -1,0 +1,24 @@
+{
+  "blocker_count": 13,
+  "blockers": [
+    "MTR-MOTOR",
+    "MTR-POWER",
+    "MTR-DRV",
+    "MTR-REGEN",
+    "MTR-CURRENT",
+    "MTR-SAFETY",
+    "MTR-CONTROL",
+    "MTR-SCHEMATIC",
+    "MTR-LAYOUT",
+    "MTR-THERMAL",
+    "MTR-HARNESS",
+    "MTR-DFM",
+    "MTR-BRINGUP"
+  ],
+  "engineering_package_pass": true,
+  "note": "Blockers close only with named approvals and attached external evidence; repository edits cannot infer them.",
+  "order_release_ready": false,
+  "package": "dual-axis-traction-childboard",
+  "revision": "CONCEPT-A",
+  "status": "ORDER_RELEASE_BLOCKED"
+}

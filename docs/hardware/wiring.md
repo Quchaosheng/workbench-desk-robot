@@ -18,9 +18,9 @@ Jetson dev kit <-- J4 3.3 V control backplane --> U5 MCU
                                                    |
                          U7 isolated supply -> U6 CAN FD -> J5/J6
 
-Dual-channel E-stop -> J10 -> U8 safety gate -> J11 MOTOR_ENABLE_SAFE
+Dual-channel E-stop -> J10 -> K1/K2 safety chain -> J11 MOTOR_ENABLE_SAFE
                                       ^
-                         MOTOR_ENABLE_REQ from J4 is a request only
+                       MOTOR_ENABLE_REQ from U5 is a request only
 ```
 
 ## Connector map
@@ -30,13 +30,14 @@ Dual-channel E-stop -> J10 -> U8 safety gate -> J11 MOTOR_ENABLE_SAFE
 | J1 | 1-2 `VBAT_RAW`; 3-4 `GND_PWR` | 36-60 V input, 10 A fused envelope | keying, polarity, wire gauge, fuse interrupt rating |
 | J2 | 1-2 `12V_ISO`; 3-4 `GND` | motor auxiliary, 120 W aggregate envelope | driver inrush/regeneration approval |
 | J3 | 1-2 `JETSON_12V`; 3-4 `GND` | Jetson developer-kit DC input | purchased dev-kit revision and polarity |
-| J4 | 1/3 `3V3`; 2/4 GND; 5-20 control | Jetson-to-MCU SPI/I2C/UART, six CS, reset and safety status | pin mux and direction against the detailed schematic |
+| J4 | 1/3 `3V3`; 2/4 GND; 5-20 control; pin 8 `JETSON_ENABLE_REQ` | Jetson-to-MCU SPI/I2C/UART, Jetson enable, six CS, reset and safety status | pin mux and direction against the detailed schematic |
 | J5/J6 | 1 `CANH`; 2 `CANL`; 3 `GND_CAN_ISO`; 4 NC | isolated CAN-FD daisy chain | termination, shield policy, no logic-ground short |
 | J10 | A out/return, B out/return | dual-channel E-stop loop | channels independent; discrepancy must disable |
 | J11 | safe enable, E-stop sense, GND, 3V3 | motor-driver safety interface | safe enable is not tied to software request |
 
 Do not connect J5/J6 pin 3 to logic ground. Do not bridge
-`MOTOR_ENABLE_REQ` to `MOTOR_ENABLE_SAFE`. J7-J9 are downstream interface
+`MOTOR_ENABLE_REQ` to `MOTOR_ENABLE_SAFE`; `JETSON_ENABLE_REQ` is a separate
+compute-power request. J7-J9 are downstream interface
 definitions and are not populated on this board revision.
 
 ## Bench connection order

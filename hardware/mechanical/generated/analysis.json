@@ -3,10 +3,10 @@
   "mass_kg": 6.42,
   "center_of_gravity_mm": [
     0.0,
-    -4.5,
-    101.9
+    1.7,
+    97.9
   ],
-  "static_tip_angle_deg": 45.9,
+  "static_tip_angle_deg": 47.0,
   "drop_energy_j": 47.2,
   "minimum_energy_absorber_stroke_mm": 21.4,
   "vent_area_ratio_outlet_to_inlet": 1.22,
@@ -15,7 +15,26 @@
     "outlet_area_at_least_inlet": true,
     "absorber_at_least_derived_stroke": true,
     "pcb_fits_electronics_tray": true,
-    "pcb_edge_service_margin_met": true
+    "pcb_edge_service_margin_met": true,
+    "four_wheel_envelopes_declared": true,
+    "wheelbase_and_track_match_chassis_datums": true,
+    "wheel_envelopes_fit_chassis_projection": true,
+    "wheel_bottom_matches_ground_clearance": true,
+    "battery_envelope_is_declared": true,
+    "battery_clear_of_traction_motors": true,
+    "battery_clear_of_wheels": true,
+    "battery_clear_of_electronics_tray": true,
+    "battery_clear_of_traction_childboard": true,
+    "battery_envelope_fits_chassis_and_enclosure": true,
+    "two_traction_motor_envelopes_declared": true,
+    "traction_motor_envelopes_are_symmetric": true,
+    "traction_motor_envelopes_fit_chassis_projection": true,
+    "traction_childboard_fits_internal_envelope": true,
+    "traction_childboard_clears_controller_service_volume": true,
+    "traction_childboard_mount_edge_margin_met": true,
+    "traction_childboard_mount_support_reaches_envelope": true,
+    "traction_childboard_rear_connector_corridor_met": true,
+    "traction_motor_to_childboard_clearance_met": true
   },
   "pcb_tray_margin_mm": [
     60,
@@ -24,5 +43,172 @@
   "pcb_edge_service_margin_mm": [
     30.0,
     20.0
-  ]
+  ],
+  "wheel_integration": {
+    "status": "TBD_WHEEL_HUB_TYRE_SELECTION_DO_NOT_ORDER",
+    "wheel_count": 4,
+    "wheel_envelope_mm": [
+      50,
+      12,
+      50
+    ],
+    "wheel_centres": [
+      {
+        "id": "wheel_front_left",
+        "xyz": [
+          -90,
+          -105,
+          43
+        ]
+      },
+      {
+        "id": "wheel_front_right",
+        "xyz": [
+          90,
+          -105,
+          43
+        ]
+      },
+      {
+        "id": "wheel_rear_left",
+        "xyz": [
+          -90,
+          105,
+          43
+        ]
+      },
+      {
+        "id": "wheel_rear_right",
+        "xyz": [
+          90,
+          105,
+          43
+        ]
+      }
+    ],
+    "wheelbase_mm": 180,
+    "track_mm": 210,
+    "maximum_chassis_side_overhang_mm": 1.0,
+    "ground_contact_z_mm": 18.0,
+    "release_blockers": [
+      "wheel_hub_tyre_bearing_and_fastener_mpn_not_selected",
+      "wheel_load_traction_and_floor_interface_not_validated",
+      "wheel_sweep_and_chafe_clearance_not_physically_executed"
+    ],
+    "physical_validation": "NOT_EXECUTED"
+  },
+  "battery_integration": {
+    "status": "TBD_PACK_ENVELOPE_AND_RESTRAINT_DO_NOT_ORDER",
+    "reserved_envelope_mm": [
+      80,
+      100,
+      40
+    ],
+    "xyz": [
+      0,
+      0,
+      52
+    ],
+    "battery_to_motor_clearances_mm": [
+      22.0,
+      22.0
+    ],
+    "battery_to_wheel_clearances_mm": [
+      25.0,
+      25.0,
+      25.0,
+      25.0
+    ],
+    "battery_to_tray_clearance_mm": 27.0,
+    "battery_to_childboard_clearance_mm": 68.0,
+    "restraint": "TBD_BMS_PACK_BRACKET_AND_IMPACT_RETENTION",
+    "release_blockers": [
+      "battery_pack_mpn_cell_chemistry_and_envelope_not_selected",
+      "restraint_and_service_disconnect_not_designed",
+      "impact_and_thermal_clearance_not_physically_validated"
+    ],
+    "physical_validation": "NOT_EXECUTED"
+  },
+  "traction_integration": {
+    "status": "TBD_ENVELOPES_ONLY_MOTOR_SELECTION_AND_PHYSICAL_VALIDATION_REQUIRED",
+    "architecture_scope": "two_chassis_traction_motors_and_one_independent_driver_childboard",
+    "excluded_scope": "UR5e_joint_motors_remain_inside_vendor_controller_system",
+    "motor_selection_status": "TBD_NOT_SELECTED_DO_NOT_ORDER",
+    "reserved_motor_envelope_mm": [
+      48,
+      72,
+      46
+    ],
+    "motor_envelopes": [
+      {
+        "id": "traction_motor_left",
+        "side": "left",
+        "xyz": [
+          -86,
+          0,
+          49
+        ]
+      },
+      {
+        "id": "traction_motor_right",
+        "side": "right",
+        "xyz": [
+          86,
+          0,
+          49
+        ]
+      }
+    ],
+    "childboard": {
+      "id": "traction_driver_childboard",
+      "selection_status": "TBD_OUTLINE_AND_COMPONENT_HEIGHT_DO_NOT_ORDER",
+      "envelope": [
+        118,
+        82,
+        20
+      ],
+      "xyz": [
+        0,
+        54,
+        150
+      ],
+      "mount_pattern": [
+        108,
+        72
+      ],
+      "mount_hole_mm": 3.2,
+      "minimum_mount_edge_margin_mm": 5,
+      "service_removal_direction": "+Z",
+      "service_clearance_mm": 35,
+      "connector_side": "+Y_REAR",
+      "minimum_connector_corridor_mm": 20,
+      "mount_support": {
+        "status": "TBD_STANDOFF_AND_RETAINER_DO_NOT_ORDER",
+        "plate_center_z_mm": 135,
+        "plate_thickness_mm": 3,
+        "standoff_height_mm": 3.5,
+        "standoff_diameter_mm": 6,
+        "mount_hole_diameter_mm": 3.2,
+        "release_blockers": [
+          "mount_plate_datum_and_fastener_stack_not_frozen",
+          "shock_retention_and_thermal_interface_not_validated"
+        ]
+      }
+    },
+    "controller_to_childboard_clearance_mm": 6.0,
+    "rear_connector_corridor_mm": 22.5,
+    "motor_to_childboard_clearances_mm": [
+      3.0,
+      3.0
+    ],
+    "minimum_motor_to_childboard_clearance_mm": 3.0,
+    "release_blockers": [
+      "motor_mpn_mount_pattern_shaft_and_mass_not_selected",
+      "motor_stall_load_and_bracket_reaction_not_verified",
+      "childboard_final_outline_connector_locations_and_mass_not_frozen",
+      "traction_regeneration_bus_overshoot_and_thermal_design_not_approved",
+      "physical_fit_harness_sweep_and_service_removal_not_executed"
+    ],
+    "physical_validation": "NOT_EXECUTED"
+  }
 }

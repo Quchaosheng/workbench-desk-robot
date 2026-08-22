@@ -1,0 +1,81 @@
+{
+  "checks": {
+    "all_physical_verification_is_not_executed": true,
+    "architecture_options_keep_both_paths_blocked": true,
+    "bom_and_approval_register_match": true,
+    "can_isolation_domain_is_preserved": true,
+    "candidate_dual_stall_exceeds_j2_ceiling": true,
+    "candidate_fits_envelope_analytically": true,
+    "candidate_pinout_covers_ddv_exactly_once": true,
+    "candidate_pinout_preserves_independent_safety_gates": true,
+    "concept_board_is_mechanical_only": true,
+    "critical_budget_inputs_are_blank_blockers": true,
+    "drv8962_is_candidate_not_board_rating": true,
+    "dual_safety_interface_is_explicit": true,
+    "j2_power_ceiling_is_consistent": true,
+    "j2_power_pinout_is_complete": true,
+    "layout_matches_mechanical_envelope": true,
+    "motor_power_inputs_remain_unknown": true,
+    "no_component_is_falsely_approved": true,
+    "placement_blocks_fit_board_and_remain_conceptual": true,
+    "pololu_motor_is_candidate_not_production_selection": true,
+    "regeneration_is_fail_closed": true,
+    "release_gate_register_is_fail_closed": true,
+    "required_files_exist": true,
+    "review_baseline_is_12v_j2_not_production_selection": true,
+    "software_has_no_safety_authority": true,
+    "sources_are_traceable_not_approval": true,
+    "truth_table_is_fail_closed": true,
+    "two_brushed_axes_only": true
+  },
+  "engineering_package_pass": true,
+  "metrics": {
+    "board_envelope_mm": [
+      118.0,
+      82.0,
+      20.0
+    ],
+    "candidate_driver_count": 1,
+    "candidate_dual_stall_current_a": 11.0,
+    "candidate_motor_count": 1,
+    "controlled_driver_pin_count": 44,
+    "j2_current_ceiling_a": 10.0,
+    "j2_power_ceiling_w": 120.0,
+    "mounting_pattern_mm": [
+      108.0,
+      72.0
+    ],
+    "release_blocker_count": 13,
+    "release_gate_count": 15,
+    "traction_axes": 2,
+    "verification_item_count": 12
+  },
+  "note": "Engineering consistency does not approve procurement, safety, fabrication, or physical operation.",
+  "order_release_ready": false,
+  "package": "dual-axis-traction-childboard",
+  "release_blockers": [
+    "MTR-MOTOR",
+    "MTR-POWER",
+    "MTR-DRV",
+    "MTR-REGEN",
+    "MTR-CURRENT",
+    "MTR-SAFETY",
+    "MTR-CONTROL",
+    "MTR-SCHEMATIC",
+    "MTR-LAYOUT",
+    "MTR-THERMAL",
+    "MTR-HARNESS",
+    "MTR-DFM",
+    "MTR-BRINGUP"
+  ],
+  "revision": "CONCEPT-A",
+  "status": "ORDER_RELEASE_BLOCKED",
+  "truth_table_checks": {
+    "bridge_requires_every_permission": true,
+    "channel_a_dominates_nsleep": true,
+    "channel_b_dominates_enable": true,
+    "channel_discrepancies_disable_and_latch": true,
+    "healthy_requested_case_is_covered": true,
+    "software_bypass_cases_are_covered": true
+  }
+}

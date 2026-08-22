@@ -1,0 +1,16 @@
+gate_id,gate,owner,status,release_blocker,evidence_ref,next_action
+MTR-DOC,engineering package deterministic validation,Electrical Owner,PASS,no,hardware/motor_driver/tools/validate_motor_driver.py,rerun validator after every controlled change
+MTR-SOURCE,DRV8962 candidate claims trace to official datasheet,Electrical Owner,PASS,no,hardware/motor_driver/source-baseline.json,keep datasheet revision under change control
+MTR-MOTOR,motor MPN and full electrical mechanical envelope,System and Motion Owners,BLOCKED,yes,hardware/motor_driver/motor-candidate-matrix.csv,approve candidate or alternate and attach supplier drawings curves and dual-axis current-limit/dyno evidence
+MTR-POWER,12 V versus protected 48 V production architecture and branch protection,System and Electrical Owners,BLOCKED,yes,NOT_ATTACHED,freeze architecture after motor and bus envelopes are known
+MTR-DRV,driver land pattern current SOA configuration and approval,Electrical Owner,BLOCKED,yes,NOT_ATTACHED,complete candidate review schematic calculations and signed AVL
+MTR-REGEN,regenerative blocking bulk clamp brake and energy sink,Electrical and Safety Owners,BLOCKED,yes,NOT_ATTACHED,calculate energy then validate worst-case bus overshoot and no J2 backfeed
+MTR-CURRENT,current regulation current sensing ADC range and stall policy,Electrical and Controls Owners,BLOCKED,yes,NOT_ATTACHED,freeze shunts IPROPI network VREF and bounded fault response
+MTR-SAFETY,two independent hardware safety outputs and childboard gates,Safety Owner,BLOCKED,yes,NOT_ATTACHED,approve controller and harness ECO; replace candidate U4/U5 paths with approved gates and validate both nFAULT-inhibit channels against safety-gate-connectivity.csv
+MTR-CONTROL,local controller CAN protocol watchdog and startup state,Controls and Runtime Owners,BLOCKED,yes,NOT_ATTACHED,freeze protocol without changing safety authority
+MTR-SCHEMATIC,detailed component-level schematic and clean ERC,Electrical Owner,BLOCKED,yes,NOT_ATTACHED,finish selections; replace candidate contract in schematic-design.md with wired KiCad circuit and attach clean ERC/netlist
+MTR-LAYOUT,land-pattern-controlled PCB routing stackup and clean DRC,Electrical Owner,BLOCKED,yes,NOT_ATTACHED,route selected circuit and attach DRC connectivity and layout audit
+MTR-THERMAL,simultaneous two-axis thermal model and physical validation,Electrical and Mechanical Owners,BLOCKED,yes,NOT_ATTACHED,approve heatsink then run maximum-ambient loaded test
+MTR-HARNESS,keyed power safety motor encoder and CAN harness release,Harness Owner,BLOCKED,yes,NOT_ATTACHED,freeze mating MPNs wire gauges pinouts retention and drawings
+MTR-DFM,supplier stackup CAM assembly and thermal-interface DFM,Supplier and Manufacturing Owners,BLOCKED,yes,NOT_ATTACHED,close supplier questions against frozen revision
+MTR-BRINGUP,physical bring-up dyno fault injection EMC and evidence,Safety and Validation Owners,BLOCKED,yes,NOT_ATTACHED,execute verification matrix with calibrated instruments

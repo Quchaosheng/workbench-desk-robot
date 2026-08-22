@@ -11,6 +11,10 @@ OUT = ROOT / "generated"
 
 def calculate() -> dict[str, object]:
     rails = {rail["name"]: rail for rail in SPEC["rails"]}
+    copper_thickness_per_oz_mm = SPEC["dfm"]["nominal_copper_thickness_per_oz_mm"]
+    stackup_thickness_mm = sum(
+        layer["dielectric_to_next_mm"] + layer["copper_oz"] * copper_thickness_per_oz_mm for layer in SPEC["stackup"]
+    )
     cases = {}
     for load_case in SPEC["load_cases"]:
         direct_loads: dict[str, float] = defaultdict(float)
@@ -60,6 +64,11 @@ def calculate() -> dict[str, object]:
         "isolation_creepage_at_least_8mm": SPEC["dfm"]["isolation_creepage_mm"] >= 8,
         "can_has_120ohm_termination": SPEC["can"]["termination_ohm"] == 120,
         "all_rails_derated_from_rating": all(rail["continuous_a"] <= rail["rated_a"] for rail in rails.values()),
+        "eight_layer_build_matches_board_thickness": len(SPEC["stackup"]) == 8
+        and abs(stackup_thickness_mm - SPEC["dfm"]["board_thickness_mm"]) <= SPEC["dfm"]["stackup_math_tolerance_mm"],
+        "supplier_stackup_and_impedance_closure_is_required": SPEC["dfm"][
+            "supplier_stackup_and_impedance_closure_required"
+        ],
         "input_protection_domains_are_distinct": SPEC["protection"]["input_net_sequence"]
         == ["VBAT_RAW", "VBAT_FUSED", "VBAT_PROTECTED"],
     }
@@ -70,6 +79,8 @@ def calculate() -> dict[str, object]:
         "maximum_documented_load_w": worst_case["rail_results"]["12V_ISO"]["demand_w"],
         "input_current_at_36v_a": input_current_at_min_v,
         "input_corner_currents_a": worst_case["input_currents_a"],
+        "nominal_stackup_thickness_mm": round(stackup_thickness_mm, 3),
+        "nominal_copper_thickness_per_oz_mm": copper_thickness_per_oz_mm,
         "checks": checks,
         "pass": all(checks.values()),
     }

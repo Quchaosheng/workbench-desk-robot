@@ -1,19 +1,680 @@
 {
-  "J1": {"1": "VBAT_RAW", "2": "VBAT_RAW", "3": "GND_PWR", "4": "GND_PWR"},
-  "F1": {"1": "VBAT_RAW", "2": "VBAT_FUSED"},
-  "U1": {"1": "VBAT_FUSED", "2": "GND_PWR", "3": "VBAT_PROTECTED", "4": "GND_PWR"},
-  "U2": {"1": "VBAT_PROTECTED", "2": "GND_PWR", "3": "12V_ISO", "4": "GND"},
-  "U6": {"1": "5V_CAN_ISO", "2": "GND_CAN_ISO", "3": "CANH", "4": "CANL", "5": "3V3_LOGIC", "6": "GND", "7": "CAN_TX", "8": "CAN_RX"},
-  "U7": {"1": "5V_CAN_ISO", "2": "GND_CAN_ISO", "3": null, "4": null, "5": "3V3_LOGIC", "6": "GND", "7": null, "8": null},
-  "U8": {"1": "12V_ISO", "2": "GND", "3": "MOTOR_ENABLE_REQ", "4": "MOTOR_ENABLE_SAFE", "5": "ESTOP_SENSE", "6": "ESTOP_CH_A_OUT", "7": "ESTOP_CH_A_RETURN", "8": "ESTOP_CH_B_OUT", "9": "ESTOP_CH_B_RETURN", "10": "GND", "11": "3V3_LOGIC", "12": null},
-  "J10": {"1": "ESTOP_CH_A_OUT", "2": "ESTOP_CH_A_RETURN", "3": "ESTOP_CH_B_OUT", "4": "ESTOP_CH_B_RETURN"},
-  "J11": {"1": "MOTOR_ENABLE_SAFE", "2": "ESTOP_SENSE", "3": "GND", "4": null},
-  "TP1": {"1": "VBAT_PROTECTED"},
-  "TP2": {"1": "12V_ISO"},
-  "TP3": {"1": "JETSON_12V"},
-  "TP4": {"1": "3V3_LOGIC"},
-  "TP5": {"1": "GND"},
-  "TP6": {"1": "CANH"},
-  "TP7": {"1": "CANL"},
-  "TP8": {"1": "MCU_RESET"}
+  "C1": {
+    "1": "VBAT_PROTECTED",
+    "2": "GND_PWR"
+  },
+  "C2": {
+    "1": "VBAT_PROTECTED",
+    "2": "GND_PWR"
+  },
+  "C3": {
+    "1": "12V_ISO",
+    "2": "GND"
+  },
+  "C4": {
+    "1": "12V_ISO",
+    "2": "GND"
+  },
+  "C5": {
+    "1": "JETSON_12V",
+    "2": "GND"
+  },
+  "C6": {
+    "1": "12V_ISO",
+    "2": "GND"
+  },
+  "C7": {
+    "1": "3V3_LOGIC",
+    "2": "GND"
+  },
+  "C8": {
+    "1": "3V3_LOGIC",
+    "2": "GND"
+  },
+  "C9": {
+    "1": "3V3_LOGIC",
+    "2": "GND"
+  },
+  "C10": {
+    "1": "3V3_LOGIC",
+    "2": "GND"
+  },
+  "C11": {
+    "1": "3V3_LOGIC",
+    "2": "GND"
+  },
+  "C12": {
+    "1": "3V3_LOGIC",
+    "2": "GND"
+  },
+  "C13": {
+    "1": "3V3_LOGIC",
+    "2": "GND"
+  },
+  "C14": {
+    "1": "3V3_LOGIC",
+    "2": "GND"
+  },
+  "C15": {
+    "1": "3V3_LOGIC",
+    "2": "GND"
+  },
+  "C16": {
+    "1": "3V3_LOGIC",
+    "2": "GND"
+  },
+  "C17": {
+    "1": "3V3_LOGIC",
+    "2": "GND"
+  },
+  "C18": {
+    "1": "U3_DVDT",
+    "2": "GND"
+  },
+  "C19": {
+    "1": "MCU_RESET",
+    "2": "GND"
+  },
+  "C20": {
+    "1": "U4_VCC",
+    "2": "GND"
+  },
+  "C40": {
+    "1": "3V3_LOGIC",
+    "2": "GND"
+  },
+  "C41": {
+    "1": "5V_CAN_ISO",
+    "2": "GND_CAN_ISO"
+  },
+  "C42": {
+    "1": "3V3_LOGIC",
+    "2": "GND"
+  },
+  "C43": {
+    "1": "5V_CAN_ISO",
+    "2": "GND_CAN_ISO"
+  },
+  "C44": {
+    "1": "5V_CAN_ISO",
+    "2": "GND_CAN_ISO"
+  },
+  "CG1": {
+    "1": "FET_GATE",
+    "2": "FET_COMMON"
+  },
+  "CSS4": {
+    "1": "U4_SS",
+    "2": "GND"
+  },
+  "CY1": {
+    "1": "OSC_IN",
+    "2": "GND"
+  },
+  "CY2": {
+    "1": "OSC_OUT",
+    "2": "GND"
+  },
+  "D1": {
+    "1": "VBAT_FUSED",
+    "2": "GND_PWR"
+  },
+  "D2": {
+    "1": "CANH",
+    "2": "CANL",
+    "3": "GND_CAN_ISO",
+    "4": "GND_CAN_ISO"
+  },
+  "D3": {
+    "1": "RESET_CH_A_RETURN",
+    "2": "GND"
+  },
+  "D4": {
+    "1": "RESET_CH_B_RETURN",
+    "2": "GND"
+  },
+  "F1": {
+    "1": "VBAT_RAW",
+    "2": "VBAT_FUSED"
+  },
+  "F2": {
+    "1": "12V_ISO",
+    "2": "ESTOP_12V"
+  },
+  "J1": {
+    "1": "VBAT_RAW",
+    "2": "VBAT_RAW",
+    "3": "GND_PWR",
+    "4": "GND_PWR"
+  },
+  "J2": {
+    "1": "12V_ISO",
+    "2": "12V_ISO",
+    "3": "GND",
+    "4": "GND"
+  },
+  "J3": {
+    "1": "JETSON_12V",
+    "2": "JETSON_12V",
+    "3": "GND",
+    "4": "GND"
+  },
+  "J4": {
+    "1": "3V3_LOGIC",
+    "2": "GND",
+    "3": "3V3_LOGIC",
+    "4": "GND",
+    "5": "SPI_SCLK",
+    "6": "SPI_MOSI",
+    "7": "SPI_MISO",
+    "8": "JETSON_ENABLE_REQ",
+    "9": "MOTOR_CS0",
+    "10": "MOTOR_CS1",
+    "11": "MOTOR_CS2",
+    "12": "MOTOR_CS3",
+    "13": "MOTOR_CS4",
+    "14": "MOTOR_CS5",
+    "15": "I2C_SDA",
+    "16": "I2C_SCL",
+    "17": "ESTOP_SENSE",
+    "18": "UART_TX",
+    "19": "UART_RX",
+    "20": "MCU_RESET"
+  },
+  "J5": {
+    "1": "CANH",
+    "2": "CANL",
+    "3": "GND_CAN_ISO",
+    "4": null
+  },
+  "J6": {
+    "1": "CANH",
+    "2": "CANL",
+    "3": "GND_CAN_ISO",
+    "4": null
+  },
+  "J10": {
+    "1": "ESTOP_12V",
+    "2": "ESTOP_CH_A_RETURN",
+    "3": "ESTOP_12V",
+    "4": "ESTOP_CH_B_RETURN"
+  },
+  "J11": {
+    "1": "MOTOR_ENABLE_SAFE",
+    "2": "ESTOP_SENSE",
+    "3": "GND",
+    "4": "3V3_LOGIC"
+  },
+  "J12": {
+    "1": "ESTOP_CH_A_RETURN",
+    "2": "RESET_CH_A_RETURN",
+    "3": "ESTOP_CH_B_RETURN",
+    "4": "RESET_CH_B_RETURN"
+  },
+  "J13": {
+    "1": "3V3_LOGIC",
+    "2": "SWDIO",
+    "3": "SWCLK",
+    "4": "GND"
+  },
+  "JP1": {
+    "1": "CAN_TERM",
+    "2": "CANL"
+  },
+  "K1": {
+    "1": "RESET_CH_A_RETURN",
+    "2": "GND",
+    "3": "MOTOR_ENABLE_REQ",
+    "4": "SAFE_STAGE_A",
+    "5": "3V3_LOGIC",
+    "6": "SENSE_STAGE_A",
+    "7": "ESTOP_CH_A_RETURN",
+    "8": "RESET_CH_A_RETURN",
+    "9": "3V3_LOGIC",
+    "10": "RELAY_A_NC"
+  },
+  "K2": {
+    "1": "RESET_CH_B_RETURN",
+    "2": "GND",
+    "3": "SAFE_STAGE_A",
+    "4": "MOTOR_ENABLE_SAFE",
+    "5": "SENSE_STAGE_A",
+    "6": "ESTOP_SENSE",
+    "7": "ESTOP_CH_B_RETURN",
+    "8": "RESET_CH_B_RETURN",
+    "9": "3V3_LOGIC",
+    "10": "RELAY_B_NC"
+  },
+  "L1": {
+    "1": "CANH_RAW",
+    "2": "CANL_RAW",
+    "3": "CANL",
+    "4": "CANH"
+  },
+  "Q1": {
+    "1": "FET_GATE",
+    "2": "FET_COMMON",
+    "3": "VBAT_FUSED"
+  },
+  "Q2": {
+    "1": "FET_GATE",
+    "2": "FET_COMMON",
+    "3": "INPUT_SENSE"
+  },
+  "R30": {
+    "1": "SPI_SCLK_MCU",
+    "2": "SPI_SCLK"
+  },
+  "R31": {
+    "1": "SPI_MOSI_MCU",
+    "2": "SPI_MOSI"
+  },
+  "R32": {
+    "1": "SPI_MISO_MCU",
+    "2": "SPI_MISO"
+  },
+  "R33": {
+    "1": "MOTOR_CS0_MCU",
+    "2": "MOTOR_CS0"
+  },
+  "R34": {
+    "1": "MOTOR_CS1_MCU",
+    "2": "MOTOR_CS1"
+  },
+  "R35": {
+    "1": "MOTOR_CS2_MCU",
+    "2": "MOTOR_CS2"
+  },
+  "R36": {
+    "1": "MOTOR_CS3_MCU",
+    "2": "MOTOR_CS3"
+  },
+  "R37": {
+    "1": "MOTOR_CS4_MCU",
+    "2": "MOTOR_CS4"
+  },
+  "R38": {
+    "1": "MOTOR_CS5_MCU",
+    "2": "MOTOR_CS5"
+  },
+  "R39": {
+    "1": "I2C_SCL_MCU",
+    "2": "I2C_SCL"
+  },
+  "R40": {
+    "1": "I2C_SDA_MCU",
+    "2": "I2C_SDA"
+  },
+  "R41": {
+    "1": "UART_TX_MCU",
+    "2": "UART_TX"
+  },
+  "R42": {
+    "1": "UART_RX_MCU",
+    "2": "UART_RX"
+  },
+  "R43": {
+    "1": "BOOT0",
+    "2": "GND"
+  },
+  "R44": {
+    "1": "RELAY_A_NC",
+    "2": "GND"
+  },
+  "R45": {
+    "1": "RELAY_B_NC",
+    "2": "GND"
+  },
+  "R46": {
+    "1": "12V_ISO",
+    "2": "U4_CTRL"
+  },
+  "R47": {
+    "1": "3V3_LOGIC",
+    "2": "JETSON_FAULT_N"
+  },
+  "R48": {
+    "1": "U3_ILIM",
+    "2": "GND"
+  },
+  "R49": {
+    "1": "3V3_LOGIC",
+    "2": "ESTOP_A_MON"
+  },
+  "R50": {
+    "1": "3V3_LOGIC",
+    "2": "ESTOP_B_MON"
+  },
+  "R51": {
+    "1": "U3_IMON",
+    "2": "GND"
+  },
+  "R52": {
+    "1": "U8_LED_A_K",
+    "2": "GND"
+  },
+  "R53": {
+    "1": "U8_LED_B_K",
+    "2": "GND"
+  },
+  "R54": {
+    "1": "3V3_LOGIC",
+    "2": "MCU_RESET"
+  },
+  "R55": {
+    "1": "3V3_LOGIC",
+    "2": "I2C_SCL"
+  },
+  "R56": {
+    "1": "3V3_LOGIC",
+    "2": "I2C_SDA"
+  },
+  "R57": {
+    "1": "ESTOP_SENSE",
+    "2": "GND"
+  },
+  "R58": {
+    "1": "CANH",
+    "2": "CAN_TERM"
+  },
+  "R59": {
+    "1": "12V_ISO",
+    "2": "U3_UVLO"
+  },
+  "R60": {
+    "1": "U3_UVLO",
+    "2": "GND"
+  },
+  "RFB1": {
+    "1": "3V3_LOGIC",
+    "2": "U4_FB"
+  },
+  "RFB2": {
+    "1": "U4_FB",
+    "2": "GND"
+  },
+  "RG1": {
+    "1": "U1_GATE",
+    "2": "FET_GATE"
+  },
+  "RPG1": {
+    "1": "JETSON_12V",
+    "2": "U3_PGTH"
+  },
+  "RPG2": {
+    "1": "U3_PGTH",
+    "2": "GND"
+  },
+  "RPG3": {
+    "1": "3V3_LOGIC",
+    "2": "JETSON_PGOOD"
+  },
+  "RS1": {
+    "1": "INPUT_SENSE",
+    "2": "VBAT_PROTECTED"
+  },
+  "RSH1": {
+    "1": "VBAT_FUSED",
+    "2": "U1_SHDN"
+  },
+  "RUV1": {
+    "1": "VBAT_FUSED",
+    "2": "UV_SET"
+  },
+  "RUV2": {
+    "1": "UV_SET",
+    "2": "OV_SET"
+  },
+  "RUV3": {
+    "1": "OV_SET",
+    "2": "GND_PWR"
+  },
+  "TP1": {
+    "1": "VBAT_PROTECTED"
+  },
+  "TP2": {
+    "1": "12V_ISO"
+  },
+  "TP3": {
+    "1": "JETSON_12V"
+  },
+  "TP4": {
+    "1": "3V3_LOGIC"
+  },
+  "TP5": {
+    "1": "GND"
+  },
+  "TP6": {
+    "1": "CANH"
+  },
+  "TP7": {
+    "1": "CANL"
+  },
+  "TP8": {
+    "1": "MCU_RESET"
+  },
+  "U1": {
+    "1": "GND_PWR",
+    "2": "GND_PWR",
+    "3": "OV_SET",
+    "4": "UV_SET",
+    "5": "VBAT_FUSED",
+    "6": "U1_SHDN",
+    "7": null,
+    "8": "VBAT_PROTECTED",
+    "9": "INPUT_SENSE",
+    "10": "U1_GATE"
+  },
+  "U2": {
+    "1": "VBAT_PROTECTED",
+    "2": "GND_PWR",
+    "3": null,
+    "4": "12V_ISO",
+    "5": "GND",
+    "6": null,
+    "7": null,
+    "8": null,
+    "9": null
+  },
+  "U3": {
+    "1": "12V_ISO",
+    "2": "12V_ISO",
+    "3": null,
+    "4": null,
+    "5": "12V_ISO",
+    "6": "U3_UVLO",
+    "7": "GND",
+    "8": "GND",
+    "9": "U3_DVDT",
+    "10": "U3_ILIM",
+    "11": null,
+    "12": "3V3_LOGIC",
+    "13": "U3_IMON",
+    "14": "JETSON_FAULT_N",
+    "15": "U3_PGTH",
+    "16": "JETSON_PGOOD",
+    "17": "JETSON_12V",
+    "18": "JETSON_12V",
+    "19": null,
+    "20": null,
+    "21": null,
+    "22": null,
+    "23": null,
+    "24": null,
+    "25": "GND"
+  },
+  "U4": {
+    "1": "GND",
+    "2": "GND",
+    "3": "GND",
+    "4": "GND",
+    "5": "GND",
+    "6": "U4_VCC",
+    "7": null,
+    "8": null,
+    "9": "3V3_LOGIC",
+    "10": "3V3_LOGIC",
+    "11": "3V3_LOGIC",
+    "12": "3V3_LOGIC",
+    "13": null,
+    "14": null,
+    "15": null,
+    "16": "U4_CTRL",
+    "17": "U4_FB",
+    "18": "GND",
+    "19": "U4_SS",
+    "20": "3V3_PGOOD",
+    "21": "3V3_PGOOD",
+    "22": "12V_ISO",
+    "23": null,
+    "24": "GND"
+  },
+  "U5": {
+    "1": null,
+    "2": null,
+    "3": null,
+    "4": null,
+    "5": null,
+    "6": "3V3_LOGIC",
+    "7": null,
+    "8": null,
+    "9": null,
+    "10": "GND",
+    "11": "3V3_LOGIC",
+    "12": "OSC_IN",
+    "13": "OSC_OUT",
+    "14": "MCU_RESET",
+    "15": null,
+    "16": null,
+    "17": null,
+    "18": null,
+    "19": "GND",
+    "20": "GND",
+    "21": "3V3_LOGIC",
+    "22": "3V3_LOGIC",
+    "23": null,
+    "24": null,
+    "25": null,
+    "26": null,
+    "27": "GND",
+    "28": "3V3_LOGIC",
+    "29": null,
+    "30": "SPI_SCLK_MCU",
+    "31": "SPI_MISO_MCU",
+    "32": "SPI_MOSI_MCU",
+    "33": null,
+    "34": null,
+    "35": "MOTOR_CS0_MCU",
+    "36": "MOTOR_CS1_MCU",
+    "37": null,
+    "38": null,
+    "39": null,
+    "40": null,
+    "41": null,
+    "42": null,
+    "43": null,
+    "44": null,
+    "45": null,
+    "46": null,
+    "47": "MOTOR_CS2_MCU",
+    "48": "MOTOR_CS3_MCU",
+    "49": "GND",
+    "50": "3V3_LOGIC",
+    "51": "MOTOR_CS4_MCU",
+    "52": "MOTOR_CS5_MCU",
+    "53": "MOTOR_ENABLE_REQ",
+    "54": "ESTOP_SENSE",
+    "55": "RELAY_A_NC",
+    "56": "RELAY_B_NC",
+    "57": "ESTOP_A_MON",
+    "58": "ESTOP_B_MON",
+    "59": null,
+    "60": null,
+    "61": null,
+    "62": null,
+    "63": null,
+    "64": null,
+    "65": null,
+    "66": null,
+    "67": null,
+    "68": "UART_TX_MCU",
+    "69": "UART_RX_MCU",
+    "70": null,
+    "71": null,
+    "72": "SWDIO",
+    "73": null,
+    "74": "GND",
+    "75": "3V3_LOGIC",
+    "76": "SWCLK",
+    "77": null,
+    "78": null,
+    "79": null,
+    "80": null,
+    "81": "CAN_RX",
+    "82": "CAN_TX",
+    "83": null,
+    "84": null,
+    "85": null,
+    "86": null,
+    "87": null,
+    "88": null,
+    "89": null,
+    "90": null,
+    "91": "JETSON_ENABLE_REQ",
+    "92": "I2C_SCL_MCU",
+    "93": "I2C_SDA_MCU",
+    "94": "BOOT0",
+    "95": null,
+    "96": null,
+    "97": null,
+    "98": null,
+    "99": "GND",
+    "100": "3V3_LOGIC"
+  },
+  "U6": {
+    "1": "3V3_LOGIC",
+    "2": "GND",
+    "3": "CAN_TX",
+    "4": null,
+    "5": "CAN_RX",
+    "6": null,
+    "7": null,
+    "8": "GND",
+    "9": "GND_CAN_ISO",
+    "10": "GND_CAN_ISO",
+    "11": "5V_CAN_ISO",
+    "12": "CANL_RAW",
+    "13": "CANH_RAW",
+    "14": null,
+    "15": "GND_CAN_ISO",
+    "16": "5V_CAN_ISO"
+  },
+  "U7": {
+    "1": "3V3_LOGIC",
+    "2": "GND",
+    "5": "GND_CAN_ISO",
+    "7": "5V_CAN_ISO"
+  },
+  "U8": {
+    "1": "ESTOP_CH_A_RETURN",
+    "2": "U8_LED_A_K",
+    "3": "ESTOP_CH_B_RETURN",
+    "4": "U8_LED_B_K",
+    "5": null,
+    "6": null,
+    "7": null,
+    "8": null,
+    "9": null,
+    "10": null,
+    "11": null,
+    "12": null,
+    "13": "GND",
+    "14": "ESTOP_B_MON",
+    "15": "GND",
+    "16": "ESTOP_A_MON"
+  },
+  "Y1": {
+    "1": "OSC_IN",
+    "2": "OSC_OUT"
+  }
 }

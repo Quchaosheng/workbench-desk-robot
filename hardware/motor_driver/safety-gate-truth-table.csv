@@ -1,0 +1,11 @@
+safe_a_closed,safe_b_closed,manual_reset_complete,drive_request,driver_fault_free,nsleep_high_permitted,en_high_permitted,bridge_output_permitted,fault_latched,required_behavior
+1,1,1,0,1,1,0,0,0,healthy_but_no_drive_request
+1,1,1,1,1,1,1,1,0,healthy_and_requested
+0,0,0,0,1,0,0,0,1,both_safety_channels_open
+0,1,0,0,1,0,0,0,1,channel_a_discrepancy_latched
+1,0,0,0,1,0,0,0,1,channel_b_discrepancy_latched
+1,1,0,0,1,0,0,0,1,channels_restored_wait_for_manual_reset
+1,1,0,1,1,0,0,0,1,software_request_cannot_clear_latch
+1,1,1,1,0,0,0,0,1,driver_fault_disables_and_latches
+0,1,1,1,1,0,0,0,1,software_request_cannot_bypass_channel_a
+1,0,1,1,1,0,0,0,1,software_request_cannot_bypass_channel_b

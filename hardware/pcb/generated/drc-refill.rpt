@@ -1,0 +1,26 @@
+** Drc report for controller.kicad_pcb **
+** Created on 2026-08-21T12:22:01 **
+** Report includes: Errors, Warnings, Exclusions **
+
+** Found 0 DRC violations **
+
+** Found 2 unconnected pads **
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(56.0000 mm, 1.5000 mm): Zone [GND] on F.Cu, priority 0
+    @(56.0000 mm, 1.5000 mm): Zone [GND] on F.Cu, priority 0
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(56.0000 mm, 1.5000 mm): Zone [GND] on F.Cu, priority 0
+    @(56.0000 mm, 1.5000 mm): Zone [GND] on F.Cu, priority 0
+
+** Found 0 Footprint errors **
+
+** Ignored checks **
+    - Footprint has no courtyard defined
+    - Track endpoint not centered on via
+    - Tuning profile track geometries
+    - Footprint doesn't match symbol's footprint filters
+    - Footprint component type doesn't match footprint pads
+
+** End of Report **

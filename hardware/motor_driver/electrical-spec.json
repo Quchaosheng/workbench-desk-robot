@@ -1,0 +1,148 @@
+{
+  "package": "dual-axis-traction-childboard",
+  "revision": "CONCEPT-B",
+  "maturity": "ARCHITECTURE_REVIEW_ONLY",
+  "release_status": "DO_NOT_ORDER",
+  "controlled_design_files": {
+    "net_topology": "net-topology.csv",
+    "safety_gate_connectivity": "safety-gate-connectivity.csv",
+    "schematic_contract": "schematic-design.md",
+    "status": "CANDIDATE_CONTRACT_ONLY"
+  },
+  "integration_decision": {
+    "controller_pcb_role": "POWER_SAFETY_AND_ISOLATED_CAN_INTERFACE_ONLY",
+    "traction_power_stage_location": "INDEPENDENT_REPLACEABLE_CHILDBOARD",
+    "power_stage_on_controller_pcb": false,
+    "motors_are_external_chassis_assemblies": true,
+    "decision_status": "ENGINEERING_BASELINE_NOT_PRODUCTION_APPROVAL",
+    "rationale": [
+      "keep motor switching current heat and regenerative energy off the Jetson controller PCB",
+      "permit traction power-stage replacement without replacing the controller PCB",
+      "retain a hardwired safety boundary and isolated CAN command boundary"
+    ]
+  },
+  "scope": {
+    "traction_axis_count": 2,
+    "review_motor_technology": "BRUSHED_DC_GEARMOTOR",
+    "motor_mpn": null,
+    "controls_ur5e_joint_motors": false,
+    "controls_robotiq_gripper": false,
+    "childboard_is_independently_replaceable": true
+  },
+  "motor_candidates": [
+    {
+      "axis_assignment": "left_and_right_review_candidate",
+      "manufacturer": "Pololu",
+      "candidate_mpn": "4753",
+      "description": "37D x 70L mm metal gearmotor, 50:1, 12 V, 64 CPR encoder",
+      "nominal_voltage_v": 12.0,
+      "no_load_speed_rpm": 200.0,
+      "no_load_current_a": 0.2,
+      "stall_torque_kg_cm": 21.0,
+      "stall_current_a": 5.5,
+      "simultaneous_two_axis_stall_current_a": 11.0,
+      "review_wheel_diameter_mm": 50.0,
+      "analytical_no_load_linear_speed_mps": 0.524,
+      "candidate_fit_envelope_mm": [37.0, 70.0, 46.0],
+      "mechanical_envelope_mm": [48.0, 72.0, 46.0],
+      "fit_status": "ANALYTICAL_CANDIDATE_ONLY",
+      "selection_status": "CANDIDATE_NOT_APPROVED",
+      "production_selected": false,
+      "source_ids": ["SRC-POLOLU-4753-PRODUCT", "SRC-POLOLU-37D-DATASHEET"]
+    }
+  ],
+  "power": {
+    "selected_review_baseline": "12V_AUX_FROM_CONTROLLER_J2",
+    "production_architecture": null,
+    "nominal_input_v": 12.0,
+    "aggregate_input_power_limit_w": 120.0,
+    "aggregate_input_current_limit_a": 10.0,
+    "motor_winding_nominal_v": null,
+    "motor_continuous_current_each_a": null,
+    "motor_stall_current_each_a": null,
+    "simultaneous_axis_duty_cycle": null,
+    "branch_fuse_rating_a": null,
+    "source_sink_capability_confirmed": false,
+    "must_not_return_regeneration_to_j2": true,
+    "logic_power_source": "VM_PROTECTED_AFTER_F1_Q1",
+    "logic_regulator_candidate": "TBD_LOGIC_BUCK_12V_TO_5V",
+    "isolated_can_power_candidate": "TBD_ISOLATED_5V_TO_5V_DC_DC",
+    "logic_power_status": "TBD_BLOCKING",
+    "motor_return_net": "GND_MOTOR",
+    "logic_return_net": "GND_LOGIC",
+    "single_point_ground_join": "STAR_GND_01",
+    "single_point_ground_join_count": 1
+  },
+  "driver_candidate": {
+    "manufacturer": "Texas Instruments",
+    "candidate_mpn": "DRV8962DDVR",
+    "approval_status": "CANDIDATE_NOT_APPROVED",
+    "function": "four independent half-bridges configured as two brushed-DC full bridges",
+    "package": "DDV 44-pin HTSSOP with top exposed thermal pad",
+    "operating_supply_min_v": 4.5,
+    "operating_supply_max_v": 65.0,
+    "datasheet_current_per_output_a": 10.0,
+    "datasheet_current_is_board_rating": false,
+    "land_pattern_status": "VENDOR_DRAWING_AND_ASSEMBLY_REVIEW_REQUIRED",
+    "heatsink_status": "TBD_BLOCKING"
+  },
+  "regeneration": {
+    "maximum_regenerative_energy_j": null,
+    "maximum_allowed_local_bus_v": null,
+    "bulk_capacitance_f": null,
+    "clamp_threshold_v": null,
+    "brake_resistance_ohm": null,
+    "brake_pulse_energy_j": null,
+    "energy_sink_mpn": null,
+    "status": "TBD_BLOCKING"
+  },
+  "safety": {
+    "independent_hardware_channels": 2,
+    "channel_a_action": "hardware dominant-low gate on DRV8962 nSLEEP",
+    "channel_b_action": "hardware dominant-low gate on DRV8962 EN1 through EN4",
+    "software_can_assert_safety_permission": false,
+    "either_channel_open_disables_both_axes": true,
+    "channel_discrepancy_latches": true,
+    "manual_reset_required": true,
+    "existing_j11_is_compatible": false,
+    "existing_j11_gap": "one MOTOR_ENABLE_SAFE output; ESTOP_SENSE is diagnostic and cannot be channel B",
+    "driver_fault_hardware_inhibit": true,
+    "driver_fault_fanout_channels": 2,
+    "driver_fault_default_state": "BOTH_CHANNELS_INHIBITED_AND_LATCHED",
+    "power_good_is_hardware_inhibit": true,
+    "software_can_clear_fault_latch": false,
+    "safety_gate_connectivity_file": "safety-gate-connectivity.csv"
+  },
+  "control": {
+    "command_transport": "CAN_FD_TBD",
+    "local_controller_mpn": null,
+    "can_transceiver_mpn": null,
+    "can_interface_isolation_required": true,
+    "gnd_can_iso_must_not_connect_to_gnd_motor": true,
+    "protocol_frozen": false,
+    "drv8962_has_spi": false,
+    "motor_cs_signals_are_usable_as_drv8962_spi": false
+  },
+  "thermal": {
+    "maximum_ambient_c": null,
+    "maximum_junction_c_design_limit": null,
+    "continuous_loss_each_axis_w": null,
+    "simultaneous_loss_w": null,
+    "heatsink_thermal_resistance_c_per_w": null,
+    "physical_validation_attached": false
+  },
+  "layout_concept": {
+    "board_width_mm": 118.0,
+    "board_height_mm": 82.0,
+    "mounting_pattern_mm": [108.0, 72.0],
+    "mounting_hole_count": 4,
+    "mounting_hole_diameter_mm": 3.2,
+    "mounting_hole_centers_mm": [[5.0, 5.0], [113.0, 5.0], [113.0, 77.0], [5.0, 77.0]],
+    "connector_side": "+Y_REAR",
+    "maximum_assembly_height_mm": 20.0,
+    "dimensions_are_frozen": false,
+    "stackup_is_frozen": false,
+    "land_patterns_are_frozen": false,
+    "placement_is_concept_only": true
+  }
+}

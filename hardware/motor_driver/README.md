@@ -24,6 +24,10 @@ controller J2, 12 V / 120 W aggregate maximum
   -> DRV8962 four half-bridges
   -> left and right brushed motors (MPNs and envelopes TBD)
 
+VM_PROTECTED -> candidate U6 local logic regulator -> VCC_LOGIC
+             -> candidate U7 isolated CAN-side converter -> GND_CAN_ISO island
+J_PWR GND_MOTOR -> STAR_GND_01 -> GND_LOGIC (one intentional join only)
+
 isolated CAN field bus -> isolated CAN interface -> local traction controller
 dual hardwired safety channels -> independent nSLEEP and EN gating
 ```
@@ -46,6 +50,19 @@ therefore requires an isolated CAN FD transceiver and isolated-side power; J_CAN
 pin 4 remains `NC`, matching controller J5/J6. Cable shield termination is a
 separate chassis/EMC decision and is not assigned to that reserved pin.
 
+The candidate return topology is controlled in `net-topology.csv`. `GND_MOTOR`
+is the high-current J2/PGND return; `GND_LOGIC` serves the MCU, driver logic and
+safety gates and joins the motor return exactly once at `STAR_GND_01`. The logic
+regulator (`U6`) and isolated CAN converter (`U7`) are functional placeholders
+only; both remain `TBD_BLOCKING` and have no approved MPN.
+
+Each regulator path is represented by separate input and output rows. `U6`
+therefore has `VCC_LOGIC_INPUT -> U6.IN` followed by `U6.OUT -> VCC_LOGIC`,
+while `U7` has a primary-side `VCC_CAN_ISO_INPUT` row and a secondary-side
+`VCC_CAN_ISO`/`GND_CAN_ISO` island. The validator rejects a row that mixes a
+regulator input with its output or places a local ground endpoint across the
+`U7` isolation barrier.
+
 ## Safety invariant
 
 Software may request torque but cannot create safety permission. Channel A must
@@ -54,11 +71,23 @@ Opening either channel disables both bridges and latches the discrepancy until
 the upstream manual-reset sequence is complete. `MOTOR_ENABLE_REQ`, CAN traffic,
 MCU GPIO and a watchdog cannot bypass either gate.
 
+`U1.nFAULT` is also a hardware input to both independent safety gates, not only
+an MCU diagnostic. `safety-gate-connectivity.csv` records separate A/B guarded
+fan-outs, power-good inhibits and default-low states. A driver fault, missing
+local logic rail, broken safety return or cross-fault therefore leaves both
+bridges inhibited and latched. The selected gate circuitry, bias values and
+timing still require an approved detailed schematic and physical fault tests.
+
 The current controller J11 exposes one `MOTOR_ENABLE_SAFE` output plus the
 diagnostic `ESTOP_SENSE`. Splitting the one safe signal, or treating
 `ESTOP_SENSE` as the second channel, is forbidden. An owner-approved controller
 and harness ECO providing two independent safety outputs is therefore a release
 blocker.
+
+`J_SAFE` is consequently an ECO endpoint from the controller J10/K1/K2 safety
+chain and must not be wired directly to the current four-pin J11. The candidate component-level wiring contract is in
+`schematic-design.md`; it is not a finished KiCad schematic and does not change
+the `DO_NOT_ORDER` status.
 
 ## Layout concept
 
@@ -75,10 +104,18 @@ CAN/control and safety blocks away from the switching-current loop. Exact board
 dimensions, copper weight, driver land pattern, heatsink attachment, creepage,
 connector footprints and mounting pattern remain blocking inputs.
 
+The placement datum is now explicit: `+Y_REAR` is the connector edge for
+`J_SAFE`, `J_CAN`, `J_ML` and `J_MR`; encoder connectors remain on `-Y_FRONT`,
+and `J_PWR` remains on the `-X_POWER` edge. `validate_motor_driver.py` checks
+the edge coordinates against the 118 x 82 mm outline so a later layout cannot
+silently rotate the harness interface. The SVG review is regenerated from the
+same placement table.
+
 ## Reproduce checks
 
 ```bash
 python hardware/motor_driver/tools/validate_motor_driver.py
+python hardware/manufacturing/tools/validate_harnesses.py
 python -m pytest tests/hardware/test_motor_driver_package.py -v
 ```
 

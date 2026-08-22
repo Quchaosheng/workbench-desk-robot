@@ -132,6 +132,7 @@ def build() -> None:
             add_block(board, row)
     add_text(board, "CONCEPT ONLY - NO ELECTRICAL FOOTPRINTS - DO NOT ORDER", width / 2, 79, pcbnew.F_SilkS, 1.4)
     add_text(board, "118x82 / MOUNT 108x72 / 4x DIA 3.2 / HEIGHT 20 MAX", width / 2, 3, pcbnew.F_SilkS, 1.0)
+    add_text(board, "+Y_REAR: J_SAFE / CAN / MOTOR OUTS", width / 2, 7, pcbnew.F_SilkS, 0.8)
     pcbnew.SaveBoard(str(OUTPUT), board)
     canonicalize_items(OUTPUT)
     normalize_uuids(OUTPUT)

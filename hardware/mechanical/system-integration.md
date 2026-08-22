@@ -77,6 +77,26 @@ remain connected to and controlled by the vendor controller cabinet; this
 mechanical package does not create substitute motor, brake, gearbox, or arm-drive
 mounting provisions.
 
+### Reviewable traction drivetrain concept
+
+The chassis frame uses X lateral and Y longitudinal coordinates. The current integration baseline assigns the left and right traction motors to
+the rear left and rear right wheels respectively. This is a two-motor
+differential-drive concept; the front wheels remain passive until a later
+architecture change is approved. Motor output and rear hub axes are both
+declared along chassis `+Y`, with nominal motor-output origins at `[-86, 36, 49]`
+and `[86, 36, 49]` mm and rear hub datums at `[-105, 90, 43]` and `[105, 90, 43]`
+mm. This gives a 210 mm X-axis track and 180 mm Y-axis wheelbase. Each side reserves an offset reduction/coupler or belt path, a supported
+intermediate shaft, and an enclosed rotating-part guard. The reaction path is
+motor face -> motor bracket -> lower chassis and hub bearing -> side support ->
+lower chassis.
+
+These are interface and review datums only. Motor shaft diameter, hub pilot and
+bolt pattern, bearing arrangement, centre distance, ratio, guard geometry,
+fastener stack, and reaction-load sizing remain `TBD`; `physical_validation` is
+`NOT_EXECUTED`. The generated report checks that the pair map, axes, role split,
+and nominal deltas are internally consistent without claiming a usable
+transmission or a physical fit.
+
 The reserved childboard volume sits above the controller service volume, retains
 an upward extraction path, and leaves a rear connector corridor. Physical release
 requires an approved motor and childboard, tolerance-stack review, bracket load
@@ -91,4 +111,6 @@ generator checks its analytical separation from motors, wheels, the controller
 tray, and the traction childboard; impact retention, pack chemistry, BMS, and
 thermal measurements remain release gates. The childboard is carried on a
 separate provisional plate/standoff assembly rather than floating in the CAD
-model; its datum and shock retention are still not frozen.
+model. The lower standoffs now reach the electronics-tray top datum at Z=102 mm
+and the upper standoffs reach the board bottom; the mount datum, shock retention,
+and controller-board keepout remain release blockers.

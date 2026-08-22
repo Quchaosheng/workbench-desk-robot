@@ -17,7 +17,7 @@ to the developer-kit DC input through a keyed harness. J4 is the populated
 | Interface | Controlled envelope | State before EVT order |
 |---|---|---|
 | Battery / J1 | 36-60 VDC, 8 A continuous, 10 A fuse; keyed 4-pin | Owner must confirm battery, fuse interrupt rating, mating connector and wire gauge |
-| Motor auxiliary / J2 | 12 V, 120 W maximum aggregate | Motion owner must supply driver inrush, regeneration and fault-current limits |
+| Motor auxiliary / J2 | 12 V, 120 W maximum aggregate (10 A controlled system limit; connector contacts are 16 A nominal) | Motion owner must supply driver inrush, regeneration and fault-current limits, plus an approved external branch fuse |
 | Jetson power / J3 | Protected 12 V, 5 A continuous; no 5 V back-powering | Verify harness polarity and developer-kit input compatibility against the purchased revision |
 | Jetson control / J4 | 3.3 V SPI, I2C, UART, `JETSON_ENABLE_REQ` into the MCU on pin 8, six chip selects, E-stop sense and MCU reset | Freeze Jetson header mapping and CH32V307 pin mux; `JETSON_ENABLE_REQ` must remain distinct from the MCU-generated `MOTOR_ENABLE_REQ` safety-chain input |
 | CAN / J5, J6 | ISO1042 class, CAN FD, distinct 5V_CAN_ISO/GND_CAN_ISO domain, 120 ohm switchable termination | Confirm connector, TVS, choke and U7 isolated-power MPN |

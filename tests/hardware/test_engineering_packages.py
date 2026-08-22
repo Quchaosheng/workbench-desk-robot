@@ -174,6 +174,8 @@ class PcbPackageTests(unittest.TestCase):
         self.assertTrue(report["engineering_checks"]["bom_covers_all_board_components"])
         self.assertTrue(report["engineering_checks"]["board_layout_hard_gates_pass"])
         self.assertTrue(report["engineering_checks"]["fabrication_metadata_controlled"])
+        self.assertTrue(report["engineering_checks"]["connector_limit_semantics_consistent"])
+        self.assertEqual(report["connector_limit_semantics"]["j2_controlled_system_limit_a"], "10")
         self.assertIn("u7_isolated_power_safety_suitability", report["layout_status"]["open_risks"])
         self.assertTrue(
             report["order_release_checks"]["isolated_power_excluded_part_absent_and_tbd_placeholders_consistent"]
@@ -246,9 +248,15 @@ class PcbPackageTests(unittest.TestCase):
                 f"{module.ISOLATED_POWER_TBD} {module.ISOLATED_POWER_TBD_FOOTPRINT} {module.ISOLATED_POWER_TBD_SYMBOL}"
             ),
             "fabrication/bom.csv": module.ISOLATED_POWER_TBD,
-            "controller.kicad_pcb": f"{module.ISOLATED_POWER_TBD_FOOTPRINT} U2 LAND PATTERN TBD DO NOT FIT",
+            "controller.kicad_pcb": (
+                f'(footprint "{module.ISOLATED_POWER_TBD_FOOTPRINT}" '
+                f'(property "Reference" "U2") (attr through_hole dnp) '
+                f"{module.ISOLATED_POWER_TBD_FOOTPRINT} U2 LAND PATTERN TBD DO NOT FIT)"
+            ),
             "controller.kicad_sch": (
-                f"{module.ISOLATED_POWER_TBD} {module.ISOLATED_POWER_TBD_FOOTPRINT} {module.ISOLATED_POWER_TBD_SYMBOL}"
+                f'  (symbol (lib_id "controller:{module.ISOLATED_POWER_TBD_SYMBOL}") '
+                f'(dnp yes) (property "Reference" "U2") '
+                f"{module.ISOLATED_POWER_TBD} {module.ISOLATED_POWER_TBD_FOOTPRINT} {module.ISOLATED_POWER_TBD_SYMBOL})"
             ),
             "controller.kicad_sym": module.ISOLATED_POWER_TBD_SYMBOL,
             "controller.ses": module.ISOLATED_POWER_TBD_FOOTPRINT,
@@ -279,6 +287,30 @@ class PcbPackageTests(unittest.TestCase):
         )
         self.assertFalse(report["pass"])
         self.assertFalse(report["fabrication_bom_uses_tbd"])
+
+    def test_connector_limit_semantics_rejects_ambiguous_j2_rating(self) -> None:
+        module = load_module("release_readiness_connector_limits", ROOT / "hardware/pcb/tools/release_readiness.py")
+        connectors = [
+            {
+                "reference": "J2",
+                "rating": "12V 16A",
+                "controlled_system_limit_a": "16",
+                "limit_basis": "contact rating only",
+                "branch_protection": "",
+            }
+        ]
+        harness_rows = [{"harness_id": "H02", "max_current_a": "16"}]
+        motor_spec = {"power": {"aggregate_input_current_limit_a": 10.0}}
+        report = module.check_connector_limit_semantics(
+            connectors,
+            harness_rows,
+            motor_spec,
+            "J2 120 W maximum aggregate",
+            "J2 120 W aggregate",
+        )
+        self.assertFalse(report["pass"])
+        self.assertFalse(report["checks"]["contact_rating_is_explicit"])
+        self.assertFalse(report["checks"]["controlled_limit_is_10a"])
 
     def test_kicad_cli_release_reports_are_clean_and_fabrication_exists(self) -> None:
         pcb = ROOT / "hardware/pcb"
@@ -342,6 +374,30 @@ class ManufacturingPackageTests(unittest.TestCase):
         self.assertEqual(report["status"], "HARNESS_RELEASE_BLOCKED")
         self.assertEqual(len(report["results"]), 8)
         self.assertTrue(all(item["drop_pass"] for item in report["results"]))
+
+    def test_traction_harness_package_covers_childboard_without_approval(self) -> None:
+        module = load_module("traction_harness_checks", ROOT / "hardware/manufacturing/tools/validate_harnesses.py")
+        report = module.validate()
+        self.assertTrue(report["traction_engineering_checks"]["traction_harness_ids_complete"])
+        self.assertTrue(report["traction_engineering_checks"]["traction_interfaces_cover_childboard"])
+        self.assertTrue(report["traction_engineering_checks"]["traction_safety_eco_is_explicit"])
+        self.assertEqual(
+            {item["harness_id"] for item in report["traction_results"]}, {f"H{index:02d}" for index in range(9, 15)}
+        )
+        self.assertTrue(all(item["drop_pass"] for item in report["traction_results"]))
+        self.assertFalse(report["release_checks"]["all_mating_parts_approved"])
+        self.assertTrue(report["cross_package_checks"]["candidate_dual_stall_exceeds_j2_ceiling"])
+        self.assertEqual(report["power_budget"]["candidate_dual_stall_current_a"], 11.0)
+        self.assertEqual(report["power_budget"]["j2_aggregate_current_ceiling_a"], 10.0)
+        self.assertFalse(report["release_checks"]["candidate_dual_stall_within_j2_ceiling"])
+
+    def test_harness_bend_radius_gate_rejects_underdeclared_motor_radius(self) -> None:
+        module = load_module("harness_bend_negative", ROOT / "hardware/manufacturing/tools/validate_harnesses.py")
+        with (ROOT / "hardware/manufacturing/harness-spec.csv").open(newline="", encoding="utf-8") as handle:
+            rows = list(module.csv.DictReader(handle))
+        motor = next(row for row in rows if row["harness_id"] == "H11")
+        motor["min_bend_radius_mm"] = "8"
+        self.assertFalse(module.calculate_row(motor)["bend_radius_pass"])
 
     def test_pilot_template_does_not_claim_units_were_built(self) -> None:
         pilot = (ROOT / "hardware/manufacturing/pilot-and-release.md").read_text(encoding="utf-8")

@@ -3,6 +3,12 @@
   "revision": "CONCEPT-A",
   "maturity": "ARCHITECTURE_REVIEW_ONLY",
   "release_status": "DO_NOT_ORDER",
+  "controlled_design_files": {
+    "net_topology": "net-topology.csv",
+    "safety_gate_connectivity": "safety-gate-connectivity.csv",
+    "schematic_contract": "schematic-design.md",
+    "status": "CANDIDATE_CONTRACT_ONLY"
+  },
   "scope": {
     "traction_axis_count": 2,
     "review_motor_technology": "BRUSHED_DC_GEARMOTOR",
@@ -45,7 +51,15 @@
     "simultaneous_axis_duty_cycle": null,
     "branch_fuse_rating_a": null,
     "source_sink_capability_confirmed": false,
-    "must_not_return_regeneration_to_j2": true
+    "must_not_return_regeneration_to_j2": true,
+    "logic_power_source": "VM_PROTECTED_AFTER_F1_Q1",
+    "logic_regulator_candidate": "TBD_LOGIC_BUCK_12V_TO_5V",
+    "isolated_can_power_candidate": "TBD_ISOLATED_5V_TO_5V_DC_DC",
+    "logic_power_status": "TBD_BLOCKING",
+    "motor_return_net": "GND_MOTOR",
+    "logic_return_net": "GND_LOGIC",
+    "single_point_ground_join": "STAR_GND_01",
+    "single_point_ground_join_count": 1
   },
   "driver_candidate": {
     "manufacturer": "Texas Instruments",
@@ -79,7 +93,13 @@
     "channel_discrepancy_latches": true,
     "manual_reset_required": true,
     "existing_j11_is_compatible": false,
-    "existing_j11_gap": "one MOTOR_ENABLE_SAFE output; ESTOP_SENSE is diagnostic and cannot be channel B"
+    "existing_j11_gap": "one MOTOR_ENABLE_SAFE output; ESTOP_SENSE is diagnostic and cannot be channel B",
+    "driver_fault_hardware_inhibit": true,
+    "driver_fault_fanout_channels": 2,
+    "driver_fault_default_state": "BOTH_CHANNELS_INHIBITED_AND_LATCHED",
+    "power_good_is_hardware_inhibit": true,
+    "software_can_clear_fault_latch": false,
+    "safety_gate_connectivity_file": "safety-gate-connectivity.csv"
   },
   "control": {
     "command_transport": "CAN_FD_TBD",
@@ -106,6 +126,7 @@
     "mounting_hole_count": 4,
     "mounting_hole_diameter_mm": 3.2,
     "mounting_hole_centers_mm": [[5.0, 5.0], [113.0, 5.0], [113.0, 77.0], [5.0, 77.0]],
+    "connector_side": "+Y_REAR",
     "maximum_assembly_height_mm": 20.0,
     "dimensions_are_frozen": false,
     "stackup_is_frozen": false,

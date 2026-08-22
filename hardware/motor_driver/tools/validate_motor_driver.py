@@ -22,6 +22,9 @@ REQUIRED_FILES = [
     "bom.csv",
     "component-approval-register.csv",
     "driver-pin-connectivity.csv",
+    "net-topology.csv",
+    "safety-gate-connectivity.csv",
+    "schematic-design.md",
     "verification-matrix.csv",
     "release-gates.csv",
     "placement-plan.csv",
@@ -90,6 +93,225 @@ def parsed_candidate_pins(rows: list[dict[str, str]]) -> list[int]:
     return [int(pin) for row in rows for pin in row["pins"].split()]
 
 
+def validate_net_topology(rows: list[dict[str, str]]) -> dict[str, bool]:
+    by_id = {row.get("topology_id", ""): row for row in rows}
+    required_ids = {
+        "PWR-01",
+        "PWR-02",
+        "PWR-03",
+        "PWR-04",
+        "PWR-05",
+        "PWR-06",
+        "PWR-07",
+        "PWR-08",
+        "PWR-09",
+        "PWR-10",
+        "PWR-11",
+        "PWR-12",
+        "PWR-13",
+        "CTRL-01",
+        "CTRL-02",
+        "CTRL-03",
+        "CTRL-04",
+        "CTRL-05",
+        "CTRL-06",
+        "CTRL-07",
+        "BUS-01",
+    }
+    pwr01 = by_id.get("PWR-01", {})
+    pwr02 = by_id.get("PWR-02", {})
+    pwr03 = by_id.get("PWR-03", {})
+    pwr04 = by_id.get("PWR-04", {})
+    pwr05 = by_id.get("PWR-05", {})
+    pwr06 = by_id.get("PWR-06", {})
+    pwr07 = by_id.get("PWR-07", {})
+    pwr09 = by_id.get("PWR-09", {})
+    pwr10 = by_id.get("PWR-10", {})
+    pwr11 = by_id.get("PWR-11", {})
+
+    def endpoint_tokens(row: dict[str, str], field: str) -> set[str]:
+        return {token.strip() for token in row.get(field, "").split(";") if token.strip()}
+
+    endpoint_overlap_free = all(
+        endpoint_tokens(row, "source_endpoints").isdisjoint(endpoint_tokens(row, "load_endpoints")) for row in rows
+    )
+    isolated_rows = [row for row in rows if row.get("domain") == "isolated_power" or row.get("barrier_id") == "U7"]
+    isolated_endpoint_tokens = {
+        token
+        for row in isolated_rows
+        for field in ("source_endpoints", "load_endpoints")
+        for token in endpoint_tokens(row, field)
+    }
+    local_ground_tokens = {"GND_MOTOR", "GND_LOGIC", "STAR_GND_01"}
+    return {
+        "required_power_rows_present": required_ids <= set(by_id),
+        "topology_ids_are_unique": len(by_id) == len(rows) and "" not in by_id,
+        "input_is_protected_before_motor_bus": (
+            pwr01.get("net_name") == "12V_MOTOR_AUX"
+            and pwr01.get("net_role") == "source_input"
+            and "J_PWR.1" in pwr01.get("source_endpoints", "")
+            and "F1.1" in pwr01.get("load_endpoints", "")
+            and pwr02.get("net_name") == "FUSED_12V"
+            and pwr02.get("net_role") == "protection_input"
+            and pwr02.get("source_endpoints") == "F1.2"
+            and pwr02.get("load_endpoints") == "Q1.IN"
+            and pwr03.get("net_name") == "VM_PROTECTED"
+            and pwr03.get("source_endpoints") == "Q1.OUT"
+            and "U1.VM" in pwr03.get("load_endpoints", "")
+        ),
+        "regulator_input_and_output_are_split": (
+            pwr05.get("net_role") == "regulator_input"
+            and pwr05.get("regulator_ref") == "U6"
+            and pwr05.get("source_endpoints") == "VM_PROTECTED"
+            and pwr05.get("load_endpoints") == "U6.IN"
+            and pwr06.get("net_role") == "regulator_output"
+            and pwr06.get("regulator_ref") == "U6"
+            and pwr06.get("source_endpoints") == "U6.OUT"
+            and "U6.OUT" not in pwr05.get("source_endpoints", "")
+            and "VM_PROTECTED" not in pwr06.get("source_endpoints", "")
+            and "U6 input/output cannot be shorted" in pwr05.get("default_or_fail_state", "")
+        ),
+        "motor_return_is_closed_at_pgnd_star": (
+            pwr04.get("net_name") == "GND_MOTOR"
+            and pwr04.get("net_role") == "motor_return"
+            and "J_PWR.3" in pwr04.get("source_endpoints", "")
+            and all(f"U1.PGND{index}" in pwr04.get("load_endpoints", "") for index in range(1, 5))
+            and pwr04.get("return_or_reference") == "STAR_GND_01"
+        ),
+        "logic_supply_and_return_are_explicit": (
+            pwr06.get("net_name") == "VCC_LOGIC"
+            and "U1.VCC.42" in pwr06.get("load_endpoints", "")
+            and pwr06.get("return_or_reference") == "GND_LOGIC"
+            and pwr07.get("net_name") == "GND_LOGIC"
+            and pwr07.get("source_endpoints") == "STAR_GND_01"
+            and pwr07.get("return_or_reference") == "GND_MOTOR"
+        ),
+        "logic_motor_ground_join_is_single_point": (
+            "exactly one" in pwr07.get("allowed_join", "").lower()
+            and pwr07.get("source_endpoints") == "STAR_GND_01"
+            and "GND_CAN_ISO" in pwr07.get("forbidden_join", "")
+        ),
+        "isolated_can_regulator_input_output_are_split": (
+            pwr09.get("net_name") == "VCC_CAN_ISO_INPUT"
+            and pwr09.get("net_role") == "isolated_regulator_input"
+            and pwr09.get("regulator_ref") == "U7"
+            and pwr09.get("source_endpoints") == "VCC_LOGIC"
+            and pwr09.get("load_endpoints") == "U7.PRIMARY_IN"
+            and pwr10.get("net_name") == "VCC_CAN_ISO"
+            and pwr10.get("net_role") == "isolated_regulator_output"
+            and pwr10.get("source_endpoints") == "U7.ISO_OUT"
+            and pwr10.get("barrier_id") == "U7"
+            and "VCC_LOGIC" not in pwr10.get("source_endpoints", "")
+        ),
+        "isolated_can_power_and_return_are_explicit": (
+            pwr10.get("return_or_reference") == "GND_CAN_ISO"
+            and pwr11.get("net_name") == "GND_CAN_ISO"
+            and pwr11.get("net_role") == "isolated_return"
+            and pwr11.get("source_endpoints") == "U7.ISO_GND"
+            and "J_CAN.3" in pwr11.get("load_endpoints", "")
+            and pwr11.get("barrier_id") == "U7"
+            and "GND_MOTOR" in pwr11.get("forbidden_join", "")
+            and "GND_LOGIC" in pwr11.get("forbidden_join", "")
+        ),
+        "isolated_can_barrier_has_no_local_ground_endpoint": (
+            all(
+                not (endpoint_tokens(row, "source_endpoints") | endpoint_tokens(row, "load_endpoints"))
+                & local_ground_tokens
+                for row in isolated_rows
+            )
+            and local_ground_tokens.isdisjoint(isolated_endpoint_tokens)
+        ),
+        "source_and_load_endpoints_are_disjoint": endpoint_overlap_free,
+        "all_power_rows_remain_candidate_or_concept": all(
+            by_id.get(row_id, {}).get("freeze_status", "")
+            in {"CONCEPT_TOPOLOGY", "CANDIDATE_POWER_BLOCK", "CANDIDATE_PINOUT"}
+            for row_id in required_ids
+        ),
+    }
+
+
+def validate_placement_direction(rows: list[dict[str, str]], layout: dict[str, Any]) -> dict[str, bool]:
+    """Check that the functional placement honors the declared rear connector datum."""
+    by_id = {row.get("block_id", ""): row for row in rows}
+    board_height = float(layout["board_height_mm"])
+    rear_ids = {"J_SAFE", "J_CAN", "J_ML", "J_MR"}
+    rear_rows = [by_id.get(reference, {}) for reference in rear_ids]
+    rear_edge = all(
+        row
+        and row.get("connector_side") == "+Y_REAR"
+        and abs(float(row["y_mm"]) + float(row["height_mm"]) / 2 - board_height) <= 0.01
+        for row in rear_rows
+    )
+    return {
+        "connector_side_declares_rear_datum": layout.get("connector_side") == "+Y_REAR",
+        "rear_connectors_are_present": all(row for row in rear_rows),
+        "rear_connectors_face_plus_y_edge": rear_edge,
+        "motor_outputs_share_rear_datum": all(
+            by_id.get(reference, {}).get("connector_side") == "+Y_REAR" for reference in ("J_ML", "J_MR")
+        ),
+        "all_placement_blocks_remain_conceptual": all(row.get("freeze_status") == "CONCEPT_ONLY" for row in rows),
+    }
+
+
+def validate_safety_paths(rows: list[dict[str, str]]) -> dict[str, bool]:
+    by_id = {row.get("path_id", ""): row for row in rows}
+    fault_a = by_id.get("SG-A-FAULT", {})
+    fault_b = by_id.get("SG-B-FAULT", {})
+    enable_a = by_id.get("SG-A-ENABLE", {})
+    enable_b = [by_id.get(f"SG-B-ENABLE-{index}", {}) for index in range(1, 5)]
+    return {
+        "dual_enable_paths_are_present": (
+            enable_a.get("source_net") == "SAFE_ENABLE_A"
+            and enable_a.get("guard_component") == "U4"
+            and enable_a.get("destination_endpoint") == "U1.25_nSLEEP"
+            and all(
+                row.get("source_net") == "SAFE_ENABLE_B"
+                and row.get("guard_component") == "U5"
+                and row.get("destination_endpoint") == f"U1.{29 + index}_EN{index}"
+                for index, row in enumerate(enable_b, start=1)
+            )
+        ),
+        "nFAULT_has_two_independent_hardware_inhibits": (
+            fault_a.get("source_net") == "DRV_NFAULT"
+            and fault_b.get("source_net") == "DRV_NFAULT"
+            and fault_a.get("source_endpoint") == "U1.41"
+            and fault_b.get("source_endpoint") == "U1.41"
+            and fault_a.get("guard_component") == "U4"
+            and fault_b.get("guard_component") == "U5"
+            and fault_a.get("independent_from") == "B"
+            and fault_b.get("independent_from") == "A"
+            and fault_a.get("software_dependency") == "no"
+            and fault_b.get("software_dependency") == "no"
+            and "inhibit" in fault_a.get("default_state", "").lower()
+            and "inhibit" in fault_b.get("default_state", "").lower()
+            and fault_a.get("fault_integrity_policy") == "open_or_short_inhibits"
+            and fault_b.get("fault_integrity_policy") == "open_or_short_inhibits"
+        ),
+        "nFAULT_reaches_both_driver_gate_domains": (
+            fault_a.get("destination_endpoint") == "U1.25_nSLEEP"
+            and all(
+                endpoint in fault_b.get("destination_endpoint", "")
+                for endpoint in ("U1.30_EN1", "U1.31_EN2", "U1.32_EN3", "U1.33_EN4")
+            )
+        ),
+        "safety_returns_are_independent": (
+            by_id.get("SG-A-RETURN", {}).get("source_net") == "SAFE_RETURN_A"
+            and by_id.get("SG-B-RETURN", {}).get("source_net") == "SAFE_RETURN_B"
+            and by_id.get("SG-A-RETURN", {}).get("independent_from") == "B"
+            and by_id.get("SG-B-RETURN", {}).get("independent_from") == "A"
+        ),
+        "power_good_inhibits_both_channels": (
+            by_id.get("SG-A-POWER", {}).get("guard_component") == "U4"
+            and by_id.get("SG-B-POWER", {}).get("guard_component") == "U5"
+            and "inhibit" in by_id.get("SG-A-POWER", {}).get("default_state", "").lower()
+            and "inhibit" in by_id.get("SG-B-POWER", {}).get("default_state", "").lower()
+        ),
+        "every_safety_path_is_hardware_default_inhibit": all(
+            "inhibit" in row.get("default_state", "").lower() and row.get("software_dependency") == "no" for row in rows
+        ),
+    }
+
+
 def validate(package: Path = PACKAGE) -> dict[str, Any]:
     spec = load_json("electrical-spec.json", package)
     sources = load_json("source-baseline.json", package)["sources"]
@@ -101,6 +323,8 @@ def validate(package: Path = PACKAGE) -> dict[str, Any]:
     bom = read_csv("bom.csv", package)
     approvals = read_csv("component-approval-register.csv", package)
     pins = read_csv("driver-pin-connectivity.csv", package)
+    net_topology = read_csv("net-topology.csv", package)
+    safety_paths = read_csv("safety-gate-connectivity.csv", package)
     verification = read_csv("verification-matrix.csv", package)
     gates = read_csv("release-gates.csv", package)
     placement = read_csv("placement-plan.csv", package)
@@ -108,7 +332,12 @@ def validate(package: Path = PACKAGE) -> dict[str, Any]:
     pin_numbers = parsed_candidate_pins(pins)
     budget_by_id = {row["parameter_id"]: row for row in budget}
     connector_signals = {row["signal"] for row in connectors}
+    connector_references = {row["reference"] for row in connectors}
     release_blockers = [row["gate_id"] for row in gates if row["release_blocker"] == "yes"]
+    net_topology_checks = validate_net_topology(net_topology)
+    safety_path_checks = validate_safety_paths(safety_paths)
+    placement_direction_checks = validate_placement_direction(placement, layout)
+    schematic_contract = (package / "schematic-design.md").read_text(encoding="utf-8")
     required_budget_tbd = {
         "PWR-004",
         "PWR-005",
@@ -230,10 +459,72 @@ def validate(package: Path = PACKAGE) -> dict[str, Any]:
         and spec["safety"]["independent_hardware_channels"] == 2
         and not spec["safety"]["existing_j11_is_compatible"]
         and "ESTOP_SENSE" not in {row["signal"] for row in connectors if row["domain"] == "safety"},
+        "childboard_connector_coverage_is_explicit": {
+            "J_PWR",
+            "J_SAFE",
+            "J_CAN",
+            "J_ML",
+            "J_MR",
+            "J_ENC_L",
+            "J_ENC_R",
+        }
+        <= connector_references
+        and {
+            "MOTOR_L_A",
+            "MOTOR_L_B",
+            "MOTOR_R_A",
+            "MOTOR_R_B",
+            "ENC_L_VCC",
+            "ENC_L_GND",
+            "ENC_L_A",
+            "ENC_L_B",
+            "ENC_R_VCC",
+            "ENC_R_GND",
+            "ENC_R_A",
+            "ENC_R_B",
+        }
+        <= connector_signals,
         "software_has_no_safety_authority": not spec["safety"]["software_can_assert_safety_permission"]
         and spec["safety"]["either_channel_open_disables_both_axes"]
         and not spec["control"]["drv8962_has_spi"]
         and not spec["control"]["motor_cs_signals_are_usable_as_drv8962_spi"],
+        "supply_ground_topology_is_closed": all(net_topology_checks.values()),
+        "safety_gate_connectivity_is_fail_closed": all(safety_path_checks.values())
+        and spec["safety"]["driver_fault_hardware_inhibit"]
+        and spec["safety"]["driver_fault_fanout_channels"] == 2
+        and not spec["safety"]["software_can_clear_fault_latch"],
+        "schematic_contract_is_explicit_but_not_orderable": all(
+            marker in schematic_contract
+            for marker in (
+                "ARCHITECTURE-ONLY",
+                "DO_NOT_ORDER",
+                "net-topology.csv",
+                "safety-gate-connectivity.csv",
+                "STAR_GND_01",
+                "GND_CAN_ISO",
+                "U1.nFAULT",
+                "MTR-SCHEMATIC",
+            )
+        )
+        and spec["controlled_design_files"]["status"] == "CANDIDATE_CONTRACT_ONLY",
+        "logic_power_candidates_are_unapproved": {
+            (row["reference"], row["candidate_mpn_or_class"], row["selection_status"])
+            for row in bom
+            if row["reference"] in {"U6", "U7"}
+        }
+        == {
+            ("U6", "TBD_LOGIC_BUCK_12V_TO_5V", "TBD_BLOCKING"),
+            ("U7", "TBD_ISOLATED_5V_TO_5V_DC_DC", "TBD_BLOCKING"),
+        }
+        and {
+            (row["reference"], row["candidate"], row["decision"])
+            for row in approvals
+            if row["reference"] in {"U6", "U7"}
+        }
+        == {
+            ("U6", "TBD_LOGIC_BUCK_12V_TO_5V", "PENDING"),
+            ("U7", "TBD_ISOLATED_5V_TO_5V_DC_DC", "PENDING"),
+        },
         "truth_table_is_fail_closed": all(validate_truth_table(truth_rows).values()),
         "critical_budget_inputs_are_blank_blockers": required_budget_tbd <= budget_by_id.keys()
         and all(
@@ -256,6 +547,8 @@ def validate(package: Path = PACKAGE) -> dict[str, Any]:
         == "NSLEEP_SAFE_A"
         and {row["controlled_net"] for row in pins if row["pin_name"] in {"EN1", "EN2", "EN3", "EN4"}}
         == {"EN1_SAFE_B", "EN2_SAFE_B", "EN3_SAFE_B", "EN4_SAFE_B"},
+        "nFAULT_pin_is_declared_hardware_inhibit_source": "hardware inhibit"
+        in next(row for row in pins if row["pin_name"] == "nFAULT")["role"],
         "all_physical_verification_is_not_executed": len(verification) >= 10
         and all(
             row["status"] == "NOT_EXECUTED"
@@ -281,6 +574,7 @@ def validate(package: Path = PACKAGE) -> dict[str, Any]:
             and row["freeze_status"] == "CONCEPT_ONLY"
             for row in placement
         ),
+        "placement_honors_rear_connector_datum": all(placement_direction_checks.values()),
         "concept_board_is_mechanical_only": "CONCEPT ONLY - NO ELECTRICAL FOOTPRINTS - DO NOT ORDER" in board
         and board.count('(property "Reference" "H') == 4
         and board.count("(segment") == 0
@@ -316,6 +610,12 @@ def validate(package: Path = PACKAGE) -> dict[str, Any]:
             "candidate_motor_count": len(motor_candidates),
             "candidate_dual_stall_current_a": spec["motor_candidates"][0]["simultaneous_two_axis_stall_current_a"],
             "controlled_driver_pin_count": len(pin_numbers),
+            "net_topology_row_count": len(net_topology),
+            "safety_path_count": len(safety_paths),
+            "nFAULT_hardware_inhibit_path_count": sum(
+                row.get("path_id") in {"SG-A-FAULT", "SG-B-FAULT"} for row in safety_paths
+            ),
+            "logic_power_candidate_count": sum(row["reference"] in {"U6", "U7"} for row in bom),
             "release_gate_count": len(gates),
             "release_blocker_count": len(release_blockers),
             "verification_item_count": len(verification),
@@ -328,6 +628,9 @@ def validate(package: Path = PACKAGE) -> dict[str, Any]:
         },
         "release_blockers": release_blockers,
         "truth_table_checks": validate_truth_table(truth_rows),
+        "net_topology_checks": net_topology_checks,
+        "safety_path_checks": safety_path_checks,
+        "placement_direction_checks": placement_direction_checks,
         "note": "Engineering consistency does not approve procurement, safety, fabrication, or physical operation.",
     }
 
@@ -343,6 +646,10 @@ def write_reports(report: dict[str, Any]) -> None:
         "status": report["status"],
         "blocker_count": len(report["release_blockers"]),
         "blockers": report["release_blockers"],
+        "net_topology_checks": report["net_topology_checks"],
+        "safety_path_checks": report["safety_path_checks"],
+        "placement_direction_checks": report["placement_direction_checks"],
+        "metrics": report["metrics"],
         "note": (
             "Blockers close only with named approvals and attached external evidence; "
             "repository edits cannot infer them."

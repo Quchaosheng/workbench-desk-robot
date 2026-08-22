@@ -84,6 +84,9 @@ CAN_NETS = {"CANH", "CANL", "CANH_RAW", "CANL_RAW"}
 CAN_PAIRS = (("CANH", "CANL"), ("CANH_RAW", "CANL_RAW"))
 CAN_IMPEDANCE_CANDIDATE_LAYERS = {"F.Cu", "In1.Cu", "In3.Cu"}
 CAN_PAIR_MAX_AGGREGATE_DELTA_MM = 5.0
+CAN_TESTPOINT_STUB_MAX_MM = 3.5
+CAN_TESTPOINT_PAIR_STUB_DELTA_MM = 1.0
+CAN_TESTPOINT_POSITION_TOLERANCE_MM = 0.01
 COPPER_LAYERS = {"F.Cu", "In1.Cu", "In2.Cu", "In3.Cu", "In4.Cu", "In5.Cu", "In6.Cu", "B.Cu"}
 RAW_CAN_NETS = ("CANH_RAW", "CANL_RAW")
 RAW_CAN_BLIND_VIA_LAYERS = {"F.Cu", "In3.Cu"}
@@ -738,6 +741,75 @@ def _u3_output_via_check(pads: list[dict[str, Any]], vias: list[dict[str, Any]])
     }
 
 
+def _can_testpoint_stub_check(
+    pads: list[dict[str, Any]], segments: list[dict[str, Any]]
+) -> tuple[bool, dict[str, Any]]:
+    """Check that CAN probe pads use short, paired, same-layer branches."""
+    targets = (("TP6", "CANH"), ("TP7", "CANL"))
+    target_references = {reference for reference, _ in targets}
+    details: dict[str, Any] = {
+        "max_stub_length_mm": CAN_TESTPOINT_STUB_MAX_MM,
+        "pair_stub_delta_limit_mm": CAN_TESTPOINT_PAIR_STUB_DELTA_MM,
+        "position_tolerance_mm": CAN_TESTPOINT_POSITION_TOLERANCE_MM,
+    }
+    if not any(pad["reference"] in target_references for pad in pads):
+        return True, {**details, "state": "not_applicable", "pass": True, "points": {}}
+
+    point_lengths: dict[str, float] = {}
+    all_pass = True
+    points: dict[str, Any] = {}
+    for reference, net in targets:
+        matching_pads = [pad for pad in pads if pad["reference"] == reference and pad["net"] == net]
+        if len(matching_pads) != 1:
+            points[reference] = {"pass": False, "reason": "pad_missing_or_ambiguous", "count": len(matching_pads)}
+            all_pass = False
+            continue
+        position = matching_pads[0]["position"]
+        touching = [
+            segment
+            for segment in segments
+            if segment["net"] == net
+            and (
+                math.hypot(segment["start"][0] - position[0], segment["start"][1] - position[1])
+                <= CAN_TESTPOINT_POSITION_TOLERANCE_MM
+                or math.hypot(segment["end"][0] - position[0], segment["end"][1] - position[1])
+                <= CAN_TESTPOINT_POSITION_TOLERANCE_MM
+            )
+        ]
+        if len(touching) != 1:
+            points[reference] = {
+                "pass": False,
+                "reason": "expected_one_direct_stub_segment",
+                "segment_count": len(touching),
+            }
+            all_pass = False
+            continue
+        stub = touching[0]
+        point_lengths[reference] = stub["length_mm"]
+        stub_pass = stub["layer"] == "F.Cu" and stub["length_mm"] <= CAN_TESTPOINT_STUB_MAX_MM
+        points[reference] = {
+            "pass": stub_pass,
+            "net": net,
+            "layer": stub["layer"],
+            "stub_length_mm": round(stub["length_mm"], 4),
+            "start": list(stub["start"]),
+            "end": list(stub["end"]),
+        }
+        all_pass = all_pass and stub_pass
+
+    if len(point_lengths) == 2:
+        pair_delta = abs(point_lengths["TP6"] - point_lengths["TP7"])
+        details["pair_stub_delta_mm"] = round(pair_delta, 4)
+        details["pair_match_pass"] = pair_delta <= CAN_TESTPOINT_PAIR_STUB_DELTA_MM
+        all_pass = all_pass and details["pair_match_pass"]
+    else:
+        details["pair_match_pass"] = False
+    details["points"] = points
+    details["state"] = "checked"
+    details["pass"] = all_pass
+    return all_pass, details
+
+
 def _can_check(segments: list[dict[str, Any]], vias: list[dict[str, Any]]) -> tuple[bool, dict[str, Any]]:
     details: dict[str, Any] = {}
     lengths: dict[str, float] = {}
@@ -820,6 +892,7 @@ def audit(board_path: str | Path | None = None) -> dict[str, Any]:
     u3_output_via_pass, u3_output_via_details = _u3_output_via_check(pads, vias)
     raw_can_blind_via_pass, raw_can_blind_via_details = _raw_can_blind_via_check(vias)
     can_pass, can_details = _can_check(segments, vias)
+    can_testpoint_pass, can_testpoint_details = _can_testpoint_stub_check(pads, segments)
     checks = {
         "high_current_widths_with_bounded_neckdowns": width_pass,
         "reference_layer_net_categories": layer_pass,
@@ -832,6 +905,7 @@ def audit(board_path: str | Path | None = None) -> dict[str, Any]:
         "u3_output_parallel_transfer_vias": u3_output_via_pass,
         "raw_can_matched_fcu_in3_blind_vias": raw_can_blind_via_pass,
         "can_candidate_layers_and_pair_delta": can_pass,
+        "can_testpoint_stub_geometry": can_testpoint_pass,
     }
     can_vias = {net: sum(via["net"] == net for via in vias) for net in sorted(CAN_NETS)}
     risks = {
@@ -860,6 +934,14 @@ def audit(board_path: str | Path | None = None) -> dict[str, Any]:
             "note": (
                 "Branch presence and layer parity do not prove matching endpoint paths; compare each CANH/CANL "
                 "connector, protection, testpoint, and termination branch manually."
+            ),
+        },
+        "can_testpoint_stub_geometry": {
+            "status": "OPEN_LAYOUT_REVIEW_REQUIRED" if not can_testpoint_pass else "MACHINE_CHECKED_SHORT_STUB",
+            "machine_verifiable": True,
+            "note": (
+                "TP6/TP7 are constrained to short, same-layer, paired probe branches; differential coupling and "
+                "probe loading still require oscilloscope review."
             ),
         },
         "can_reference_plane_continuity": {
@@ -931,6 +1013,7 @@ def audit(board_path: str | Path | None = None) -> dict[str, Any]:
             "u3_output_parallel_transfer_vias": u3_output_via_details,
             "raw_can_matched_fcu_in3_blind_vias": raw_can_blind_via_details,
             "can_candidate_layers_and_pair_delta": can_details,
+            "can_testpoint_stub_geometry": can_testpoint_details,
         },
         "risks": risks,
         "warnings": warnings,

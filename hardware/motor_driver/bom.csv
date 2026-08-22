@@ -1,8 +1,10 @@
 reference,quantity,function,candidate_mpn_or_class,package_or_interface,selection_status,required_rating_or_input,owner,release_gate
 U1,1,four-half-bridge motor driver,DRV8962DDVR,DDV 44-pin HTSSOP top exposed pad,CANDIDATE_NOT_APPROVED,"motor current thermal heatsink and vendor land-pattern closure",Electrical Owner,MTR-DRV
 U2,1,local traction controller,TBD_TRACTION_CONTROL_MCU,TBD,TBD_BLOCKING,"CAN protocol PWM resources ADC current sense watchdog and diagnostics",Controls Owner,MTR-CONTROL
-U3,1,isolated CAN FD transceiver and isolated-side power,TBD_ISOLATED_CAN_FD_INTERFACE,TBD,TBD_BLOCKING,"must preserve GND_CAN_ISO separation from GND_MOTOR; field-bus common mode ESD fault rating and termination architecture",Electrical Owner,MTR-CONTROL
+U3,1,isolated CAN FD transceiver,TBD_ISOLATED_CAN_FD_INTERFACE,TBD,TBD_BLOCKING,"powered from candidate U7 isolated-side rail; preserve GND_CAN_ISO separation from GND_MOTOR; field-bus common mode ESD fault rating and termination architecture",Electrical Owner,MTR-CONTROL
 U4-U5,2,independent dominant-low safety gate,TBD_HARDWARE_SAFETY_GATE,TBD,TBD_BLOCKING,"separate SAFE A nSLEEP and SAFE B EN paths with diagnostic coverage",Safety Owner,MTR-SAFETY
+U6,1,local logic power regulator,TBD_LOGIC_BUCK_12V_TO_5V,TBD,TBD_BLOCKING,"VM_PROTECTED input; VCC_LOGIC load transient UVLO PGOOD and thermal limits",Electrical Owner,MTR-POWER
+U7,1,isolated CAN-side power converter,TBD_ISOLATED_5V_TO_5V_DC_DC,TBD,TBD_BLOCKING,"isolation rating creepage EMC load transient and no GND_CAN_ISO tie to local ground",Electrical Owner,MTR-CONTROL
 F1,1,input branch protection,TBD_DC_FUSE,TBD,TBD_BLOCKING,"motor stall current harness ampacity interrupt rating and time-current curve",Electrical Owner,MTR-POWER
 Q1,1,reverse-polarity and reverse-current blocker,TBD_20V_MIN_BLOCKING_STAGE,TBD,TBD_BLOCKING,"J2 transient envelope forward loss and no regeneration into source",Electrical Owner,MTR-REGEN
 Q2,1,brake or clamp switch,TBD_PULSE_RATED_SWITCH,TBD,TBD_BLOCKING,"local bus clamp voltage pulse current SOA and fault response",Electrical Owner,MTR-REGEN

@@ -425,6 +425,7 @@ COMPONENTS: list[Component] = [
         "ISOLATED POWER",
         {1: "VBAT_PROTECTED", 2: "GND_PWR", 3: None, 4: "12V_ISO", 5: "GND", 6: None, 7: None, 8: None, 9: None},
         mpn="TBD_36_60V_TO_12V_240W_ISOLATED",
+        dnp=True,
         note=(
             "No compatible orderable MPN is frozen; generic 9-pin through-hole land pattern is a layout "
             "placeholder only"

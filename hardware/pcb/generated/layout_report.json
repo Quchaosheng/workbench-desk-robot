@@ -14,7 +14,8 @@
     "u3_exposed_pad_thermal_microvia_array": true,
     "u3_output_parallel_transfer_vias": true,
     "raw_can_matched_fcu_in3_blind_vias": true,
-    "can_candidate_layers_and_pair_delta": true
+    "can_candidate_layers_and_pair_delta": true,
+    "can_testpoint_stub_geometry": true
   },
   "details": {
     "high_current_widths_with_bounded_neckdowns": {
@@ -1122,6 +1123,45 @@
           "limit_mm": 5.0
         }
       }
+    },
+    "can_testpoint_stub_geometry": {
+      "max_stub_length_mm": 3.5,
+      "pair_stub_delta_limit_mm": 1.0,
+      "position_tolerance_mm": 0.01,
+      "pair_stub_delta_mm": 0.8053,
+      "pair_match_pass": true,
+      "points": {
+        "TP6": {
+          "pass": true,
+          "net": "CANH",
+          "layer": "F.Cu",
+          "stub_length_mm": 3.0414,
+          "start": [
+            140.5,
+            85.0
+          ],
+          "end": [
+            141.0,
+            88.0
+          ]
+        },
+        "TP7": {
+          "pass": true,
+          "net": "CANL",
+          "layer": "F.Cu",
+          "stub_length_mm": 2.2361,
+          "start": [
+            150.0,
+            87.0
+          ],
+          "end": [
+            152.0,
+            88.0
+          ]
+        }
+      },
+      "state": "checked",
+      "pass": true
     }
   },
   "risks": {
@@ -1154,6 +1194,11 @@
       "status": "OPEN_LAYOUT_REVIEW_REQUIRED",
       "machine_verifiable": false,
       "note": "Branch presence and layer parity do not prove matching endpoint paths; compare each CANH/CANL connector, protection, testpoint, and termination branch manually."
+    },
+    "can_testpoint_stub_geometry": {
+      "status": "MACHINE_CHECKED_SHORT_STUB",
+      "machine_verifiable": true,
+      "note": "TP6/TP7 are constrained to short, same-layer, paired probe branches; differential coupling and probe loading still require oscilloscope review."
     },
     "can_reference_plane_continuity": {
       "status": "OPEN_LAYOUT_REVIEW_REQUIRED",

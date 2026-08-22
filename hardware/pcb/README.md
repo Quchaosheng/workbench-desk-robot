@@ -102,6 +102,10 @@ it is an MCU input and is deliberately distinct from the internal
 a dual-channel J10 loop, dual-channel manual reset at J12, diagnostic isolation
 at U8, force-guided relay candidates K1/K2, and the J11 gated output.
 `connector-pinout.csv` freezes the current EVT pin mapping.
+`connectors.csv` separates contact capability from the controlled system
+envelope: J2 contacts are a 16 A nominal interface, but the board and harness
+are limited to 10 A aggregate (120 W at 12 V) until an external branch fuse,
+inrush, regeneration and fault-current analysis is approved.
 `component-selection-matrix.csv` tracks every active module, the source-backed
 candidate or class, verification method, owner and procurement status.
 `fabrication/bom.csv` contains 77 grouped lines covering every board component.

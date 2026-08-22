@@ -24,7 +24,7 @@
     "link stop disables and drains the TX path before returning and publishes CAN_STATE_STOPPED before cancelling restart work",
     "restart can only commit from CAN_STATE_BUS_OFF and cannot overwrite a newer stopped state",
     "the restart-stop test observes an entered restart callback before stopping the link instead of relying on timer probability",
-    "the default-off restart delay control is bounded and restored after every probe",
+    "the default-off restart and stop delay controls are bounded and restored after every probe",
     "TX fails closed if invoked in bus-off, stopped, or sleeping state",
     "terminal state snapshots never report an awake TX queue",
     "the private spinlock is not held across CAN-core or netif calls",

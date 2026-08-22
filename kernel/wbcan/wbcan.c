@@ -78,7 +78,7 @@ MODULE_PARM_DESC(test_restart_delay_ms,
 static unsigned int test_stop_delay_ms;
 module_param(test_stop_delay_ms, uint, 0600);
 MODULE_PARM_DESC(test_stop_delay_ms,
-		 "test-only delay between TX drain and stop publication");
+		 "test-only delay around TX drain and stop publication");
 
 struct wbcan_priv {
 	struct can_priv		can;	/* must be first: can_priv contract */
@@ -299,6 +299,8 @@ static int wbcan_stop(struct net_device *dev)
 	netif_stop_queue(dev);
 	WRITE_ONCE(priv->can.state, CAN_STATE_STOPPED);
 	netif_tx_unlock_bh(dev);
+	if (delay_ms)
+		msleep(delay_ms);
 	/* A restart worker that was queued before STOPPED must be cancelled. */
 	close_candev(dev);
 	/* A worker may have committed ACTIVE before STOPPED was published. */

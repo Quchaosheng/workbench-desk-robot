@@ -3,7 +3,7 @@ PCB-U2,power,isolated 48V-to-12V 240W module,1,ea,240W isolated module class,QUO
 PCB-U3,power,protected 12V 5A Jetson branch,1,ea,6A minimum e-fuse/load switch class,QUOTE_REQUIRED,,,,,hardware/pcb/component-selection-matrix.csv,load-trip test+AVL,Electrical Owner,ORDER_BLOCKED
 PCB-U4,power,12V-to-3.3V synchronous buck 20W,1,ea,6A synchronous buck class,QUOTE_REQUIRED,,,,,hardware/pcb/component-selection-matrix.csv,ripple+thermal test+AVL,Electrical Owner,ORDER_BLOCKED
 PCB-U7,isolation,isolated 5V CAN-side power module,1,ea,reinforced isolated 1W module class,QUOTE_REQUIRED,,,,,hardware/pcb/component-selection-matrix.csv,isolation+loaded-voltage test,Electrical Owner,ORDER_BLOCKED
-PCB-PCBA,pcb,controller PCB EVT assembly,1,ea,controller six-layer EVT release,QUOTE_REQUIRED,,,,,hardware/pcb/fabrication/README.md,DFM quote+AOI+electrical test,Manufacturing Owner,ORDER_BLOCKED
+PCB-PCBA,pcb,controller PCB EVT assembly,1,ea,controller eight-layer EVT release,QUOTE_REQUIRED,,,,,hardware/pcb/fabrication/README.md,DFM quote+AOI+electrical test,Manufacturing Owner,ORDER_BLOCKED
 MECH-ENC,enclosure,desk-robot enclosure assembly,1,ea,generated mechanical envelope,QUOTE_REQUIRED,,,,,hardware/mechanical/design-spec.json,supplier DFM+fit inspection,Mechanical Owner,ORDER_BLOCKED
 MECH-BUMPER,mechanical,impact bumper set,1,set,generated impact bumper parts,QUOTE_REQUIRED,,,,,hardware/mechanical/generated/bom.csv,material cert+drop test,Mechanical Owner,ORDER_BLOCKED
 HARNESS-CTRL,harness,controller harness set,1,set,controlled harness specification,QUOTE_REQUIRED,,,,,hardware/manufacturing/harness-spec.csv,continuity+pull test,Manufacturing Owner,ORDER_BLOCKED

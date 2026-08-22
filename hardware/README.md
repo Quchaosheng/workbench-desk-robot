@@ -12,6 +12,7 @@ hardware/
   safety/           Hardware e-stop, watchdog, safety PLC bridge
   mechanical/       Parametric enclosure, chassis, impact and stability package
   pcb/              Controller/power PCB architecture and KiCad engineering package
+  motor_driver/     Dual-axis traction childboard, motor candidates and fail-closed gates
   manufacturing/    Assembly, test, quality, rework, EHS and release process
   procurement/      Controlled BOM, quote requests, supplier review and PO gates
   qa/               Inspection standards, FMEA, AQL and compliance evidence gates

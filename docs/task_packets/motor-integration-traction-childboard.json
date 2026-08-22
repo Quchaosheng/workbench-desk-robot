@@ -1,0 +1,78 @@
+{
+  "issue": "132",
+  "human_owner": "Quchaosheng",
+  "objective": "Integrate a reviewable dual-motor traction architecture, independent power childboard, and mechanical envelopes without representing unknown motor, regeneration, thermal, safety, supplier, or physical evidence as complete.",
+  "allowed_paths": [
+    "hardware/motor_driver/**",
+    "hardware/README.md",
+    "hardware/pcb/connectors.csv",
+    "hardware/pcb/connector-pinout.csv",
+    "hardware/pcb/README.md",
+    "hardware/pcb/interface-control.md",
+    "hardware/pcb/fabrication/**",
+    "hardware/pcb/expected-connectivity.json",
+    "hardware/pcb/generated/controller.net",
+    "hardware/pcb/generated/erc.rpt",
+    "hardware/pcb/generated/connectivity_report.json",
+    "hardware/pcb/kicad/controller.kicad_pcb",
+    "hardware/pcb/kicad/controller.kicad_sch",
+    "hardware/pcb/kicad/controller.kicad_sym",
+    "hardware/pcb/fabrication/drawings/controller-schematic.pdf",
+    "hardware/pcb/tools/design_data.py",
+    "hardware/pcb/tools/generate_kicad_schematic.py",
+    "hardware/pcb/tools/generate_expected_connectivity.py",
+    "hardware/mechanical/**",
+    "hardware/manufacturing/harness-spec.csv",
+    "hardware/release/evidence-register.csv",
+    "hardware/release/generated/release_readiness_report.json",
+    "hardware/release/tools/check_release_readiness.py",
+    "docs/hardware/wiring.md",
+    "tests/hardware/**",
+    "docs/task_packets/motor-integration-traction-childboard.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "hardware/procurement/**",
+    "robot/control/**",
+    "firmware/**"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "robot/control/**",
+    "firmware/**"
+  ],
+  "acceptance": [
+    "the system architecture distinguishes the two chassis traction motors from the six vendor-controlled UR5e joints",
+    "the traction childboard is independently replaceable and its controlled motor-power input does not assume the isolated converter can absorb regenerative energy",
+    "the childboard interface preserves the hardwired MOTOR_ENABLE_SAFE path and cannot treat a software request as a safety output",
+    "motor, driver, MOSFET, fuse, bulk capacitance, clamp, shunt, connector, and thermal selections remain fail-closed until approved ratings and evidence exist",
+    "motor voltage selection, regeneration, and bus overshoot are explicit release blockers for either the 12 V auxiliary baseline or a protected 48 V traction-bus alternative",
+    "connector pinout tables agree with the detailed controller schematic and generator",
+    "mechanical artifacts include left and right motor envelopes plus a serviceable childboard envelope",
+    "deterministic validators and hardware tests cover the new engineering package",
+    "no supplier DFM, safety approval, firmware behavior, or physical bring-up evidence is inferred"
+  ],
+  "commands": [
+    "python tools/scripts/check_task_packet.py docs/task_packets/motor-integration-traction-childboard.json",
+    "python hardware/motor_driver/tools/validate_motor_driver.py",
+    "python hardware/mechanical/tools/generate_artifacts.py",
+    "python hardware/pcb/tools/generate_expected_connectivity.py",
+    "python hardware/pcb/tools/audit_connectivity.py",
+    "python -m pytest tests/hardware -v"
+  ],
+  "evidence": [
+    "hardware/motor_driver/generated/engineering-report.json",
+    "hardware/motor_driver/generated/release-readiness.json",
+    "hardware/motor_driver/kicad traction-childboard design artifacts if generated",
+    "hardware/mechanical/generated/analysis.json",
+    "hardware/pcb/generated/connectivity_report.json",
+    "hardware test output"
+  ],
+  "stop_conditions": [
+    "an actual motor MPN or motor electrical envelope would have to be invented",
+    "a 60 V bus transient or regenerative energy path lacks an approved clamp and absorption design",
+    "the safety path could energize traction from software alone",
+    "KiCad DRC, ERC, connectivity, or deterministic package validation fails",
+    "supplier DFM, approved AVL, calibrated physical measurements, or safety certification is required"
+  ]
+}

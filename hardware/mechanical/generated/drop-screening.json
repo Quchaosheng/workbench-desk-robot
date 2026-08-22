@@ -7,7 +7,8 @@
   "estimated_average_compressive_stress_mpa": 0.122,
   "acceptance": {
     "peak_deceleration_g": 35,
-    "no_battery_contact": true,
-    "no_sharp_shell_fracture": true
+    "no_battery_contact": "PHYSICAL_VALIDATION_REQUIRED",
+    "no_battery_contact_analytical": true,
+    "no_sharp_shell_fracture": "PHYSICAL_VALIDATION_REQUIRED"
   }
 }

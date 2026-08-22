@@ -1,14 +1,102 @@
 {
   "units": "mm",
   "enclosure": {"width": 280, "depth": 240, "height": 330, "wall": 2.5, "corner_radius": 18},
-  "chassis": {"width": 260, "depth": 220, "thickness": 4, "wheelbase": 180, "track": 210, "ground_clearance": 18},
+  "chassis": {"width": 260, "depth": 220, "thickness": 4, "wheelbase": 180, "track": 210, "ground_clearance": 18,
+    "wheels": {
+      "status": "TBD_WHEEL_HUB_TYRE_SELECTION_DO_NOT_ORDER",
+      "count": 4,
+      "diameter_mm": 50,
+      "width_mm": 12,
+      "axis": "Y",
+      "role_assignment": "TBD_TWO_DRIVEN_TWO_PASSIVE_OR_FOUR_DRIVEN",
+      "centres": [
+        {"id": "wheel_front_left", "xyz": [-90, -105, 43]},
+        {"id": "wheel_front_right", "xyz": [90, -105, 43]},
+        {"id": "wheel_rear_left", "xyz": [-90, 105, 43]},
+        {"id": "wheel_rear_right", "xyz": [90, 105, 43]}
+      ],
+      "release_blockers": [
+        "wheel_hub_tyre_bearing_and_fastener_mpn_not_selected",
+        "wheel_load_traction_and_floor_interface_not_validated",
+        "wheel_sweep_and_chafe_clearance_not_physically_executed"
+      ]
+    },
+    "motor_bracket": {
+      "status": "ENGINEERING_ENVELOPE_MOUNT_PATTERN_TBD_MOTOR_INTERFACE_OPEN",
+      "plate_envelope": [45, 35, 4],
+      "mount_pattern": [35, 25],
+      "mount_hole_diameter_mm": 3.4,
+      "quantity": 2,
+      "release_blockers": [
+        "approved_motor_face_pattern_and_shaft_axis_not_selected",
+        "torque_reaction_and_bracket_fatigue_not_validated"
+      ]
+    }
+  },
   "head": {"width": 190, "height": 92, "display_cutout": [150, 72], "tilt_deg": 8},
-  "electronics_tray": {"width": 220, "depth": 170, "clearance_above": 32, "pcb_envelope": [160, 130, 1.6], "pcb_mount_pattern": [152, 122], "pcb_mount_hole_mm": 3.2, "minimum_edge_service_margin": 20},
+  "electronics_tray": {"width": 220, "depth": 170, "clearance_above": 32, "mount_plane_z": 102, "pcb_envelope": [160, 130, 1.6], "pcb_mount_pattern": [152, 122], "pcb_mount_hole_mm": 3.2, "minimum_edge_service_margin": 20},
+  "traction_integration": {
+    "status": "TBD_ENVELOPES_ONLY_MOTOR_SELECTION_AND_PHYSICAL_VALIDATION_REQUIRED",
+    "architecture_scope": "two_chassis_traction_motors_and_one_independent_driver_childboard",
+    "excluded_scope": "UR5e_joint_motors_remain_inside_vendor_controller_system",
+    "motor_selection_status": "TBD_NOT_SELECTED_DO_NOT_ORDER",
+    "reserved_motor_envelope": [48, 72, 46],
+    "motor_envelopes": [
+      {"id": "traction_motor_left", "side": "left", "xyz": [-86, 0, 49]},
+      {"id": "traction_motor_right", "side": "right", "xyz": [86, 0, 49]}
+    ],
+    "childboard": {
+      "id": "traction_driver_childboard",
+      "selection_status": "TBD_OUTLINE_AND_COMPONENT_HEIGHT_DO_NOT_ORDER",
+      "envelope": [118, 82, 20],
+      "xyz": [0, 54, 150],
+      "mount_pattern": [108, 72],
+      "mount_hole_mm": 3.2,
+      "minimum_mount_edge_margin_mm": 5,
+      "service_removal_direction": "+Z",
+      "service_clearance_mm": 35,
+      "connector_side": "+Y_REAR",
+      "minimum_connector_corridor_mm": 20,
+      "mount_support": {
+        "status": "TBD_STANDOFF_AND_RETAINER_DO_NOT_ORDER",
+        "plate_center_z_mm": 135,
+        "plate_thickness_mm": 3,
+        "standoff_height_mm": 3.5,
+        "standoff_diameter_mm": 6,
+        "mount_hole_diameter_mm": 3.2,
+        "release_blockers": [
+          "mount_plate_datum_and_fastener_stack_not_frozen",
+          "shock_retention_and_thermal_interface_not_validated"
+        ]
+      }
+    },
+    "minimum_motor_to_childboard_clearance_mm": 3,
+    "release_blockers": [
+      "motor_mpn_mount_pattern_shaft_and_mass_not_selected",
+      "motor_stall_load_and_bracket_reaction_not_verified",
+      "childboard_final_outline_connector_locations_and_mass_not_frozen",
+      "traction_regeneration_bus_overshoot_and_thermal_design_not_approved",
+      "physical_fit_harness_sweep_and_service_removal_not_executed"
+    ]
+  },
+  "battery_integration": {
+    "status": "TBD_PACK_ENVELOPE_AND_RESTRAINT_DO_NOT_ORDER",
+    "reserved_envelope_mm": [80, 100, 40],
+    "xyz": [0, 0, 52],
+    "service_removal_direction": "+Y",
+    "minimum_battery_to_heat_source_mm": 20,
+    "restraint": "TBD_BMS_PACK_BRACKET_AND_IMPACT_RETENTION",
+    "release_blockers": [
+      "battery_pack_mpn_cell_chemistry_and_envelope_not_selected",
+      "restraint_and_service_disconnect_not_designed",
+      "impact_and_thermal_clearance_not_physically_validated"
+    ]
+  },
   "ventilation": {"inlet_area_mm2": 1800, "outlet_area_mm2": 2200, "fan_mm": 60, "direction": "lower-front to upper-rear"},
   "impact": {"bumper_material": "TPU 95A over compliant honeycomb", "bumper_thickness": 8, "effective_absorber_stroke_mm": 24, "drop_height_m": 0.75, "design_deceleration_g": 35},
   "components": [
     {"name": "chassis_and_motors", "mass_kg": 2.70, "xyz": [0, 0, 55]},
-    {"name": "battery", "mass_kg": 1.60, "xyz": [0, -25, 68]},
+    {"name": "battery", "mass_kg": 1.60, "xyz": [0, 0, 52]},
     {"name": "electronics", "mass_kg": 0.82, "xyz": [0, 10, 142]},
     {"name": "shell", "mass_kg": 0.75, "xyz": [0, 0, 170]},
     {"name": "head_display", "mass_kg": 0.55, "xyz": [0, 5, 278]}

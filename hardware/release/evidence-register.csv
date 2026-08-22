@@ -2,6 +2,7 @@ gate_id,domain,gate,owner,status,evidence_ref,next_action,release_blocker
 REL-001,engineering,mechanical analytical package,Mechanical Owner,PASS,hardware/mechanical/generated/analysis.json,complete physical stability/drop validation,no
 REL-002,engineering,PCB architecture/ERC/DRC/connectivity,Electrical Owner,PASS,hardware/pcb/generated/release_readiness.json,close component schematic and AVL,no
 REL-003,engineering,manufacturing route and controlled traveller,Manufacturing Owner,PASS,hardware/manufacturing/generated/route_report.json,run pilot units,no
+REL-003A,engineering,dual-axis traction childboard plus wheels battery envelope motor brackets and chassis integration,Electrical and Motion Owners,BLOCKED,hardware/motor_driver/generated/release-readiness.json,close wheel and battery MPN/restraint selection motor MPN power/regeneration safety schematic/layout thermal harness childboard support and physical bring-up gates,yes
 REL-004,procurement,dated quotes and approved MPNs,Procurement Owner,BLOCKED,hardware/procurement/generated/procurement_report.json,attach dated quotes and AVL approval,yes
 REL-005,commercial,PO and lead-time decision,Project Owner,BLOCKED,hardware/procurement/po-checklist.csv,complete PO checklist with sign-off,yes
 REL-006,safety,approved safety analysis and E-stop timing,Safety Owner,BLOCKED,hardware/pcb/safety-gate-truth-table.csv,attach signed safety analysis and measured trip time,yes

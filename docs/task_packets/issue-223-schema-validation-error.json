@@ -1,0 +1,49 @@
+{
+  "issue": 223,
+  "human_owner": "Quchaosheng",
+  "objective": "Normalize malformed numeric and regular-expression schema validation failures to SchemaValidationError so the kernel broker remains fail-closed.",
+  "allowed_paths": [
+    "libs/kernel/workbench/kernel/schema_compiler.py",
+    "tests/unit/test_kernel_schema_compiler.py",
+    "tests/unit/test_kernel_communication_broker.py",
+    "docs/task_packets/issue-223-schema-validation-error.json"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "interfaces/**"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "interfaces/**"
+  ],
+  "acceptance": [
+    "huge Python integers used with the supported number type do not leak OverflowError",
+    "NaN and positive or negative infinity are rejected with SchemaValidationError",
+    "malformed minimum and maximum bounds are reported as SchemaValidationError",
+    "malformed regular-expression patterns are reported as SchemaValidationError",
+    "CommunicationBroker rejects malformed numeric payloads without appending to message_log",
+    "regression tests cover huge integers, non-finite floats, malformed bounds, malformed patterns, and broker rejection"
+  ],
+  "commands": [
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/issue-223-schema-validation-error.json",
+    "python3 -m pytest tests/unit/test_kernel_schema_compiler.py tests/unit/test_kernel_communication_broker.py -q",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "git diff --check"
+  ],
+  "evidence": [
+    "focused validator and broker regression test output",
+    "full repository test output",
+    "contract, scenario, and context validation output",
+    "clean whitespace diff check and Task Packet validation output"
+  ],
+  "stop_conditions": [
+    "an interface schema change is required",
+    "a write outside the allowed paths is required",
+    "robot-control or firmware changes are required",
+    "the broker boundary requires catching unrelated unexpected exceptions"
+  ]
+}

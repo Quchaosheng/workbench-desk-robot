@@ -55,6 +55,10 @@ def test_broker_rejects_unknown_type_or_exact_version(
         ({"target": "red_block"}, "missing fields"),
         ({"target": "Red Block", "speed": 0.5}, "pattern"),
         ({"target": "red_block", "speed": 2.0}, "maximum"),
+        ({"target": "red_block", "speed": 10**400}, "maximum"),
+        ({"target": "red_block", "speed": float("nan")}, "invalid message envelope"),
+        ({"target": "red_block", "speed": float("inf")}, "invalid message envelope"),
+        ({"target": "red_block", "speed": float("-inf")}, "invalid message envelope"),
         ({"target": "red_block", "speed": 0.5, "raw_joint": 1}, "extra fields"),
         ({"target": "red_block", "speed": True}, "does not match type"),
         ({"_actor": "forged", "target": "red_block", "speed": 0.5}, "reserved"),
@@ -81,4 +85,31 @@ def test_broker_rejects_registered_content_that_is_not_a_schema(tmp_path: Path) 
     boundary = CommunicationBroker(registry)
     with pytest.raises(BrokerValidationError, match=r"version.*not registered"):
         boundary.publish({}, "action", "1.0.0", "planner")
+    assert boundary.message_log == []
+
+
+@pytest.mark.parametrize(
+    "schema, payload, error",
+    [
+        (
+            {"type": "object", "properties": {"speed": {"type": "number", "minimum": "invalid"}}},
+            {"speed": 0.5},
+            "minimum",
+        ),
+        (
+            {"type": "object", "properties": {"target": {"type": "string", "pattern": "["}}},
+            {"target": "red_block"},
+            "pattern",
+        ),
+    ],
+)
+def test_broker_converts_malformed_schema_constraints_to_rejection(
+    tmp_path: Path, schema: dict, payload: dict, error: str
+) -> None:
+    registry = VersionRegistry(tmp_path / "versions.json")
+    registry.register_schema("action", "1.0.0", schema)
+    boundary = CommunicationBroker(registry)
+
+    with pytest.raises(BrokerValidationError, match=error):
+        boundary.publish(payload, "action", "1.0.0", "planner")
     assert boundary.message_log == []

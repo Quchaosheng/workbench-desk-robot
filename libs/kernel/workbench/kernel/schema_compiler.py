@@ -45,6 +45,20 @@ class SchemaValidationError(ValueError):
     """Raised when a value does not satisfy the supported schema subset."""
 
 
+def _is_finite_json_number(value: Any) -> bool:
+    """Return whether value is a JSON number representable by the runtime validator."""
+    if type(value) is int:
+        return True
+    return type(value) is float and math.isfinite(value)
+
+
+def _numeric_constraint(schema: dict[str, Any], keyword: str, location: str) -> int | float:
+    bound = schema[keyword]
+    if not _is_finite_json_number(bound):
+        raise SchemaValidationError(f"schema {keyword} at {location} must be a finite number")
+    return bound
+
+
 def _matches_json_type(value: Any, schema_type: str) -> bool:
     if schema_type == "null":
         return value is None
@@ -53,7 +67,7 @@ def _matches_json_type(value: Any, schema_type: str) -> bool:
     if schema_type == "integer":
         return type(value) is int
     if schema_type == "number":
-        return type(value) in {int, float} and math.isfinite(value)
+        return _is_finite_json_number(value)
     if schema_type == "string":
         return isinstance(value, str)
     if schema_type == "array":
@@ -91,6 +105,8 @@ def validate_schema_instance(
     """Validate one value against the JSON Schema subset the compiler supports."""
     if not isinstance(schema, dict):
         raise SchemaValidationError(f"schema at {location} must be an object")
+    if type(value) is float and not math.isfinite(value):
+        raise SchemaValidationError(f"value at {location} must be a finite JSON number")
     if "$ref" in schema:
         reference = schema["$ref"]
         referenced = (references or {}).get(reference)
@@ -115,14 +131,38 @@ def validate_schema_instance(
         if not any(_matches_json_type(value, schema_type) for schema_type in allowed_types):
             raise SchemaValidationError(f"value at {location} does not match type {schema_types!r}")
 
-    if "minimum" in schema and (type(value) not in {int, float} or value < schema["minimum"]):
-        raise SchemaValidationError(f"value at {location} is below minimum {schema['minimum']!r}")
-    if "maximum" in schema and (type(value) not in {int, float} or value > schema["maximum"]):
-        raise SchemaValidationError(f"value at {location} is above maximum {schema['maximum']!r}")
-    if "pattern" in schema and (not isinstance(value, str) or re.search(schema["pattern"], value) is None):
-        raise SchemaValidationError(f"value at {location} does not match pattern {schema['pattern']!r}")
-    if "minItems" in schema and (not isinstance(value, list) or len(value) < schema["minItems"]):
-        raise SchemaValidationError(f"array at {location} has fewer than {schema['minItems']} items")
+    if "minimum" in schema:
+        minimum = _numeric_constraint(schema, "minimum", location)
+        try:
+            below_minimum = not _is_finite_json_number(value) or value < minimum
+        except (OverflowError, TypeError) as exc:
+            raise SchemaValidationError(f"value at {location} cannot be compared with minimum {minimum!r}") from exc
+        if below_minimum:
+            raise SchemaValidationError(f"value at {location} is below minimum {minimum!r}")
+    if "maximum" in schema:
+        maximum = _numeric_constraint(schema, "maximum", location)
+        try:
+            above_maximum = not _is_finite_json_number(value) or value > maximum
+        except (OverflowError, TypeError) as exc:
+            raise SchemaValidationError(f"value at {location} cannot be compared with maximum {maximum!r}") from exc
+        if above_maximum:
+            raise SchemaValidationError(f"value at {location} is above maximum {maximum!r}")
+    if "pattern" in schema:
+        pattern = schema["pattern"]
+        if not isinstance(pattern, str):
+            raise SchemaValidationError(f"schema pattern at {location} must be a string")
+        try:
+            matcher = re.compile(pattern)
+        except re.error as exc:
+            raise SchemaValidationError(f"schema pattern at {location} is invalid") from exc
+        if not isinstance(value, str) or matcher.search(value) is None:
+            raise SchemaValidationError(f"value at {location} does not match pattern {pattern!r}")
+    if "minItems" in schema:
+        min_items = schema["minItems"]
+        if type(min_items) is not int or min_items < 0:
+            raise SchemaValidationError(f"schema minItems at {location} must be a non-negative integer")
+        if not isinstance(value, list) or len(value) < min_items:
+            raise SchemaValidationError(f"array at {location} has fewer than {min_items} items")
 
     if isinstance(value, list) and "items" in schema:
         for index, item in enumerate(value):

@@ -39,6 +39,51 @@ def test_runtime_validation_normalizes_malformed_constraints(schema: dict) -> No
         validate_schema_instance(value, schema)
 
 
+@pytest.mark.parametrize(
+    "schema, value, error",
+    [
+        (
+            {
+                "anyOf": [
+                    {"type": "string", "pattern": "["},
+                    {"type": "string", "const": "ok"},
+                ]
+            },
+            "ok",
+            "pattern",
+        ),
+        (
+            {
+                "anyOf": [
+                    {"type": "number", "minimum": "bad"},
+                    {"type": "string", "const": "ok"},
+                ]
+            },
+            "ok",
+            "minimum",
+        ),
+        (
+            {"not": {"type": "string", "pattern": "["}},
+            "ok",
+            "pattern",
+        ),
+        (
+            {
+                "if": {"type": "string", "pattern": "["},
+                "then": {"type": "string"},
+            },
+            "ok",
+            "pattern",
+        ),
+    ],
+)
+def test_runtime_validation_does_not_hide_malformed_combinator_branches(
+    schema: dict, value: object, error: str
+) -> None:
+    with pytest.raises(SchemaValidationError, match=error):
+        validate_schema_instance(value, schema)
+
+
 def test_generated_models_are_valid_and_typed(tmp_path: Path) -> None:
     compiler = SchemaCompiler(ROOT / "interfaces" / "json_schema")
     compiler.load_schemas()

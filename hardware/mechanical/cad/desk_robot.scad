@@ -75,7 +75,7 @@ module neck_and_head() {
     translate([0, -25, 232]) cube([24, 12, 46], center=true);
 
   translate([0, -10, 264]) rotate([HEAD_TILT, 0, 0]) {
-    color([0.80, 0.82, 0.80])
+    color([0.88, 0.91, 0.89])
       difference() {
         rounded_prism(HEAD_W, HEAD_D, HEAD_H, 15);
         translate([0, -HEAD_D/2-1, 13])
@@ -83,10 +83,10 @@ module neck_and_head() {
       }
 
     // Recessed dark lens and warm-white active display.
-    color([0.06, 0.08, 0.09])
+    color([0.025, 0.045, 0.055])
       translate([0, -HEAD_D/2-2.5, HEAD_H/2])
         rotate([90, 0, 0]) cube([SCREEN_W+6, SCREEN_H+6, 3], center=true);
-    color([0.78, 0.93, 0.89])
+    color([0.30, 0.82, 0.74])
       translate([0, -HEAD_D/2-4.2, HEAD_H/2])
         rotate([90, 0, 0]) cube([SCREEN_W, SCREEN_H, 1.2], center=true);
   }

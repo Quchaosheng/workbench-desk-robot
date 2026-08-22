@@ -15,4 +15,6 @@ INT-013,wheel_floor_interface,0,load_traction_and_surface_test,approved_load_gri
 INT-014,battery-envelope-traction-motors,20,CAD_envelope_plus_thermal_review,minimum analytical heat-source clearance maintained,NOT_EXECUTED
 INT-015,battery-envelope-controller-tray,20,CAD_envelope_plus_service_trial,battery and electronics remain independently removable,NOT_EXECUTED
 INT-016,battery-restraint-lower-chassis,0,impact_fixture_and_drop_test,pack cannot shift or contact sharp structure,NOT_EXECUTED
-INT-017,childboard-support-traction-childboard,0,CAD_mount_stack_plus_shock_test,all four supports retain board without floating or shorting,NOT_EXECUTED
+INT-017,childboard-support-traction-childboard,0,CAD_mount_stack_plus_shock_test,lower posts contact tray datum and upper standoffs retain board without floating or shorting,NOT_EXECUTED
+INT-018,motor-bracket-lower-chassis,0,CAD_mount_datum_plus_torque_trial,each bracket base contacts chassis top and reaction fasteners remain accessible,NOT_EXECUTED
+INT-019,traction-motor-childboard,3,CAD_tolerance_stack_plus_harness_mockup,motor envelope and childboard remain separated across tolerance and service routing,NOT_EXECUTED

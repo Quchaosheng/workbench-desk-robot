@@ -7,12 +7,20 @@
     "all_voltage_drops_within_3_percent": true,
     "all_current_density_within_6a_per_mm2": true,
     "all_bend_radii_fit_20mm_service_margin": true,
-    "signal_and_safety_harness_shields_defined": true
+    "minimum_bend_radius_is_explicit": true,
+    "signal_and_safety_harness_shields_defined": true,
+    "traction_harness_ids_complete": true,
+    "traction_interfaces_cover_childboard": true,
+    "traction_safety_eco_is_explicit": true,
+    "traction_motor_rows_remain_candidate_limits": true,
+    "traction_motor_bend_radius_is_20mm": true,
+    "cross_package_motor_budget_is_explicit": true
   },
   "release_checks": {
     "all_mating_parts_approved": false,
     "physical_continuity_and_pull_test_attached": false,
-    "installed_length_and_chafe_check_attached": false
+    "installed_length_and_chafe_check_attached": false,
+    "candidate_dual_stall_within_j2_ceiling": false
   },
   "results": [
     {
@@ -22,6 +30,8 @@
       "current_density_a_per_mm2": 3.05,
       "drop_pass": true,
       "current_density_pass": true,
+      "declared_bend_radius_mm": 20.0,
+      "required_bend_radius_mm": 20.0,
       "bend_radius_pass": true,
       "shield_required_and_defined": true
     },
@@ -32,6 +42,8 @@
       "current_density_a_per_mm2": 3.82,
       "drop_pass": true,
       "current_density_pass": true,
+      "declared_bend_radius_mm": 15.0,
+      "required_bend_radius_mm": 15.0,
       "bend_radius_pass": true,
       "shield_required_and_defined": true
     },
@@ -42,6 +54,8 @@
       "current_density_a_per_mm2": 2.03,
       "drop_pass": true,
       "current_density_pass": true,
+      "declared_bend_radius_mm": 12.0,
+      "required_bend_radius_mm": 12.0,
       "bend_radius_pass": true,
       "shield_required_and_defined": true
     },
@@ -52,6 +66,8 @@
       "current_density_a_per_mm2": 1.22,
       "drop_pass": true,
       "current_density_pass": true,
+      "declared_bend_radius_mm": 8.0,
+      "required_bend_radius_mm": 8.0,
       "bend_radius_pass": true,
       "shield_required_and_defined": true
     },
@@ -62,6 +78,8 @@
       "current_density_a_per_mm2": 0.49,
       "drop_pass": true,
       "current_density_pass": true,
+      "declared_bend_radius_mm": 8.0,
+      "required_bend_radius_mm": 8.0,
       "bend_radius_pass": true,
       "shield_required_and_defined": true
     },
@@ -72,6 +90,8 @@
       "current_density_a_per_mm2": 0.49,
       "drop_pass": true,
       "current_density_pass": true,
+      "declared_bend_radius_mm": 8.0,
+      "required_bend_radius_mm": 8.0,
       "bend_radius_pass": true,
       "shield_required_and_defined": true
     },
@@ -82,6 +102,8 @@
       "current_density_a_per_mm2": 0.61,
       "drop_pass": true,
       "current_density_pass": true,
+      "declared_bend_radius_mm": 10.0,
+      "required_bend_radius_mm": 10.0,
       "bend_radius_pass": true,
       "shield_required_and_defined": true
     },
@@ -92,8 +114,273 @@
       "current_density_a_per_mm2": 0.61,
       "drop_pass": true,
       "current_density_pass": true,
+      "declared_bend_radius_mm": 8.0,
+      "required_bend_radius_mm": 8.0,
       "bend_radius_pass": true,
       "shield_required_and_defined": true
     }
-  ]
+  ],
+  "traction_results": [
+    {
+      "harness_id": "H09",
+      "voltage_drop_v": 0.017,
+      "voltage_drop_percent": 0.14,
+      "current_density_a_per_mm2": 0.61,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 10.0,
+      "required_bend_radius_mm": 10.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H10",
+      "voltage_drop_v": 0.014,
+      "voltage_drop_percent": 0.27,
+      "current_density_a_per_mm2": 0.49,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 8.0,
+      "required_bend_radius_mm": 8.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H11",
+      "voltage_drop_v": 0.046,
+      "voltage_drop_percent": 0.39,
+      "current_density_a_per_mm2": 2.64,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 20.0,
+      "required_bend_radius_mm": 20.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H12",
+      "voltage_drop_v": 0.046,
+      "voltage_drop_percent": 0.39,
+      "current_density_a_per_mm2": 2.64,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 20.0,
+      "required_bend_radius_mm": 20.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H13",
+      "voltage_drop_v": 0.01,
+      "voltage_drop_percent": 0.2,
+      "current_density_a_per_mm2": 0.49,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 8.0,
+      "required_bend_radius_mm": 8.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H14",
+      "voltage_drop_v": 0.01,
+      "voltage_drop_percent": 0.2,
+      "current_density_a_per_mm2": 0.49,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 8.0,
+      "required_bend_radius_mm": 8.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    }
+  ],
+  "all_results": [
+    {
+      "harness_id": "H01",
+      "voltage_drop_v": 0.048,
+      "voltage_drop_percent": 0.1,
+      "current_density_a_per_mm2": 3.05,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 20.0,
+      "required_bend_radius_mm": 20.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H02",
+      "voltage_drop_v": 0.08,
+      "voltage_drop_percent": 0.67,
+      "current_density_a_per_mm2": 3.82,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 15.0,
+      "required_bend_radius_mm": 15.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H03",
+      "voltage_drop_v": 0.025,
+      "voltage_drop_percent": 0.21,
+      "current_density_a_per_mm2": 2.03,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 12.0,
+      "required_bend_radius_mm": 12.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H04",
+      "voltage_drop_v": 0.013,
+      "voltage_drop_percent": 0.39,
+      "current_density_a_per_mm2": 1.22,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 8.0,
+      "required_bend_radius_mm": 8.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H05",
+      "voltage_drop_v": 0.014,
+      "voltage_drop_percent": 0.27,
+      "current_density_a_per_mm2": 0.49,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 8.0,
+      "required_bend_radius_mm": 8.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H06",
+      "voltage_drop_v": 0.014,
+      "voltage_drop_percent": 0.27,
+      "current_density_a_per_mm2": 0.49,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 8.0,
+      "required_bend_radius_mm": 8.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H07",
+      "voltage_drop_v": 0.021,
+      "voltage_drop_percent": 0.18,
+      "current_density_a_per_mm2": 0.61,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 10.0,
+      "required_bend_radius_mm": 10.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H08",
+      "voltage_drop_v": 0.013,
+      "voltage_drop_percent": 0.39,
+      "current_density_a_per_mm2": 0.61,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 8.0,
+      "required_bend_radius_mm": 8.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H09",
+      "voltage_drop_v": 0.017,
+      "voltage_drop_percent": 0.14,
+      "current_density_a_per_mm2": 0.61,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 10.0,
+      "required_bend_radius_mm": 10.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H10",
+      "voltage_drop_v": 0.014,
+      "voltage_drop_percent": 0.27,
+      "current_density_a_per_mm2": 0.49,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 8.0,
+      "required_bend_radius_mm": 8.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H11",
+      "voltage_drop_v": 0.046,
+      "voltage_drop_percent": 0.39,
+      "current_density_a_per_mm2": 2.64,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 20.0,
+      "required_bend_radius_mm": 20.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H12",
+      "voltage_drop_v": 0.046,
+      "voltage_drop_percent": 0.39,
+      "current_density_a_per_mm2": 2.64,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 20.0,
+      "required_bend_radius_mm": 20.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H13",
+      "voltage_drop_v": 0.01,
+      "voltage_drop_percent": 0.2,
+      "current_density_a_per_mm2": 0.49,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 8.0,
+      "required_bend_radius_mm": 8.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    },
+    {
+      "harness_id": "H14",
+      "voltage_drop_v": 0.01,
+      "voltage_drop_percent": 0.2,
+      "current_density_a_per_mm2": 0.49,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 8.0,
+      "required_bend_radius_mm": 8.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true
+    }
+  ],
+  "traction_engineering_checks": {
+    "traction_harness_ids_complete": true,
+    "traction_interfaces_cover_childboard": true,
+    "traction_safety_eco_is_explicit": true,
+    "traction_motor_rows_remain_candidate_limits": true,
+    "traction_motor_bend_radius_is_20mm": true
+  },
+  "cross_package_checks": {
+    "motor_spec_is_fail_closed": true,
+    "candidate_dual_stall_exceeds_j2_ceiling": true,
+    "j2_harness_row_matches_controller_ceiling": true,
+    "motor_harness_rows_preserve_candidate_current": true,
+    "candidate_stall_is_explicit_release_blocker": true
+  },
+  "power_budget": {
+    "candidate_dual_stall_current_a": 11.0,
+    "j2_aggregate_current_ceiling_a": 10.0,
+    "status": "BLOCKED_CANDIDATE_EXCEEDS_J2_LIMIT"
+  }
 }

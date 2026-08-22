@@ -30,12 +30,29 @@ def box_clearance(
     return min(positive_gaps) if positive_gaps else max(axis_gaps)
 
 
+def axis_index(axis_name: str) -> int:
+    return {"X": 0, "Y": 1, "Z": 2}[axis_name]
+
+
+def coordinate_span(points: list[dict[str, object]], axis_name: str) -> float:
+    index = axis_index(axis_name)
+    values = [float(point["xyz"][index]) for point in points]
+    return max(values) - min(values) if len(values) >= 2 else 0.0
+
+
 def analyse() -> dict[str, object]:
     components = SPEC["components"]
     total = sum(item["mass_kg"] for item in components)
     cg = [sum(item["mass_kg"] * item["xyz"][axis] for item in components) / total for axis in range(3)]
-    half_support = SPEC["chassis"]["track"] / 2
-    tip_angle = math.degrees(math.atan2(half_support, cg[2]))
+    chassis = SPEC["chassis"]
+    wheel_spec = chassis["wheels"]
+    track_axis = chassis["track_axis"]
+    wheelbase_axis = chassis["wheelbase_axis"]
+    track = coordinate_span(wheel_spec["centres"], track_axis)
+    wheelbase = coordinate_span(wheel_spec["centres"], wheelbase_axis)
+    roll_tip_angle = math.degrees(math.atan2(track / 2, cg[2]))
+    pitch_tip_angle = math.degrees(math.atan2(wheelbase / 2, cg[2]))
+    tip_angle = min(roll_tip_angle, pitch_tip_angle)
     drop_energy = total * 9.80665 * SPEC["impact"]["drop_height_m"]
     stop_distance = drop_energy / (total * SPEC["impact"]["design_deceleration_g"] * 9.80665) * 1000
     tray = SPEC["electronics_tray"]
@@ -48,15 +65,16 @@ def analyse() -> dict[str, object]:
     motor_dimensions = traction["reserved_motor_envelope"]
     motors = traction["motor_envelopes"]
     childboard = traction["childboard"]
-    wheel_spec = SPEC["chassis"]["wheels"]
-    wheel_dimensions = [wheel_spec["diameter_mm"], wheel_spec["width_mm"], wheel_spec["diameter_mm"]]
+    wheel_axis = axis_index(wheel_spec["axis"])
+    wheel_dimensions = [wheel_spec["diameter_mm"]] * 3
+    wheel_dimensions[wheel_axis] = wheel_spec["width_mm"]
     wheel_centres = wheel_spec["centres"]
     wheel_limits = [box_limits(wheel_dimensions, wheel["xyz"]) for wheel in wheel_centres]
     childboard_dimensions = childboard["envelope"]
     childboard_limits = box_limits(childboard_dimensions, childboard["xyz"])
     motor_limits = [box_limits(motor_dimensions, motor["xyz"]) for motor in motors]
-    chassis_half_width = SPEC["chassis"]["width"] / 2
-    chassis_half_depth = SPEC["chassis"]["depth"] / 2
+    chassis_half_width = chassis["width"] / 2
+    chassis_half_depth = chassis["depth"] / 2
     enclosure_inner_half_width = (SPEC["enclosure"]["width"] - 2 * SPEC["enclosure"]["wall"]) / 2
     enclosure_inner_half_depth = (SPEC["enclosure"]["depth"] - 2 * SPEC["enclosure"]["wall"]) / 2
     enclosure_inner_height = SPEC["enclosure"]["height"] - SPEC["enclosure"]["wall"]
@@ -73,11 +91,13 @@ def analyse() -> dict[str, object]:
     battery_to_wheel_clearances = [
         box_clearance(battery_dimensions, battery["xyz"], wheel_dimensions, wheel["xyz"]) for wheel in wheel_centres
     ]
+    tray_thickness = tray["thickness_mm"]
+    tray_bottom_z = tray["mount_plane_z"] - tray_thickness
     battery_to_tray_clearance = box_clearance(
         battery_dimensions,
         battery["xyz"],
-        [tray["width"], tray["depth"], 3],
-        [0, 0, tray["mount_plane_z"] - 1.5],
+        [tray["width"], tray["depth"], tray_thickness],
+        [0, 0, tray_bottom_z + tray_thickness / 2],
     )
     battery_to_childboard_clearance = box_clearance(
         battery_dimensions, battery["xyz"], childboard_dimensions, childboard["xyz"]
@@ -86,24 +106,75 @@ def analyse() -> dict[str, object]:
         (childboard_dimensions[axis] - childboard["mount_pattern"][axis]) / 2 for axis in range(2)
     ]
     support = childboard["mount_support"]
+    support_bottom_z = support["plate_center_z_mm"] - support["plate_thickness_mm"] / 2
     support_top_z = support["plate_center_z_mm"] + support["plate_thickness_mm"] / 2
     childboard_bottom_z = childboard_limits[2][0]
-    wheel_x_values = sorted({wheel["xyz"][0] for wheel in wheel_centres})
-    wheel_y_values = sorted({wheel["xyz"][1] for wheel in wheel_centres})
-    wheelbase = wheel_x_values[-1] - wheel_x_values[0] if len(wheel_x_values) == 2 else 0
-    track = wheel_y_values[-1] - wheel_y_values[0] if len(wheel_y_values) == 2 else 0
-    wheel_overhang_allowance = (wheel_dimensions[1] / 2) - (SPEC["chassis"]["depth"] - SPEC["chassis"]["track"]) / 2
+    support_base_z = support["base_z_mm"]
+    support_base_height = support["base_standoff_height_mm"]
+    support_base_top_z = support_base_z + support_base_height
+    bracket = chassis["motor_bracket"]
+    chassis_base_z = chassis["base_z_mm"]
+    chassis_top_z = chassis_base_z + chassis["thickness"]
+    bracket_base_z = bracket["base_z_mm"]
+    bracket_upright_top_z = bracket_base_z + bracket["upright_height_mm"]
+    wheel_axis_limits = [limits[wheel_axis] for limits in wheel_limits]
+    wheel_axial_overhangs = [
+        max(0.0, max(abs(limits[0]), abs(limits[1])) - chassis_half_depth) for limits in wheel_axis_limits
+    ]
+    maximum_wheel_axial_overhang = max(wheel_axial_overhangs, default=0.0)
+    wheel_overhang_allowance = wheel_spec.get("maximum_axial_overhang_mm", 0)
+    wheel_lateral_limits = [limits[axis_index(track_axis)] for limits in wheel_limits]
+    minimum_wheel_lateral_clearance = min(
+        chassis_half_width - max(abs(limits[0]), abs(limits[1])) for limits in wheel_lateral_limits
+    )
     motor_positions_symmetric = (
         len(motors) == 2
         and {motor["side"] for motor in motors} == {"left", "right"}
         and motors[0]["xyz"][0] == -motors[1]["xyz"][0]
         and motors[0]["xyz"][1:] == motors[1]["xyz"][1:]
     )
+    drivetrain = traction["drivetrain"]
+    wheel_by_id = {wheel["id"]: wheel for wheel in wheel_centres}
+    motor_by_id = {motor["id"]: motor for motor in motors}
+    drivetrain_interfaces = drivetrain["motor_to_wheel_interfaces"]
+    expected_motor_ids = set(motor_by_id)
+    expected_wheel_ids = set(wheel_by_id)
+    interface_motor_ids = {item["motor_id"] for item in drivetrain_interfaces}
+    interface_wheel_ids = {item["wheel_id"] for item in drivetrain_interfaces}
+    driven_wheel_ids = set(drivetrain["driven_wheels"])
+    passive_wheel_ids = set(drivetrain["passive_wheels"])
+    interface_delta_matches = all(
+        all(
+            hub_axis - motor_axis == declared_axis
+            for hub_axis, motor_axis, declared_axis in zip(
+                item["wheel_hub"]["origin_xyz"],
+                item["motor_output"]["origin_xyz"],
+                item["nominal_interface_delta_xyz_mm"],
+                strict=True,
+            )
+        )
+        for item in drivetrain_interfaces
+    )
+    drivetrain_pairs_are_rear_wheels = {(item["motor_id"], item["wheel_id"]) for item in drivetrain_interfaces} == {
+        ("traction_motor_left", "wheel_rear_left"),
+        ("traction_motor_right", "wheel_rear_right"),
+    }
+    drivetrain_axes_are_y = all(
+        item["motor_output"]["axis_direction"] == [0, 1, 0] and item["wheel_hub"]["axis_direction"] == [0, 1, 0]
+        for item in drivetrain_interfaces
+    ) and drivetrain["axis_convention"]["motor_output_axis_direction"] == [0, 1, 0]
+    drivetrain_roles_cover_wheels = (
+        driven_wheel_ids.isdisjoint(passive_wheel_ids) and driven_wheel_ids | passive_wheel_ids == expected_wheel_ids
+    )
     return {
         "status": "ANALYTICAL_ONLY_PHYSICAL_VALIDATION_REQUIRED",
         "mass_kg": round(total, 3),
         "center_of_gravity_mm": [round(value, 1) for value in cg],
         "static_tip_angle_deg": round(tip_angle, 1),
+        "static_tip_angles_deg": {
+            "roll_about_y": round(roll_tip_angle, 1),
+            "pitch_about_x": round(pitch_tip_angle, 1),
+        },
         "drop_energy_j": round(drop_energy, 1),
         "minimum_energy_absorber_stroke_mm": round(stop_distance, 1),
         "vent_area_ratio_outlet_to_inlet": round(
@@ -124,7 +195,15 @@ def analyse() -> dict[str, object]:
                 abs(limit[0][0]) <= chassis_half_width
                 and abs(limit[1][0]) <= chassis_half_depth + wheel_overhang_allowance
                 for limit in wheel_limits
+            )
+            and maximum_wheel_axial_overhang <= wheel_overhang_allowance,
+            "wheel_axis_mapping_is_explicit": (
+                wheel_spec["axis"] == "Y"
+                and chassis["wheelbase_axis"] == "Y"
+                and chassis["track_axis"] == "X"
+                and chassis["wheelbase_axis"] != chassis["track_axis"]
             ),
+            "wheel_lateral_clearance_is_nonnegative": minimum_wheel_lateral_clearance >= 0,
             "wheel_bottom_matches_ground_clearance": all(
                 abs(limit[2][0] - SPEC["chassis"]["ground_clearance"]) <= 0.01 for limit in wheel_limits
             ),
@@ -170,13 +249,52 @@ def analyse() -> dict[str, object]:
                 childboard_bottom_z - (support_top_z + support["standoff_height_mm"])
             )
             <= 0.01,
+            "traction_childboard_mount_support_reaches_fixed_datum": abs(support_bottom_z - support_base_top_z) <= 0.01,
+            "traction_childboard_mount_support_height_is_positive": support_base_height > 0,
+            "traction_childboard_mount_support_base_matches_tray": (
+                support["base_datum"] == "electronics_tray_top" and abs(support_base_z - tray["mount_plane_z"]) <= 0.01
+            ),
+            "motor_bracket_base_contacts_chassis": (
+                bracket["base_datum"] == "lower_chassis_top" and abs(bracket_base_z - chassis_top_z) <= 0.01
+            ),
+            "motor_bracket_uprights_reach_motor_envelopes": all(
+                bracket_base_z <= limit[2][0] + 0.01 and bracket_upright_top_z >= limit[2][1] - 0.01
+                for limit in motor_limits
+            ),
             "traction_childboard_rear_connector_corridor_met": rear_connector_corridor
             >= childboard["minimum_connector_corridor_mm"],
             "traction_motor_to_childboard_clearance_met": minimum_motor_to_childboard_clearance
             >= traction["minimum_motor_to_childboard_clearance_mm"],
+            "traction_drivetrain_definition_declared": (
+                drivetrain["architecture"] == "TWO_MOTOR_REAR_WHEEL_DIFFERENTIAL"
+                and drivetrain["physical_validation"] == "NOT_EXECUTED"
+            ),
+            "traction_drivetrain_pairs_match_motor_and_wheel_datums": (
+                len(drivetrain_interfaces) == 2
+                and interface_motor_ids == expected_motor_ids
+                and interface_wheel_ids == driven_wheel_ids
+                and drivetrain_pairs_are_rear_wheels
+            ),
+            "traction_drivetrain_axis_convention_is_explicit": drivetrain_axes_are_y,
+            "traction_drivetrain_roles_cover_all_wheels": drivetrain_roles_cover_wheels,
+            "traction_drivetrain_interface_deltas_match_datums": interface_delta_matches,
+            "traction_drivetrain_reaction_path_is_declared": bool(drivetrain["reaction_load_path"]),
         },
         "pcb_tray_margin_mm": [tray["width"] - pcb_width, tray["depth"] - pcb_depth],
         "pcb_edge_service_margin_mm": service_margin,
+        "generated_datums": {
+            "chassis_base_z_mm": chassis_base_z,
+            "chassis_top_z_mm": chassis_top_z,
+            "electronics_tray_bottom_z_mm": tray_bottom_z,
+            "electronics_tray_top_z_mm": tray["mount_plane_z"],
+            "motor_bracket_base_z_mm": bracket_base_z,
+            "motor_bracket_upright_top_z_mm": bracket_upright_top_z,
+            "childboard_support_base_z_mm": support_base_z,
+            "childboard_support_base_top_z_mm": support_base_top_z,
+            "childboard_support_bottom_z_mm": support_bottom_z,
+            "childboard_support_top_z_mm": support_top_z,
+            "childboard_bottom_z_mm": childboard_bottom_z,
+        },
         "wheel_integration": {
             "status": wheel_spec["status"],
             "wheel_count": wheel_spec["count"],
@@ -184,7 +302,8 @@ def analyse() -> dict[str, object]:
             "wheel_centres": wheel_centres,
             "wheelbase_mm": wheelbase,
             "track_mm": track,
-            "maximum_chassis_side_overhang_mm": round(wheel_overhang_allowance, 1),
+            "maximum_wheel_axial_overhang_mm": round(maximum_wheel_axial_overhang, 1),
+            "wheel_lateral_clearance_mm": round(minimum_wheel_lateral_clearance, 1),
             "ground_contact_z_mm": round(min(limit[2][0] for limit in wheel_limits), 1),
             "release_blockers": wheel_spec["release_blockers"],
             "physical_validation": "NOT_EXECUTED",
@@ -213,6 +332,7 @@ def analyse() -> dict[str, object]:
             "rear_connector_corridor_mm": round(rear_connector_corridor, 1),
             "motor_to_childboard_clearances_mm": [round(value, 1) for value in motor_to_childboard_clearances],
             "minimum_motor_to_childboard_clearance_mm": round(minimum_motor_to_childboard_clearance, 1),
+            "drivetrain": drivetrain,
             "release_blockers": traction["release_blockers"],
             "physical_validation": "NOT_EXECUTED",
         },
@@ -309,25 +429,28 @@ def export_cad_package() -> bool:
         .translate((0, 0, wall + inner_height / 2))
     )
     shell = outer.cut(inner).cut(cq.Workplane("XY").box(150, wall * 4, 72).translate((0, -depth / 2, 261)))
+    chassis_spec = SPEC["chassis"]
     chassis = (
         cq.Workplane("XY")
-        .box(260, 220, 4)
+        .box(chassis_spec["width"], chassis_spec["depth"], chassis_spec["thickness"])
         .faces(">Z")
         .workplane()
-        .rect(230, 190, forConstruction=True)
+        .rect(*chassis_spec["mount_pattern"], forConstruction=True)
         .vertices()
-        .hole(4.2)
-        .translate((0, 0, 24))
+        .hole(chassis_spec["mount_hole_diameter_mm"])
+        .translate((0, 0, chassis_spec["base_z_mm"] + chassis_spec["thickness"] / 2))
     )
+    tray_spec = SPEC["electronics_tray"]
+    tray_thickness = tray_spec["thickness_mm"]
     tray = (
         cq.Workplane("XY")
-        .box(220, 170, 3)
+        .box(tray_spec["width"], tray_spec["depth"], tray_thickness)
         .faces(">Z")
         .workplane()
-        .rect(*SPEC["electronics_tray"]["pcb_mount_pattern"], forConstruction=True)
+        .rect(*tray_spec["pcb_mount_pattern"], forConstruction=True)
         .vertices()
-        .hole(3.4)
-        .translate((0, 0, 43))
+        .hole(tray_spec["pcb_mount_hole_mm"])
+        .translate((0, 0, tray_spec["mount_plane_z"] - tray_thickness / 2))
     )
     display_bracket = (
         cq.Workplane("XZ")
@@ -339,8 +462,8 @@ def export_cad_package() -> bool:
     bumper_outer = cq.Workplane("XY").box(width + 16, depth + 16, 24).edges("|Z").fillet(radius + 8)
     bumper_inner = cq.Workplane("XY").box(width, depth, 26).edges("|Z").fillet(radius)
     bumper = bumper_outer.cut(bumper_inner).translate((0, 0, 22))
-    bracket_spec = SPEC["chassis"]["motor_bracket"]
-    motor_bracket = (
+    bracket_spec = chassis_spec["motor_bracket"]
+    bracket_plate = (
         cq.Workplane("XY")
         .box(*bracket_spec["plate_envelope"])
         .faces(">Z")
@@ -348,8 +471,18 @@ def export_cad_package() -> bool:
         .rect(*bracket_spec["mount_pattern"], forConstruction=True)
         .vertices()
         .hole(bracket_spec["mount_hole_diameter_mm"])
-        .union(cq.Workplane("XZ").box(45, 28, 4).translate((0, -15.5, 14)))
+        .translate((0, 0, bracket_spec["plate_envelope"][2] / 2))
     )
+    bracket_upright = (
+        cq.Workplane("XY")
+        .box(
+            bracket_spec["plate_envelope"][0],
+            bracket_spec["upright_thickness_mm"],
+            bracket_spec["upright_height_mm"],
+        )
+        .translate((0, bracket_spec["upright_y_mm"], bracket_spec["upright_height_mm"] / 2))
+    )
+    motor_bracket = bracket_plate.union(bracket_upright)
     traction = SPEC["traction_integration"]
     motor_dimensions = traction["reserved_motor_envelope"]
     motor_envelopes = {
@@ -369,7 +502,20 @@ def export_cad_package() -> bool:
         .hole(support["mount_hole_diameter_mm"])
         .translate((childboard["xyz"][0], childboard["xyz"][1], support["plate_center_z_mm"]))
     )
+    support_base_height = support["base_standoff_height_mm"]
     support_standoffs = [
+        cq.Workplane("XY")
+        .cylinder(support_base_height, support["base_standoff_diameter_mm"] / 2)
+        .translate(
+            (
+                childboard["xyz"][0] + x_offset,
+                childboard["xyz"][1] + y_offset,
+                support["base_z_mm"] + support_base_height / 2,
+            )
+        )
+        for x_offset in (-childboard["mount_pattern"][0] / 2, childboard["mount_pattern"][0] / 2)
+        for y_offset in (-childboard["mount_pattern"][1] / 2, childboard["mount_pattern"][1] / 2)
+    ] + [
         cq.Workplane("XY")
         .cylinder(support["standoff_height_mm"], support["standoff_diameter_mm"] / 2)
         .translate(
@@ -395,6 +541,10 @@ def export_cad_package() -> bool:
     }
     battery = SPEC["battery_integration"]
     battery_envelope = cq.Workplane("XY").box(*battery["reserved_envelope_mm"]).translate(tuple(battery["xyz"]))
+    motor_bracket_instances = {
+        motor["id"]: motor_bracket.translate((motor["xyz"][0], motor["xyz"][1], bracket_spec["base_z_mm"]))
+        for motor in traction["motor_envelopes"]
+    }
 
     parts = {
         "upper_shell": shell,
@@ -436,8 +586,8 @@ def export_cad_package() -> bool:
     assembly.add(tray, name="electronics_tray", color=cq.Color(0.45, 0.48, 0.52))
     assembly.add(display_bracket, name="display_bracket", color=cq.Color(0.1, 0.1, 0.12))
     assembly.add(bumper, name="impact_bumper", color=cq.Color(0.95, 0.35, 0.05))
-    assembly.add(motor_bracket.translate((-85, 0, 38)), name="motor_bracket_left")
-    assembly.add(motor_bracket.translate((85, 0, 38)), name="motor_bracket_right")
+    assembly.add(motor_bracket_instances["traction_motor_left"], name="motor_bracket_left")
+    assembly.add(motor_bracket_instances["traction_motor_right"], name="motor_bracket_right")
     assembly.add(
         motor_envelopes["traction_motor_left"],
         name="traction_motor_left_TBD_envelope",
@@ -470,6 +620,14 @@ def export_cad_package() -> bool:
     exploded.add(shell.translate((0, 0, 130)), name="upper_shell")
     exploded.add(display_bracket.translate((0, -35, 180)), name="display_bracket")
     exploded.add(bumper.translate((0, 0, -70)), name="impact_bumper")
+    exploded.add(
+        motor_bracket_instances["traction_motor_left"].translate((0, 0, -10)),
+        name="motor_bracket_left",
+    )
+    exploded.add(
+        motor_bracket_instances["traction_motor_right"].translate((0, 0, -10)),
+        name="motor_bracket_right",
+    )
     exploded.add(motor_envelopes["traction_motor_left"].translate((0, 0, 15)), name="traction_motor_left_TBD_envelope")
     exploded.add(
         motor_envelopes["traction_motor_right"].translate((0, 0, 15)), name="traction_motor_right_TBD_envelope"
@@ -514,6 +672,20 @@ def write_engineering_drawings(report: dict[str, object]) -> None:
     motor_y = top_y + (left_motor[1] + depth / 2 - motor_depth / 2) * drawing_scale
     childboard_x = top_x + (childboard["xyz"][0] + width / 2 - childboard_width / 2) * drawing_scale
     childboard_y = top_y + (childboard["xyz"][1] + depth / 2 - childboard_depth / 2) * drawing_scale
+    drivetrain = traction["drivetrain"]
+    drivetrain_svg = "\n".join(
+        (
+            f'<line x1="{top_x + (item["motor_output"]["origin_xyz"][0] + width / 2) * drawing_scale:.1f}" '
+            f'y1="{top_y + (item["motor_output"]["origin_xyz"][1] + depth / 2) * drawing_scale:.1f}" '
+            f'x2="{top_x + (item["wheel_hub"]["origin_xyz"][0] + width / 2) * drawing_scale:.1f}" '
+            f'y2="{top_y + (item["wheel_hub"]["origin_xyz"][1] + depth / 2) * drawing_scale:.1f}" '
+            'stroke="#555" stroke-width="3" stroke-dasharray="7 5"/>'
+            f'<circle cx="{top_x + (item["wheel_hub"]["origin_xyz"][0] + width / 2) * drawing_scale:.1f}" '
+            f'cy="{top_y + (item["wheel_hub"]["origin_xyz"][1] + depth / 2) * drawing_scale:.1f}" '
+            'r="6" fill="none" stroke="#555" stroke-width="2"/>'
+        )
+        for item in drivetrain["motor_to_wheel_interfaces"]
+    )
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760">
 <style>text{{font-family:Arial,sans-serif;fill:#111}} .part{{fill:#e8edf2;stroke:#111;stroke-width:2}} .dim{{stroke:#1769aa;stroke-width:2;marker-start:url(#a);marker-end:url(#a)}} .note{{font-size:18px}} .tbd-motor{{fill:#f6b26b;fill-opacity:.55;stroke:#b45f06;stroke-width:2;stroke-dasharray:8 5}} .tbd-board{{fill:#93c47d;fill-opacity:.55;stroke:#38761d;stroke-width:2;stroke-dasharray:8 5}}</style>
 <defs><marker id="a" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M8,0 L0,4 L8,8" fill="none" stroke="#1769aa"/></marker></defs>
@@ -531,10 +703,11 @@ def write_engineering_drawings(report: dict[str, object]) -> None:
 <rect class="tbd-motor" x="{left_motor_x}" y="{motor_y}" width="{motor_width * drawing_scale}" height="{motor_depth * drawing_scale}"/><text x="{left_motor_x + 7}" y="{motor_y + 58}" font-size="14">LEFT MOTOR TBD</text>
 <rect class="tbd-motor" x="{right_motor_x}" y="{motor_y}" width="{motor_width * drawing_scale}" height="{motor_depth * drawing_scale}"/><text x="{right_motor_x + 5}" y="{motor_y + 58}" font-size="14">RIGHT MOTOR TBD</text>
 <rect class="tbd-board" x="{childboard_x}" y="{childboard_y}" width="{childboard_width * drawing_scale}" height="{childboard_depth * drawing_scale}"/><text x="{childboard_x + 10}" y="{childboard_y + 66}" font-size="15">DRIVER CHILDBOARD TBD</text>
+{drivetrain_svg}
 <text x="700" y="565" class="note">8 TPU skin over 24 effective compliant stroke</text>
 <text x="660" y="605" class="note">4 wheels dia {wheel_spec["diameter_mm"]} x {wheel_spec["width_mm"]}; 2x motor {motor_width} x {motor_depth} x {motor_height}; childboard {childboard_width} x {childboard_depth} x {childboard_height}</text>
 <text x="660" y="640" class="note">CG Z={report["center_of_gravity_mm"][2]}; static tip angle={report["static_tip_angle_deg"]} deg</text>
-<text x="660" y="675" class="note">Dashed geometry is TBD space claim only; physical fit and motor selection required</text>
+<text x="660" y="675" class="note">Dashed geometry is TBD space claim; drive lines are concept datums only; physical fit and motor selection required</text>
 </svg>"""
     (drawings / "general-arrangement.svg").write_text(svg, encoding="utf-8", newline="\n")
     thermal = """<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="420" viewBox="0 0 1100 420">

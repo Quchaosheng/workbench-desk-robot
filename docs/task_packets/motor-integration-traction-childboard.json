@@ -23,6 +23,9 @@
     "hardware/pcb/tools/generate_expected_connectivity.py",
     "hardware/mechanical/**",
     "hardware/manufacturing/harness-spec.csv",
+    "hardware/manufacturing/README.md",
+    "hardware/manufacturing/tools/validate_harnesses.py",
+    "hardware/manufacturing/generated/harness_report.json",
     "hardware/release/evidence-register.csv",
     "hardware/release/generated/release_readiness_report.json",
     "hardware/release/tools/check_release_readiness.py",
@@ -48,6 +51,11 @@
     "motor, driver, MOSFET, fuse, bulk capacitance, clamp, shunt, connector, and thermal selections remain fail-closed until approved ratings and evidence exist",
     "motor voltage selection, regeneration, and bus overshoot are explicit release blockers for either the 12 V auxiliary baseline or a protected 48 V traction-bus alternative",
     "connector pinout tables agree with the detailed controller schematic and generator",
+    "the childboard power and return topology explicitly closes VM_PROTECTED, VCC_LOGIC, GND_MOTOR, GND_LOGIC and the isolated CAN island with one STAR_GND_01 join",
+    "U1 nFAULT reaches two independent hardware safety-gate inhibit paths with default-low fail-closed behavior and no software dependency",
+    "the controlled harness package covers J_SAFE, J_CAN, J_ML, J_MR, J_ENC_L and J_ENC_R while retaining MPN and physical-test holds",
+    "the placement contract fixes J_SAFE, J_CAN, J_ML and J_MR on the +Y_REAR edge and checks declared motor-harness bend radii",
+    "the harness report cross-checks the candidate 11 A dual-stall demand against the controller J2 10 A aggregate ceiling and keeps the mismatch release-blocking",
     "mechanical artifacts include left and right motor envelopes plus a serviceable childboard envelope",
     "deterministic validators and hardware tests cover the new engineering package",
     "no supplier DFM, safety approval, firmware behavior, or physical bring-up evidence is inferred"
@@ -55,6 +63,8 @@
   "commands": [
     "python tools/scripts/check_task_packet.py docs/task_packets/motor-integration-traction-childboard.json",
     "python hardware/motor_driver/tools/validate_motor_driver.py",
+    "python hardware/manufacturing/tools/validate_harnesses.py",
+    "python hardware/motor_driver/tools/generate_layout_review.py",
     "python hardware/mechanical/tools/generate_artifacts.py",
     "python hardware/pcb/tools/generate_expected_connectivity.py",
     "python hardware/pcb/tools/audit_connectivity.py",
@@ -63,6 +73,10 @@
   "evidence": [
     "hardware/motor_driver/generated/engineering-report.json",
     "hardware/motor_driver/generated/release-readiness.json",
+    "hardware/motor_driver/net-topology.csv",
+    "hardware/motor_driver/safety-gate-connectivity.csv",
+    "hardware/motor_driver/schematic-design.md",
+    "hardware/manufacturing/generated/harness_report.json",
     "hardware/motor_driver/kicad traction-childboard design artifacts if generated",
     "hardware/mechanical/generated/analysis.json",
     "hardware/pcb/generated/connectivity_report.json",
@@ -72,6 +86,7 @@
     "an actual motor MPN or motor electrical envelope would have to be invented",
     "a 60 V bus transient or regenerative energy path lacks an approved clamp and absorption design",
     "the safety path could energize traction from software alone",
+    "the candidate power/ground return or nFAULT fan-out is not explicitly closed in the controlled topology tables",
     "KiCad DRC, ERC, connectivity, or deterministic package validation fails",
     "supplier DFM, approved AVL, calibrated physical measurements, or safety certification is required"
   ]

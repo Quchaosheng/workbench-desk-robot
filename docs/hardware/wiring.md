@@ -28,7 +28,7 @@ Dual-channel E-stop -> J10 -> K1/K2 safety chain -> J11 MOTOR_ENABLE_SAFE
 | Connector | Pins | Connection | Mandatory check before power |
 |---|---:|---|---|
 | J1 | 1-2 `VBAT_RAW`; 3-4 `GND_PWR` | 36-60 V input, 10 A fused envelope | keying, polarity, wire gauge, fuse interrupt rating |
-| J2 | 1-2 `12V_ISO`; 3-4 `GND` | motor auxiliary, 120 W aggregate envelope | driver inrush/regeneration approval |
+| J2 | 1-2 `12V_ISO`; 3-4 `GND` | motor auxiliary, 120 W aggregate / 10 A controlled envelope; 16 A is contact capability only | driver inrush/regeneration approval and external branch fuse |
 | J3 | 1-2 `JETSON_12V`; 3-4 `GND` | Jetson developer-kit DC input | purchased dev-kit revision and polarity |
 | J4 | 1/3 `3V3`; 2/4 GND; 5-20 control; pin 8 `JETSON_ENABLE_REQ` | Jetson-to-MCU SPI/I2C/UART, Jetson enable, six CS, reset and safety status | pin mux and direction against the detailed schematic |
 | J5/J6 | 1 `CANH`; 2 `CANL`; 3 `GND_CAN_ISO`; 4 NC | isolated CAN-FD daisy chain | termination, shield policy, no logic-ground short |

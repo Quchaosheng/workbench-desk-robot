@@ -12,6 +12,7 @@
     "software_enable_is_not_safety_output": true,
     "safety_truth_table_covers_channel_discrepancy": true,
     "harness_engineering_pass": true,
+    "connector_limit_semantics_consistent": true,
     "component_matrix_covers_all_active_modules": true,
     "bom_covers_all_board_components": true,
     "approval_register_covers_all_pending_bom_lines": true,
@@ -29,7 +30,8 @@
     "harness_release_checks_closed": false,
     "component_mpn_and_avl_closed": false,
     "isolated_power_excluded_part_absent_and_tbd_placeholders_consistent": true,
-    "isolated_power_mpn_and_land_pattern_frozen": false
+    "isolated_power_mpn_and_land_pattern_frozen": false,
+    "u7_system_isolation_target_met": false
   },
   "procurement_hold_references": [
     "C1",
@@ -101,7 +103,7 @@
     "U8",
     "Y1"
   ],
-  "blocker_count": 7,
+  "blocker_count": 8,
   "component_counts": {
     "board_footprints": 114,
     "bom_references": 114
@@ -133,7 +135,27 @@
     ],
     "incompatible_occurrences": {},
     "missing_placeholder_markers": {},
+    "u2_board_is_dnp": true,
+    "u2_schematic_is_dnp": true,
     "note": "The former DCM3623 selection is excluded. U2 remains a requirement envelope until an orderable 36-60 V to regulated 12 V isolated 240 W-class MPN and its land pattern are frozen by ECO."
+  },
+  "connector_limit_semantics": {
+    "pass": true,
+    "checks": {
+      "single_j2_row": true,
+      "contact_rating_is_explicit": true,
+      "controlled_limit_is_10a": true,
+      "limit_basis_is_120w_aggregate": true,
+      "branch_protection_is_defined": true,
+      "h02_matches_10a_limit": true,
+      "motor_spec_matches_10a_limit": true,
+      "interface_document_matches": true,
+      "wiring_document_matches": true
+    },
+    "j2_contact_rating": "12V 16A contact",
+    "j2_controlled_system_limit_a": "10",
+    "motor_spec_limit_a": 10.0,
+    "note": "J2 contact capability is not a permission to exceed the 10 A / 120 W system envelope."
   },
   "copper_layers": {
     "expected": [

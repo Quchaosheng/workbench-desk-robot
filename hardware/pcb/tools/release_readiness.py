@@ -20,6 +20,54 @@ def read_csv(name: str) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
+def _reference_block(text: str, reference: str, opener: str) -> str:
+    """Return one KiCad object block without relying on global markers."""
+    marker = f'(property "Reference" "{reference}"'
+    marker_index = text.find(marker)
+    if marker_index < 0:
+        return ""
+    token = opener.strip().split(maxsplit=1)[0].lstrip("(")
+    starts = list(re.finditer(rf"(?m)^\s*\({re.escape(token)}\b", text[:marker_index]))
+    if not starts:
+        return ""
+    start = starts[-1].start()
+    next_match = re.search(rf"\n\s*\({re.escape(token)}\b", text[marker_index + len(marker) :])
+    end = len(text) if next_match is None else marker_index + len(marker) + next_match.start()
+    return text[start:end]
+
+
+def check_connector_limit_semantics(
+    connectors: list[dict[str, str]],
+    harness_rows: list[dict[str, str]],
+    motor_spec: dict[str, object],
+    interface_text: str,
+    wiring_text: str,
+) -> dict[str, object]:
+    """Keep connector contact ratings distinct from controlled system limits."""
+    j2_rows = [row for row in connectors if row.get("reference") == "J2"]
+    h02_rows = [row for row in harness_rows if row.get("harness_id") == "H02"]
+    power = motor_spec.get("power", {})
+    checks = {
+        "single_j2_row": len(j2_rows) == 1,
+        "contact_rating_is_explicit": len(j2_rows) == 1 and j2_rows[0].get("rating") == "12V 16A contact",
+        "controlled_limit_is_10a": len(j2_rows) == 1 and j2_rows[0].get("controlled_system_limit_a") == "10",
+        "limit_basis_is_120w_aggregate": len(j2_rows) == 1 and "120 W aggregate" in j2_rows[0].get("limit_basis", ""),
+        "branch_protection_is_defined": len(j2_rows) == 1 and bool(j2_rows[0].get("branch_protection", "").strip()),
+        "h02_matches_10a_limit": len(h02_rows) == 1 and h02_rows[0].get("max_current_a") == "10",
+        "motor_spec_matches_10a_limit": power.get("aggregate_input_current_limit_a") == 10.0,
+        "interface_document_matches": "120 W maximum aggregate" in interface_text,
+        "wiring_document_matches": "120 W aggregate" in wiring_text,
+    }
+    return {
+        "pass": all(checks.values()),
+        "checks": checks,
+        "j2_contact_rating": j2_rows[0].get("rating") if j2_rows else None,
+        "j2_controlled_system_limit_a": j2_rows[0].get("controlled_system_limit_a") if j2_rows else None,
+        "motor_spec_limit_a": power.get("aggregate_input_current_limit_a"),
+        "note": "J2 contact capability is not a permission to exceed the 10 A / 120 W system envelope.",
+    }
+
+
 def check_isolated_power_tbd_guard(
     component_matrix: list[dict[str, str]],
     approval_register: list[dict[str, str]],
@@ -56,12 +104,18 @@ def check_isolated_power_tbd_guard(
         for name, markers in required_artifact_markers.items()
     }
     missing_placeholder_markers = {name: markers for name, markers in missing_placeholder_markers.items() if markers}
+    board_u2_block = _reference_block(artifact_texts.get("controller.kicad_pcb", ""), "U2", "(footprint ")
+    schematic_u2_block = _reference_block(artifact_texts.get("controller.kicad_sch", ""), "U2", "  (symbol ")
+    u2_board_is_dnp = bool(re.search(r"\(attr[^\n]*\bdnp\b", board_u2_block))
+    u2_schematic_is_dnp = "(dnp yes)" in schematic_u2_block
     passed = (
         matrix_uses_tbd
         and approval_uses_tbd
         and bom_uses_tbd
         and not incompatible_occurrences
         and not missing_placeholder_markers
+        and u2_board_is_dnp
+        and u2_schematic_is_dnp
     )
     return {
         "pass": passed,
@@ -73,6 +127,8 @@ def check_isolated_power_tbd_guard(
         "incompatible_markers": list(INCOMPATIBLE_ISOLATED_POWER_MARKERS),
         "incompatible_occurrences": incompatible_occurrences,
         "missing_placeholder_markers": missing_placeholder_markers,
+        "u2_board_is_dnp": u2_board_is_dnp,
+        "u2_schematic_is_dnp": u2_schematic_is_dnp,
         "note": (
             "The former DCM3623 selection is excluded. U2 remains a requirement envelope until an orderable "
             "36-60 V to regulated 12 V isolated 240 W-class MPN and its land pattern are frozen by ECO."
@@ -82,6 +138,7 @@ def check_isolated_power_tbd_guard(
 
 def audit() -> dict[str, object]:
     pinout = read_csv("connector-pinout.csv")
+    connectors = read_csv("connectors.csv")
     component_matrix = read_csv("component-selection-matrix.csv")
     approval_register = read_csv("component-approval-register.csv")
     testpoint_coverage = read_csv("testpoint-coverage.csv")
@@ -109,6 +166,10 @@ def audit() -> dict[str, object]:
     )
     connectivity_report = json.loads((ROOT / "generated/connectivity_report.json").read_text(encoding="utf-8"))
     layout_report = json.loads((ROOT / "generated/layout_report.json").read_text(encoding="utf-8"))
+    harness_rows = read_csv("../manufacturing/harness-spec.csv")
+    motor_spec = json.loads((ROOT.parent / "motor_driver/electrical-spec.json").read_text(encoding="utf-8"))
+    interface_text = (ROOT / "interface-control.md").read_text(encoding="utf-8")
+    wiring_text = (ROOT.parent.parent / "docs/hardware/wiring.md").read_text(encoding="utf-8")
 
     board_layers = [
         match.group(1) for match in re.finditer(r'^\s*\(\d+ "((?:F|B|In\d+)\.Cu)" signal\)$', board, flags=re.MULTILINE)
@@ -151,6 +212,9 @@ def audit() -> dict[str, object]:
             "WB.pretty": footprint_library,
         },
     )
+    connector_limit_semantics = check_connector_limit_semantics(
+        connectors, harness_rows, motor_spec, interface_text, wiring_text
+    )
 
     engineering_checks = {
         "drc_clean": "Found 0 DRC violations" in drc and "Found 0 unconnected pads" in drc,
@@ -178,6 +242,7 @@ def audit() -> dict[str, object]:
             for row in safety_truth_table
         ),
         "harness_engineering_pass": harness_report["engineering_package_pass"],
+        "connector_limit_semantics_consistent": connector_limit_semantics["pass"],
         "component_matrix_covers_all_active_modules": {row["reference"] for row in component_matrix}
         >= {"U1", "U2", "U3", "U4", "U5", "U6", "U7", "U8"},
         "bom_covers_all_board_components": bom_references == board_references,
@@ -205,6 +270,9 @@ def audit() -> dict[str, object]:
         "component_mpn_and_avl_closed": all(row["procurement_status"] == "APPROVED" for row in component_matrix),
         "isolated_power_excluded_part_absent_and_tbd_placeholders_consistent": isolated_power_guard["pass"],
         "isolated_power_mpn_and_land_pattern_frozen": False,
+        "u7_system_isolation_target_met": layout_report["details"]["u7_full_copper_isolation_keepout"].get(
+            "system_target_met", False
+        ),
     }
     return {
         "status": "ORDER_RELEASE_BLOCKED" if not all(order_release_checks.values()) else "ORDER_RELEASED",
@@ -222,6 +290,7 @@ def audit() -> dict[str, object]:
             "open_risks": layout_report["warnings"],
         },
         "isolated_power_guard": isolated_power_guard,
+        "connector_limit_semantics": connector_limit_semantics,
         "copper_layers": {
             "expected": EXPECTED_COPPER_LAYERS,
             "board": board_layers,

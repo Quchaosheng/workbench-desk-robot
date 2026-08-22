@@ -129,6 +129,46 @@ def test_drv8962_ddv_candidate_pin_map_is_complete_and_not_approved() -> None:
     assert bom_u1["selection_status"] == "CANDIDATE_NOT_APPROVED"
 
 
+def test_candidate_power_return_and_fault_paths_are_explicit_and_fail_closed() -> None:
+    validator = load_module("motor_driver_topology", PACKAGE / "tools/validate_motor_driver.py")
+    report = validator.validate()
+    assert report["checks"]["supply_ground_topology_is_closed"]
+    assert report["checks"]["safety_gate_connectivity_is_fail_closed"]
+    assert report["checks"]["schematic_contract_is_explicit_but_not_orderable"]
+    assert report["net_topology_checks"]["logic_motor_ground_join_is_single_point"]
+    assert report["net_topology_checks"]["regulator_input_and_output_are_split"]
+    assert report["net_topology_checks"]["isolated_can_regulator_input_output_are_split"]
+    assert report["safety_path_checks"]["nFAULT_has_two_independent_hardware_inhibits"]
+    assert report["placement_direction_checks"]["rear_connectors_face_plus_y_edge"]
+    assert report["metrics"]["nFAULT_hardware_inhibit_path_count"] == 2
+    topology = read_csv("net-topology.csv")
+    assert {row["net_name"] for row in topology} >= {
+        "VM_PROTECTED",
+        "VCC_LOGIC",
+        "GND_MOTOR",
+        "GND_LOGIC",
+        "GND_CAN_ISO",
+    }
+
+
+def test_topology_validator_rejects_regulator_input_output_short() -> None:
+    validator = load_module("motor_driver_topology_negative", PACKAGE / "tools/validate_motor_driver.py")
+    topology = read_csv("net-topology.csv")
+    mutated = [dict(row) for row in topology]
+    input_row = next(row for row in mutated if row["topology_id"] == "PWR-05")
+    input_row["source_endpoints"] = "U6.OUT"
+    assert not validator.validate_net_topology(mutated)["regulator_input_and_output_are_split"]
+
+
+def test_topology_validator_rejects_can_isolation_ground_crossing() -> None:
+    validator = load_module("motor_driver_isolation_negative", PACKAGE / "tools/validate_motor_driver.py")
+    topology = read_csv("net-topology.csv")
+    mutated = [dict(row) for row in topology]
+    isolated_row = next(row for row in mutated if row["topology_id"] == "PWR-11")
+    isolated_row["load_endpoints"] += ";GND_MOTOR"
+    assert not validator.validate_net_topology(mutated)["isolated_can_barrier_has_no_local_ground_endpoint"]
+
+
 def test_layout_review_and_kicad_concept_are_deterministic_mechanical_evidence() -> None:
     renderer = load_module("motor_driver_layout", PACKAGE / "tools/generate_layout_review.py")
     checked_svg = (PACKAGE / "generated/placement-review.svg").read_text(encoding="utf-8")

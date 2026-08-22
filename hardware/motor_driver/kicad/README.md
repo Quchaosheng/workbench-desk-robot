@@ -15,3 +15,9 @@ Electrical KiCad artifacts become mandatory after `MTR-MOTOR`, `MTR-POWER`,
 `MTR-REGEN`, `MTR-SAFETY`, `MTR-CONTROL` and `MTR-DRV` close. They must then pass
 ERC, DRC, connectivity, current-path, thermal and supplier DFM checks before the
 `MTR-SCHEMATIC` and `MTR-LAYOUT` gates may pass.
+
+The candidate net and safety contracts that the future schematic must implement
+are `../net-topology.csv`, `../safety-gate-connectivity.csv` and
+`../schematic-design.md`. They explicitly reserve a single `STAR_GND_01` join,
+an isolated CAN power island, and independent `nFAULT` fan-outs to both safety
+gates; none of these contracts is an orderable electrical design.

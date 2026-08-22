@@ -455,6 +455,8 @@ def load_footprint(component: Component):
         raise ValueError(f"unable to load {component.footprint} for {component.reference}")
     footprint.SetReference(component.reference)
     footprint.SetValue(component.value)
+    if component.dnp:
+        footprint.SetDNP(True)
     footprint.Value().SetVisible(False)
     show_reference = component.reference.startswith(("U", "J", "K", "F", "Q", "L", "TP"))
     footprint.Reference().SetVisible(show_reference and component.reference not in {"U1", "J11", "JP1"})

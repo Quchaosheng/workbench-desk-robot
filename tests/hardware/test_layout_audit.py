@@ -269,6 +269,7 @@ class LayoutAuditTests(unittest.TestCase):
     def test_hard_gates_pass_but_unprovable_impedance_stays_open(self) -> None:
         report = self.run_audit(board_text())
         self.assertTrue(report["hard_gate_pass"])
+        self.assertTrue(report["checks"]["can_testpoint_stub_geometry"])
         self.assertEqual(report["status"], "LAYOUT_HARD_GATES_PASS_RISKS_OPEN")
         self.assertTrue(report["checks"]["reference_layer_net_categories"])
         self.assertEqual(
@@ -283,6 +284,26 @@ class LayoutAuditTests(unittest.TestCase):
         ):
             self.assertEqual(report["risks"][risk_name]["status"], "OPEN_LAYOUT_REVIEW_REQUIRED")
             self.assertFalse(report["risks"][risk_name]["machine_verifiable"])
+
+    def test_can_testpoint_stubs_are_short_and_pair_matched(self) -> None:
+        module = load_module()
+        pads = [
+            {"reference": "TP6", "net": "CANH", "position": (10.0, 10.0)},
+            {"reference": "TP7", "net": "CANL", "position": (10.0, 20.0)},
+        ]
+        segments = [
+            {"net": "CANH", "layer": "F.Cu", "start": (10.0, 10.0), "end": (13.0, 10.0), "length_mm": 3.0},
+            {"net": "CANL", "layer": "F.Cu", "start": (10.0, 20.0), "end": (13.8, 20.0), "length_mm": 3.8},
+        ]
+        passed, details = module._can_testpoint_stub_check(pads, segments)
+        self.assertFalse(passed)
+        self.assertFalse(details["points"]["TP7"]["pass"])
+
+        segments[1]["end"] = (13.4, 20.0)
+        segments[1]["length_mm"] = 3.4
+        passed, details = module._can_testpoint_stub_check(pads, segments)
+        self.assertTrue(passed)
+        self.assertEqual(details["pair_stub_delta_mm"], 0.4)
 
     def test_u2_source_and_return_require_complete_via_arrays(self) -> None:
         report = self.run_audit(board_text())

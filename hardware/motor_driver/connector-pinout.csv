@@ -1,15 +1,15 @@
 reference,pin,signal,direction,domain,interface_target,fail_state,freeze_status,verification
 J_PWR,1,12V_MOTOR_AUX,power_in,power,controller J2 pin 1,deenergized,HARNESS_AND_CONNECTOR_TBD,polarity continuity loaded voltage
 J_PWR,2,12V_MOTOR_AUX,power_in,power,controller J2 pin 2,deenergized,HARNESS_AND_CONNECTOR_TBD,polarity continuity loaded voltage
-J_PWR,3,GND_MOTOR,power_return,power,controller J2 GND pin 3,deenergized,HARNESS_AND_CONNECTOR_TBD,continuity voltage drop
-J_PWR,4,GND_MOTOR,power_return,power,controller J2 GND pin 4,deenergized,HARNESS_AND_CONNECTOR_TBD,continuity voltage drop
-J_SAFE,1,SAFE_ENABLE_A,safety_input,safety,controller safety ECO channel A,bridge disabled and discrepancy latched,SAFETY_ECO_REQUIRED,open short cross-fault disable time
-J_SAFE,2,SAFE_RETURN_A,safety_return,safety,controller safety ECO channel A,bridge disabled and discrepancy latched,SAFETY_ECO_REQUIRED,continuity isolation
-J_SAFE,3,SAFE_ENABLE_B,safety_input,safety,controller safety ECO channel B,bridge disabled and discrepancy latched,SAFETY_ECO_REQUIRED,open short cross-fault disable time
-J_SAFE,4,SAFE_RETURN_B,safety_return,safety,controller safety ECO channel B,bridge disabled and discrepancy latched,SAFETY_ECO_REQUIRED,continuity isolation
+J_PWR,3,GND_MOTOR,power_return,power,controller J2 GND pin 3,deenergized,HARNESS_AND_CONNECTOR_TBD,continuity voltage drop and STAR_GND_01 audit
+J_PWR,4,GND_MOTOR,power_return,power,controller J2 GND pin 4,deenergized,HARNESS_AND_CONNECTOR_TBD,continuity voltage drop and STAR_GND_01 audit
+J_SAFE,1,SAFE_ENABLE_A,safety_input,safety,controller J10/K1/K2 dual-channel safety ECO channel A (not current J11),bridge disabled and discrepancy latched,SAFETY_ECO_REQUIRED,open short cross-fault disable time and hardware-only path
+J_SAFE,2,SAFE_RETURN_A,safety_return,safety,controller J10/K1/K2 dual-channel safety ECO channel A return (not current J11),bridge disabled and discrepancy latched,SAFETY_ECO_REQUIRED,continuity isolation and manual-reset loop
+J_SAFE,3,SAFE_ENABLE_B,safety_input,safety,controller J10/K1/K2 dual-channel safety ECO channel B (not current J11),bridge disabled and discrepancy latched,SAFETY_ECO_REQUIRED,open short cross-fault disable time and hardware-only path
+J_SAFE,4,SAFE_RETURN_B,safety_return,safety,controller J10/K1/K2 dual-channel safety ECO channel B return (not current J11),bridge disabled and discrepancy latched,SAFETY_ECO_REQUIRED,continuity isolation and manual-reset loop
 J_CAN,1,CANH,bidirectional,field_bus,controller isolated CAN trunk,no torque command accepted,PROTOCOL_AND_HARNESS_TBD,impedance waveform fault injection
 J_CAN,2,CANL,bidirectional,field_bus,controller isolated CAN trunk,no torque command accepted,PROTOCOL_AND_HARNESS_TBD,impedance waveform fault injection
-J_CAN,3,GND_CAN_ISO,power_return,field_bus,controller J5 or J6 pin 3,no torque command accepted,ISOLATED_CAN_AND_HARNESS_TBD,continuity common mode isolation
+J_CAN,3,GND_CAN_ISO,power_return,field_bus,controller J5 or J6 pin 3,no torque command accepted,ISOLATED_CAN_AND_HARNESS_TBD,continuity common mode isolation and no local-ground tie
 J_CAN,4,NC,reserved,field_bus,controller J5 or J6 pin 4,no torque command accepted,FROZEN_RESERVED,visual inspection
 J_ML,1,MOTOR_L_A,power_out,motor,left motor terminal A,high impedance,MOTOR_AND_CONNECTOR_TBD,polarity current temperature
 J_ML,2,MOTOR_L_B,power_out,motor,left motor terminal B,high impedance,MOTOR_AND_CONNECTOR_TBD,polarity current temperature

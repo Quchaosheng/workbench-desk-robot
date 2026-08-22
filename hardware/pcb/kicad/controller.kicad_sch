@@ -5130,7 +5130,7 @@
   )
 
   (symbol (lib_id "controller:ISOLATED_DC_DC_TBD") (at 247.65 41.910000000000004 0) (unit 1)
-    (in_bom yes) (on_board yes) (dnp no)
+    (in_bom yes) (on_board yes) (dnp yes)
     (uuid 126407d8-5915-4bef-8101-096e78d5ebd2)
     (property "Reference" "U2" (at 250.65 38.910000000000004 0)
       (effects (font (size 1.27 1.27)) (justify left bottom))

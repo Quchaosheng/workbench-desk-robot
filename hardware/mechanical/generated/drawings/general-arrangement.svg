@@ -11,15 +11,17 @@
 <line class="dim" x1="660" y1="140" x2="1080" y2="140"/><text x="850" y="130" class="note">280</text>
 <line class="dim" x1="1120" y1="170" x2="1120" y2="530"/><text x="1140" y="370" class="note" transform="rotate(-90 1140 370)">240</text>
 <rect x="675" y="185" width="390" height="330" fill="none" stroke="#e65c00" stroke-width="12" rx="24"/>
-<circle cx="735.0" cy="192.5" r="37.5" fill="#333" fill-opacity=".65" stroke="#111" stroke-width="2"/>
-<circle cx="1005.0" cy="192.5" r="37.5" fill="#333" fill-opacity=".65" stroke="#111" stroke-width="2"/>
-<circle cx="735.0" cy="507.5" r="37.5" fill="#333" fill-opacity=".65" stroke="#111" stroke-width="2"/>
-<circle cx="1005.0" cy="507.5" r="37.5" fill="#333" fill-opacity=".65" stroke="#111" stroke-width="2"/>
+<circle cx="712.5" cy="215.0" r="37.5" fill="#333" fill-opacity=".65" stroke="#111" stroke-width="2"/>
+<circle cx="1027.5" cy="215.0" r="37.5" fill="#333" fill-opacity=".65" stroke="#111" stroke-width="2"/>
+<circle cx="712.5" cy="485.0" r="37.5" fill="#333" fill-opacity=".65" stroke="#111" stroke-width="2"/>
+<circle cx="1027.5" cy="485.0" r="37.5" fill="#333" fill-opacity=".65" stroke="#111" stroke-width="2"/>
 <rect class="tbd-motor" x="705.0" y="296.0" width="72.0" height="108.0"/><text x="712.0" y="354.0" font-size="14">LEFT MOTOR TBD</text>
 <rect class="tbd-motor" x="963.0" y="296.0" width="72.0" height="108.0"/><text x="968.0" y="354.0" font-size="14">RIGHT MOTOR TBD</text>
 <rect class="tbd-board" x="781.5" y="369.5" width="177.0" height="123.0"/><text x="791.5" y="435.5" font-size="15">DRIVER CHILDBOARD TBD</text>
+<line x1="741.0" y1="404.0" x2="712.5" y2="485.0" stroke="#555" stroke-width="3" stroke-dasharray="7 5"/><circle cx="712.5" cy="485.0" r="6" fill="none" stroke="#555" stroke-width="2"/>
+<line x1="999.0" y1="404.0" x2="1027.5" y2="485.0" stroke="#555" stroke-width="3" stroke-dasharray="7 5"/><circle cx="1027.5" cy="485.0" r="6" fill="none" stroke="#555" stroke-width="2"/>
 <text x="700" y="565" class="note">8 TPU skin over 24 effective compliant stroke</text>
 <text x="660" y="605" class="note">4 wheels dia 50 x 12; 2x motor 48 x 72 x 46; childboard 118 x 82 x 20</text>
-<text x="660" y="640" class="note">CG Z=97.9; static tip angle=47.0 deg</text>
-<text x="660" y="675" class="note">Dashed geometry is TBD space claim only; physical fit and motor selection required</text>
+<text x="660" y="640" class="note">CG Z=97.9; static tip angle=42.6 deg</text>
+<text x="660" y="675" class="note">Dashed geometry is TBD space claim; drive lines are concept datums only; physical fit and motor selection required</text>
 </svg>

@@ -25,9 +25,10 @@ DISPLAY_LABELS = {
     "C_BULK": "BULK",
     "CLAMP": "REGEN SINK",
     "U1": "DRV8962",
-    "CAN": "CAN FD",
+    "J_CAN": "CAN FD",
     "CTRL": "LOCAL MCU",
     "SAFE_GATE": "SAFETY A/B",
+    "J_SAFE": "SAFETY ECO",
     "J_ENC_L": "LEFT ENCODER",
     "J_ENC_R": "RIGHT ENCODER",
     "J_ML": "LEFT MOTOR",
@@ -108,6 +109,11 @@ def render_svg() -> str:
                 f'<text x="{canvas_width / 2:.1f}" y="{title_y + 20:.1f}" text-anchor="middle" '
                 'font-family="Arial, sans-serif" font-size="12" fill="#172026">'
                 "118 x 82 mm | 108 x 72 mm mount pattern | 4 x 3.2 mm holes | 20 mm max assembly envelope</text>"
+            ),
+            (
+                f'<text x="{canvas_width / 2:.1f}" y="{title_y + 38:.1f}" text-anchor="middle" '
+                'font-family="Arial, sans-serif" font-size="11" fill="#172026">'
+                "+Y_REAR: J_SAFE / CAN / motor outputs | -Y_FRONT: encoder inputs</text>"
             ),
             "</svg>",
         ]

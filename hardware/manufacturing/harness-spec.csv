@@ -1,9 +1,15 @@
-harness_id,from_ref,to_interface,length_m,voltage_v,max_current_a,awg,copper_area_mm2,parallel_supply,parallel_return,conductors,shield,min_bend_radius_mm,color_code,mating_part_status,owner
-H01,J1,48V_BATTERY,0.45,48,8,16,1.31,2,2,4,no,20,"red red black black",MPN_REQUIRED,Electrical Owner
-H02,J2,MOTOR_AUX_DISTRIBUTION,0.60,12,10,16,1.31,2,2,4,no,15,"yellow yellow black black",MPN_REQUIRED,Motion Owner
-H03,J3,JETSON_DEVKIT_DC_INPUT,0.35,12,3.34,18,0.823,2,2,4,no,12,"orange orange black black",MPN_REQUIRED,System Owner
-H04,J4,JETSON_MCU_BACKPLANE,0.30,3.3,0.5,24,0.205,2,2,20,overall,8,"numbered twisted signal set",MPN_REQUIRED,Electrical Owner
-H05,J5,CAN_A_TRUNK,0.80,5,0.1,24,0.205,1,1,4,braid,8,"white blue black drain",MPN_REQUIRED,Electrical Owner
-H06,J6,CAN_B_TRUNK,0.80,5,0.1,24,0.205,1,1,4,braid,8,"white blue black drain",MPN_REQUIRED,Electrical Owner
-H07,J10,DUAL_CHANNEL_ESTOP,1.00,12,0.2,22,0.326,1,1,4,overall,10,"red white orange blue",MPN_REQUIRED,Safety Owner
-H08,J11,SAFETY_GATE_OUTPUT,0.60,3.3,0.2,22,0.326,1,1,4,overall,8,"violet white black red",MPN_REQUIRED,Safety Owner
+harness_id,from_ref,to_interface,length_m,voltage_v,max_current_a,awg,copper_area_mm2,parallel_supply,parallel_return,conductors,shield,min_bend_radius_mm,required_bend_radius_mm,color_code,mating_part_status,owner
+H01,J1,48V_BATTERY,0.45,48,8,16,1.31,2,2,4,no,20,20,"red red black black",MPN_REQUIRED,Electrical Owner
+H02,J2,MOTOR_AUX_DISTRIBUTION,0.60,12,10,16,1.31,2,2,4,no,15,15,"yellow yellow black black",MPN_REQUIRED,Motion Owner
+H03,J3,JETSON_DEVKIT_DC_INPUT,0.35,12,3.34,18,0.823,2,2,4,no,12,12,"orange orange black black",MPN_REQUIRED,System Owner
+H04,J4,JETSON_MCU_BACKPLANE,0.30,3.3,0.5,24,0.205,2,2,20,overall,8,8,"numbered twisted signal set",MPN_REQUIRED,Electrical Owner
+H05,J5,CAN_A_TRUNK,0.80,5,0.1,24,0.205,1,1,4,braid,8,8,"white blue black drain",MPN_REQUIRED,Electrical Owner
+H06,J6,CAN_B_TRUNK,0.80,5,0.1,24,0.205,1,1,4,braid,8,8,"white blue black drain",MPN_REQUIRED,Electrical Owner
+H07,J10,DUAL_CHANNEL_ESTOP,1.00,12,0.2,22,0.326,1,1,4,overall,10,10,"red white orange blue",MPN_REQUIRED,Safety Owner
+H08,J11,SAFETY_GATE_OUTPUT,0.60,3.3,0.2,22,0.326,1,1,4,overall,8,8,"violet white black red",MPN_REQUIRED,Safety Owner
+H09,J10-ECO,J_SAFE,0.80,12,0.2,22,0.326,1,1,4,overall,10,10,"red white orange blue",MPN_REQUIRED,Safety Owner
+H10,J5-or-J6-ECO,J_CAN,0.80,5,0.1,24,0.205,1,1,4,braid,8,8,"white blue black drain",MPN_REQUIRED,Harness Owner
+H11,J_ML,J_ML,0.50,12,5.5,14,2.08,1,1,2,no,20,20,"blue blue",MPN_REQUIRED,Motion Owner
+H12,J_MR,J_MR,0.50,12,5.5,14,2.08,1,1,2,no,20,20,"green green",MPN_REQUIRED,Motion Owner
+H13,J_ENC_L,J_ENC_L,0.60,5,0.1,24,0.205,1,1,4,braid,8,8,"violet white gray drain",MPN_REQUIRED,Motion Owner
+H14,J_ENC_R,J_ENC_R,0.60,5,0.1,24,0.205,1,1,4,braid,8,8,"violet white gray drain",MPN_REQUIRED,Motion Owner

@@ -13,7 +13,6 @@ import subprocess
 import sys
 import time
 
-
 SO_TIMESTAMPING = 37
 SOF_TIMESTAMPING_TX_HARDWARE = 1 << 0
 SOF_TIMESTAMPING_TX_SOFTWARE = 1 << 1

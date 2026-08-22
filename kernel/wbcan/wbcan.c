@@ -25,11 +25,13 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
+#include <linux/ethtool.h>
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/netdevice.h>
 #include <linux/if_arp.h>
 #include <linux/debugfs.h>
+#include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
@@ -69,12 +71,22 @@ static bool fail_error_skb;
 module_param(fail_error_skb, bool, 0600);
 MODULE_PARM_DESC(fail_error_skb, "fail CAN error SKB allocation for testing");
 
+static unsigned int test_restart_delay_ms;
+module_param(test_restart_delay_ms, uint, 0600);
+MODULE_PARM_DESC(test_restart_delay_ms,
+		 "test-only delay before serializing CAN restart");
+
+static unsigned int test_stop_delay_ms;
+module_param(test_stop_delay_ms, uint, 0600);
+MODULE_PARM_DESC(test_stop_delay_ms,
+		 "test-only delay around TX drain and stop publication");
+
 struct wbcan_priv {
 	struct can_priv		can;	/* must be first: can_priv contract */
 	struct net_device	*dev;
 	struct dentry		*dbg_dir;
 
-	spinlock_t		lock;	/* guards the fault plane below */
+	spinlock_t		lock;	/* guards fault configuration and stats */
 
 	enum wbcan_fault	fault;
 	u32			fault_count;	/* frames left to affect; 0 = off */
@@ -92,7 +104,43 @@ struct wbcan_priv {
 	u64			stat_rx;
 	u64			stat_injected;
 	u64			stat_seen;
+	u64			stat_restart_attempts;
+	u64			stat_stop_attempts;
 };
+
+struct wbcan_status_snapshot {
+	enum can_state		state;
+	bool			queue_stopped;
+	enum wbcan_fault	fault;
+	u32			fault_count;
+	u32			fault_after;
+	canid_t			match_id;
+	bool			match_any;
+	u64			stat_tx;
+	u64			stat_rx;
+	u64			stat_injected;
+	u64			stat_seen;
+	u64			stat_restart_attempts;
+	u64			stat_stop_attempts;
+	u32			bus_errors;
+};
+
+/*
+ * Controller-state ownership follows the netdev/CAN-core lifecycle rather
+ * than the private fault lock:
+ *
+ * - ndo_start_xmit() and its injected error transitions are serialized by
+ *   the single netdev TX queue;
+ * - bus-off stops that queue before publishing the terminal state;
+ * - do_set_mode() runs only while CAN core recovery keeps the queue stopped;
+ * - ndo_open()/ndo_stop() run under RTNL, and ndo_stop() disables TX before
+ *   closing the CAN device.
+ *
+ * Debugfs takes the netdev TX lock only long enough to snapshot state and the
+ * fault plane, then formats outside both locks. Keeping the private spinlock
+ * out of CAN-core and netif calls preserves the locking rules needed by
+ * PREEMPT_RT.
+ */
 
 /* ------------------------------------------------------------------ helpers */
 
@@ -148,8 +196,9 @@ static void wbcan_emit_error(struct net_device *dev, enum wbcan_fault fault)
 	struct wbcan_priv *priv = netdev_priv(dev);
 	struct can_frame *cf = NULL;
 	struct sk_buff *skb;
-	enum can_state tx_state = priv->can.state;
-	enum can_state rx_state = priv->can.state;
+	enum can_state tx_state = READ_ONCE(priv->can.state);
+	enum can_state rx_state = tx_state;
+	unsigned long flags;
 
 	skb = READ_ONCE(fail_error_skb) ? NULL : alloc_can_err_skb(dev, &cf);
 
@@ -164,12 +213,17 @@ static void wbcan_emit_error(struct net_device *dev, enum wbcan_fault fault)
 		netif_stop_queue(dev);
 		tx_state = CAN_STATE_BUS_OFF;
 		rx_state = CAN_STATE_BUS_OFF;
-		can_change_state(dev, cf, tx_state, rx_state);
+		if (READ_ONCE(priv->can.state) != CAN_STATE_BUS_OFF)
+			can_change_state(dev, cf, tx_state, rx_state);
+		else if (cf)
+			cf->can_id |= CAN_ERR_BUSOFF;
 		can_bus_off(dev);
 		break;
 
 	case WBCAN_FAULT_ARB_LOST:
+		spin_lock_irqsave(&priv->lock, flags);
 		priv->can.can_stats.arbitration_lost++;
+		spin_unlock_irqrestore(&priv->lock, flags);
 		if (!cf)
 			break;
 		cf->can_id |= CAN_ERR_LOSTARB;
@@ -186,9 +240,13 @@ static void wbcan_emit_error(struct net_device *dev, enum wbcan_fault fault)
 		 * injected frame, then the next fault-free frame recovers to
 		 * active. We do not pretend to model TEC/REC progression.
 		 */
+		spin_lock_irqsave(&priv->lock, flags);
 		priv->can.can_stats.bus_error++;
+		spin_unlock_irqrestore(&priv->lock, flags);
 		tx_state = CAN_STATE_ERROR_WARNING;
-		can_change_state(dev, cf, tx_state, rx_state);
+		/* can_change_state() warns when the calculated state is unchanged. */
+		if (max(tx_state, rx_state) != READ_ONCE(priv->can.state))
+			can_change_state(dev, cf, tx_state, rx_state);
 		if (!cf)
 			break;
 		cf->can_id |= CAN_ERR_PROT;
@@ -217,7 +275,9 @@ static int wbcan_open(struct net_device *dev)
 	err = open_candev(dev);
 	if (err)
 		return err;
-	priv->can.state = CAN_STATE_ERROR_ACTIVE;
+	netif_tx_lock_bh(dev);
+	WRITE_ONCE(priv->can.state, CAN_STATE_ERROR_ACTIVE);
+	netif_tx_unlock_bh(dev);
 	netif_start_queue(dev);
 	return 0;
 }
@@ -225,10 +285,27 @@ static int wbcan_open(struct net_device *dev)
 static int wbcan_stop(struct net_device *dev)
 {
 	struct wbcan_priv *priv = netdev_priv(dev);
+	unsigned int delay_ms;
+	unsigned long flags;
 
+	/* Stop new submissions and wait for an in-flight start_xmit(). */
+	netif_tx_disable(dev);
+	spin_lock_irqsave(&priv->lock, flags);
+	priv->stat_stop_attempts++;
+	spin_unlock_irqrestore(&priv->lock, flags);
+	delay_ms = min(READ_ONCE(test_stop_delay_ms), 1000U);
+	if (delay_ms)
+		msleep(delay_ms);
+	netif_tx_lock_bh(dev);
 	netif_stop_queue(dev);
+	WRITE_ONCE(priv->can.state, CAN_STATE_STOPPED);
+	netif_tx_unlock_bh(dev);
+	if (delay_ms)
+		msleep(delay_ms);
+	/* A restart worker that was queued before STOPPED must be cancelled. */
 	close_candev(dev);
-	priv->can.state = CAN_STATE_STOPPED;
+	/* A worker may have committed ACTIVE before STOPPED was published. */
+	netif_tx_disable(dev);
 	return 0;
 }
 
@@ -243,6 +320,7 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	bool loop;
 	unsigned int len;
 	unsigned long flags;
+	enum can_state state;
 
 	if (can_dev_dropped_skb(dev, skb))
 		return NETDEV_TX_OK;
@@ -253,21 +331,22 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 		return NETDEV_TX_OK;
 	}
 
-	spin_lock_irqsave(&priv->lock, flags);
-
-	if (priv->can.state == CAN_STATE_BUS_OFF) {
-		spin_unlock_irqrestore(&priv->lock, flags);
+	state = READ_ONCE(priv->can.state);
+	if (state == CAN_STATE_BUS_OFF || state == CAN_STATE_STOPPED ||
+	    state == CAN_STATE_SLEEPING) {
 		/*
-		 * A real controller does not quietly accept frames while
-		 * bus-off. Report it so the firmware's TX error path runs.
+		 * Queue lifecycle should keep these states out of start_xmit().
+		 * If a future caller violates that boundary, consume the frame
+		 * rather than accepting traffic in a terminal controller state.
 		 */
+		netif_stop_queue(dev);
 		dev->stats.tx_dropped++;
 		kfree_skb(skb);
 		return NETDEV_TX_OK;
 	}
 
+	spin_lock_irqsave(&priv->lock, flags);
 	wbcan_should_inject(priv, skb, &fault, &flip_byte, &flip_bit);
-
 	spin_unlock_irqrestore(&priv->lock, flags);
 	len = can_skb_get_data_len(skb);
 
@@ -287,6 +366,14 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 		netif_wake_queue(dev);
 		return NETDEV_TX_BUSY;
 
+	default:
+		break;
+	}
+
+	/* The frame is now accepted and will not be retried by the stack. */
+	skb_tx_timestamp(skb);
+
+	switch (fault) {
 	case WBCAN_FAULT_BUS_OFF:
 	case WBCAN_FAULT_ARB_LOST:
 	case WBCAN_FAULT_STUFF_ERR:
@@ -318,10 +405,11 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	/* Count frames accepted by the driver; a BUSY retry is not a frame. */
 	spin_lock_irqsave(&priv->lock, flags);
 	priv->stat_tx++;
-	if (fault == WBCAN_FAULT_NONE &&
-	    priv->can.state == CAN_STATE_ERROR_WARNING)
-		priv->can.state = CAN_STATE_ERROR_ACTIVE;
 	spin_unlock_irqrestore(&priv->lock, flags);
+	if (fault == WBCAN_FAULT_NONE &&
+	    READ_ONCE(priv->can.state) == CAN_STATE_ERROR_WARNING)
+		can_change_state(dev, NULL, CAN_STATE_ERROR_ACTIVE,
+				 CAN_STATE_ERROR_ACTIVE);
 
 	dev->stats.tx_packets++;
 	dev->stats.tx_bytes += len;
@@ -384,12 +472,27 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 static int wbcan_set_mode(struct net_device *dev, enum can_mode mode)
 {
 	struct wbcan_priv *priv = netdev_priv(dev);
+	unsigned int delay_ms;
 	unsigned long flags;
 
 	switch (mode) {
 	case CAN_MODE_START:
 		spin_lock_irqsave(&priv->lock, flags);
-		priv->can.state = CAN_STATE_ERROR_ACTIVE;
+		priv->stat_restart_attempts++;
+		spin_unlock_irqrestore(&priv->lock, flags);
+
+		delay_ms = min(READ_ONCE(test_restart_delay_ms), 1000U);
+		if (delay_ms)
+			msleep(delay_ms);
+
+		/* CAN core recovery owns this callback and keeps TX stopped. */
+		netif_tx_lock_bh(dev);
+		if (READ_ONCE(priv->can.state) != CAN_STATE_BUS_OFF) {
+			netif_tx_unlock_bh(dev);
+			return -EBUSY;
+		}
+
+		spin_lock_irqsave(&priv->lock, flags);
 		/*
 		 * Clear the armed fault on restart. Leaving it armed would
 		 * make recovery tests flap for reasons the test did not ask
@@ -399,7 +502,9 @@ static int wbcan_set_mode(struct net_device *dev, enum can_mode mode)
 		priv->fault_count = 0;
 		spin_unlock_irqrestore(&priv->lock, flags);
 
+		WRITE_ONCE(priv->can.state, CAN_STATE_ERROR_ACTIVE);
 		netif_wake_queue(dev);
+		netif_tx_unlock_bh(dev);
 		netdev_info(dev, "restarted, fault plane cleared\n");
 		return 0;
 	default:
@@ -423,6 +528,10 @@ static const struct net_device_ops wbcan_netdev_ops = {
 	.ndo_stop	= wbcan_stop,
 	.ndo_start_xmit	= wbcan_start_xmit,
 	.ndo_change_mtu	= wbcan_change_mtu,
+};
+
+static const struct ethtool_ops wbcan_ethtool_ops = {
+	.get_ts_info	= ethtool_op_get_ts_info,
 };
 
 /* --------------------------------------------------------------- debugfs ABI
@@ -564,31 +673,53 @@ out:
 static int wbcan_status_show(struct seq_file *s, void *unused)
 {
 	struct wbcan_priv *priv = s->private;
+	struct wbcan_status_snapshot snapshot;
 	unsigned long flags;
 
+	netif_tx_lock_bh(priv->dev);
 	spin_lock_irqsave(&priv->lock, flags);
+	snapshot.state = READ_ONCE(priv->can.state);
+	snapshot.queue_stopped = netif_queue_stopped(priv->dev);
+	snapshot.fault = priv->fault;
+	snapshot.fault_count = priv->fault_count;
+	snapshot.fault_after = priv->fault_after;
+	snapshot.match_id = priv->match_id;
+	snapshot.match_any = priv->match_any;
+	snapshot.stat_tx = priv->stat_tx;
+	snapshot.stat_rx = priv->stat_rx;
+	snapshot.stat_injected = priv->stat_injected;
+	snapshot.stat_seen = priv->stat_seen;
+	snapshot.stat_restart_attempts = priv->stat_restart_attempts;
+	snapshot.stat_stop_attempts = priv->stat_stop_attempts;
+	snapshot.bus_errors = priv->can.can_stats.bus_error;
+	spin_unlock_irqrestore(&priv->lock, flags);
+	netif_tx_unlock_bh(priv->dev);
+
 	seq_printf(s, "state         %s\n",
-		   priv->can.state == CAN_STATE_ERROR_ACTIVE  ? "error-active"  :
-		   priv->can.state == CAN_STATE_ERROR_WARNING ? "error-warning" :
-		   priv->can.state == CAN_STATE_ERROR_PASSIVE ? "error-passive" :
-		   priv->can.state == CAN_STATE_BUS_OFF       ? "bus-off"       :
-		   priv->can.state == CAN_STATE_STOPPED       ? "stopped"       :
+		   snapshot.state == CAN_STATE_ERROR_ACTIVE  ? "error-active"  :
+		   snapshot.state == CAN_STATE_ERROR_WARNING ? "error-warning" :
+		   snapshot.state == CAN_STATE_ERROR_PASSIVE ? "error-passive" :
+		   snapshot.state == CAN_STATE_BUS_OFF       ? "bus-off"       :
+		   snapshot.state == CAN_STATE_STOPPED       ? "stopped"       :
 							"sleeping");
-	seq_printf(s, "armed_fault   %s\n", wbcan_fault_names[priv->fault]);
-	seq_printf(s, "shots_left    %u\n", priv->fault_count);
-	seq_printf(s, "skip_first    %u\n", priv->fault_after);
-	if (priv->match_any)
+	seq_printf(s, "queue_stopped %s\n",
+		   snapshot.queue_stopped ? "yes" : "no");
+	seq_printf(s, "armed_fault   %s\n", wbcan_fault_names[snapshot.fault]);
+	seq_printf(s, "shots_left    %u\n", snapshot.fault_count);
+	seq_printf(s, "skip_first    %u\n", snapshot.fault_after);
+	if (snapshot.match_any)
 		seq_puts(s, "match_id      any\n");
 	else
 		seq_printf(s, "match_id      %c:%x\n",
-			   priv->match_id & CAN_EFF_FLAG ? 'e' : 's',
-			   priv->match_id & CAN_EFF_MASK);
-	seq_printf(s, "tx_frames     %llu\n", priv->stat_tx);
-	seq_printf(s, "rx_frames     %llu\n", priv->stat_rx);
-	seq_printf(s, "candidates    %llu\n", priv->stat_seen);
-	seq_printf(s, "injected      %llu\n", priv->stat_injected);
-	seq_printf(s, "bus_errors    %u\n", priv->can.can_stats.bus_error);
-	spin_unlock_irqrestore(&priv->lock, flags);
+			   snapshot.match_id & CAN_EFF_FLAG ? 'e' : 's',
+			   snapshot.match_id & CAN_EFF_MASK);
+	seq_printf(s, "tx_frames     %llu\n", snapshot.stat_tx);
+	seq_printf(s, "rx_frames     %llu\n", snapshot.stat_rx);
+	seq_printf(s, "candidates    %llu\n", snapshot.stat_seen);
+	seq_printf(s, "injected      %llu\n", snapshot.stat_injected);
+	seq_printf(s, "restart_attempts %llu\n", snapshot.stat_restart_attempts);
+	seq_printf(s, "stop_attempts %llu\n", snapshot.stat_stop_attempts);
+	seq_printf(s, "bus_errors    %u\n", snapshot.bus_errors);
 
 	return 0;
 }
@@ -661,6 +792,7 @@ static int __init wbcan_init(void)
 	priv->match_any = true;
 
 	wbcan_dev->netdev_ops = &wbcan_netdev_ops;
+	wbcan_dev->ethtool_ops = &wbcan_ethtool_ops;
 	wbcan_dev->flags |= IFF_ECHO;
 	strscpy(wbcan_dev->name, "wbcan0", IFNAMSIZ);
 
@@ -674,7 +806,7 @@ static int __init wbcan_init(void)
 	priv->can.ctrlmode_supported = CAN_CTRLMODE_LOOPBACK |
 				       CAN_CTRLMODE_BERR_REPORTING;
 	priv->can.do_set_mode = wbcan_set_mode;
-	priv->can.state = CAN_STATE_STOPPED;
+	WRITE_ONCE(priv->can.state, CAN_STATE_STOPPED);
 
 	err = register_candev(wbcan_dev);
 	if (err)

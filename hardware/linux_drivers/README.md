@@ -10,6 +10,9 @@
 物理控制器型号、寄存器布局和 IRQ/DMA 资源由 PCB 与 MCU 接口确认后，才可以
 在本目录增加对应的硬件模块。
 
+面向发布的架构说明位于
+[`docs/architecture/linux-drivers.md`](../../docs/architecture/linux-drivers.md)。
+
 ## 分层边界
 
 ```text
@@ -39,13 +42,16 @@ Linux 子系统核心
 每个硬件模块都应按以下顺序实现和审查：
 
 1. `probe`：验证设备树/ACPI 资源、时钟、复位和中断；任何资源缺失都失败关闭。
-2. `register`：完成 `alloc_candev`/`tty_register_driver`/`spi_driver` 等标准注册，
+2. `register`：CAN 驱动完成 `alloc_candev` 后调用 `register_candev`；TTY 和 SPI
+   驱动分别调用 `tty_register_driver` 和 `spi_register_driver` 等标准注册 API，
    注册成功前不对外发布可用设备。
 3. `open`：清空硬件状态、建立 RX/TX 队列并启用 IRQ；失败时按反向顺序回滚。
 4. `transfer`：上半部只确认并屏蔽必要的中断，下半部或 NAPI 完成收包、DMA 回收
    和统计更新；不可在 IRQ 上下文中睡眠。
-5. `stop`：停止新传输、排空或取消 DMA、屏蔽 IRQ，再释放队列和状态。
-6. `remove`：先撤销用户可见接口，再释放映射、时钟、DMA 和中断资源。
+5. `stop`：停止新传输、排空或取消 DMA、屏蔽 IRQ；等待正在执行的 IRQ handler、
+   NAPI 和 work 完成后，再释放队列和状态。
+6. `remove`：先撤销用户可见接口，执行与 `stop` 相同的同步和排空路径；确认没有
+   IRQ、NAPI 或 work 正在运行后，再释放映射、时钟、DMA 和中断资源。
 
 `probe`、`open` 和 `remove` 的错误路径必须是幂等的。半初始化状态不得留下网络
 接口、字符设备或可继续访问的 MMIO 映射。

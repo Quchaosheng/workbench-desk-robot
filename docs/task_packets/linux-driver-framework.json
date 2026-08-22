@@ -30,11 +30,16 @@
   "commands": [
     "python3 tools/scripts/check_task_packet.py docs/task_packets/linux-driver-framework.json",
     "python3 -m mkdocs build --strict",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
     "git diff --check"
   ],
   "evidence": [
     "Task Packet validation output",
     "strict MkDocs build output",
+    "repository gate output",
     "git diff --check output"
   ],
   "stop_conditions": [

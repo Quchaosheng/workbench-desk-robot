@@ -20,6 +20,7 @@ nav:
   - Secure review: security/secure-review-standard.md
   - Incident response: security/incident-response.md
   - System architecture: architecture/system.md
+  - Linux driver architecture: architecture/linux-drivers.md
   - Hardware:
       - Overview: hardware/README.md
       - Wiring: hardware/wiring.md

@@ -13,7 +13,7 @@ python hardware/pcb/tools/electrical_checks.py
 The report is written to `generated/electrical_report.json`. Open
 `kicad/controller.kicad_pro` with KiCad 10. The detailed EVT companion board has
 110 controlled electrical components, four M3 NPTH mounting holes (114 total
-footprints), eight SMT test pads, 1,250 track/via items, 30 filled copper zones,
+footprints), eight SMT test pads, 1,250 track/via items, 31 filled copper zones,
 eight copper layers, and a physical 8 mm primary/secondary isolation region.
 Reproduce the controlled sources with:
 
@@ -30,11 +30,19 @@ python hardware/pcb/tools/export_fabrication.py
 python hardware/pcb/tools/release_readiness.py
 ```
 
+The default command is a production-release gate and returns non-zero while
+the PCB remains blocked. Use `--stage evt` for prototype-order gating or
+`--stage structure` when you only need the repository engineering audit.
+
 `kicad/controller.ses` is the checked Freerouting 2.3.0 routing session. The
 board generator validates every footprint position against that session before
 importing 1,039 routed segments and 137 vias. Deterministic cleanup and local
-supplements produce the final 1,070 segments, 180 vias, and 30 copper zones. A
+supplements produce the final 1,070 segments, 180 vias, and 31 copper zones. A
 stale session cannot silently attach to moved footprints.
+Generated schematic UUIDs use a resettable deterministic sequence. Board output
+UUIDs are normalized after KiCad saves the file, preserving repeated references
+while removing run-to-run UUID noise; routing tie-breakers use stable reference,
+pad, and coordinate keys rather than process memory addresses.
 
 The layout audit hard-gates the current U2 `12V_ISO` source and `GND` return with
 separate eight-via rings on 3 x 3, 1.5 mm-pitch grids around the THT pads. These
@@ -47,14 +55,23 @@ oscillator routing, matched CAN via counts, and an `In1.Cu` `GND_CAN_ISO` zone
 declaration. U7 has an all-eight-layer no-track/no-via/no-pour corridor across
 its 5.87 mm board pad gap; this preserves the available geometry but does not
 repair the candidate module's 2 mm creepage/clearance or 200 Vrms working rating.
-CAN coupling, branch/stub geometry, reference-plane continuity, and
-120 ohm field solving remain explicit manual or supplier risks rather than being
-inferred from aggregate route lengths.
+CAN coupling, branch/stub geometry, reference-plane continuity, and 120 ohm field
+solving remain explicit manual or supplier risks rather than being inferred from
+aggregate route lengths. The report now includes per-net graph metrics, declared
+reference-zone endpoint coverage, reference-layer low-speed occupancy, oscillator
+length delta and load-capacitor ground-via distance, plus every accepted power-net
+neckdown. These measurements bound the review; they do not claim field-solved
+impedance, uninterrupted filled copper, or thermal adequacy.
 
 Test access is separated by electrical domain: TP1 remains in the 48 V primary
 region, TP2-TP5/TP8 are on the logic side, and TP6/TP7 sit beside the isolated
 CAN connectors. This keeps secondary probes out of the primary test area and
 avoids long CAN test stubs.
+`fixture-access-plan.csv` controls the additional safety, power-good, fault,
+current-monitor, and domain-reference access required by the EVT fixture. Existing
+connector access is cross-checked against `connector-pinout.csv`; seven missing
+dedicated pads remain explicit `ECO_REQUIRED` items and every row remains
+fail-closed until physical fixture evidence is attached.
 
 The checked-in ERC and DRC reports contain zero violations and zero unconnected
 items. Gerbers, drills, IPC-D-356, position data, drawings, statistics, and a
@@ -108,22 +125,32 @@ are limited to 10 A aggregate (120 W at 12 V) until an external branch fuse,
 inrush, regeneration and fault-current analysis is approved.
 `component-selection-matrix.csv` tracks every active module, the source-backed
 candidate or class, verification method, owner and procurement status.
+Every matrix `source_id` must resolve to a complete HTTPS source entry in
+`source-baseline.json`; exclusion evidence may be used only by the U2 TBD row.
 `fabrication/bom.csv` contains 77 grouped lines covering every board component.
-`component-approval-register.csv` contains owner and evidence slots for every
-one of the 68 procurement-controlled groups; no row is treated as approved without a named MPN,
-datasheet revision, approver, date, and evidence reference.
-Changing `decision` to `APPROVED` is insufficient: an orderable MPN, datasheet
-revision, named approver, date, and evidence reference are all required.
+`component-approval-register.csv` defines the required approver roles for every
+one of the 68 procurement-controlled groups. `component-approval-signatures.csv`
+contains one independent row per required role, bound to the EVT revision and
+fabrication-BOM SHA-256. No group is approved until every role records an
+orderable MPN, datasheet revision, identity, date, and evidence reference.
+Changing a summary `decision` to `APPROVED` is insufficient.
 `expected-connectivity.json` and `generated/connectivity_report.json` independently
 check 458 physical pads across all 110 controlled components, plus input-protection, CAN
 isolation, current-sense and dual-channel safety invariants.
 `testpoint-coverage.csv` defines the measurement, limit, instrument and required
 evidence for every physical test pad.
+`fabrication/bringup-test-plan.csv` covers 36 V, 48 V, and 60 V operation, UV/OV,
+reverse polarity, branch short, load and regeneration transients, E-stop
+discrepancy, CAN FD, and a four-hour closed-enclosure thermal soak. These are
+controlled test definitions, not completed physical evidence.
 
 Run `python hardware/pcb/tools/release_readiness.py` before sharing an order
 package. The checked-in schematic is component-level (110 symbols and 366 wired
-net labels) and has clean ERC. Order release still remains blocked until AVL,
-physical bring-up, safety analysis, harness release and supplier DFM gates close.
+net labels) and has clean ERC. EVT prototype ordering remains blocked by AVL,
+safety design, supplier DFM, U2/U7, and test-access ECO gates. Physical bring-up,
+measured safety timing, harness execution, and verified fixture access are
+separate production-release gates so prototype evidence is not a circular EVT
+ordering prerequisite.
 The release audit also fails closed if the excluded U2 MPN or footprint appears
 in any controlled schematic, PCB, library, routing, netlist, BOM or position
 artifact, and it keeps

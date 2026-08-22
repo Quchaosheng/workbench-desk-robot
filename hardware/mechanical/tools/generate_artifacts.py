@@ -5,11 +5,13 @@ from __future__ import annotations
 import csv
 import json
 import math
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = json.loads((ROOT / "design-spec.json").read_text(encoding="utf-8"))
 OUT = ROOT / "generated"
+STEP_EXPORT_TIMESTAMP = "2026-08-06T00:00:00"
 
 
 def box_limits(dimensions: list[float], position: list[float]) -> list[tuple[float, float]]:
@@ -38,6 +40,58 @@ def coordinate_span(points: list[dict[str, object]], axis_name: str) -> float:
     index = axis_index(axis_name)
     values = [float(point["xyz"][index]) for point in points]
     return max(values) - min(values) if len(values) >= 2 else 0.0
+
+
+def vector_cross(first: list[float], second: list[float]) -> list[float]:
+    return [
+        first[1] * second[2] - first[2] * second[1],
+        first[2] * second[0] - first[0] * second[2],
+        first[0] * second[1] - first[1] * second[0],
+    ]
+
+
+def vector_dot(first: list[float], second: list[float]) -> float:
+    return sum(left * right for left, right in zip(first, second, strict=True))
+
+
+def vector_norm(vector: list[float]) -> float:
+    return math.sqrt(vector_dot(vector, vector))
+
+
+def vectors_parallel(first: list[float], second: list[float], tolerance: float = 1e-9) -> bool:
+    first_norm = vector_norm(first)
+    second_norm = vector_norm(second)
+    if first_norm <= tolerance or second_norm <= tolerance:
+        return False
+    return vector_norm(vector_cross(first, second)) <= tolerance * first_norm * second_norm
+
+
+def point_to_box_clearance_2d(point: list[float], limits: list[tuple[float, float]], axes: tuple[int, int]) -> float:
+    """Distance from a mount-hole centre to a wheel rectangle, in the XY plane."""
+    squared = 0.0
+    for axis in axes:
+        lower, upper = limits[axis]
+        if point[axis] < lower:
+            squared += (lower - point[axis]) ** 2
+        elif point[axis] > upper:
+            squared += (point[axis] - upper) ** 2
+    return math.sqrt(squared)
+
+
+def load_system_mass_case() -> dict[str, object]:
+    ledger_path = ROOT / "mass-ledger.csv"
+    with ledger_path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    total = sum(float(row["mass_kg"]) for row in rows)
+    cg = [sum(float(row["mass_kg"]) * float(row[f"{axis}_mm"]) for row in rows) / total for axis in ("x", "y", "z")]
+    return {
+        "configuration_id": "DUAL_ARM_WORKBENCH_55KG_DESIGN_CASE",
+        "mass_kg": round(total, 3),
+        "center_of_gravity_mm": [round(value, 1) for value in cg],
+        "source": "hardware/mechanical/mass-ledger.csv",
+        "status": "ESTIMATE_NOT_MEASURED",
+        "physical_validation": "NOT_EXECUTED",
+    }
 
 
 def analyse() -> dict[str, object]:
@@ -75,6 +129,7 @@ def analyse() -> dict[str, object]:
     motor_limits = [box_limits(motor_dimensions, motor["xyz"]) for motor in motors]
     chassis_half_width = chassis["width"] / 2
     chassis_half_depth = chassis["depth"] / 2
+    chassis_half_dimensions = [chassis_half_width, chassis_half_depth, 0.0]
     enclosure_inner_half_width = (SPEC["enclosure"]["width"] - 2 * SPEC["enclosure"]["wall"]) / 2
     enclosure_inner_half_depth = (SPEC["enclosure"]["depth"] - 2 * SPEC["enclosure"]["wall"]) / 2
     enclosure_inner_height = SPEC["enclosure"]["height"] - SPEC["enclosure"]["wall"]
@@ -119,10 +174,59 @@ def analyse() -> dict[str, object]:
     bracket_upright_top_z = bracket_base_z + bracket["upright_height_mm"]
     wheel_axis_limits = [limits[wheel_axis] for limits in wheel_limits]
     wheel_axial_overhangs = [
-        max(0.0, max(abs(limits[0]), abs(limits[1])) - chassis_half_depth) for limits in wheel_axis_limits
+        max(0.0, max(abs(limits[0]), abs(limits[1])) - chassis_half_dimensions[wheel_axis])
+        for limits in wheel_axis_limits
     ]
     maximum_wheel_axial_overhang = max(wheel_axial_overhangs, default=0.0)
     wheel_overhang_allowance = wheel_spec.get("maximum_axial_overhang_mm", 0)
+    longitudinal_axis = axis_index(wheelbase_axis)
+    longitudinal_limits = [limits[longitudinal_axis] for limits in wheel_limits]
+    maximum_wheel_longitudinal_overhang = max(
+        0.0,
+        max(max(abs(limit[0]), abs(limit[1])) for limit in longitudinal_limits)
+        - chassis_half_dimensions[longitudinal_axis],
+    )
+    longitudinal_overhang_allowance = wheel_spec.get("maximum_longitudinal_overhang_mm", 0)
+    wheel_wells = chassis["wheel_wells"]
+    enclosure_half_dimensions = [enclosure_inner_half_width, enclosure_inner_half_depth]
+    non_axial_horizontal_axes = tuple(axis for axis in (0, 1) if axis != wheel_axis)
+    wheel_shell_clearances = [
+        enclosure_half_dimensions[axis] - max(abs(limits[axis][0]), abs(limits[axis][1]))
+        for limits in wheel_limits
+        for axis in non_axial_horizontal_axes
+    ]
+    minimum_wheel_shell_clearance = min(wheel_shell_clearances)
+    chassis_mount_hole_radius = chassis["mount_hole_diameter_mm"] / 2
+    mount_points = [
+        [x, y, 0.0]
+        for x in (-chassis["mount_pattern"][0] / 2, chassis["mount_pattern"][0] / 2)
+        for y in (-chassis["mount_pattern"][1] / 2, chassis["mount_pattern"][1] / 2)
+    ]
+    minimum_mount_to_wheel_ligament = min(
+        point_to_box_clearance_2d(point, limits, (0, 1)) - chassis_mount_hole_radius
+        for point in mount_points
+        for limits in wheel_limits
+    )
+    wheel_well_cut_radius = wheel_wells["cutout_diameter_mm"] / 2
+    wheel_well_axial_half_length = wheel_wells["cutout_axial_half_length_mm"]
+    minimum_mount_to_well_cut_ligament = min(
+        math.hypot(
+            max(abs(point[0] - wheel["xyz"][0]) - wheel_well_axial_half_length, 0.0),
+            max(abs(point[1] - wheel["xyz"][1]) - wheel_well_cut_radius, 0.0),
+        )
+        - chassis_mount_hole_radius
+        for point in mount_points
+        for wheel in wheel_centres
+    )
+    minimum_mount_to_chassis_edge_ligament = min(
+        chassis_half_width - abs(point[0]) - chassis_mount_hole_radius for point in mount_points
+    )
+    drivetrain = traction["drivetrain"]
+    axis_convention = drivetrain["axis_convention"]
+    forward_axis = axis_convention["forward_axis_direction"]
+    ground_radial_axis = axis_convention["ground_contact_radial_direction"]
+    nominal_angular_velocity = axis_convention["nominal_forward_hub_angular_velocity_direction"]
+    rolling_velocity_direction = vector_cross(nominal_angular_velocity, ground_radial_axis)
     wheel_lateral_limits = [limits[axis_index(track_axis)] for limits in wheel_limits]
     minimum_wheel_lateral_clearance = min(
         chassis_half_width - max(abs(limits[0]), abs(limits[1])) for limits in wheel_lateral_limits
@@ -133,7 +237,6 @@ def analyse() -> dict[str, object]:
         and motors[0]["xyz"][0] == -motors[1]["xyz"][0]
         and motors[0]["xyz"][1:] == motors[1]["xyz"][1:]
     )
-    drivetrain = traction["drivetrain"]
     wheel_by_id = {wheel["id"]: wheel for wheel in wheel_centres}
     motor_by_id = {motor["id"]: motor for motor in motors}
     drivetrain_interfaces = drivetrain["motor_to_wheel_interfaces"]
@@ -159,17 +262,53 @@ def analyse() -> dict[str, object]:
         ("traction_motor_left", "wheel_rear_left"),
         ("traction_motor_right", "wheel_rear_right"),
     }
-    drivetrain_axes_are_y = all(
-        item["motor_output"]["axis_direction"] == [0, 1, 0] and item["wheel_hub"]["axis_direction"] == [0, 1, 0]
+    drivetrain_axes_are_lateral = all(
+        item["motor_output"]["axis_direction"] == [1, 0, 0]
+        and item["wheel_hub"]["axis_direction"] == [1, 0, 0]
+        and vectors_parallel(item["motor_output"]["axis_direction"], item["wheel_hub"]["axis_direction"])
         for item in drivetrain_interfaces
-    ) and drivetrain["axis_convention"]["motor_output_axis_direction"] == [0, 1, 0]
+    ) and drivetrain["axis_convention"]["motor_output_axis_direction"] == [1, 0, 0]
+    wheel_axles_match_axis = all(
+        vectors_parallel(
+            wheel.get("axle_axis_direction", []), drivetrain["axis_convention"]["wheel_hub_axis_direction"]
+        )
+        for wheel in wheel_centres
+    )
+    toward_hub_geometry_is_declared = all(
+        vector_dot(item["motor_output"]["toward_hub_direction"], item["nominal_interface_delta_xyz_mm"]) > 0
+        and abs(item["nominal_interface_delta_xyz_mm"][2]) <= wheel_spec["diameter_mm"]
+        for item in drivetrain_interfaces
+    )
+    interface_face_origins_are_outboard = all(
+        abs(item["motor_output"]["origin_xyz"][0]) >= abs(motor_by_id[item["motor_id"]]["xyz"][0])
+        for item in drivetrain_interfaces
+    )
+    roll_direction_matches_forward = (
+        rolling_velocity_direction == forward_axis
+        and vectors_parallel(
+            axis_convention["motor_output_axis_direction"], axis_convention["wheel_hub_axis_direction"]
+        )
+        and vector_dot(axis_convention["motor_output_axis_direction"], forward_axis) == 0
+    )
+    system_mass_case = load_system_mass_case()
     drivetrain_roles_cover_wheels = (
         driven_wheel_ids.isdisjoint(passive_wheel_ids) and driven_wheel_ids | passive_wheel_ids == expected_wheel_ids
     )
     return {
         "status": "ANALYTICAL_ONLY_PHYSICAL_VALIDATION_REQUIRED",
+        "mass_scope": SPEC["compact_enclosure_analysis_scope"],
         "mass_kg": round(total, 3),
         "center_of_gravity_mm": [round(value, 1) for value in cg],
+        "mass_cases": {
+            "compact_enclosure": {
+                "configuration_id": SPEC["compact_enclosure_analysis_scope"]["configuration_id"],
+                "mass_kg": round(total, 3),
+                "center_of_gravity_mm": [round(value, 1) for value in cg],
+                "status": "ESTIMATE_NOT_MEASURED",
+                "physical_validation": "NOT_EXECUTED",
+            },
+            "full_system": system_mass_case,
+        },
         "static_tip_angle_deg": round(tip_angle, 1),
         "static_tip_angles_deg": {
             "roll_about_y": round(roll_tip_angle, 1),
@@ -192,18 +331,34 @@ def analyse() -> dict[str, object]:
                 wheelbase == SPEC["chassis"]["wheelbase"] and track == SPEC["chassis"]["track"]
             ),
             "wheel_envelopes_fit_chassis_projection": all(
-                abs(limit[0][0]) <= chassis_half_width
-                and abs(limit[1][0]) <= chassis_half_depth + wheel_overhang_allowance
+                abs(limit[0][0]) <= chassis_half_width + wheel_overhang_allowance
+                and abs(limit[1][0]) <= chassis_half_depth + longitudinal_overhang_allowance
                 for limit in wheel_limits
             )
-            and maximum_wheel_axial_overhang <= wheel_overhang_allowance,
+            and maximum_wheel_axial_overhang <= wheel_overhang_allowance
+            and maximum_wheel_longitudinal_overhang <= longitudinal_overhang_allowance,
             "wheel_axis_mapping_is_explicit": (
-                wheel_spec["axis"] == "Y"
+                wheel_spec["axis"] == "X"
                 and chassis["wheelbase_axis"] == "Y"
                 and chassis["track_axis"] == "X"
                 and chassis["wheelbase_axis"] != chassis["track_axis"]
             ),
             "wheel_lateral_clearance_is_nonnegative": minimum_wheel_lateral_clearance >= 0,
+            "wheel_axial_clearance_within_tolerance": (
+                chassis_half_dimensions[wheel_axis]
+                - max(max(abs(limit[0]), abs(limit[1])) for limit in wheel_axis_limits)
+                >= wheel_wells["axial_clearance_per_side_mm"]
+            ),
+            "wheel_shell_radial_clearance_within_tolerance": minimum_wheel_shell_clearance
+            >= wheel_wells["radial_clearance_per_side_mm"],
+            "wheel_longitudinal_overhang_within_tolerance": maximum_wheel_longitudinal_overhang
+            <= longitudinal_overhang_allowance,
+            "wheel_mount_to_envelope_ligament_met": minimum_mount_to_wheel_ligament
+            >= wheel_wells["minimum_mount_hole_to_well_ligament_mm"],
+            "wheel_mount_to_well_ligament_met": minimum_mount_to_well_cut_ligament
+            >= wheel_wells["minimum_mount_hole_to_well_ligament_mm"],
+            "wheel_mount_to_chassis_edge_ligament_met": minimum_mount_to_chassis_edge_ligament
+            >= wheel_wells["minimum_mount_hole_to_chassis_edge_ligament_mm"],
             "wheel_bottom_matches_ground_clearance": all(
                 abs(limit[2][0] - SPEC["chassis"]["ground_clearance"]) <= 0.01 for limit in wheel_limits
             ),
@@ -275,10 +430,23 @@ def analyse() -> dict[str, object]:
                 and interface_wheel_ids == driven_wheel_ids
                 and drivetrain_pairs_are_rear_wheels
             ),
-            "traction_drivetrain_axis_convention_is_explicit": drivetrain_axes_are_y,
+            "traction_drivetrain_axis_convention_is_explicit": drivetrain_axes_are_lateral,
+            "traction_drivetrain_axes_are_lateral": drivetrain_axes_are_lateral,
+            "traction_wheel_axles_match_lateral_axis": wheel_axles_match_axis,
+            "traction_drivetrain_toward_hub_geometry_is_declared": toward_hub_geometry_is_declared,
+            "traction_drivetrain_face_origins_are_outboard": interface_face_origins_are_outboard,
+            "traction_drivetrain_roll_direction_matches_forward": roll_direction_matches_forward,
             "traction_drivetrain_roles_cover_all_wheels": drivetrain_roles_cover_wheels,
             "traction_drivetrain_interface_deltas_match_datums": interface_delta_matches,
             "traction_drivetrain_reaction_path_is_declared": bool(drivetrain["reaction_load_path"]),
+            "compact_analysis_scope_is_not_full_system_release": (
+                SPEC["compact_enclosure_analysis_scope"]["use_for_full_system_release"] is False
+            ),
+            "full_system_mass_case_is_separate_and_unmeasured": (
+                system_mass_case["mass_kg"] == 55.0
+                and system_mass_case["status"] == "ESTIMATE_NOT_MEASURED"
+                and system_mass_case["physical_validation"] == "NOT_EXECUTED"
+            ),
         },
         "pcb_tray_margin_mm": [tray["width"] - pcb_width, tray["depth"] - pcb_depth],
         "pcb_edge_service_margin_mm": service_margin,
@@ -303,7 +471,19 @@ def analyse() -> dict[str, object]:
             "wheelbase_mm": wheelbase,
             "track_mm": track,
             "maximum_wheel_axial_overhang_mm": round(maximum_wheel_axial_overhang, 1),
+            "maximum_wheel_longitudinal_overhang_mm": round(maximum_wheel_longitudinal_overhang, 1),
+            "longitudinal_overhang_nominal_allocation_mm": wheel_wells["longitudinal_overhang_nominal_mm"],
+            "longitudinal_overhang_max_allocation_mm": longitudinal_overhang_allowance,
             "wheel_lateral_clearance_mm": round(minimum_wheel_lateral_clearance, 1),
+            "wheel_axial_clearance_mm": round(
+                chassis_half_dimensions[wheel_axis]
+                - max(max(abs(limit[0]), abs(limit[1])) for limit in wheel_axis_limits),
+                1,
+            ),
+            "wheel_shell_radial_clearance_mm": round(minimum_wheel_shell_clearance, 1),
+            "mount_to_wheel_ligament_mm": round(minimum_mount_to_wheel_ligament, 1),
+            "mount_to_well_cut_ligament_mm": round(minimum_mount_to_well_cut_ligament, 1),
+            "mount_to_chassis_edge_ligament_mm": round(minimum_mount_to_chassis_edge_ligament, 1),
             "ground_contact_z_mm": round(min(limit[2][0] for limit in wheel_limits), 1),
             "release_blockers": wheel_spec["release_blockers"],
             "physical_validation": "NOT_EXECUTED",
@@ -400,13 +580,18 @@ def export_solid_step(path: Path) -> bool:
     display = cq.Workplane("XY").box(150, wall * 4, 72).translate((0, -depth / 2, 261))
     shell = shell.cut(display)
     cq.exporters.export(shell, str(path), exportType="STEP")
-    normalized = "\n".join(line.rstrip() for line in path.read_text(encoding="ascii").splitlines()) + "\n"
-    path.write_text(normalized, encoding="ascii", newline="\n")
+    normalize_step(path)
     return True
 
 
 def normalize_step(path: Path) -> None:
     normalized = "\n".join(line.rstrip() for line in path.read_text(encoding="ascii").splitlines()) + "\n"
+    normalized = re.sub(
+        r"(FILE_NAME\('[^']*',)'[^']*'",
+        lambda match: f"{match.group(1)}'{STEP_EXPORT_TIMESTAMP}'",
+        normalized,
+        count=1,
+    )
     path.write_text(normalized, encoding="ascii", newline="\n")
 
 
@@ -440,6 +625,16 @@ def export_cad_package() -> bool:
         .hole(chassis_spec["mount_hole_diameter_mm"])
         .translate((0, 0, chassis_spec["base_z_mm"] + chassis_spec["thickness"] / 2))
     )
+    wheel_spec = chassis_spec["wheels"]
+    wheel_well_spec = chassis_spec["wheel_wells"]
+    for wheel in wheel_spec["centres"]:
+        wheel_well_cut = (
+            cq.Workplane("YZ")
+            .circle(wheel_well_spec["cutout_diameter_mm"] / 2)
+            .extrude(wheel_well_spec["cutout_axial_half_length_mm"], both=True)
+            .translate(tuple(wheel["xyz"]))
+        )
+        chassis = chassis.cut(wheel_well_cut)
     tray_spec = SPEC["electronics_tray"]
     tray_thickness = tray_spec["thickness_mm"]
     tray = (
@@ -531,9 +726,9 @@ def export_cad_package() -> bool:
     support_standoff_assembly = support_standoffs[0]
     for standoff in support_standoffs[1:]:
         support_standoff_assembly = support_standoff_assembly.union(standoff)
-    wheel_spec = SPEC["chassis"]["wheels"]
     wheel_shapes = {
-        wheel["id"]: cq.Workplane("XZ")
+        # The wheel axle is the X axis; a YZ profile extrudes along X.
+        wheel["id"]: cq.Workplane("YZ")
         .circle(wheel_spec["diameter_mm"] / 2)
         .extrude(wheel_spec["width_mm"] / 2, both=True)
         .translate(tuple(wheel["xyz"]))
@@ -581,35 +776,21 @@ def export_cad_package() -> bool:
     normalize_step(OUT / "enclosure.step")
 
     assembly = cq.Assembly(name="desk_robot")
-    assembly.add(shell, name="upper_shell", color=cq.Color(0.75, 0.75, 0.78, 0.45))
-    assembly.add(chassis, name="lower_chassis", color=cq.Color(0.25, 0.25, 0.28))
-    assembly.add(tray, name="electronics_tray", color=cq.Color(0.45, 0.48, 0.52))
-    assembly.add(display_bracket, name="display_bracket", color=cq.Color(0.1, 0.1, 0.12))
-    assembly.add(bumper, name="impact_bumper", color=cq.Color(0.95, 0.35, 0.05))
+    assembly.add(shell, name="upper_shell")
+    assembly.add(chassis, name="lower_chassis")
+    assembly.add(tray, name="electronics_tray")
+    assembly.add(display_bracket, name="display_bracket")
+    assembly.add(bumper, name="impact_bumper")
     assembly.add(motor_bracket_instances["traction_motor_left"], name="motor_bracket_left")
     assembly.add(motor_bracket_instances["traction_motor_right"], name="motor_bracket_right")
-    assembly.add(
-        motor_envelopes["traction_motor_left"],
-        name="traction_motor_left_TBD_envelope",
-        color=cq.Color(0.9, 0.45, 0.05, 0.45),
-    )
-    assembly.add(
-        motor_envelopes["traction_motor_right"],
-        name="traction_motor_right_TBD_envelope",
-        color=cq.Color(0.9, 0.45, 0.05, 0.45),
-    )
-    assembly.add(
-        childboard_envelope, name="traction_driver_childboard_TBD_envelope", color=cq.Color(0.1, 0.55, 0.35, 0.45)
-    )
-    assembly.add(support_plate, name="traction_driver_childboard_support_TBD", color=cq.Color(0.5, 0.5, 0.5, 0.75))
-    assembly.add(
-        support_standoff_assembly,
-        name="traction_driver_childboard_standoffs_TBD",
-        color=cq.Color(0.35, 0.35, 0.35, 0.9),
-    )
-    assembly.add(battery_envelope, name="battery_pack_TBD_envelope", color=cq.Color(0.1, 0.25, 0.75, 0.45))
+    assembly.add(motor_envelopes["traction_motor_left"], name="traction_motor_left_TBD_envelope")
+    assembly.add(motor_envelopes["traction_motor_right"], name="traction_motor_right_TBD_envelope")
+    assembly.add(childboard_envelope, name="traction_driver_childboard_TBD_envelope")
+    assembly.add(support_plate, name="traction_driver_childboard_support_TBD")
+    assembly.add(support_standoff_assembly, name="traction_driver_childboard_standoffs_TBD")
+    assembly.add(battery_envelope, name="battery_pack_TBD_envelope")
     for name, shape in wheel_shapes.items():
-        assembly.add(shape, name=f"{name}_TBD_envelope", color=cq.Color(0.08, 0.08, 0.1, 0.55))
+        assembly.add(shape, name=f"{name}_TBD_envelope")
     assembly_path = OUT / "desk_robot_assembly.step"
     assembly.save(str(assembly_path), exportType="STEP")
     normalize_step(assembly_path)

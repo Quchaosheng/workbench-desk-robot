@@ -4,6 +4,14 @@ This package defines a reviewable, independently replaceable controller for two
 chassis traction motors. It does not control the six UR5e joints or the Robotiq
 gripper; those remain on their vendor controllers.
 
+The engineering baseline keeps the traction power stage off the main controller
+PCB. The controller board supplies the bounded J2 auxiliary branch, two-channel
+safety ECO and isolated CAN interface; switching bridges, regenerative-energy
+handling and motor/encoder connectors remain on this replaceable childboard.
+The two motors are external chassis assemblies, not PCB-mounted parts. This
+partition prevents motor heat, commutation current and clamp pulses from sharing
+the Jetson controller layout while keeping the childboard serviceable.
+
 The selected review baseline is two 12 V brushed-DC gearmotors powered from the
 controller PCB's J2 auxiliary output. One `DRV8962DDVR` is the driver candidate,
 not an approved part. Pololu item 4753 is now a traceable motor candidate (12 V,
@@ -55,6 +63,13 @@ is the high-current J2/PGND return; `GND_LOGIC` serves the MCU, driver logic and
 safety gates and joins the motor return exactly once at `STAR_GND_01`. The logic
 regulator (`U6`) and isolated CAN converter (`U7`) are functional placeholders
 only; both remain `TBD_BLOCKING` and have no approved MPN.
+
+The same topology table closes each motor terminal to one named DRV8962 output,
+each encoder supply and return to the logic domain, and each quadrature channel
+to its own controller input. The four `IPROPI` outputs also remain four distinct
+ADC paths; tying them together would hide half-bridge faults and is rejected by
+the validator. The driver VM pins use `VM_PROTECTED`, after `F1` and `Q1`, rather
+than a separate or bypassed motor-supply net.
 
 Each regulator path is represented by separate input and output rows. `U6`
 therefore has `VCC_LOGIC_INPUT -> U6.IN` followed by `U6.OUT -> VCC_LOGIC`,

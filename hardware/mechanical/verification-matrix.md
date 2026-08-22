@@ -19,9 +19,9 @@
 | MECH15 | PC-ABS FR, TPU, aluminium, stainless BOM; supplier declarations | MATERIALS SELECTED; RoHS declarations pending |
 | MECH16 | revision-controlled BOM/ECN gate | TEMPLATE COMPLETE; approvals required |
 | MECH17 | independent driver-childboard envelope, fixed support datums, removal and connector corridors | DIGITAL ENVELOPE/FIXED-DATUM PASS; FINAL OUTLINE/THERMAL/PHYSICAL FIT OPEN |
-| MECH18 | four wheel envelopes at controlled X-axis track, Y-axis wheelbase and ground contact | DIGITAL ENVELOPE PASS; HUB/TYRE/BEARING/LOAD/SWEEP VALIDATION OPEN |
+| MECH18 | four wheel envelopes at controlled X-axis track, Y-axis wheelbase, lateral X axles, local chassis wheel-well cuts, shell/well clearance and ground contact | DIGITAL ENVELOPE/TOLERANCE ALLOCATION PASS; HUB/TYRE/BEARING/LOAD/SWEEP VALIDATION OPEN |
 | MECH19 | battery envelope, thermal clearances, support and impact-restraint reservation | DIGITAL CLEARANCE PASS; PACK/RESTRAINT/IMPACT VALIDATION OPEN |
-| MECH20 | drivetrain concept pair map, explicit XYZ axes, motor-to-rear-hub interface deltas and reaction-load path | INTERFACE BASELINE COMPLETE; SHAFT/HUB/TRANSMISSION/LOAD/PHYSICAL VALIDATION OPEN |
+| MECH20 | drivetrain concept pair map, explicit XYZ axes, lateral rolling-vector check, motor-to-rear-hub interface deltas and reaction-load path | INTERFACE/KINEMATIC BASELINE COMPLETE; SHAFT/HUB/TRANSMISSION/LOAD/PHYSICAL VALIDATION OPEN |
 
 ## Assembly and tolerance datums
 
@@ -31,12 +31,20 @@
 - General prototype tolerance: ISO 2768-m; printed parts +/-0.30 mm.
 - Injection shell wall 2.5 +/-0.20 mm, draft 1.5 deg minimum, rib thickness 0.55-0.65 times wall.
 - Harnesses use 6 mm minimum bend radius for signal wiring and 20 mm for the 48 V trunk.
-- Datum D: traction motor envelope centres at X = -86/+86 mm, Y = 0 mm; these are reserved centres pending approved shaft and mount geometry.
+- Datum D: traction motor envelope centres at X = -88/+88 mm, Y = 0 mm; outboard motor-face datums are X = -112/+112 mm. These are reserved centres pending approved shaft and mount geometry.
 - Datum E: driver-childboard envelope centre [0, 54, 151] mm; reserve +Z removal and +Y rear connector access until the physical service trial closes. Its provisional support plate is at Z=136 mm, with lower posts to the electronics-tray top at Z=102 mm.
 - Datum F: battery reservation centre [0, 0, 52] mm; keep a 20 mm analytical heat-source gap and reserve a removable BMS/impact restraint until pack selection.
 - Datum G: conventional chassis axes use X lateral and Y longitudinal; wheel
   centres are X = +/-105 mm and Y = +/-90 mm (track 210 mm, wheelbase 180 mm).
-  Traction concept pairs `traction_motor_left -> wheel_rear_left` and
-  `traction_motor_right -> wheel_rear_right`; motor output and rear hub axes are
-  parallel to +Y. Nominal interface deltas are [-19, 54, -6] and [19, 54, -6] mm;
-  these are review datums, not a frozen shaft or transmission design.
+  Wheel axles, motor outputs and rear hubs are lateral along X. At the floor,
+  nominal -X angular velocity crossed with -Z radial direction produces -Y
+  forward velocity. Traction concept pairs `traction_motor_left ->
+  wheel_rear_left` and `traction_motor_right -> wheel_rear_right`; motor-face
+  origins are [-112, 0, 49] and [112, 0, 49] mm, with nominal interface deltas
+  [7, 90, -6] and [-7, 90, -6] mm. These are review datums, not a frozen shaft
+  or transmission design.
+- Datum H: the enclosure depth is 244 mm to reserve a nominal 4 mm wheel-shell
+  radial gap at the +/-90 mm wheelbase datums. The wheel envelope may extend
+  5 mm nominal (6 mm allocated maximum) beyond the 220 mm chassis plate into the compliant bumper; mount-hole
+  to wheel and chassis-edge ligaments are checked analytically and remain
+  subject to physical tolerance-stack evidence.

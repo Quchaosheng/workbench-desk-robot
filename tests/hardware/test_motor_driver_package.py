@@ -35,6 +35,9 @@ def test_motor_driver_package_is_consistent_but_order_blocked() -> None:
     assert report["metrics"]["controlled_driver_pin_count"] == 44
     assert report["metrics"]["candidate_motor_count"] == 1
     assert report["metrics"]["candidate_dual_stall_current_a"] == 11
+    assert report["metrics"]["motor_output_path_count"] == 4
+    assert report["metrics"]["independent_current_sense_path_count"] == 4
+    assert report["metrics"]["encoder_interface_path_count"] == 8
     assert report["metrics"]["board_envelope_mm"] == [118.0, 82.0, 20.0]
     assert report["metrics"]["mounting_pattern_mm"] == [108.0, 72.0]
     assert set(report["release_blockers"]) >= {
@@ -52,6 +55,9 @@ def test_motor_driver_package_is_consistent_but_order_blocked() -> None:
 
 def test_motor_and_regeneration_unknowns_remain_fail_closed() -> None:
     spec = json.loads((PACKAGE / "electrical-spec.json").read_text(encoding="utf-8"))
+    assert spec["integration_decision"]["traction_power_stage_location"] == "INDEPENDENT_REPLACEABLE_CHILDBOARD"
+    assert not spec["integration_decision"]["power_stage_on_controller_pcb"]
+    assert spec["integration_decision"]["motors_are_external_chassis_assemblies"]
     assert spec["power"]["production_architecture"] is None
     assert spec["scope"]["motor_mpn"] is None
     assert spec["power"]["motor_stall_current_each_a"] is None
@@ -138,6 +144,11 @@ def test_candidate_power_return_and_fault_paths_are_explicit_and_fail_closed() -
     assert report["net_topology_checks"]["logic_motor_ground_join_is_single_point"]
     assert report["net_topology_checks"]["regulator_input_and_output_are_split"]
     assert report["net_topology_checks"]["isolated_can_regulator_input_output_are_split"]
+    assert all(report["interface_topology_checks"].values())
+    assert report["interface_topology_checks"]["driver_vm_uses_protected_bus"]
+    assert report["interface_topology_checks"]["motor_outputs_reach_exact_connector_pins"]
+    assert report["interface_topology_checks"]["current_sense_paths_are_four_independent_channels"]
+    assert report["interface_topology_checks"]["encoder_power_and_returns_are_closed"]
     assert report["safety_path_checks"]["nFAULT_has_two_independent_hardware_inhibits"]
     assert report["placement_direction_checks"]["rear_connectors_face_plus_y_edge"]
     assert report["metrics"]["nFAULT_hardware_inhibit_path_count"] == 2
@@ -148,6 +159,12 @@ def test_candidate_power_return_and_fault_paths_are_explicit_and_fail_closed() -
         "GND_MOTOR",
         "GND_LOGIC",
         "GND_CAN_ISO",
+        "MOTOR_L_A",
+        "MOTOR_L_B",
+        "MOTOR_R_A",
+        "MOTOR_R_B",
+        "ENC_L_GND",
+        "ENC_R_GND",
     }
 
 
@@ -169,12 +186,42 @@ def test_topology_validator_rejects_can_isolation_ground_crossing() -> None:
     assert not validator.validate_net_topology(mutated)["isolated_can_barrier_has_no_local_ground_endpoint"]
 
 
+def test_interface_validator_rejects_unprotected_vm_and_crossed_motor_output() -> None:
+    validator = load_module("motor_driver_interface_negative", PACKAGE / "tools/validate_motor_driver.py")
+    topology = read_csv("net-topology.csv")
+    pins = read_csv("driver-pin-connectivity.csv")
+    connectors = read_csv("connector-pinout.csv")
+    mutated_pins = [dict(row) for row in pins]
+    next(row for row in mutated_pins if row["pin_name"] == "VM")["controlled_net"] = "12V_MOTOR_AUX"
+    mutated_topology = [dict(row) for row in topology]
+    next(row for row in mutated_topology if row["net_name"] == "MOTOR_L_A")["load_endpoints"] = "J_MR.1"
+    checks = validator.validate_interface_topology(mutated_topology, mutated_pins, connectors)
+    assert not checks["driver_vm_uses_protected_bus"]
+    assert not checks["motor_outputs_reach_exact_connector_pins"]
+
+
+def test_interface_validator_rejects_bussed_current_sense_and_open_encoder_return() -> None:
+    validator = load_module("motor_driver_signal_negative", PACKAGE / "tools/validate_motor_driver.py")
+    topology = read_csv("net-topology.csv")
+    pins = read_csv("driver-pin-connectivity.csv")
+    connectors = read_csv("connector-pinout.csv")
+    mutated = [dict(row) for row in topology]
+    next(row for row in mutated if row["net_name"] == "IPROPI_L_B")["load_endpoints"] = "U2.ADC_IPROPI_L_A"
+    next(row for row in mutated if row["net_name"] == "ENC_R_GND")["load_endpoints"] = ""
+    checks = validator.validate_interface_topology(mutated, pins, connectors)
+    assert not checks["current_sense_paths_are_four_independent_channels"]
+    assert not checks["encoder_power_and_returns_are_closed"]
+
+
 def test_layout_review_and_kicad_concept_are_deterministic_mechanical_evidence() -> None:
     renderer = load_module("motor_driver_layout", PACKAGE / "tools/generate_layout_review.py")
+    revision = json.loads((PACKAGE / "electrical-spec.json").read_text(encoding="utf-8"))["revision"]
     checked_svg = (PACKAGE / "generated/placement-review.svg").read_text(encoding="utf-8")
     assert renderer.render_svg() == checked_svg
+    assert f"DUAL-AXIS TRACTION CHILDBOARD - {revision}" in checked_svg
     assert "CONCEPT ONLY - DO NOT ORDER" in checked_svg
     board = (PACKAGE / "kicad/traction-childboard-concept.kicad_pcb").read_text(encoding="utf-8")
+    assert f'(rev "{revision}")' in board
     assert "CONCEPT ONLY - NO ELECTRICAL FOOTPRINTS - DO NOT ORDER" in board
     assert board.count('(property "Reference" "H') == 4
     assert board.count("(segment") == 0

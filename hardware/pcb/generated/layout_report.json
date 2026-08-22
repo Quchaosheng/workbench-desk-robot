@@ -27,6 +27,10 @@
         "zone_count": 1,
         "state": "ok",
         "nominal_width_coverage_pct": 100.0,
+        "total_route_length_mm": 9.8785,
+        "nominal_width_length_mm": 9.8785,
+        "neckdown_total_length_mm": 0,
+        "minimum_width_ratio": 1.25,
         "neckdown_rule": null,
         "accepted_neckdowns": [],
         "violations": []
@@ -39,6 +43,10 @@
         "zone_count": 1,
         "state": "bounded_neckdown",
         "nominal_width_coverage_pct": 94.856,
+        "total_route_length_mm": 65.4694,
+        "nominal_width_length_mm": 62.1018,
+        "neckdown_total_length_mm": 3.3676,
+        "minimum_width_ratio": 0.1,
         "neckdown_rule": {
           "min_width_mm": 0.2,
           "max_segment_length_mm": 1.5,
@@ -74,6 +82,10 @@
         "zone_count": 1,
         "state": "bounded_neckdown",
         "nominal_width_coverage_pct": 66.894,
+        "total_route_length_mm": 25.6989,
+        "nominal_width_length_mm": 17.191,
+        "neckdown_total_length_mm": 8.5079,
+        "minimum_width_ratio": 0.3255,
         "neckdown_rule": {
           "min_width_mm": 0.65,
           "max_segment_length_mm": 1.9,
@@ -137,6 +149,10 @@
         "zone_count": 1,
         "state": "bounded_neckdown",
         "nominal_width_coverage_pct": 40.593,
+        "total_route_length_mm": 21.7156,
+        "nominal_width_length_mm": 8.815,
+        "neckdown_total_length_mm": 12.9006,
+        "minimum_width_ratio": 0.1,
         "neckdown_rule": {
           "min_width_mm": 0.2,
           "max_segment_length_mm": 5.2,
@@ -172,6 +188,10 @@
         "zone_count": 1,
         "state": "bounded_neckdown",
         "nominal_width_coverage_pct": 93.353,
+        "total_route_length_mm": 100.0656,
+        "nominal_width_length_mm": 93.414,
+        "neckdown_total_length_mm": 6.6516,
+        "minimum_width_ratio": 0.1,
         "neckdown_rule": {
           "min_width_mm": 0.2,
           "max_segment_length_mm": 4.0,
@@ -203,6 +223,10 @@
         "zone_count": 3,
         "state": "bounded_neckdown",
         "nominal_width_coverage_pct": 98.48,
+        "total_route_length_mm": 122.9162,
+        "nominal_width_length_mm": 121.0484,
+        "neckdown_total_length_mm": 1.8678,
+        "minimum_width_ratio": 0.4007,
         "neckdown_rule": {
           "min_width_mm": 0.8,
           "max_segment_length_mm": 0.9,
@@ -234,6 +258,10 @@
         "zone_count": 1,
         "state": "bounded_neckdown",
         "nominal_width_coverage_pct": 93.568,
+        "total_route_length_mm": 211.7574,
+        "nominal_width_length_mm": 198.1375,
+        "neckdown_total_length_mm": 13.62,
+        "minimum_width_ratio": 0.1001,
         "neckdown_rule": {
           "min_width_mm": 0.2,
           "max_segment_length_mm": 3.5,
@@ -305,6 +333,10 @@
         "zone_count": 3,
         "state": "bounded_neckdown",
         "nominal_width_coverage_pct": 97.567,
+        "total_route_length_mm": 141.8943,
+        "nominal_width_length_mm": 138.4413,
+        "neckdown_total_length_mm": 3.453,
+        "minimum_width_ratio": 0.1668,
         "neckdown_rule": {
           "min_width_mm": 0.25,
           "max_segment_length_mm": 1.9,
@@ -346,13 +378,13 @@
         ]
       },
       "usage_length_by_category_mm": {
-        "In1.Cu": {
-          "low_speed_signal": 490.4705697355853,
-          "ground": 163.41737467981739
-        },
         "In4.Cu": {
           "low_speed_signal": 458.35899990335207,
           "ground": 82.39817752296611
+        },
+        "In1.Cu": {
+          "low_speed_signal": 490.4705697355853,
+          "ground": 163.41737467981739
         }
       },
       "violations": []
@@ -377,6 +409,30 @@
         ],
         "non_fcu_layers": [],
         "aggregate_length_mm": 10.21261151157268
+      },
+      "pair_length_delta_mm": 6.4303,
+      "load_cap_ground_returns": {
+        "pass": true,
+        "state": "checked",
+        "maximum_via_distance_mm": 2.0,
+        "points": {
+          "CY1": {
+            "pass": true,
+            "ground_pad_position_mm": [
+              88.5,
+              101.725
+            ],
+            "nearest_ground_via_distance_mm": 1.625
+          },
+          "CY2": {
+            "pass": true,
+            "ground_pad_position_mm": [
+              92.775,
+              106.5
+            ],
+            "nearest_ground_via_distance_mm": 0.9059
+          }
+        }
       }
     },
     "can_in1_reference_zone_declared": {
@@ -385,6 +441,49 @@
       "required_layer": "In1.Cu",
       "matching_zone_count": 1,
       "note": "Declaration presence only; continuity, clearance, and impedance remain manual/supplier checks."
+    },
+    "can_reference_zone_coverage_bounds": {
+      "pass": false,
+      "scope": "F.Cu CANH/CANL endpoint bounds against declared In1.Cu GND_CAN_ISO polygons",
+      "reference_polygon_count": 1,
+      "endpoint_count": 54,
+      "covered_endpoint_count": 46,
+      "coverage_percent": 85.185,
+      "uncovered_endpoints_mm": [
+        [
+          140.5,
+          85.0
+        ],
+        [
+          141.0,
+          88.0
+        ],
+        [
+          141.5375,
+          84.0
+        ],
+        [
+          148.0,
+          86.54
+        ],
+        [
+          149.5,
+          85.0
+        ],
+        [
+          150.0,
+          87.0
+        ],
+        [
+          151.0,
+          83.0
+        ],
+        [
+          152.0,
+          88.0
+        ]
+      ],
+      "note": "Polygon-bound coverage does not prove the filled copper shape, clearance voids, or return-current continuity."
     },
     "u6_full_copper_isolation_keepout": {
       "pass": true,
@@ -1107,6 +1206,41 @@
           "topology": "branched_multidrop",
           "length_matching_applicable": false,
           "topology_compatible": true,
+          "graph_shape_compatible": true,
+          "graph_metrics": {
+            "CANH": {
+              "segment_count": 22,
+              "node_count": 23,
+              "connected_component_count": 1,
+              "terminal_count": 3,
+              "branch_node_count": 1,
+              "maximum_node_degree": 3,
+              "degree_histogram": {
+                "1": 3,
+                "2": 19,
+                "3": 1
+              },
+              "length_by_layer_mm": {
+                "F.Cu": 72.3522
+              }
+            },
+            "CANL": {
+              "segment_count": 30,
+              "node_count": 31,
+              "connected_component_count": 1,
+              "terminal_count": 3,
+              "branch_node_count": 1,
+              "maximum_node_degree": 3,
+              "degree_histogram": {
+                "1": 3,
+                "2": 27,
+                "3": 1
+              },
+              "length_by_layer_mm": {
+                "F.Cu": 72.0731
+              }
+            }
+          },
           "via_counts_matched": true,
           "via_count_delta": 0,
           "aggregate_length_delta_mm": 0.2790818475080812,
@@ -1117,6 +1251,41 @@
           "topology": "point_to_point",
           "length_matching_applicable": true,
           "topology_compatible": true,
+          "graph_shape_compatible": true,
+          "graph_metrics": {
+            "CANH_RAW": {
+              "segment_count": 4,
+              "node_count": 5,
+              "connected_component_count": 1,
+              "terminal_count": 2,
+              "branch_node_count": 0,
+              "maximum_node_degree": 2,
+              "degree_histogram": {
+                "1": 2,
+                "2": 3
+              },
+              "length_by_layer_mm": {
+                "F.Cu": 3.375,
+                "In3.Cu": 8.835
+              }
+            },
+            "CANL_RAW": {
+              "segment_count": 4,
+              "node_count": 5,
+              "connected_component_count": 1,
+              "terminal_count": 2,
+              "branch_node_count": 0,
+              "maximum_node_degree": 2,
+              "degree_histogram": {
+                "1": 2,
+                "2": 3
+              },
+              "length_by_layer_mm": {
+                "F.Cu": 3.5918,
+                "In3.Cu": 10.35
+              }
+            }
+          },
           "via_counts_matched": true,
           "via_count_delta": 0,
           "aggregate_length_delta_mm": 1.7318407733465406,
@@ -1188,11 +1357,220 @@
     "can_pair_coupling_and_stub_geometry": {
       "status": "OPEN_LAYOUT_REVIEW_REQUIRED",
       "machine_verifiable": false,
+      "machine_evidence": {
+        "pair_route_metrics": {
+          "CANH/CANL": {
+            "pass": true,
+            "topology": "branched_multidrop",
+            "length_matching_applicable": false,
+            "topology_compatible": true,
+            "graph_shape_compatible": true,
+            "graph_metrics": {
+              "CANH": {
+                "segment_count": 22,
+                "node_count": 23,
+                "connected_component_count": 1,
+                "terminal_count": 3,
+                "branch_node_count": 1,
+                "maximum_node_degree": 3,
+                "degree_histogram": {
+                  "1": 3,
+                  "2": 19,
+                  "3": 1
+                },
+                "length_by_layer_mm": {
+                  "F.Cu": 72.3522
+                }
+              },
+              "CANL": {
+                "segment_count": 30,
+                "node_count": 31,
+                "connected_component_count": 1,
+                "terminal_count": 3,
+                "branch_node_count": 1,
+                "maximum_node_degree": 3,
+                "degree_histogram": {
+                  "1": 3,
+                  "2": 27,
+                  "3": 1
+                },
+                "length_by_layer_mm": {
+                  "F.Cu": 72.0731
+                }
+              }
+            },
+            "via_counts_matched": true,
+            "via_count_delta": 0,
+            "aggregate_length_delta_mm": 0.2790818475080812,
+            "limit_mm": 5.0
+          },
+          "CANH_RAW/CANL_RAW": {
+            "pass": true,
+            "topology": "point_to_point",
+            "length_matching_applicable": true,
+            "topology_compatible": true,
+            "graph_shape_compatible": true,
+            "graph_metrics": {
+              "CANH_RAW": {
+                "segment_count": 4,
+                "node_count": 5,
+                "connected_component_count": 1,
+                "terminal_count": 2,
+                "branch_node_count": 0,
+                "maximum_node_degree": 2,
+                "degree_histogram": {
+                  "1": 2,
+                  "2": 3
+                },
+                "length_by_layer_mm": {
+                  "F.Cu": 3.375,
+                  "In3.Cu": 8.835
+                }
+              },
+              "CANL_RAW": {
+                "segment_count": 4,
+                "node_count": 5,
+                "connected_component_count": 1,
+                "terminal_count": 2,
+                "branch_node_count": 0,
+                "maximum_node_degree": 2,
+                "degree_histogram": {
+                  "1": 2,
+                  "2": 3
+                },
+                "length_by_layer_mm": {
+                  "F.Cu": 3.5918,
+                  "In3.Cu": 10.35
+                }
+              }
+            },
+            "via_counts_matched": true,
+            "via_count_delta": 0,
+            "aggregate_length_delta_mm": 1.7318407733465406,
+            "limit_mm": 5.0
+          }
+        },
+        "testpoint_stubs": {
+          "max_stub_length_mm": 3.5,
+          "pair_stub_delta_limit_mm": 1.0,
+          "position_tolerance_mm": 0.01,
+          "pair_stub_delta_mm": 0.8053,
+          "pair_match_pass": true,
+          "points": {
+            "TP6": {
+              "pass": true,
+              "net": "CANH",
+              "layer": "F.Cu",
+              "stub_length_mm": 3.0414,
+              "start": [
+                140.5,
+                85.0
+              ],
+              "end": [
+                141.0,
+                88.0
+              ]
+            },
+            "TP7": {
+              "pass": true,
+              "net": "CANL",
+              "layer": "F.Cu",
+              "stub_length_mm": 2.2361,
+              "start": [
+                150.0,
+                87.0
+              ],
+              "end": [
+                152.0,
+                88.0
+              ]
+            }
+          },
+          "state": "checked",
+          "pass": true
+        }
+      },
       "note": "Branched CAN totals are not differential length; review coupled runs and connector, TVS, testpoint, and termination stubs manually."
     },
     "can_branched_path_correspondence": {
       "status": "OPEN_LAYOUT_REVIEW_REQUIRED",
       "machine_verifiable": false,
+      "machine_evidence": {
+        "CANH/CANL": {
+          "graph_shape_compatible": true,
+          "graph_metrics": {
+            "CANH": {
+              "segment_count": 22,
+              "node_count": 23,
+              "connected_component_count": 1,
+              "terminal_count": 3,
+              "branch_node_count": 1,
+              "maximum_node_degree": 3,
+              "degree_histogram": {
+                "1": 3,
+                "2": 19,
+                "3": 1
+              },
+              "length_by_layer_mm": {
+                "F.Cu": 72.3522
+              }
+            },
+            "CANL": {
+              "segment_count": 30,
+              "node_count": 31,
+              "connected_component_count": 1,
+              "terminal_count": 3,
+              "branch_node_count": 1,
+              "maximum_node_degree": 3,
+              "degree_histogram": {
+                "1": 3,
+                "2": 27,
+                "3": 1
+              },
+              "length_by_layer_mm": {
+                "F.Cu": 72.0731
+              }
+            }
+          }
+        },
+        "CANH_RAW/CANL_RAW": {
+          "graph_shape_compatible": true,
+          "graph_metrics": {
+            "CANH_RAW": {
+              "segment_count": 4,
+              "node_count": 5,
+              "connected_component_count": 1,
+              "terminal_count": 2,
+              "branch_node_count": 0,
+              "maximum_node_degree": 2,
+              "degree_histogram": {
+                "1": 2,
+                "2": 3
+              },
+              "length_by_layer_mm": {
+                "F.Cu": 3.375,
+                "In3.Cu": 8.835
+              }
+            },
+            "CANL_RAW": {
+              "segment_count": 4,
+              "node_count": 5,
+              "connected_component_count": 1,
+              "terminal_count": 2,
+              "branch_node_count": 0,
+              "maximum_node_degree": 2,
+              "degree_histogram": {
+                "1": 2,
+                "2": 3
+              },
+              "length_by_layer_mm": {
+                "F.Cu": 3.5918,
+                "In3.Cu": 10.35
+              }
+            }
+          }
+        }
+      },
       "note": "Branch presence and layer parity do not prove matching endpoint paths; compare each CANH/CANL connector, protection, testpoint, and termination branch manually."
     },
     "can_testpoint_stub_geometry": {
@@ -1203,12 +1581,161 @@
     "can_reference_plane_continuity": {
       "status": "OPEN_LAYOUT_REVIEW_REQUIRED",
       "machine_verifiable": false,
+      "machine_evidence": {
+        "pass": false,
+        "scope": "F.Cu CANH/CANL endpoint bounds against declared In1.Cu GND_CAN_ISO polygons",
+        "reference_polygon_count": 1,
+        "endpoint_count": 54,
+        "covered_endpoint_count": 46,
+        "coverage_percent": 85.185,
+        "uncovered_endpoints_mm": [
+          [
+            140.5,
+            85.0
+          ],
+          [
+            141.0,
+            88.0
+          ],
+          [
+            141.5375,
+            84.0
+          ],
+          [
+            148.0,
+            86.54
+          ],
+          [
+            149.5,
+            85.0
+          ],
+          [
+            150.0,
+            87.0
+          ],
+          [
+            151.0,
+            83.0
+          ],
+          [
+            152.0,
+            88.0
+          ]
+        ],
+        "note": "Polygon-bound coverage does not prove the filled copper shape, clearance voids, or return-current continuity."
+      },
       "note": "Candidate signal layers do not prove a continuous adjacent GND_CAN_ISO reference plane; review plane coverage and return-path discontinuities manually."
     },
     "oscillator_return_path_and_load": {
       "status": "OPEN_MANUAL_REVIEW_REQUIRED",
       "machine_verifiable": false,
+      "machine_evidence": {
+        "pair_length_delta_mm": 6.4303,
+        "load_cap_ground_returns": {
+          "pass": true,
+          "state": "checked",
+          "maximum_via_distance_mm": 2.0,
+          "points": {
+            "CY1": {
+              "pass": true,
+              "ground_pad_position_mm": [
+                88.5,
+                101.725
+              ],
+              "nearest_ground_via_distance_mm": 1.625
+            },
+            "CY2": {
+              "pass": true,
+              "ground_pad_position_mm": [
+                92.775,
+                106.5
+              ],
+              "nearest_ground_via_distance_mm": 0.9059
+            }
+          }
+        }
+      },
       "note": "Top-layer routing and zero vias do not prove crystal load, return-path, or EMI margin."
+    },
+    "high_current_path_semantics_and_thermal": {
+      "status": "OPEN_PI_THERMAL_REVIEW_REQUIRED",
+      "machine_verifiable": false,
+      "machine_evidence": {
+        "VBAT_FUSED": {
+          "state": "bounded_neckdown",
+          "target_width_mm": 2.0,
+          "minimum_width_mm": 0.2,
+          "minimum_width_ratio": 0.1,
+          "neckdown_total_length_mm": 3.3676,
+          "accepted_neckdown_count": 4,
+          "allowed_use": "LTC4368 VIN monitor branch and package escapes"
+        },
+        "FET_COMMON": {
+          "state": "bounded_neckdown",
+          "target_width_mm": 2.0,
+          "minimum_width_mm": 0.651,
+          "minimum_width_ratio": 0.3255,
+          "neckdown_total_length_mm": 8.5079,
+          "accepted_neckdown_count": 11,
+          "allowed_use": "back-to-back MOSFET package escapes"
+        },
+        "INPUT_SENSE": {
+          "state": "bounded_neckdown",
+          "target_width_mm": 2.0,
+          "minimum_width_mm": 0.2,
+          "minimum_width_ratio": 0.1,
+          "neckdown_total_length_mm": 12.9006,
+          "accepted_neckdown_count": 4,
+          "allowed_use": "Kelvin sense branch from RS1 to LTC4368 SENSE"
+        },
+        "VBAT_PROTECTED": {
+          "state": "bounded_neckdown",
+          "target_width_mm": 2.0,
+          "minimum_width_mm": 0.2,
+          "minimum_width_ratio": 0.1,
+          "neckdown_total_length_mm": 6.6516,
+          "accepted_neckdown_count": 3,
+          "allowed_use": "LTC4368 VOUT monitor branch and package escapes"
+        },
+        "GND_PWR": {
+          "state": "bounded_neckdown",
+          "target_width_mm": 2.0,
+          "minimum_width_mm": 0.8014,
+          "minimum_width_ratio": 0.4007,
+          "neckdown_total_length_mm": 1.8678,
+          "accepted_neckdown_count": 3,
+          "allowed_use": "primary controller and divider returns"
+        },
+        "12V_ISO": {
+          "state": "bounded_neckdown",
+          "target_width_mm": 2.5,
+          "minimum_width_mm": 0.250199,
+          "minimum_width_ratio": 0.1001,
+          "neckdown_total_length_mm": 13.62,
+          "accepted_neckdown_count": 13,
+          "allowed_use": "parallel eFuse pins, decoupling, feedback, and control branches"
+        },
+        "JETSON_12V": {
+          "state": "bounded_neckdown",
+          "target_width_mm": 1.5,
+          "minimum_width_mm": 0.250199,
+          "minimum_width_ratio": 0.1668,
+          "neckdown_total_length_mm": 3.453,
+          "accepted_neckdown_count": 4,
+          "allowed_use": "parallel eFuse output pins and PGOOD divider branch"
+        }
+      },
+      "note": "Geometric neckdown limits do not prove that only monitor, feedback, and package-escape current uses the narrow segments; review extracted current paths, IR drop, SOA, and copper temperature."
+    },
+    "reference_layer_signal_occupancy": {
+      "status": "OPEN_STACKUP_RETURN_PATH_REVIEW_REQUIRED",
+      "machine_verifiable": true,
+      "review_threshold_mm": 250.0,
+      "low_speed_route_length_mm": {
+        "In4.Cu": 458.359,
+        "In1.Cu": 490.4706
+      },
+      "note": "Low-speed routing on a reference layer can fragment return-current copper even when net categories pass."
     },
     "u3_microvia_fabrication": {
       "status": "OPEN_SUPPLIER_DFM_REQUIRED",
@@ -1234,6 +1761,8 @@
     "can_branched_path_correspondence",
     "can_reference_plane_continuity",
     "oscillator_return_path_and_load",
+    "high_current_path_semantics_and_thermal",
+    "reference_layer_signal_occupancy",
     "u3_microvia_fabrication",
     "raw_can_blind_via_fabrication",
     "u7_isolated_power_safety_suitability"

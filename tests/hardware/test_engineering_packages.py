@@ -4,6 +4,8 @@ import csv
 import importlib.util
 import json
 import re
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -41,6 +43,17 @@ class MechanicalPackageTests(unittest.TestCase):
         self.assertTrue((generated / "drawings/general-arrangement.svg").exists())
         screening = json.loads((generated / "drop-screening.json").read_text(encoding="utf-8"))
         self.assertEqual(screening["acceptance"]["peak_deceleration_g"], 35)
+
+    def test_step_exports_have_reproducible_metadata_and_assembly_styles(self) -> None:
+        generated = ROOT / "hardware/mechanical/generated"
+        step_paths = sorted(generated.rglob("*.step"))
+        self.assertGreaterEqual(len(step_paths), 19)
+        for step_path in step_paths:
+            step = step_path.read_text(encoding="ascii")
+            self.assertIn("'2026-08-06T00:00:00'", step)
+        assembly = (generated / "desk_robot_assembly.step").read_text(encoding="ascii")
+        self.assertNotIn("SURFACE_STYLE_TRANSPARENT", assembly)
+        self.assertNotIn("STYLED_ITEM", assembly)
 
     def test_controller_board_fits_tray_and_mount_pattern_is_controlled(self) -> None:
         module = load_module("mechanical_generator_fit", ROOT / "hardware/mechanical/tools/generate_artifacts.py")
@@ -146,7 +159,11 @@ class PcbPackageTests(unittest.TestCase):
         module = load_module("release_readiness", ROOT / "hardware/pcb/tools/release_readiness.py")
         report = module.audit()
         self.assertTrue(report["engineering_package_pass"])
-        self.assertEqual(report["status"], "ORDER_RELEASE_BLOCKED")
+        self.assertEqual(report["status"], "PRODUCTION_RELEASE_BLOCKED")
+        self.assertEqual(report["legacy_status"], "ORDER_RELEASE_BLOCKED")
+        self.assertEqual(report["evt_prototype_order"]["status"], "EVT_PROTOTYPE_ORDER_BLOCKED")
+        self.assertFalse(report["evt_prototype_order"]["checks"]["critical_test_access_design_closed"])
+        self.assertFalse(report["production_release"]["checks"]["critical_test_access_physically_verified"])
         self.assertTrue(report["order_release_checks"]["detailed_schematic_has_symbols"])
         self.assertFalse(report["order_release_checks"]["safety_analysis_approved"])
         self.assertTrue(report["engineering_checks"]["approval_register_covers_all_pending_bom_lines"])
@@ -154,6 +171,9 @@ class PcbPackageTests(unittest.TestCase):
         self.assertTrue(report["engineering_checks"]["board_layout_hard_gates_pass"])
         self.assertTrue(report["engineering_checks"]["fabrication_metadata_controlled"])
         self.assertTrue(report["engineering_checks"]["connector_limit_semantics_consistent"])
+        self.assertTrue(report["engineering_checks"]["bringup_plan_covers_input_envelope_and_faults"])
+        self.assertTrue(report["engineering_checks"]["critical_test_access_plan_complete"])
+        self.assertTrue(report["engineering_checks"]["component_source_ids_resolve"])
         self.assertEqual(report["connector_limit_semantics"]["j2_controlled_system_limit_a"], "10")
         self.assertIn("u7_isolated_power_safety_suitability", report["layout_status"]["open_risks"])
         self.assertTrue(
@@ -164,9 +184,11 @@ class PcbPackageTests(unittest.TestCase):
         self.assertEqual(report["isolated_power_guard"]["required_placeholder"], "TBD_36_60V_TO_12V_240W_ISOLATED")
         self.assertEqual(report["layout_status"]["status"], "LAYOUT_HARD_GATES_PASS_RISKS_OPEN")
         self.assertIn("can_differential_impedance", report["layout_status"]["open_risks"])
+        self.assertIn("high_current_path_semantics_and_thermal", report["layout_status"]["open_risks"])
         self.assertEqual(report["component_counts"], {"board_footprints": 114, "bom_references": 114})
         self.assertEqual(len(report["procurement_hold_references"]), 68)
         self.assertTrue(report["engineering_checks"]["safety_truth_table_covers_channel_discrepancy"])
+
         with (ROOT / "hardware/pcb/connector-pinout.csv").open(newline="", encoding="utf-8") as handle:
             rows = list(csv.DictReader(handle))
         self.assertEqual(len([row for row in rows if row["reference"] == "J4"]), 20)
@@ -197,6 +219,15 @@ class PcbPackageTests(unittest.TestCase):
         self.assertIn("Isolated_48V_12V_240W_TBD", board)
         self.assertNotIn("DCM3623", board)
 
+    def test_pcb_release_cli_fails_closed_for_blocked_stage(self) -> None:
+        script = ROOT / "hardware/pcb/tools/release_readiness.py"
+        production = subprocess.run([sys.executable, str(script)], cwd=ROOT, capture_output=True, text=True)
+        structure = subprocess.run(
+            [sys.executable, str(script), "--stage", "structure"], cwd=ROOT, capture_output=True, text=True
+        )
+        self.assertNotEqual(production.returncode, 0)
+        self.assertEqual(structure.returncode, 0, structure.stderr)
+
     def test_official_sources_and_interface_freeze_states_are_explicit(self) -> None:
         baseline = json.loads((ROOT / "hardware/pcb/source-baseline.json").read_text(encoding="utf-8"))
         self.assertEqual(baseline["maturity"], "EVT_REVIEWABLE_NOT_PRODUCTION_RELEASED")
@@ -210,6 +241,67 @@ class PcbPackageTests(unittest.TestCase):
         self.assertIn("16-50 V input", exclusion["claim"])
         self.assertIn("28 V output", exclusion["claim"])
         self.assertIn("not candidate evidence", exclusion["claim"])
+        with (ROOT / "hardware/pcb/component-selection-matrix.csv").open(newline="", encoding="utf-8") as handle:
+            required_source_ids = {row["source_id"] for row in csv.DictReader(handle)}
+        self.assertTrue(required_source_ids <= {item["id"] for item in baseline["sources"]})
+
+    def test_bringup_plan_is_complete_and_fails_closed_when_a_required_case_is_removed(self) -> None:
+        module = load_module("release_readiness_bringup", ROOT / "hardware/pcb/tools/release_readiness.py")
+        with (ROOT / "hardware/pcb/fabrication/bringup-test-plan.csv").open(newline="", encoding="utf-8") as handle:
+            rows = list(csv.DictReader(handle))
+        report = module.check_bringup_plan(rows)
+        self.assertTrue(report["pass"])
+        self.assertEqual(
+            report["input_endpoint_evidence"],
+            {"36V": "RAILS_36V", "48V": "RAILS_48V", "60V": "RAILS_60V"},
+        )
+        self.assertIn("THERMAL_SOAK_LONG", report["declared_test_ids"])
+        incomplete = [row for row in rows if row["test_id"] != "REVERSE_POLARITY"]
+        report = module.check_bringup_plan(incomplete)
+        self.assertFalse(report["pass"])
+        self.assertEqual(report["missing_test_ids"], ["REVERSE_POLARITY"])
+
+    def test_fixture_access_plan_is_complete_but_design_and_physical_gates_remain_closed(self) -> None:
+        module = load_module("release_readiness_fixture", ROOT / "hardware/pcb/tools/release_readiness.py")
+        with (ROOT / "hardware/pcb/fixture-access-plan.csv").open(newline="", encoding="utf-8") as handle:
+            rows = list(csv.DictReader(handle))
+        with (ROOT / "hardware/pcb/connector-pinout.csv").open(newline="", encoding="utf-8") as handle:
+            pinout = list(csv.DictReader(handle))
+        with (ROOT / "hardware/manufacturing/fixture-budget.csv").open(newline="", encoding="utf-8") as handle:
+            fixtures = list(csv.DictReader(handle))
+        report = module.check_fixture_access_plan(rows, pinout, fixtures)
+        self.assertTrue(report["pass"])
+        self.assertFalse(report["design_ready"])
+        self.assertFalse(report["release_ready"])
+        self.assertIn("5V_CAN_ISO", report["eco_required_nets"])
+        invalid = [dict(row) for row in rows]
+        invalid[0]["planned_access"] = "J5.3"
+        report = module.check_fixture_access_plan(invalid, pinout, fixtures)
+        self.assertFalse(report["pass"])
+        self.assertEqual(report["invalid_rows"][0]["reason"], "connector_access_does_not_match_net")
+        colliding = [dict(row) for row in rows]
+        eco_index = next(index for index, row in enumerate(colliding) if row["design_state"] == "ECO_REQUIRED")
+        colliding[eco_index]["planned_access"] = "ECO-TP1"
+        report = module.check_fixture_access_plan(colliding, pinout, fixtures)
+        self.assertFalse(report["pass"])
+        self.assertEqual(report["invalid_rows"][0]["reason"], "eco_testpoint_collides_with_existing_pad")
+
+    def test_component_source_baseline_fails_closed_on_an_unresolved_source_id(self) -> None:
+        module = load_module("release_readiness_sources", ROOT / "hardware/pcb/tools/release_readiness.py")
+        with (ROOT / "hardware/pcb/component-selection-matrix.csv").open(newline="", encoding="utf-8") as handle:
+            components = list(csv.DictReader(handle))
+        baseline = json.loads((ROOT / "hardware/pcb/source-baseline.json").read_text(encoding="utf-8"))
+        report = module.check_source_baseline(components, baseline)
+        self.assertTrue(report["pass"])
+        missing_id = components[0]["source_id"]
+        incomplete = {**baseline, "sources": [item for item in baseline["sources"] if item["id"] != missing_id]}
+        report = module.check_source_baseline(components, incomplete)
+        self.assertFalse(report["pass"])
+        self.assertEqual(report["missing_source_ids"], [missing_id])
+        malformed = {**baseline, "sources": [*baseline["sources"], "not-an-object"]}
+        report = module.check_source_baseline(components, malformed)
+        self.assertFalse(report["pass"])
+        self.assertEqual(report["invalid_sources"], ["<non-object-source>"])
 
     def test_isolated_power_guard_rejects_excluded_part_and_non_tbd_bom(self) -> None:
         module = load_module("release_readiness_u2_guard", ROOT / "hardware/pcb/tools/release_readiness.py")
@@ -363,12 +455,59 @@ class ManufacturingPackageTests(unittest.TestCase):
         self.assertEqual(
             {item["harness_id"] for item in report["traction_results"]}, {f"H{index:02d}" for index in range(9, 15)}
         )
+        self.assertEqual(
+            {item["harness_id"] for item in report["integration_results"]},
+            {"H02", *{f"H{index:02d}" for index in range(9, 15)}},
+        )
+        self.assertEqual(len(report["all_results"]), 14)
+        self.assertTrue(report["engineering_checks"]["all_fourteen_harnesses_are_evaluated"])
+        self.assertTrue(report["engineering_checks"]["traction_endpoint_contract_is_explicit"])
+        self.assertTrue(report["engineering_checks"]["traction_pin_maps_match_controlled_interfaces"])
+        self.assertTrue(report["engineering_checks"]["traction_active_semantics_are_explicit"])
+        self.assertTrue(report["engineering_checks"]["traction_shield_and_drain_semantics_are_explicit"])
+        self.assertTrue(report["cross_package_checks"]["j2_harness_row_matches_controller_ceiling"])
         self.assertTrue(all(item["drop_pass"] for item in report["traction_results"]))
         self.assertFalse(report["release_checks"]["all_mating_parts_approved"])
         self.assertTrue(report["cross_package_checks"]["candidate_dual_stall_exceeds_j2_ceiling"])
         self.assertEqual(report["power_budget"]["candidate_dual_stall_current_a"], 11.0)
         self.assertEqual(report["power_budget"]["j2_aggregate_current_ceiling_a"], 10.0)
         self.assertFalse(report["release_checks"]["candidate_dual_stall_within_j2_ceiling"])
+
+    def test_traction_harness_contract_rejects_pin_endpoint_and_shield_drift(self) -> None:
+        module = load_module(
+            "traction_harness_semantics_negative", ROOT / "hardware/manufacturing/tools/validate_harnesses.py"
+        )
+        with (ROOT / "hardware/manufacturing/harness-spec.csv").open(newline="", encoding="utf-8") as handle:
+            rows = list(module.csv.DictReader(handle))
+
+        rows[1]["pin_map"] = "J2.1->J_PWR.1"
+        checks = module._integration_semantics_checks(rows)
+        self.assertFalse(checks["traction_pin_maps_match_controlled_interfaces"])
+
+        with (ROOT / "hardware/manufacturing/harness-spec.csv").open(newline="", encoding="utf-8") as handle:
+            rows = list(module.csv.DictReader(handle))
+        h11 = next(row for row in rows if row["harness_id"] == "H11")
+        h11["destination_endpoint"] = h11["source_endpoint"]
+        checks = module._integration_semantics_checks(rows)
+        self.assertFalse(checks["endpoint_semantics_fields_are_present"])
+
+        with (ROOT / "hardware/manufacturing/harness-spec.csv").open(newline="", encoding="utf-8") as handle:
+            rows = list(module.csv.DictReader(handle))
+        h13 = next(row for row in rows if row["harness_id"] == "H13")
+        h13["shield_conductors"] = "0"
+        checks = module._integration_semantics_checks(rows)
+        self.assertFalse(checks["signal_and_shield_conductor_counts_reconcile"])
+
+    def test_current_j11_is_explicitly_not_the_childboard_dual_safety_endpoint(self) -> None:
+        with (ROOT / "hardware/manufacturing/harness-spec.csv").open(newline="", encoding="utf-8") as handle:
+            rows = list(csv.DictReader(handle))
+        current_j11 = next(row for row in rows if row["harness_id"] == "H08")
+        safety_eco = next(row for row in rows if row["harness_id"] == "H09")
+        self.assertEqual(current_j11["source_endpoint"], "CONTROLLER_J11_CURRENT")
+        self.assertEqual(current_j11["destination_endpoint"], "UNDEFINED_SINGLE_CHANNEL_DRIVER_ENDPOINT")
+        self.assertEqual(safety_eco["source_endpoint"], "CONTROLLER_J10_K1_K2_SAFETY_ECO")
+        self.assertEqual(safety_eco["destination_endpoint"], "TRACTION_CHILDBOARD_J_SAFE")
+        self.assertNotEqual(current_j11["destination_endpoint"], safety_eco["destination_endpoint"])
 
     def test_harness_bend_radius_gate_rejects_underdeclared_motor_radius(self) -> None:
         module = load_module("harness_bend_negative", ROOT / "hardware/manufacturing/tools/validate_harnesses.py")
@@ -473,11 +612,92 @@ class ReleaseReadinessTests(unittest.TestCase):
         module = load_module("release_readiness_checks", ROOT / "hardware/release/tools/check_release_readiness.py")
         report = module.validate()
         self.assertTrue(report["pass"])
-        self.assertEqual(report["status"], "RELEASE_BLOCKED")
+        self.assertEqual(report["status"], "PRODUCTION_RELEASE_BLOCKED")
+        self.assertEqual(report["legacy_status"], "RELEASE_BLOCKED")
+        self.assertEqual(report["production_release"]["status"], "PRODUCTION_RELEASE_BLOCKED")
+        self.assertEqual(report["evt_prototype_order"]["status"], "EVT_PROTOTYPE_ORDER_BLOCKED")
         self.assertGreaterEqual(report["blocker_count"], 10)
         self.assertIn("REL-003A", report["blockers"])
         self.assertIn("REL-004", report["blockers"])
         self.assertIn("REL-014", report["blockers"])
+
+    def test_pass_row_cannot_mask_a_blocked_upstream_stage(self) -> None:
+        module = load_module("release_readiness_bindings", ROOT / "hardware/release/tools/check_release_readiness.py")
+        rows = [
+            {
+                "gate_id": "REL-TEST",
+                "status": "PASS",
+                "evidence_ref": "hardware/pcb/generated/release_readiness.json",
+                "evidence_binding": "PRODUCTION_READY",
+            }
+        ]
+        report = module.validate_evidence_bindings(rows, "gate_id")
+        self.assertFalse(report["pass"])
+        self.assertEqual(report["mismatches"][0]["id"], "REL-TEST")
+        self.assertEqual(report["mismatches"][0]["observed_ready"], "false")
+
+        engineering_rows = [{**rows[0], "evidence_binding": "ENGINEERING_PASS"}]
+        self.assertTrue(module.validate_evidence_bindings(engineering_rows, "gate_id")["pass"])
+        self.assertEqual(module.binding_mismatches(rows, "gate_id", "production_release_blocker"), [])
+        rows[0]["production_release_blocker"] = "yes"
+        self.assertEqual(module.binding_mismatches(rows, "gate_id", "production_release_blocker"), ["REL-TEST"])
+
+    def test_binding_contract_rejects_downgrade_and_path_escape(self) -> None:
+        module = load_module(
+            "release_readiness_binding_contract", ROOT / "hardware/release/tools/check_release_readiness.py"
+        )
+        rows = [
+            {
+                "gate_id": "REL-003A",
+                "status": "BLOCKED",
+                "evidence_ref": "hardware/motor_driver/generated/release-readiness.json",
+                "evidence_binding": "ENGINEERING_PASS",
+            }
+        ]
+        report = module.validate_evidence_bindings(rows, "gate_id", {"REL-003A": "PRODUCTION_READY"})
+        self.assertFalse(report["pass"])
+        self.assertEqual(report["binding_contract_mismatches"], ["REL-003A"])
+        self.assertIsNone(module.resolve_repo_ref("../outside-evidence.json"))
+
+    def test_blocked_row_cannot_hide_a_ready_upstream_report(self) -> None:
+        module = load_module(
+            "release_readiness_ready_binding", ROOT / "hardware/release/tools/check_release_readiness.py"
+        )
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            report_path = Path(directory) / "ready.json"
+            report_path.write_text(
+                json.dumps(
+                    {
+                        "status": "PRODUCTION_RELEASE_READY",
+                        "production_release": {"ready": True},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            reference = report_path.relative_to(ROOT).as_posix()
+            rows = [
+                {
+                    "closure_id": "HWC-TEST",
+                    "status": "BLOCKED",
+                    "evidence_ref": reference,
+                    "evidence_binding": "PRODUCTION_READY",
+                }
+            ]
+            report = module.validate_evidence_bindings(rows, "closure_id")
+        self.assertFalse(report["pass"])
+        self.assertEqual(report["mismatches"][0]["id"], "HWC-TEST")
+        self.assertEqual(report["mismatches"][0]["observed_ready"], "true")
+
+    def test_release_cli_fails_blocked_stages_but_allows_structure_audit(self) -> None:
+        script = ROOT / "hardware/release/tools/check_release_readiness.py"
+        production = subprocess.run([sys.executable, str(script)], cwd=ROOT, capture_output=True, text=True)
+        evt = subprocess.run([sys.executable, str(script), "--stage", "evt"], cwd=ROOT, capture_output=True, text=True)
+        structure = subprocess.run(
+            [sys.executable, str(script), "--stage", "structure"], cwd=ROOT, capture_output=True, text=True
+        )
+        self.assertNotEqual(production.returncode, 0)
+        self.assertNotEqual(evt.returncode, 0)
+        self.assertEqual(structure.returncode, 0, structure.stderr)
 
 
 class TaskPacketTests(unittest.TestCase):

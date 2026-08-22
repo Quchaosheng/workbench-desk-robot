@@ -1,11 +1,14 @@
 {
-  "blocker_count": 13,
+  "blocker_count": 16,
   "blockers": [
+    "REL-002",
     "REL-003A",
     "REL-004",
     "REL-005",
-    "REL-006",
-    "REL-007",
+    "REL-006A",
+    "REL-006B",
+    "REL-007A",
+    "REL-007B",
     "REL-008",
     "REL-009",
     "REL-010",
@@ -16,17 +19,216 @@
     "REL-015"
   ],
   "checks": {
-    "all_blockers_are_explicit": true,
     "all_gates_have_owner_and_next_action": true,
-    "blocked_gates_are_not_pass": true,
+    "binding_contract_ids_are_complete": true,
+    "evidence_bindings_match_statuses": true,
     "evidence_references_exist": true,
+    "evt_gates_are_production_gates": true,
     "gate_ids_are_unique": true,
+    "master_closure_checklist_is_valid": true,
+    "not_executed_gates_do_not_block_evt_order": true,
+    "stage_blockers_are_explicit": true,
     "statuses_are_controlled": true,
-    "upstream_reports_remain_fail_closed": true
+    "upstream_reports_are_structurally_valid": true
   },
-  "gate_count": 16,
-  "note": "PASS means repository evidence is present; it never substitutes for external physical or commercial evidence.",
+  "closure_checklist": {
+    "checks": {
+      "binding_contract_ids_are_complete": true,
+      "closure_ids_are_unique": true,
+      "closure_types_are_controlled": true,
+      "dependencies_are_controlled": true,
+      "evidence_bindings_match_statuses": true,
+      "evidence_references_exist": true,
+      "evt_requirements_are_also_production_requirements": true,
+      "owners_and_next_actions_are_present": true,
+      "priorities_are_controlled": true,
+      "required_domains_are_covered": true,
+      "required_fields_are_present": true,
+      "stage_blocker_flags_are_explicit": true,
+      "statuses_are_controlled": true,
+      "unexecuted_physical_work_does_not_block_prototype_order": true,
+      "unresolved_p0_items_block_prototype_order": true
+    },
+    "domains": [
+      "axes",
+      "compliance",
+      "harness",
+      "mechanical",
+      "pcb",
+      "power",
+      "safety",
+      "validation"
+    ],
+    "evidence_bindings": {
+      "binding_contract_mismatches": [],
+      "invalid_bindings": [],
+      "mismatches": [],
+      "missing_reports": [],
+      "pass": true
+    },
+    "evt_blockers": [
+      "HWC-AXIS-001",
+      "HWC-HAR-001",
+      "HWC-PCB-001",
+      "HWC-PCB-002",
+      "HWC-PCB-003",
+      "HWC-PWR-001",
+      "HWC-SAF-001"
+    ],
+    "pass": true,
+    "production_blockers": [
+      "HWC-AXIS-001",
+      "HWC-AXIS-002",
+      "HWC-CMP-001",
+      "HWC-HAR-001",
+      "HWC-HAR-002",
+      "HWC-MEC-002",
+      "HWC-PCB-001",
+      "HWC-PCB-002",
+      "HWC-PCB-003",
+      "HWC-PWR-001",
+      "HWC-PWR-002",
+      "HWC-SAF-001",
+      "HWC-SAF-002",
+      "HWC-VAL-001",
+      "HWC-VAL-002"
+    ],
+    "row_count": 16
+  },
+  "evidence_bindings": {
+    "binding_contract_mismatches": [],
+    "invalid_bindings": [],
+    "mismatches": [],
+    "missing_reports": [],
+    "pass": true
+  },
+  "evt_prototype_order": {
+    "blocker_count": 6,
+    "blockers": [
+      "REL-002",
+      "REL-003A",
+      "REL-004",
+      "REL-005",
+      "REL-006A",
+      "REL-007A"
+    ],
+    "ready": false,
+    "status": "EVT_PROTOTYPE_ORDER_BLOCKED"
+  },
+  "gate_count": 18,
+  "legacy_status": "RELEASE_BLOCKED",
+  "note": "Validator PASS means the governance structure is internally consistent. EVT prototype ordering and production release are independent fail-closed stages; external evidence is never inferred.",
   "package": "hardware-release-readiness",
   "pass": true,
-  "status": "RELEASE_BLOCKED"
+  "production_release": {
+    "blocker_count": 16,
+    "blockers": [
+      "REL-002",
+      "REL-003A",
+      "REL-004",
+      "REL-005",
+      "REL-006A",
+      "REL-006B",
+      "REL-007A",
+      "REL-007B",
+      "REL-008",
+      "REL-009",
+      "REL-010",
+      "REL-011",
+      "REL-012",
+      "REL-013",
+      "REL-014",
+      "REL-015"
+    ],
+    "ready": false,
+    "status": "PRODUCTION_RELEASE_BLOCKED"
+  },
+  "schema_version": 2,
+  "status": "PRODUCTION_RELEASE_BLOCKED",
+  "upstream_reports": {
+    "harness": {
+      "checks": {
+        "blocker_count_matches_blocker_list_when_present": true,
+        "explicit_ready_matches_status_when_present": true,
+        "not_executed_physical_results_cannot_be_ready": true,
+        "report_is_object": true,
+        "staged_statuses_are_self_consistent": true,
+        "status_is_nonempty_string": true,
+        "structural_pass_field_is_boolean": true
+      },
+      "pass": true,
+      "path": "hardware/manufacturing/generated/harness_report.json",
+      "status": "HARNESS_RELEASE_BLOCKED"
+    },
+    "motor_driver": {
+      "checks": {
+        "blocker_count_matches_blocker_list_when_present": true,
+        "explicit_ready_matches_status_when_present": true,
+        "not_executed_physical_results_cannot_be_ready": true,
+        "report_is_object": true,
+        "staged_statuses_are_self_consistent": true,
+        "status_is_nonempty_string": true,
+        "structural_pass_field_is_boolean": true
+      },
+      "pass": true,
+      "path": "hardware/motor_driver/generated/release-readiness.json",
+      "status": "ORDER_RELEASE_BLOCKED"
+    },
+    "pcb": {
+      "checks": {
+        "blocker_count_matches_blocker_list_when_present": true,
+        "explicit_ready_matches_status_when_present": true,
+        "not_executed_physical_results_cannot_be_ready": true,
+        "report_is_object": true,
+        "staged_statuses_are_self_consistent": true,
+        "status_is_nonempty_string": true,
+        "structural_pass_field_is_boolean": true
+      },
+      "pass": true,
+      "path": "hardware/pcb/generated/release_readiness.json",
+      "status": "PRODUCTION_RELEASE_BLOCKED"
+    },
+    "procurement": {
+      "checks": {
+        "blocker_count_matches_blocker_list_when_present": true,
+        "explicit_ready_matches_status_when_present": true,
+        "not_executed_physical_results_cannot_be_ready": true,
+        "report_is_object": true,
+        "staged_statuses_are_self_consistent": true,
+        "status_is_nonempty_string": true,
+        "structural_pass_field_is_boolean": true
+      },
+      "pass": true,
+      "path": "hardware/procurement/generated/procurement_report.json",
+      "status": "ORDER_RELEASE_BLOCKED"
+    },
+    "qa": {
+      "checks": {
+        "blocker_count_matches_blocker_list_when_present": true,
+        "explicit_ready_matches_status_when_present": true,
+        "not_executed_physical_results_cannot_be_ready": true,
+        "report_is_object": true,
+        "staged_statuses_are_self_consistent": true,
+        "status_is_nonempty_string": true,
+        "structural_pass_field_is_boolean": true
+      },
+      "pass": true,
+      "path": "hardware/qa/generated/qa_report.json",
+      "status": "EXECUTION_REQUIRED"
+    },
+    "validation": {
+      "checks": {
+        "blocker_count_matches_blocker_list_when_present": true,
+        "explicit_ready_matches_status_when_present": true,
+        "not_executed_physical_results_cannot_be_ready": true,
+        "report_is_object": true,
+        "staged_statuses_are_self_consistent": true,
+        "status_is_nonempty_string": true,
+        "structural_pass_field_is_boolean": true
+      },
+      "pass": true,
+      "path": "hardware/validation/generated/validation_report.json",
+      "status": "PHYSICAL_EXECUTION_REQUIRED"
+    }
+  }
 }

@@ -46,11 +46,14 @@ KiCad DRC and ERC reports are in `../generated/`; both contain zero violations.
 This package is suitable for supplier DFM quotation and bare-board fabrication
 review. The 77 grouped BOM lines cover all 110 electrical components and the four
 mounting holes. All 68 procurement-controlled groups remain blocked until the required
-owners complete `component-approval-register.csv` with a signed MPN and evidence.
+owners complete their independent `component-approval-signatures.csv` rows with
+an MPN, datasheet revision, identity, date, and evidence bound to this BOM hash.
 
 Do not place a PCB or assembly order from this directory. The schematic and PCB
 are detailed engineering candidates, but U2 is a visible `DO NOT FIT` placeholder;
 U2, RPL and SFM4 land patterns still need vendor drawing closure. Run
 `python hardware/pcb/tools/release_readiness.py`;
-the expected current result is `ORDER_RELEASE_BLOCKED` until its human, supplier
-and physical gates are closed.
+the expected current result is `PRODUCTION_RELEASE_BLOCKED` with
+`EVT_PROTOTYPE_ORDER_BLOCKED` nested beneath it. Human, supplier, U2/U7, and
+test-access design gates block EVT ordering; physical bring-up and fixture evidence
+remain downstream production gates.

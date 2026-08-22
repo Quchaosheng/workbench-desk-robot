@@ -1,6 +1,6 @@
 {
   "package": "dual-axis-traction-childboard",
-  "revision": "CONCEPT-A",
+  "revision": "CONCEPT-B",
   "maturity": "ARCHITECTURE_REVIEW_ONLY",
   "release_status": "DO_NOT_ORDER",
   "controlled_design_files": {
@@ -8,6 +8,18 @@
     "safety_gate_connectivity": "safety-gate-connectivity.csv",
     "schematic_contract": "schematic-design.md",
     "status": "CANDIDATE_CONTRACT_ONLY"
+  },
+  "integration_decision": {
+    "controller_pcb_role": "POWER_SAFETY_AND_ISOLATED_CAN_INTERFACE_ONLY",
+    "traction_power_stage_location": "INDEPENDENT_REPLACEABLE_CHILDBOARD",
+    "power_stage_on_controller_pcb": false,
+    "motors_are_external_chassis_assemblies": true,
+    "decision_status": "ENGINEERING_BASELINE_NOT_PRODUCTION_APPROVAL",
+    "rationale": [
+      "keep motor switching current heat and regenerative energy off the Jetson controller PCB",
+      "permit traction power-stage replacement without replacing the controller PCB",
+      "retain a hardwired safety boundary and isolated CAN command boundary"
+    ]
   },
   "scope": {
     "traction_axis_count": 2,

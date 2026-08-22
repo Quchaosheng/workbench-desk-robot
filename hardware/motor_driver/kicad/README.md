@@ -1,6 +1,6 @@
 # KiCad release hold
 
-No orderable KiCad schematic or PCB is emitted at `CONCEPT-A`. The motor MPN and
+No orderable KiCad schematic or PCB is emitted at `CONCEPT-B`. The motor MPN and
 current envelope, regenerative-energy path, dual-channel safety interface,
 controller/protocol, power protection, connector land patterns, stackup and
 thermal solution are unresolved release inputs. Creating a clean-looking board

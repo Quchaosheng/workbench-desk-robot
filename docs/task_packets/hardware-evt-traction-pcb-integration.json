@@ -4,6 +4,7 @@
   "human_owner": "Quchaosheng",
   "objective": "Integrate the reviewable eight-layer controller PCB with the fail-closed chassis traction, wheel, battery, and replaceable motor-driver childboard engineering package.",
   "allowed_paths": [
+    "pyproject.toml",
     "docs/hardware/wiring.md",
     "docs/task_packets/hardware-evt-traction-pcb-integration.json",
     "docs/task_packets/motor-integration-traction-childboard.json",

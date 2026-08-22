@@ -109,13 +109,24 @@ def validate_net_topology(rows: list[dict[str, str]]) -> dict[str, bool]:
         "PWR-11",
         "PWR-12",
         "PWR-13",
+        "PWR-14",
+        "PWR-15",
         "CTRL-01",
         "CTRL-02",
         "CTRL-03",
         "CTRL-04",
-        "CTRL-05",
-        "CTRL-06",
-        "CTRL-07",
+        "SENSE-01",
+        "SENSE-02",
+        "SENSE-03",
+        "SENSE-04",
+        "ENC-01",
+        "ENC-02",
+        "ENC-03",
+        "ENC-04",
+        "MOTOR-01",
+        "MOTOR-02",
+        "MOTOR-03",
+        "MOTOR-04",
         "BUS-01",
     }
     pwr01 = by_id.get("PWR-01", {})
@@ -230,6 +241,76 @@ def validate_net_topology(rows: list[dict[str, str]]) -> dict[str, bool]:
     }
 
 
+def validate_interface_topology(
+    rows: list[dict[str, str]],
+    pins: list[dict[str, str]],
+    connectors: list[dict[str, str]],
+) -> dict[str, bool]:
+    by_net = {row.get("net_name", ""): row for row in rows}
+    pin_by_name = {row.get("pin_name", ""): row for row in pins}
+    connector_by_endpoint = {
+        f"{row.get('reference', '')}.{row.get('pin', '')}": row.get("signal", "") for row in connectors
+    }
+    motor_paths = {
+        "MOTOR_L_A": ("OUT1", "U1.OUT1.17-19", "J_ML.1"),
+        "MOTOR_L_B": ("OUT2", "U1.OUT2.14-16", "J_ML.2"),
+        "MOTOR_R_A": ("OUT3", "U1.OUT3.4-6", "J_MR.1"),
+        "MOTOR_R_B": ("OUT4", "U1.OUT4.7-9", "J_MR.2"),
+    }
+    current_sense_paths = {
+        "IPROPI_L_A": ("IPROPI1", "U1.IPROPI1.35", "U2.ADC_IPROPI_L_A"),
+        "IPROPI_L_B": ("IPROPI2", "U1.IPROPI2.36", "U2.ADC_IPROPI_L_B"),
+        "IPROPI_R_A": ("IPROPI3", "U1.IPROPI3.37", "U2.ADC_IPROPI_R_A"),
+        "IPROPI_R_B": ("IPROPI4", "U1.IPROPI4.38", "U2.ADC_IPROPI_R_B"),
+    }
+    encoder_signal_paths = {
+        "ENC_L_A": ("J_ENC_L.3", "U2.ENC_L_A"),
+        "ENC_L_B": ("J_ENC_L.4", "U2.ENC_L_B"),
+        "ENC_R_A": ("J_ENC_R.3", "U2.ENC_R_A"),
+        "ENC_R_B": ("J_ENC_R.4", "U2.ENC_R_B"),
+    }
+    encoder_power_paths = {
+        "ENC_L_VCC": ("VCC_LOGIC", "J_ENC_L.1"),
+        "ENC_L_GND": ("GND_LOGIC", "J_ENC_L.2"),
+        "ENC_R_VCC": ("VCC_LOGIC", "J_ENC_R.1"),
+        "ENC_R_GND": ("GND_LOGIC", "J_ENC_R.2"),
+    }
+    controlled_nets = [*motor_paths, *current_sense_paths, *encoder_signal_paths, *encoder_power_paths]
+    return {
+        "driver_vm_uses_protected_bus": pin_by_name.get("VM", {}).get("controlled_net") == "VM_PROTECTED"
+        and "U1.VM" in by_net.get("VM_PROTECTED", {}).get("load_endpoints", ""),
+        "motor_outputs_reach_exact_connector_pins": all(
+            pin_by_name.get(pin_name, {}).get("controlled_net") == net
+            and by_net.get(net, {}).get("source_endpoints") == source_endpoint
+            and by_net.get(net, {}).get("load_endpoints") == connector_endpoint
+            and connector_by_endpoint.get(connector_endpoint) == net
+            for net, (pin_name, source_endpoint, connector_endpoint) in motor_paths.items()
+        ),
+        "current_sense_paths_are_four_independent_channels": all(
+            pin_by_name.get(pin_name, {}).get("controlled_net") == net
+            and by_net.get(net, {}).get("source_endpoints") == source_endpoint
+            and by_net.get(net, {}).get("load_endpoints") == adc_endpoint
+            for net, (pin_name, source_endpoint, adc_endpoint) in current_sense_paths.items()
+        )
+        and len({by_net[net]["load_endpoints"] for net in current_sense_paths if net in by_net}) == 4,
+        "encoder_quadrature_channels_are_individual": all(
+            connector_by_endpoint.get(connector_endpoint) == net
+            and by_net.get(net, {}).get("source_endpoints") == connector_endpoint
+            and by_net.get(net, {}).get("load_endpoints") == controller_endpoint
+            for net, (connector_endpoint, controller_endpoint) in encoder_signal_paths.items()
+        ),
+        "encoder_power_and_returns_are_closed": all(
+            connector_by_endpoint.get(connector_endpoint) == net
+            and by_net.get(net, {}).get("source_endpoints") == source_net
+            and by_net.get(net, {}).get("load_endpoints") == connector_endpoint
+            and by_net.get(net, {}).get("return_or_reference") == "GND_LOGIC"
+            for net, (source_net, connector_endpoint) in encoder_power_paths.items()
+        ),
+        "controlled_motor_io_nets_are_unique": len(controlled_nets) == len(set(controlled_nets))
+        and all(sum(row.get("net_name") == net for row in rows) == 1 for net in controlled_nets),
+    }
+
+
 def validate_placement_direction(rows: list[dict[str, str]], layout: dict[str, Any]) -> dict[str, bool]:
     """Check that the functional placement honors the declared rear connector datum."""
     by_id = {row.get("block_id", ""): row for row in rows}
@@ -335,6 +416,7 @@ def validate(package: Path = PACKAGE) -> dict[str, Any]:
     connector_references = {row["reference"] for row in connectors}
     release_blockers = [row["gate_id"] for row in gates if row["release_blocker"] == "yes"]
     net_topology_checks = validate_net_topology(net_topology)
+    interface_topology_checks = validate_interface_topology(net_topology, pins, connectors)
     safety_path_checks = validate_safety_paths(safety_paths)
     placement_direction_checks = validate_placement_direction(placement, layout)
     schematic_contract = (package / "schematic-design.md").read_text(encoding="utf-8")
@@ -382,6 +464,13 @@ def validate(package: Path = PACKAGE) -> dict[str, Any]:
         and spec["scope"]["motor_mpn"] is None
         and not spec["scope"]["controls_ur5e_joint_motors"]
         and not spec["scope"]["controls_robotiq_gripper"],
+        "traction_power_stage_is_partitioned_from_controller_pcb": (
+            spec["integration_decision"]["controller_pcb_role"] == "POWER_SAFETY_AND_ISOLATED_CAN_INTERFACE_ONLY"
+            and spec["integration_decision"]["traction_power_stage_location"] == "INDEPENDENT_REPLACEABLE_CHILDBOARD"
+            and not spec["integration_decision"]["power_stage_on_controller_pcb"]
+            and spec["integration_decision"]["motors_are_external_chassis_assemblies"]
+            and spec["integration_decision"]["decision_status"] == "ENGINEERING_BASELINE_NOT_PRODUCTION_APPROVAL"
+        ),
         "review_baseline_is_12v_j2_not_production_selection": spec["power"]["selected_review_baseline"]
         == "12V_AUX_FROM_CONTROLLER_J2"
         and spec["power"]["production_architecture"] is None
@@ -489,6 +578,7 @@ def validate(package: Path = PACKAGE) -> dict[str, Any]:
         and not spec["control"]["drv8962_has_spi"]
         and not spec["control"]["motor_cs_signals_are_usable_as_drv8962_spi"],
         "supply_ground_topology_is_closed": all(net_topology_checks.values()),
+        "motor_and_encoder_interface_topology_is_closed": all(interface_topology_checks.values()),
         "safety_gate_connectivity_is_fail_closed": all(safety_path_checks.values())
         and spec["safety"]["driver_fault_hardware_inhibit"]
         and spec["safety"]["driver_fault_fanout_channels"] == 2
@@ -611,6 +701,11 @@ def validate(package: Path = PACKAGE) -> dict[str, Any]:
             "candidate_dual_stall_current_a": spec["motor_candidates"][0]["simultaneous_two_axis_stall_current_a"],
             "controlled_driver_pin_count": len(pin_numbers),
             "net_topology_row_count": len(net_topology),
+            "motor_output_path_count": sum(row["net_role"] == "motor_output" for row in net_topology),
+            "independent_current_sense_path_count": sum(row["net_role"] == "current_sense" for row in net_topology),
+            "encoder_interface_path_count": sum(
+                row["net_role"] in {"encoder_supply", "encoder_return", "encoder_signal"} for row in net_topology
+            ),
             "safety_path_count": len(safety_paths),
             "nFAULT_hardware_inhibit_path_count": sum(
                 row.get("path_id") in {"SG-A-FAULT", "SG-B-FAULT"} for row in safety_paths
@@ -629,6 +724,7 @@ def validate(package: Path = PACKAGE) -> dict[str, Any]:
         "release_blockers": release_blockers,
         "truth_table_checks": validate_truth_table(truth_rows),
         "net_topology_checks": net_topology_checks,
+        "interface_topology_checks": interface_topology_checks,
         "safety_path_checks": safety_path_checks,
         "placement_direction_checks": placement_direction_checks,
         "note": "Engineering consistency does not approve procurement, safety, fabrication, or physical operation.",
@@ -647,6 +743,7 @@ def write_reports(report: dict[str, Any]) -> None:
         "blocker_count": len(report["release_blockers"]),
         "blockers": report["release_blockers"],
         "net_topology_checks": report["net_topology_checks"],
+        "interface_topology_checks": report["interface_topology_checks"],
         "safety_path_checks": report["safety_path_checks"],
         "placement_direction_checks": report["placement_direction_checks"],
         "metrics": report["metrics"],

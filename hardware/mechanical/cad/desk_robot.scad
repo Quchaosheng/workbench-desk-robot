@@ -1,8 +1,8 @@
 // Desk robot mechanical baseline. All dimensions are millimetres.
 $fn = 48;
-W = 280; D = 240; H = 330; WALL = 2.5; R = 18;
-CHASSIS_W = 260; CHASSIS_D = 220; CHASSIS_BASE_Z = 22; CHASSIS_T = 4; CHASSIS_MOUNT_X = 115; CHASSIS_MOUNT_Y = 95;
-MOTOR_ENV = [48,72,46]; MOTOR_X = 86; MOTOR_Z = 49;
+W = 280; D = 244; H = 330; WALL = 2.5; R = 18;
+CHASSIS_W = 260; CHASSIS_D = 220; CHASSIS_BASE_Z = 22; CHASSIS_T = 4; CHASSIS_MOUNT_X = 121; CHASSIS_MOUNT_Y = 102.5;
+MOTOR_ENV = [48,72,46]; MOTOR_X = 88; MOTOR_Z = 49;
 MOTOR_BRACKET = [45,35,4]; MOTOR_UPRIGHT_T = 4; MOTOR_UPRIGHT_H = 46; MOTOR_UPRIGHT_Y = -15.5;
 CHILDBOARD_ENV = [118,82,20]; CHILDBOARD_Y = 54; CHILDBOARD_Z = 151;
 CHILDBOARD_SUPPORT_Z = 136; CHILDBOARD_SUPPORT_T = 3; CHILDBOARD_BASE_Z = 102; CHILDBOARD_BASE_POST_H = 32.5;
@@ -10,7 +10,9 @@ CHILDBOARD_STANDOFF = 3.5; CHILDBOARD_POST_D = 6;
 // Keep the envelope and centre aligned with design-spec.json (centres use the
 // chassis datum; this SCAD model translates that datum by W/2,D/2).
 BATTERY_ENV = [80,100,40]; BATTERY_Y = 0; BATTERY_Z = 52;
-MOTOR_OUTPUT_Y = 36; HUB_REAR_Y = 90; HUB_REAR_X = 105; HUB_REAR_Z = 43;
+MOTOR_OUTPUT_Y = 0; HUB_REAR_Y = 90; HUB_REAR_X = 105; HUB_REAR_Z = 43;
+MOTOR_FACE_X = MOTOR_X + MOTOR_ENV[0]/2;
+WHEEL_TRACK_HALF = 105; WHEELBASE_HALF = 90;
 
 module rounded_box(size, radius) {
   hull() for (x=[radius, size[0]-radius], y=[radius, size[1]-radius])
@@ -28,14 +30,20 @@ module shell() {
 }
 
 module chassis() {
-  translate([(W-CHASSIS_W)/2,(D-CHASSIS_D)/2,CHASSIS_BASE_Z]) cube([CHASSIS_W,CHASSIS_D,CHASSIS_T]);
+  difference() {
+    translate([(W-CHASSIS_W)/2,(D-CHASSIS_D)/2,CHASSIS_BASE_Z]) cube([CHASSIS_W,CHASSIS_D,CHASSIS_T]);
+    for (x=[W/2-WHEEL_TRACK_HALF,W/2+WHEEL_TRACK_HALF], y=[D/2-WHEELBASE_HALF,D/2+WHEELBASE_HALF])
+      translate([x,y,CHASSIS_BASE_Z+CHASSIS_T/2]) rotate([0,90,0]) cylinder(h=20,d=58,center=true);
+  }
   for (x=[W/2-CHASSIS_MOUNT_X,W/2+CHASSIS_MOUNT_X], y=[D/2-CHASSIS_MOUNT_Y,D/2+CHASSIS_MOUNT_Y]) translate([x,y,26]) cylinder(h=20,d=8);
-  translate([30,35,99]) cube([220,170,3]);
+  // Keep the tray centred on the 244 mm enclosure datum (Y=122).
+  translate([30,37,99]) cube([220,170,3]);
 }
 
 module wheels() {
-  for (x=[35,245], y=[30,210])
-    translate([x,y,43]) rotate([90,0,0]) cylinder(h=12,d=50,center=true);
+  // Wheel axle is lateral X.  The ground contact lies at Z=18 and rolls in -Y.
+  for (x=[W/2-WHEEL_TRACK_HALF,W/2+WHEEL_TRACK_HALF], y=[D/2-WHEELBASE_HALF,D/2+WHEELBASE_HALF])
+    translate([x,y,43]) rotate([0,90,0]) cylinder(h=12,d=50,center=true);
 }
 
 module bumper() {
@@ -78,18 +86,18 @@ module battery_envelope() {
     cube(BATTERY_ENV);
 }
 
-// Review-only drivetrain datums. These rods mark the declared output/hub axes
+// Review-only drivetrain datums. These rods mark the declared lateral output/hub axes
 // and nominal offset path; they are not a selected shaft, belt, gear, or bearing.
 module drivetrain_datums(side) {
-  motor_x = W/2 + side*MOTOR_X;
+  motor_x = W/2 + side*MOTOR_FACE_X;
   hub_x = W/2 + side*HUB_REAR_X;
   motor_y = D/2 + MOTOR_OUTPUT_Y;
   hub_y = D/2 + HUB_REAR_Y;
   motor_z = MOTOR_Z;
   hub_z = HUB_REAR_Z;
   color("SlateGray",0.65) {
-    translate([motor_x,motor_y,motor_z]) rotate([90,0,0]) cylinder(h=10,d=8,center=true);
-    translate([hub_x,hub_y,hub_z]) rotate([90,0,0]) cylinder(h=16,d=10,center=true);
+    translate([motor_x,motor_y,motor_z]) rotate([0,90,0]) cylinder(h=10,d=8,center=true);
+    translate([hub_x,hub_y,hub_z]) rotate([0,90,0]) cylinder(h=16,d=10,center=true);
     hull() {
       translate([motor_x,motor_y,motor_z]) sphere(d=3);
       translate([hub_x,hub_y,hub_z]) sphere(d=3);

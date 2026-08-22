@@ -1,5 +1,8 @@
 {
-  "status": "ORDER_RELEASE_BLOCKED",
+  "schema_version": 2,
+  "package": "controller-pcb-release-readiness",
+  "status": "PRODUCTION_RELEASE_BLOCKED",
+  "legacy_status": "ORDER_RELEASE_BLOCKED",
   "engineering_package_pass": true,
   "engineering_checks": {
     "drc_clean": true,
@@ -13,13 +16,63 @@
     "safety_truth_table_covers_channel_discrepancy": true,
     "harness_engineering_pass": true,
     "connector_limit_semantics_consistent": true,
+    "bringup_plan_covers_input_envelope_and_faults": true,
+    "critical_test_access_plan_complete": true,
+    "component_source_ids_resolve": true,
     "component_matrix_covers_all_active_modules": true,
     "bom_covers_all_board_components": true,
     "approval_register_covers_all_pending_bom_lines": true,
+    "approval_signatures_initialized_per_required_role": true,
+    "approval_signatures_bound_to_current_bom_and_revision": true,
     "board_connectivity_audit_pass": true,
     "board_layout_hard_gates_pass": true,
     "eight_testpoints_have_measurement_coverage": true,
     "fabrication_metadata_controlled": true
+  },
+  "evt_prototype_order": {
+    "status": "EVT_PROTOTYPE_ORDER_BLOCKED",
+    "ready": false,
+    "checks": {
+      "detailed_schematic_has_symbols": true,
+      "all_bom_roles_signed": false,
+      "safety_design_analysis_approved": false,
+      "supplier_dfm_closed": false,
+      "component_mpn_and_avl_closed": false,
+      "isolated_power_excluded_part_absent_and_tbd_placeholders_consistent": true,
+      "isolated_power_mpn_and_land_pattern_frozen": false,
+      "critical_test_access_design_closed": false,
+      "u7_system_isolation_target_met": false
+    },
+    "blocker_count": 7,
+    "blockers": [
+      "all_bom_roles_signed",
+      "safety_design_analysis_approved",
+      "supplier_dfm_closed",
+      "component_mpn_and_avl_closed",
+      "isolated_power_mpn_and_land_pattern_frozen",
+      "critical_test_access_design_closed",
+      "u7_system_isolation_target_met"
+    ],
+    "note": "Physical bring-up is downstream evidence and is intentionally not an EVT prototype-order gate."
+  },
+  "production_release": {
+    "status": "PRODUCTION_RELEASE_BLOCKED",
+    "ready": false,
+    "checks": {
+      "evt_prototype_order_ready": false,
+      "physical_bringup_evidence_attached": false,
+      "measured_safety_timing_approved": false,
+      "harness_physical_release_checks_closed": false,
+      "critical_test_access_physically_verified": false
+    },
+    "blocker_count": 5,
+    "blockers": [
+      "evt_prototype_order_ready",
+      "physical_bringup_evidence_attached",
+      "measured_safety_timing_approved",
+      "harness_physical_release_checks_closed",
+      "critical_test_access_physically_verified"
+    ]
   },
   "order_release_checks": {
     "detailed_schematic_has_symbols": true,
@@ -31,6 +84,8 @@
     "component_mpn_and_avl_closed": false,
     "isolated_power_excluded_part_absent_and_tbd_placeholders_consistent": true,
     "isolated_power_mpn_and_land_pattern_frozen": false,
+    "critical_test_access_design_closed": false,
+    "critical_test_access_physically_verified": false,
     "u7_system_isolation_target_met": false
   },
   "procurement_hold_references": [
@@ -103,7 +158,32 @@
     "U8",
     "Y1"
   ],
-  "blocker_count": 8,
+  "blocker_count": 5,
+  "approval_signatures": {
+    "pass": true,
+    "checks": {
+      "signature_keys_are_unique": true,
+      "every_required_role_has_one_row": true,
+      "candidates_match_selection_register": true,
+      "hardware_revision_matches": true,
+      "bom_hash_matches": true,
+      "decisions_are_controlled": true,
+      "approved_signatures_have_identity_date_and_evidence": true,
+      "rejections_are_attributed_and_evidenced": true
+    },
+    "required_signature_count": 161,
+    "signature_row_count": 161,
+    "approved_signature_count": 0,
+    "fully_approved_references": [],
+    "all_references_fully_approved": false,
+    "hardware_revision": "EVT1",
+    "bom_sha256": "8bd6e5783d06f4d9843280ec2a9fefa463ba92380c1dc87a954b52f28e142c0f"
+  },
+  "approval_baseline": {
+    "hardware_revision": "EVT1",
+    "bom_path": "hardware/pcb/fabrication/bom.csv",
+    "bom_sha256": "8bd6e5783d06f4d9843280ec2a9fefa463ba92380c1dc87a954b52f28e142c0f"
+  },
   "component_counts": {
     "board_footprints": 114,
     "bom_references": 114
@@ -117,6 +197,8 @@
       "can_branched_path_correspondence",
       "can_reference_plane_continuity",
       "oscillator_return_path_and_load",
+      "high_current_path_semantics_and_thermal",
+      "reference_layer_signal_occupancy",
       "u3_microvia_fabrication",
       "raw_can_blind_via_fabrication",
       "u7_isolated_power_safety_suitability"
@@ -157,6 +239,133 @@
     "motor_spec_limit_a": 10.0,
     "note": "J2 contact capability is not a permission to exceed the 10 A / 120 W system envelope."
   },
+  "bringup_plan": {
+    "pass": true,
+    "required_test_ids": [
+      "CAN_FD",
+      "ESTOP_DISCREPANCY",
+      "ESTOP_DUAL_CHANNEL",
+      "INRUSH_36V",
+      "INTERFACE_FIXTURE",
+      "J2_REGEN_TRANSIENT",
+      "JETSON_BRANCH_SHORT",
+      "LOAD_TRANSIENT",
+      "OV_TRIP",
+      "POWER_SEQUENCE",
+      "RAILS_36V",
+      "RAILS_48V",
+      "RAILS_60V",
+      "REVERSE_POLARITY",
+      "SAFE_RESISTANCE",
+      "THERMAL_SOAK_LONG",
+      "UV_TRIP"
+    ],
+    "declared_test_ids": [
+      "SAFE_RESISTANCE",
+      "INRUSH_36V",
+      "RAILS_36V",
+      "RAILS_48V",
+      "RAILS_60V",
+      "UV_TRIP",
+      "OV_TRIP",
+      "REVERSE_POLARITY",
+      "JETSON_BRANCH_SHORT",
+      "LOAD_TRANSIENT",
+      "POWER_SEQUENCE",
+      "ESTOP_DUAL_CHANNEL",
+      "ESTOP_DISCREPANCY",
+      "CAN_FD",
+      "J2_REGEN_TRANSIENT",
+      "THERMAL_SOAK_LONG",
+      "INTERFACE_FIXTURE"
+    ],
+    "missing_test_ids": [],
+    "duplicate_test_ids": [],
+    "incomplete_rows": [],
+    "sequential_steps": true,
+    "input_endpoint_evidence": {
+      "36V": "RAILS_36V",
+      "48V": "RAILS_48V",
+      "60V": "RAILS_60V"
+    },
+    "physical_execution_required": true
+  },
+  "fixture_access_plan": {
+    "pass": true,
+    "design_ready": false,
+    "release_ready": false,
+    "required_nets": [
+      "3V3_PGOOD",
+      "5V_CAN_ISO",
+      "ESTOP_A_MON",
+      "ESTOP_B_MON",
+      "ESTOP_CH_A_RETURN",
+      "ESTOP_CH_B_RETURN",
+      "GND_CAN_ISO",
+      "GND_PWR",
+      "JETSON_FAULT_N",
+      "JETSON_PGOOD",
+      "MOTOR_ENABLE_SAFE",
+      "U3_IMON"
+    ],
+    "missing_nets": [],
+    "duplicate_nets": [],
+    "invalid_rows": [],
+    "eco_required_nets": [
+      "3V3_PGOOD",
+      "5V_CAN_ISO",
+      "ESTOP_A_MON",
+      "ESTOP_B_MON",
+      "JETSON_FAULT_N",
+      "JETSON_PGOOD",
+      "U3_IMON"
+    ],
+    "physical_validation_required_nets": [
+      "3V3_PGOOD",
+      "5V_CAN_ISO",
+      "ESTOP_A_MON",
+      "ESTOP_B_MON",
+      "ESTOP_CH_A_RETURN",
+      "ESTOP_CH_B_RETURN",
+      "GND_CAN_ISO",
+      "GND_PWR",
+      "JETSON_FAULT_N",
+      "JETSON_PGOOD",
+      "MOTOR_ENABLE_SAFE",
+      "U3_IMON"
+    ]
+  },
+  "source_baseline": {
+    "pass": true,
+    "required_source_ids": [
+      "SRC-ADI-LTC4368",
+      "SRC-INF-BSC093N15NS5",
+      "SRC-LITTELFUSE-1206L",
+      "SRC-MURATA-MEJ1S",
+      "SRC-NEXPERIA-PESD2CANFD",
+      "SRC-PANASONIC-SFM4",
+      "SRC-RECOM-RPL5",
+      "SRC-TDK-ACT45B",
+      "SRC-TI-ISO1042",
+      "SRC-TI-TPS2663",
+      "SRC-TOSHIBA-TLP293-4",
+      "SRC-VICOR-DCM3623-EXCLUSION",
+      "SRC-VISHAY-WSL3637",
+      "SRC-WCH-CH32V307"
+    ],
+    "missing_source_ids": [],
+    "duplicate_source_ids": [],
+    "invalid_sources": [],
+    "unreferenced_source_ids": [
+      "SRC-NVIDIA-CARRIER",
+      "SRC-NVIDIA-POWER",
+      "SRC-NVIDIA-THERMAL"
+    ],
+    "excluded_source_users": [
+      "U2"
+    ],
+    "excluded_source_use_pass": true
+  },
   "copper_layers": {
     "expected": [
       "F.Cu",
@@ -189,5 +398,5 @@
       "B.Cu"
     ]
   },
-  "note": "The checked-in schematic is component-level and its ERC is clean. U2 is not selected, and any stale excluded-part data fails the engineering guard until an ECO replaces the schematic, BOM, footprint, placement, routing and thermal model. PENDING approval rows still require signed owner evidence; this audit cannot approve components or infer physical validation."
+  "note": "The checked-in schematic is component-level and its ERC is clean. U2 is not selected, and any stale excluded-part data fails the engineering guard until an ECO replaces the schematic, BOM, footprint, placement, routing and thermal model. Every required role signs independently against the current revision and BOM hash. Physical evidence remains a production-release gate, not a prerequisite for ordering the prototypes needed to collect that evidence."
 }

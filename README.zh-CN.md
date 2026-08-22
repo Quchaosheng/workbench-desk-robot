@@ -5,7 +5,7 @@
 > Workbench Desk Robot 是一个面向桌面机器人的证据优先基础：受限语义动作、
 > 可回放事件日志，以及能够明确说出**已确认、未满足、证据不足**的验证器。
 
-![Workbench Desk Robot Revision B：紧凑型桌面机器人](docs/assets/desk-robot-revision-b-hero.png)
+![Workbench Desk Robot 产品宣传图](docs/assets/desk-robot-poster.svg)
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2ea44f)](LICENSE)

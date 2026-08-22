@@ -6,7 +6,7 @@
 > bounded actions, replayable event logs, and a verifier that can say
 > **confirmed**, **refuted**, or **insufficient evidence** instead of guessing.
 
-![Workbench Desk Robot Revision B: compact desktop robot](docs/assets/desk-robot-revision-b-hero.png)
+![Workbench Desk Robot product poster](docs/assets/desk-robot-poster.svg)
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2ea44f)](LICENSE)

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1600" viewBox="0 0 1200 1600" role="img" aria-labelledby="title desc">
+<title id="title">Workbench Desk Robot product poster</title>
+<desc id="desc">A warm product-poster visual for a friendly desktop robot with a large expressive display and three interaction states.</desc>
+<defs>
+  <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f7f8f5"/><stop offset="1" stop-color="#e5ebe7"/></linearGradient>
+  <linearGradient id="body" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffffff"/><stop offset=".7" stop-color="#eef2ee"/><stop offset="1" stop-color="#c7d0ca"/></linearGradient>
+  <linearGradient id="screen" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#18262b"/><stop offset="1" stop-color="#05090b"/></linearGradient>
+  <filter id="soft"><feGaussianBlur stdDeviation="18"/></filter>
+</defs>
+<rect width="1200" height="1600" fill="url(#wall)"/>
+<path d="M0 1080h1200v520H0z" fill="#d7d6ce"/><path d="M0 1080h1200" stroke="#c4c4bb" stroke-width="3"/>
+<text x="92" y="118" fill="#1e343a" font-family="Arial,sans-serif" font-size="24" font-weight="700" letter-spacing="6">WORKBENCH DESK ROBOT</text>
+<text x="90" y="198" fill="#102329" font-family="Arial,sans-serif" font-size="64" font-weight="700">让桌面，开始回应你。</text>
+<text x="94" y="245" fill="#567078" font-family="Arial,sans-serif" font-size="25">一台会表达、会移动、也愿意陪你工作的桌面机器人</text>
+
+<!-- hero shadow and product -->
+<ellipse cx="606" cy="1085" rx="345" ry="48" fill="#526369" opacity=".35" filter="url(#soft)"/>
+<path d="M316 927l78-58 429-14 110 71-65 91-453 11z" fill="#1d2c31" stroke="#101b1f" stroke-width="9"/>
+<path d="M337 905l63-45 407-13 91 59-54 65-425 9z" fill="#33474c" stroke="#6a7d80" stroke-width="4"/>
+<path d="M371 894l51-35 367-12 56 35-47 35-382 8z" fill="#557075" opacity=".8"/>
+<path d="M355 900l44-20 41 25-25 39-43-6zM814 864l45-13 40 23-22 37-48-6z" fill="#32af9e" stroke="#7ce3d2" stroke-width="4"/>
+<ellipse cx="427" cy="922" rx="33" ry="16" fill="#080d0f"/><ellipse cx="839" cy="897" rx="33" ry="16" fill="#080d0f"/>
+<!-- friendly rounded body -->
+<path d="M405 850l52-306q10-50 58-57l261-16q48-3 64 45l66 286-100 75-319 13z" fill="url(#body)" stroke="#fff" stroke-width="7"/>
+<path d="M840 474l66 286-100 75 32-290z" fill="#a9b5b0" opacity=".7"/>
+<path d="M483 530l46-14-39 318-66 16z" fill="#d7dfda"/>
+<!-- neck + tilted face -->
+<path d="M540 505l11-63 90-12 25 56-32 35z" fill="#24363b" stroke="#101b1f" stroke-width="7"/>
+<path d="M475 350l302-25 74 56-300 37-76-28z" fill="url(#body)" stroke="#fff" stroke-width="7"/>
+<path d="M507 356l60 22 270-28 18 34-276 35-73-25z" fill="url(#screen)" stroke="#111c21" stroke-width="10"/>
+<rect x="558" y="374" width="53" height="14" rx="7" fill="#82e5d2"/><rect x="672" y="362" width="53" height="14" rx="7" fill="#82e5d2"/><circle cx="805" cy="360" r="8" fill="#ff9272"/>
+<!-- side fins/feet -->
+<path d="M404 684l-56 42 41 87 57-47zM879 671l63 39-16 86-60-40z" fill="#e8eee9" stroke="#c2ccc5" stroke-width="5"/>
+<text x="92" y="1305" fill="#17343a" font-family="Arial,sans-serif" font-size="32" font-weight="700">它不只是一个屏幕</text><text x="94" y="1348" fill="#61767a" font-family="Arial,sans-serif" font-size="21">状态、提醒、小游戏，都用一张脸告诉你。</text>
+<!-- interaction cards -->
+<g transform="translate(90 1390)"><rect width="310" height="142" rx="18" fill="#fff" stroke="#d4ddd8" stroke-width="3"/><rect x="22" y="24" width="108" height="78" rx="14" fill="#14252b"/><path d="M48 58q16-20 32 0q16-20 32 0" fill="none" stroke="#7de2ce" stroke-width="6" stroke-linecap="round"/><text x="153" y="59" fill="#17343a" font-family="Arial,sans-serif" font-size="22" font-weight="700">表情回应</text><text x="153" y="88" fill="#6d8082" font-family="Arial,sans-serif" font-size="17">看得见它的状态</text></g>
+<g transform="translate(445 1390)"><rect width="310" height="142" rx="18" fill="#fff" stroke="#d4ddd8" stroke-width="3"/><rect x="22" y="24" width="108" height="78" rx="14" fill="#14252b"/><path d="M53 78h45M53 61h34" stroke="#7de2ce" stroke-width="6" stroke-linecap="round"/><text x="153" y="59" fill="#17343a" font-family="Arial,sans-serif" font-size="22" font-weight="700">桌面提醒</text><text x="153" y="88" fill="#6d8082" font-family="Arial,sans-serif" font-size="17">时间、天气、连接状态</text></g>
+<g transform="translate(800 1390)"><rect width="310" height="142" rx="18" fill="#fff" stroke="#d4ddd8" stroke-width="3"/><rect x="22" y="24" width="108" height="78" rx="14" fill="#14252b"/><path d="M51 84v-25M75 84V49M99 84V65" stroke="#7de2ce" stroke-width="7" stroke-linecap="round"/><text x="153" y="59" fill="#17343a" font-family="Arial,sans-serif" font-size="22" font-weight="700">轻量互动</text><text x="153" y="88" fill="#6d8082" font-family="Arial,sans-serif" font-size="17">空闲时，也能玩一下</text></g>
+</svg>

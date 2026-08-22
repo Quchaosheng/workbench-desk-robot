@@ -13,43 +13,13 @@ set -uo pipefail
 IFACE="${1:-wbcan0}"
 DBG="/sys/kernel/debug/wbcan/${IFACE}"
 FAIL_ERROR_SKB="/sys/module/wbcan/parameters/fail_error_skb"
+TEST_RESTART_DELAY="/sys/module/wbcan/parameters/test_restart_delay_ms"
+TEST_STOP_DELAY="/sys/module/wbcan/parameters/test_stop_delay_ms"
 PASS=0
 FAIL=0
-REPORT_FILE="${WBCAN_TEST_REPORT:-}"
 
 red()   { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
-
-if [ -n "$REPORT_FILE" ]; then
-	printf 'result\ttest_id\tname\texpected\tactual\n' > "$REPORT_FILE" || {
-		red "cannot create test report at $REPORT_FILE"
-		exit 1
-	}
-fi
-
-report_check() {
-	local result="$1" name="$2" want="$3" got="$4" slug
-	[ -n "$REPORT_FILE" ] || return 0
-	slug=$(printf '%s' "$name" | tr '[:upper:] ' '[:lower:]_' | tr -cd '[:alnum:]_-')
-	printf '%s\twbcan-%s\t%s\t%s\t%s\n' \
-		"$result" "$slug" "$name" "$want" "$got" >> "$REPORT_FILE" || {
-		red "cannot append to test report at $REPORT_FILE"
-		exit 1
-	}
-}
-
-check() {
-	local name="$1" want="$2" got="$3"
-	if [ "$want" = "$got" ]; then
-		green "PASS  $name"
-		PASS=$((PASS + 1))
-		report_check PASS "$name" "$want" "$got"
-	else
-		red   "FAIL  $name: want '$want' got '$got'"
-		FAIL=$((FAIL + 1))
-		report_check FAIL "$name" "$want" "$got"
-	fi
-}
 
 need() {
 	command -v "$1" >/dev/null 2>&1 || {
@@ -59,27 +29,68 @@ need cansend
 need candump
 need python3
 
-restore_error_skb_allocation() {
+if ! dmesg >/dev/null 2>&1; then
+	red "FAIL  dmesg is not readable; kernel diagnostics cannot be verified"
+	exit 1
+fi
+if [ ! -w /dev/kmsg ]; then
+	red "FAIL  /dev/kmsg is not writable; kernel diagnostics cannot be delimited"
+	exit 1
+fi
+DMESG_MARKER="wbcan-test-start-$$-$(date +%s%N)"
+if ! printf '<6>%s\n' "$DMESG_MARKER" > /dev/kmsg; then
+	red "FAIL  could not write the kernel diagnostics marker"
+	exit 1
+fi
+if ! dmesg 2>/dev/null | grep -F "$DMESG_MARKER" >/dev/null; then
+	red "FAIL  kernel diagnostics marker was not observable"
+	exit 1
+fi
+
+restore_test_controls() {
 	if [ -w "$FAIL_ERROR_SKB" ]; then
 		printf '0\n' > "$FAIL_ERROR_SKB" || true
 	fi
+	if [ -w "$TEST_RESTART_DELAY" ]; then
+		printf '0\n' > "$TEST_RESTART_DELAY" || true
+	fi
+	if [ -w "$TEST_STOP_DELAY" ]; then
+		printf '0\n' > "$TEST_STOP_DELAY" || true
+	fi
 }
-trap restore_error_skb_allocation EXIT
+trap restore_test_controls EXIT
 
 [ -d "$DBG" ] || { red "no debugfs dir at $DBG - is the module loaded?"; exit 1; }
 ip link show "$IFACE" >/dev/null 2>&1 || { red "no interface $IFACE"; exit 1; }
 if [ -w "$DBG/inject" ] && [ -r "$DBG/status" ]; then
-	fault_plane_readiness=PASS
+	green "PASS  fault-plane readiness: PASS"
+	PASS=$((PASS + 1))
 else
-	fault_plane_readiness=FAIL
+	red "FAIL  fault-plane readiness: FAIL"
+	FAIL=$((FAIL + 1))
 fi
-check "fault-plane readiness" "PASS" "$fault_plane_readiness"
 if [ -w "$FAIL_ERROR_SKB" ] && [ -r "$FAIL_ERROR_SKB" ]; then
-	error_skb_readiness=PASS
+	green "PASS  error-SKB failure injection readiness: PASS"
+	PASS=$((PASS + 1))
 else
-	error_skb_readiness=FAIL
+	red "FAIL  error-SKB failure injection readiness: FAIL"
+	FAIL=$((FAIL + 1))
 fi
-check "error-SKB failure injection readiness" "PASS" "$error_skb_readiness"
+if [ -w "$TEST_RESTART_DELAY" ] && [ -r "$TEST_RESTART_DELAY" ]; then
+	green "PASS  restart-race test control readiness: PASS"
+	PASS=$((PASS + 1))
+else
+	red "FAIL  restart-race test control readiness: FAIL"
+	FAIL=$((FAIL + 1))
+fi
+if [ -w "$TEST_STOP_DELAY" ] && [ -r "$TEST_STOP_DELAY" ]; then
+	green "PASS  stop-race test control readiness: PASS"
+	PASS=$((PASS + 1))
+else
+	red "FAIL  stop-race test control readiness: FAIL"
+	FAIL=$((FAIL + 1))
+fi
+restore_test_controls
 
 arm()   { echo "$*" > "$DBG/inject"; }
 clear_fault() { arm "none 0"; }
@@ -124,6 +135,17 @@ capture() {
 	candump -L -T "$ms" -n 100 "$IFACE,0:0,#FFFFFFFF" 2>/dev/null
 }
 
+check() {
+	local name="$1" want="$2" got="$3"
+	if [ "$want" = "$got" ]; then
+		green "PASS  $name"
+		PASS=$((PASS + 1))
+	else
+		red   "FAIL  $name: want '$want' got '$got'"
+		FAIL=$((FAIL + 1))
+	fi
+}
+
 # wbcan is a module-load singleton, not an RTNL-created link kind.
 if ip link add dev wbcan-test type wbcan 2>/dev/null; then
 	check "RTNL creation is rejected for singleton wbcan" "rejected" "accepted"
@@ -132,11 +154,12 @@ else
 	check "RTNL creation is rejected for singleton wbcan" "rejected" "rejected"
 fi
 if ip link show wbcan-test >/dev/null 2>&1; then
-	singleton_probe=present
+	red "FAIL  RTNL probe left an unexpected wbcan-test device"
+	FAIL=$((FAIL + 1))
 else
-	singleton_probe=absent
+	green "PASS  RTNL probe leaves singleton lifecycle unchanged"
+	PASS=$((PASS + 1))
 fi
-check "RTNL probe leaves singleton lifecycle unchanged" "absent" "$singleton_probe"
 
 restart_if_bus_off() {
 	if [ "$(stat state)" = "bus-off" ]; then
@@ -487,6 +510,44 @@ check "concurrent arm uses one complete configuration" "0" "$mixed"
 
 clear_fault
 restart_if_bus_off
+
+# --- 15. state, queue, and fault-plane concurrency stays bounded -----------
+if python3 "$(dirname "$0")/test_state_concurrency.py" "$IFACE" "$DBG"
+then
+	green "PASS  concurrent state and queue transitions stay bounded"
+	PASS=$((PASS + 1))
+else
+	red "FAIL  concurrent state and queue transition probe"
+	FAIL=$((FAIL + 1))
+fi
+
+DMESG_READ_OK=1
+if ! current_kernel_log=$(dmesg 2>/dev/null); then
+	red "FAIL  dmesg became unreadable; kernel diagnostics are unverified"
+	FAIL=$((FAIL + 1))
+	DMESG_READ_OK=0
+	current_kernel_log=""
+fi
+if [ "$DMESG_READ_OK" -eq 1 ] &&
+   ! grep -Fq "$DMESG_MARKER" <<<"$current_kernel_log"; then
+	red "FAIL  kernel diagnostics marker was lost or the log was cleared"
+	FAIL=$((FAIL + 1))
+	DMESG_READ_OK=0
+fi
+new_kernel_log=$(awk -v marker="$DMESG_MARKER" '
+	found { print }
+	index($0, marker) { found = 1 }
+' <<<"$current_kernel_log")
+if [ "$DMESG_READ_OK" -eq 0 ]; then
+	:
+elif grep -Eqi 'BUG:|WARNING:|KCSAN:|possible circular locking|soft lockup|hung task|refcount_t:|use-after-free|can_change_state: oops, state did not change|Attempt to restart for bus-off recovery, but carrier is OK' <<<"$new_kernel_log"; then
+	red "FAIL  kernel diagnostics contain a concurrency or lifetime warning"
+	printf '%s\n' "$new_kernel_log"
+	FAIL=$((FAIL + 1))
+else
+	green "PASS  kernel diagnostics contain no concurrency or lifetime warning"
+	PASS=$((PASS + 1))
+fi
 
 echo
 echo "=== $PASS passed, $FAIL failed ==="

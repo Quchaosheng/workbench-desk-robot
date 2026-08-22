@@ -1,0 +1,57 @@
+{
+  "issue": 153,
+  "human_owner": "Quchaosheng",
+  "objective": "Define and enforce one Linux netdev/CAN-core ownership model for wbcan controller state across TX, bus-off, restart, link lifecycle, debugfs observation, and concurrent fault reconfiguration.",
+  "allowed_paths": [
+    "kernel/wbcan/wbcan.c",
+    "kernel/wbcan/test_wbcan.sh",
+    "kernel/wbcan/test_state_concurrency.py",
+    "docs/task_packets/linux-wbcan-state-serialization.json"
+  ],
+  "read_only_paths": [
+    ".github/workflows/ci.yml",
+    "AGENTS.md",
+    "docs/architecture/mcu-wire-v1.md"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "firmware/**",
+    "robot/control/**"
+  ],
+  "acceptance": [
+    "the private fault lock no longer acts as an incomplete controller-state lock",
+    "TX, bus-off, restart, open, stop, and debugfs observation follow a documented Linux netdev and CAN-core ownership model",
+    "link stop disables and drains the TX path before returning and publishes CAN_STATE_STOPPED before cancelling restart work",
+    "restart can only commit from CAN_STATE_BUS_OFF and cannot overwrite a newer stopped state",
+    "the restart-stop test observes an entered restart callback before stopping the link instead of relying on timer probability",
+    "the default-off restart delay control is bounded and restored after every probe",
+    "TX fails closed if invoked in bus-off, stopped, or sleeping state",
+    "terminal state snapshots never report an awake TX queue",
+    "the private spinlock is not held across CAN-core or netif calls",
+    "parallel TX, state reads, fault reconfiguration, bus-off, restart, and link cycling complete within bounded test limits",
+    "the seven existing fault modes retain their observable behavior",
+    "the work does not add a second controller state machine beside the CAN core"
+  ],
+  "commands": [
+    "make -C kernel/wbcan",
+    "make -C kernel/wbcan checkpatch",
+    "sudo make -C kernel/wbcan reload",
+    "sudo make -C kernel/wbcan test",
+    "python tools/scripts/check_task_packet.py docs/task_packets/linux-wbcan-state-serialization.json --base origin/main",
+    "git diff --check origin/main...HEAD"
+  ],
+  "evidence": [
+    "kernel module build output",
+    "checkpatch output",
+    "existing seven-mode privileged fault-suite output",
+    "bounded concurrent state, queue, entered-restart, link-stop drain, link-cycle, and debugfs probe output",
+    "clean readable marker-delimited dmesg segment without lockdep, hung-task, refcount, or soft-lockup warnings",
+    "KCSAN or PREEMPT_RT coverage is reported only when the tested kernel enables it"
+  ],
+  "stop_conditions": [
+    "the CAN core API contract must change",
+    "a private controller state machine is required",
+    "firmware, interfaces, or physical CAN claims are required",
+    "the hosted runner cannot load, restart, or unload the module"
+  ]
+}

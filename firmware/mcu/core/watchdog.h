@@ -64,8 +64,11 @@ typedef struct {
     bool stop_timeout_record_emitted;
     uint64_t stop_deadline_us;
     uint16_t stop_command_id;
+    /* Retry count of the most recently emitted STOP_ACK attempt. */
     uint8_t stop_retry_count;
     uint64_t stop_ack_observed_at_us;
+    /* Cached semantic ACK; protocol-level retries update only attempt metadata
+     * here and never mutate result_code, fault_code or device_mode. */
     mcu_wire_frame_t stop_ack_frame;
 } mcu_watchdog_t;
 
@@ -87,8 +90,11 @@ bool mcu_watchdog_poll(mcu_watchdog_t *watchdog,
                        uint64_t now_us,
                        mcu_watchdog_record_t *record);
 
-/* A valid STOP is dispatched before this function returns.  The returned ACK
- * is ready for transport immediately; the caller must confirm handoff through
+/* A valid STOP is dispatched before this function returns. The returned ACK
+ * is ready for transport immediately; an exact link retry replays the cached
+ * record, while a protocol retry with the same command ID echoes its new
+ * retry_count and preserves the cached result fields. Neither retry extends
+ * the pending deadline. The caller must confirm handoff through
  * mcu_watchdog_confirm_stop_ack(). */
 bool mcu_watchdog_receive_stop(mcu_watchdog_t *watchdog,
                                mcu_state_machine_t *machine,

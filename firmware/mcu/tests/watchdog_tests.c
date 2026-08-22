@@ -284,6 +284,60 @@ static void test_stop_ack_retry_replays_original_after_fault(mcu_test_report_t *
     check(report, watchdog.stop_ack_pending);
 }
 
+static void test_stop_ack_protocol_retry_echoes_count(mcu_test_report_t *report)
+{
+    mcu_watchdog_t watchdog;
+    mcu_state_machine_t machine;
+    mcu_wire_frame_t stop;
+    mcu_wire_frame_t retry;
+    mcu_watchdog_record_t first_record;
+    mcu_watchdog_record_t retry_record;
+    mcu_watchdog_record_t duplicate_record;
+    mcu_transition_result_t transition;
+    mcu_event_t event;
+    uint64_t now_us = 71000u;
+    uint64_t retry_now_us = now_us + 2u;
+    uint64_t deadline;
+
+    mcu_watchdog_init(&watchdog, 0u);
+    start_move(&machine);
+    make_stop(&stop, MCU_STOP_ID_MIN + 11u, 7u);
+    check(report, mcu_watchdog_receive_stop(&watchdog, &machine, &stop, now_us, &first_record));
+    deadline = watchdog.stop_deadline_us;
+
+    event.kind = MCU_EVENT_RAISE_FAULT;
+    event.fault_code = MCU_FAULT_MALFORMED_FRAME;
+    event.reset_authorized = false;
+    event.cause_cleared = false;
+    mcu_sm_dispatch(&machine, &event, &transition);
+    check(report, machine.state == MCU_STATE_FAULT);
+
+    make_stop(&retry, stop.command_id, (uint8_t)(stop.retry_count + 1u));
+    check(report,
+          mcu_watchdog_receive_stop(&watchdog, &machine, &retry, retry_now_us, &retry_record));
+    check(report, retry_record.kind == MCU_WATCHDOG_RECORD_STOP_ACK);
+    check(report, retry_record.command_id == stop.command_id);
+    check(report, retry_record.retry_count == retry.retry_count);
+    check(report, retry_record.frame.retry_count == retry.retry_count);
+    check(report, retry_record.frame.result_code == first_record.frame.result_code);
+    check(report, retry_record.frame.fault_code == first_record.frame.fault_code);
+    check(report, retry_record.frame.device_mode == first_record.frame.device_mode);
+    check(report, retry_record.observed_at_us == retry_now_us);
+    check(report, retry_record.deadline_us == deadline);
+    check(report, watchdog.stop_deadline_us == deadline);
+    check(report, watchdog.stop_retry_count == retry.retry_count);
+    check(report, record_frame_encodes(&retry_record));
+
+    check(report,
+          mcu_watchdog_receive_stop(
+            &watchdog, &machine, &retry, retry_now_us + 1u, &duplicate_record));
+    check(report, records_equal(&duplicate_record, &retry_record));
+    check(report,
+          mcu_watchdog_confirm_stop_ack(
+            &watchdog, retry.command_id, retry.retry_count, deadline));
+    check(report, !watchdog.stop_ack_pending);
+}
+
 static void test_stop_timeout_is_distinct_and_latched(mcu_test_report_t *report)
 {
     mcu_watchdog_t watchdog;
@@ -445,6 +499,7 @@ void mcu_watchdog_run_tests(mcu_test_report_t *report)
     test_uint64_wraparound(report);
     test_stop_ack_within_bound(report);
     test_stop_ack_retry_replays_original_after_fault(report);
+    test_stop_ack_protocol_retry_echoes_count(report);
     test_stop_timeout_is_distinct_and_latched(report);
     test_watchdog_reset_requires_live_cause_clear(report);
     test_hardware_feed_policy_in_latched_fault(report);

@@ -1,0 +1,396 @@
+from collections import deque
+
+import pytest
+from workbench.hardware import (
+    MCU_CAN_ID_ACK,
+    MCU_CAN_ID_COMMAND,
+    MCU_CAN_ID_STOP,
+    MCU_CAN_ID_STOP_ACK,
+    MCU_CAN_ID_TELEMETRY,
+    CanBusOffError,
+    CanFrame,
+    CanFrameKind,
+    CanLinkLostError,
+    CanLinkState,
+    CanReceiveStatus,
+    CanSendStatus,
+    CanTransportConfig,
+    SafeCANBus,
+    decode_can_frame,
+)
+
+
+class FakeClock:
+    def __init__(self) -> None:
+        self.now = 0.0
+
+    def monotonic(self) -> float:
+        return self.now
+
+    def advance(self, seconds: float) -> None:
+        self.now += seconds
+
+
+class FakeTransport:
+    def __init__(self) -> None:
+        self.opened = False
+        self.closed = False
+        self.sent: list[CanFrame] = []
+        self.incoming: deque[CanFrame] = deque()
+        self.send_error: Exception | None = None
+        self.receive_error: Exception | None = None
+        self.recover_result = True
+
+    def open(self) -> None:
+        self.opened = True
+
+    def send(self, frame: CanFrame) -> None:
+        if self.send_error is not None:
+            error = self.send_error
+            self.send_error = None
+            raise error
+        self.sent.append(frame)
+
+    def receive(self, timeout_s: float) -> CanFrame | None:
+        del timeout_s
+        if self.receive_error is not None:
+            error = self.receive_error
+            self.receive_error = None
+            raise error
+        return self.incoming.popleft() if self.incoming else None
+
+    def recover(self) -> bool:
+        return self.recover_result
+
+    def close(self) -> None:
+        self.closed = True
+
+
+def can_frame(arbitration_id: int, payload: list[int], **flags: bool) -> CanFrame:
+    return CanFrame(arbitration_id, bytes(payload), **flags)
+
+
+def command(command_id: int = 1, opcode: int = 1, retry_count: int = 0) -> CanFrame:
+    return can_frame(MCU_CAN_ID_COMMAND, [0x10, command_id >> 8, command_id & 0xFF, opcode, retry_count, 0, 0, 0])
+
+
+def stop(command_id: int = 0x8001, retry_count: int = 0) -> CanFrame:
+    return can_frame(MCU_CAN_ID_STOP, [0x10, command_id >> 8, command_id & 0xFF, 5, retry_count, 0, 0, 0])
+
+
+def ack(command_id: int = 1, opcode: int = 1, retry_count: int = 0) -> CanFrame:
+    return can_frame(MCU_CAN_ID_ACK, [0x10, command_id >> 8, command_id & 0xFF, opcode, retry_count, 0, 0, 0])
+
+
+def rejected_ack(command_id: int = 1, opcode: int = 1, retry_count: int = 0) -> CanFrame:
+    return can_frame(MCU_CAN_ID_ACK, [0x10, command_id >> 8, command_id & 0xFF, opcode, retry_count, 1, 5, 4])
+
+
+def stop_ack(command_id: int = 0x8001, retry_count: int = 0, accepted: bool = True) -> CanFrame:
+    return can_frame(
+        MCU_CAN_ID_STOP_ACK,
+        [
+            0x10,
+            command_id >> 8,
+            command_id & 0xFF,
+            5,
+            retry_count,
+            0 if accepted else 1,
+            0 if accepted else 3,
+            3 if accepted else 4,
+        ],
+    )
+
+
+def telemetry(sequence_no: int = 1) -> CanFrame:
+    return can_frame(MCU_CAN_ID_TELEMETRY, [0x10, 0, 0, 0, sequence_no, 0, 0, 0])
+
+
+def running_bus(
+    transport: FakeTransport,
+    clock: FakeClock,
+    config: CanTransportConfig | None = None,
+) -> SafeCANBus:
+    bus = SafeCANBus(transport, clock=clock, config=config)
+    assert bus.start(background=False)
+    return bus
+
+
+def test_decode_rejects_non_wire_frames_and_bad_cross_fields() -> None:
+    valid = command()
+    assert decode_can_frame(valid).kind is CanFrameKind.COMMAND
+    cases = (
+        CanFrame(MCU_CAN_ID_COMMAND, bytearray(valid.data)),
+        CanFrame(MCU_CAN_ID_COMMAND, valid.data[:-1]),
+        CanFrame(0x123, valid.data),
+        CanFrame(MCU_CAN_ID_COMMAND, valid.data, is_extended_id=True),
+        CanFrame(MCU_CAN_ID_COMMAND, bytes([0x11, *valid.data[1:]])),
+        CanFrame(MCU_CAN_ID_COMMAND, bytes([0x10, 0, 1, 1, 0, 1, 0, 0])),
+        stop(1),
+        ack(0x8001),
+        can_frame(MCU_CAN_ID_ACK, [0x10, 0, 1, 1, 0, 0, 0, 4]),
+    )
+    for frame in cases:
+        with pytest.raises(ValueError):
+            decode_can_frame(frame)
+
+
+def test_send_requires_lifecycle_and_queue_backpressure_is_typed() -> None:
+    transport = FakeTransport()
+    clock = FakeClock()
+    bus = SafeCANBus(transport, clock=clock, config=CanTransportConfig(queue_capacity=1))
+
+    assert bus.send(command()).status is CanSendStatus.NOT_RUNNING
+    assert bus.start(background=False)
+    assert bus.send(command(1)).status is CanSendStatus.QUEUED
+    assert bus.send(command(2)).status is CanSendStatus.BACKPRESSURE
+    assert bus.queued_count == 1
+    assert bus.send(telemetry()).status is CanSendStatus.INVALID_FRAME
+
+
+def test_worker_drains_one_command_and_correlates_ack_once() -> None:
+    transport = FakeTransport()
+    clock = FakeClock()
+    bus = running_bus(transport, clock)
+
+    assert bus.send(command(7)).accepted
+    assert bus.service_once() is None
+    assert transport.sent == [command(7)]
+
+    transport.incoming.append(ack(7))
+    result = bus.service_once()
+    assert result is not None
+    assert result.status is CanReceiveStatus.ACCEPTED
+    assert result.confirmed
+    assert bus.pending_command_id is None
+
+    transport.incoming.append(ack(7))
+    duplicate = bus.service_once()
+    assert duplicate is not None
+    assert duplicate.status is CanReceiveStatus.DUPLICATE
+
+
+def test_malformed_inbound_frame_is_rejected_without_clearing_pending_command() -> None:
+    transport = FakeTransport()
+    clock = FakeClock()
+    bus = running_bus(transport, clock)
+
+    assert bus.send(command(8)).accepted
+    assert bus.service_once() is None
+    transport.incoming.append(can_frame(MCU_CAN_ID_ACK, [0x10, 0, 8, 1, 0, 0, 0, 4]))
+    malformed = bus.service_once()
+    assert malformed is not None
+    assert malformed.status is CanReceiveStatus.INVALID_FRAME
+    assert not malformed.confirmed
+    assert bus.pending_command_id == 8
+
+
+def test_retry_keeps_correlation_and_timeout_escalates_to_stop() -> None:
+    transport = FakeTransport()
+    clock = FakeClock()
+    config = CanTransportConfig(ack_timeout_s=1.0, ack_retry_budget=1, stop_timeout_s=1.0)
+    bus = running_bus(transport, clock, config)
+
+    assert bus.send(command(3)).accepted
+    assert bus.service_once() is None
+    clock.advance(1.0)
+    assert bus.service_once() is None
+    assert transport.sent[-1] == command(3, retry_count=1)
+
+    clock.advance(1.0)
+    assert bus.service_once() is None
+    assert transport.sent[-1].arbitration_id == MCU_CAN_ID_STOP
+    assert bus.state is CanLinkState.STOPPING
+    generated_stop = transport.sent[-1]
+    assert bus.pending_command_id == int.from_bytes(generated_stop.data[1:3], "big")
+
+    transport.incoming.append(stop_ack(int.from_bytes(generated_stop.data[1:3], "big")))
+    result = bus.service_once()
+    assert result is not None and result.confirmed
+    assert bus.state is CanLinkState.SAFE_STOPPED
+
+
+def test_explicit_stop_preempts_queued_ordinary_commands() -> None:
+    transport = FakeTransport()
+    clock = FakeClock()
+    bus = running_bus(transport, clock)
+
+    assert bus.send(command(1)).accepted
+    assert bus.send(command(2)).accepted
+    assert bus.send(stop(0x8002)).accepted
+    assert bus.queued_count == 1
+    assert bus.service_once() is None
+    assert [frame.arbitration_id for frame in transport.sent] == [MCU_CAN_ID_STOP]
+    assert any(item.code.value == "stop_preempted" for item in bus.diagnostics())
+
+
+def test_stop_rejection_and_timeout_fail_closed() -> None:
+    transport = FakeTransport()
+    clock = FakeClock()
+    config = CanTransportConfig(stop_timeout_s=1.0, stop_retry_budget=0)
+    bus = running_bus(transport, clock, config)
+
+    assert bus.send(stop(0x8003)).accepted
+    assert bus.service_once() is None
+    transport.incoming.append(stop_ack(0x8003, accepted=False))
+    rejected = bus.service_once()
+    assert rejected is not None and rejected.confirmed
+    assert bus.state is CanLinkState.LINK_LOST
+
+    second_transport = FakeTransport()
+    second_clock = FakeClock()
+    second_bus = running_bus(second_transport, second_clock, config)
+    assert second_bus.send(stop(0x8004)).accepted
+    assert second_bus.service_once() is None
+    second_clock.advance(1.0)
+    assert second_bus.service_once() is None
+    assert second_bus.state is CanLinkState.LINK_LOST
+    assert second_bus.send(command(4)).status is CanSendStatus.LINK_UNAVAILABLE
+
+
+def test_stop_retry_retains_stop_correlation() -> None:
+    transport = FakeTransport()
+    clock = FakeClock()
+    config = CanTransportConfig(stop_timeout_s=1.0, stop_retry_budget=1)
+    bus = running_bus(transport, clock, config)
+
+    assert bus.send(stop(0x8005)).accepted
+    assert bus.service_once() is None
+    clock.advance(1.0)
+    assert bus.service_once() is None
+    assert transport.sent[-1] == stop(0x8005, retry_count=1)
+
+    transport.incoming.append(stop_ack(0x8005, retry_count=1))
+    result = bus.service_once()
+    assert result is not None and result.confirmed
+    assert bus.state is CanLinkState.SAFE_STOPPED
+
+
+def test_second_stop_is_rejected_while_first_stop_is_in_flight() -> None:
+    transport = FakeTransport()
+    clock = FakeClock()
+    bus = running_bus(transport, clock)
+
+    assert bus.send(stop(0x8006)).accepted
+    assert bus.send(stop(0x8007)).status is CanSendStatus.CORRELATION_CONFLICT
+    assert bus.service_once() is None
+    assert [frame.arbitration_id for frame in transport.sent] == [MCU_CAN_ID_STOP]
+
+
+def test_late_ack_does_not_confirm_after_command_timeout() -> None:
+    transport = FakeTransport()
+    clock = FakeClock()
+    config = CanTransportConfig(ack_timeout_s=1.0, ack_retry_budget=0, stop_timeout_s=1.0)
+    bus = running_bus(transport, clock, config)
+
+    assert bus.send(command(9)).accepted
+    assert bus.service_once() is None
+    clock.advance(1.0)
+    assert bus.service_once() is None
+    generated_stop = transport.sent[-1]
+    transport.incoming.append(ack(9))
+    late = bus.service_once()
+    assert late is not None and late.status is CanReceiveStatus.LATE
+    assert not late.confirmed
+    assert bus.pending_command_id == int.from_bytes(generated_stop.data[1:3], "big")
+
+
+def test_bus_off_clears_pending_work_and_recovery_does_not_replay_it() -> None:
+    transport = FakeTransport()
+    clock = FakeClock()
+    bus = running_bus(transport, clock)
+    assert bus.send(command(11)).accepted
+    transport.send_error = CanBusOffError("bus-off")
+
+    assert bus.service_once() is None
+    assert bus.state is CanLinkState.BUS_OFF
+    assert bus.pending_command_id is None
+    assert bus.recover()
+    assert bus.state is CanLinkState.ACTIVE
+    assert bus.queued_count == 0
+    assert bus.send(command(12)).accepted
+
+
+def test_receive_link_loss_is_fail_closed_until_recovery() -> None:
+    transport = FakeTransport()
+    clock = FakeClock()
+    bus = running_bus(transport, clock)
+    transport.receive_error = CanLinkLostError("link lost")
+
+    assert bus.service_once() is None
+    assert bus.state is CanLinkState.LINK_LOST
+    assert bus.send(command(13)).status is CanSendStatus.LINK_UNAVAILABLE
+    assert bus.recover()
+    assert bus.send(command(14)).accepted
+
+
+def test_subscriber_snapshot_is_mutable_and_callback_failures_are_isolated() -> None:
+    transport = FakeTransport()
+    clock = FakeClock()
+    bus = running_bus(transport, clock)
+    calls: list[str] = []
+
+    def second(_frame: object) -> None:
+        calls.append("second")
+
+    def first(_frame: object) -> None:
+        calls.append("first")
+        bus.unsubscribe(MCU_CAN_ID_ACK, first)
+        bus.subscribe(MCU_CAN_ID_ACK, second)
+        raise RuntimeError("subscriber failure")
+
+    def third(_frame: object) -> None:
+        calls.append("third")
+
+    assert bus.subscribe(MCU_CAN_ID_ACK, first)
+    assert bus.subscribe(MCU_CAN_ID_ACK, third)
+    assert bus.send(command(15)).accepted
+    assert bus.service_once() is None
+    transport.incoming.append(ack(15))
+    result = bus.service_once()
+    assert result is not None
+    assert result.callback_errors == 1
+    assert calls == ["first", "third"]
+
+    assert bus.send(command(16)).accepted
+    assert bus.service_once() is None
+    transport.incoming.append(ack(16))
+    bus.service_once()
+    assert calls[-3:] == ["third", "third", "second"]
+
+
+def test_telemetry_is_delivered_without_confirming_command() -> None:
+    transport = FakeTransport()
+    clock = FakeClock()
+    bus = running_bus(transport, clock)
+    received: list[CanFrameKind] = []
+    bus.subscribe(MCU_CAN_ID_TELEMETRY, lambda frame: received.append(frame.kind))
+
+    transport.incoming.append(telemetry(17))
+    result = bus.service_once()
+    assert result is not None
+    assert result.status is CanReceiveStatus.ACCEPTED
+    assert not result.confirmed
+    assert received == [CanFrameKind.TELEMETRY]
+
+
+def test_shutdown_stops_worker_closes_transport_and_rejects_future_send() -> None:
+    transport = FakeTransport()
+    clock = FakeClock()
+    bus = SafeCANBus(transport, clock=clock)
+    assert bus.start(background=True)
+    assert bus.shutdown(timeout_s=1.0)
+    assert transport.closed
+    assert bus.state is CanLinkState.SHUTDOWN
+    assert bus.send(command(18)).status is CanSendStatus.NOT_RUNNING
+
+
+def test_error_count_is_bounded_by_diagnostic_storage_but_counts_all_failures() -> None:
+    transport = FakeTransport()
+    clock = FakeClock()
+    bus = running_bus(transport, clock, CanTransportConfig(diagnostic_capacity=2))
+    assert bus.send(command(1)).status is CanSendStatus.QUEUED
+    assert bus.send(command(1)).status is CanSendStatus.CORRELATION_CONFLICT
+    assert bus.send(telemetry()).status is CanSendStatus.INVALID_FRAME
+    assert len(bus.diagnostics()) == 2
+    assert bus.get_error_count() >= 1

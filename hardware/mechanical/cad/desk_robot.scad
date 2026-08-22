@@ -21,6 +21,7 @@ HEAD_H = 92;
 HEAD_TILT = 8;
 SCREEN_W = 150;
 SCREEN_H = 72;
+ARM_Z = 126;
 
 module rounded_prism(w, d, h, r) {
   linear_extrude(height=h)
@@ -109,10 +110,35 @@ module corner_bumpers() {
       translate([x, y, 30]) rounded_prism(42, 30, 28, 10);
 }
 
+module task_modules() {
+  // Front parcel bay: a real volume and door, not a decorative slot.
+  color([0.10, 0.16, 0.18])
+    translate([0, -CHASSIS_D/2-3, 92]) cube([150, 8, 90], center=true);
+  color([0.27, 0.65, 0.58])
+    translate([0, -CHASSIS_D/2-8, 92]) cube([132, 3, 70], center=true);
+
+  // Folded two-link arm parks beside the body and reaches a parcel shelf.
+  color([0.18, 0.24, 0.26])
+    translate([112, -18, ARM_Z]) rotate([0, 18, -12]) rounded_prism(22, 28, 118, 8);
+  color([0.25, 0.31, 0.32])
+    translate([126, -48, ARM_Z+96]) rotate([0, -8, -18]) rounded_prism(20, 24, 92, 7);
+  color([0.30, 0.82, 0.74])
+    translate([139, -73, ARM_Z+154]) rotate([0, 0, -18]) cube([54, 16, 12], center=true);
+  color([0.12, 0.17, 0.18])
+    translate([161, -81, ARM_Z+151]) rotate([0, 0, -18]) cube([8, 24, 28], center=true);
+
+  // Quick-change cleaning tool stored under the rear service panel.
+  color([0.25, 0.32, 0.33])
+    translate([0, D/2+9, 62]) cube([180, 18, 12], center=true);
+  color([0.42, 0.72, 0.65])
+    translate([0, D/2+19, 56]) cube([170, 8, 16], center=true);
+}
+
 module desk_robot_revision_b() {
   low_chassis();
   wheels_and_pods();
   corner_bumpers();
+  task_modules();
   shoulder_shell();
   neck_and_head();
 }

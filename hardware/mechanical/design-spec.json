@@ -1,13 +1,20 @@
 {
   "units": "mm",
   "revision": "B",
-  "design_intent": "product-like desktop mobile robot with a low visual centre of gravity, a distinct tilted head, hidden wheels, and serviceable outer modules",
+  "design_intent": "service robot for desktop and apartment tasks: fetches parcels, carries small items, performs light floor-edge cleaning, and communicates state through an expressive head display",
   "enclosure": {"width": 280, "depth": 240, "height": 330, "wall": 2.5, "corner_radius": 18},
   "chassis": {"width": 260, "depth": 220, "thickness": 4, "wheelbase": 180, "track": 210, "ground_clearance": 18},
   "head": {"width": 190, "depth": 72, "height": 92, "display_cutout": [150, 72], "display_bezel_mm": 3, "tilt_deg": 8, "hinge_z": 228, "neck_channel_width": 24},
   "shoulder_shell": {"base_z": 92, "top_z": 228, "base_width": 260, "base_depth": 220, "top_width": 232, "top_depth": 190, "draft_deg": 6},
   "wheel_pods": {"diameter": 50, "width": 14, "guard_clearance": 3, "ground_clearance": 18, "recessed": true},
   "bumper_pads": {"material": "TPU 95A", "count": 4, "skin_mm": 8, "effective_stroke_mm": 24, "corner_radius_mm": 12},
+  "task_modules": {
+    "parcel_bay": {"volume_l": 8, "payload_kg": 3, "door_width": 150, "door_height": 90, "door_z": 82},
+    "manipulator": {"type": "two_link_folded_arm", "reach_mm": 420, "payload_kg": 2, "gripper_span_mm": 105, "safe_force_n": 35},
+    "cleaning_tool": {"interface": "quick_change_m6", "tool_width_mm": 180, "modes": ["brush", "dry_mop"], "edge_clearance_mm": 12},
+    "operation_boundary": "light indoor tasks only; no stairs, liquids, hot objects, or person lifting"
+  },
+  "interaction": {"display": "expressive face", "states": ["idle", "happy", "thinking", "help_needed", "task_complete"], "audio": true},
   "service_panel": {"width": 170, "height": 120, "rear_clearance_mm": 20, "fastener": "4x captive M3"},
   "electronics_tray": {"width": 220, "depth": 170, "clearance_above": 32, "pcb_envelope": [160, 130, 1.6], "pcb_mount_pattern": [152, 122], "pcb_mount_hole_mm": 3.2, "minimum_edge_service_margin": 20},
   "ventilation": {"inlet_area_mm2": 1800, "outlet_area_mm2": 2200, "fan_mm": 60, "direction": "lower-front to upper-rear"},

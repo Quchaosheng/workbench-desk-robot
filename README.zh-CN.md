@@ -5,7 +5,7 @@
 > Workbench Desk Robot 是一个面向桌面机器人的证据优先基础：受限语义动作、
 > 可回放事件日志，以及能够明确说出**已确认、未满足、证据不足**的验证器。
 
-![Workbench Desk Robot：证据优先的桌面机器人](docs/assets/workbench-desk-robot-banner.png)
+![Workbench Desk Robot Revision B：紧凑型桌面机器人](docs/assets/desk-robot-revision-b-hero.png)
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2ea44f)](LICENSE)
@@ -14,6 +14,9 @@
 [English](README.md)
 
 这个项目只问一个很实际的问题：**机器人真的完成任务了吗？我们能证明吗？**
+
+当前机械基线是 **Revision B**：低底盘、渐缩肩壳、独立倾角头、内藏轮舱和可维护外壳。
+主视觉基于受控机械包络绘制；真实外观、装配和尺寸仍需后续样机验证。
 
 ## 为什么值得做
 

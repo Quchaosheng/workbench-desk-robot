@@ -123,28 +123,43 @@ def export_cad_package() -> bool:
     except ImportError:
         return False
 
-    enclosure = SPEC["enclosure"]
-    width, depth, height = enclosure["width"], enclosure["depth"], enclosure["height"]
-    wall, radius = enclosure["wall"], enclosure["corner_radius"]
-    outer = cq.Workplane("XY").box(width, depth, height).edges("|Z").fillet(radius).translate((0, 0, height / 2))
-    inner_height = height - wall
-    inner = (
-        cq.Workplane("XY")
-        .box(width - 2 * wall, depth - 2 * wall, inner_height)
-        .edges("|Z")
-        .fillet(radius - wall)
-        .translate((0, 0, wall + inner_height / 2))
-    )
-    shell = outer.cut(inner).cut(cq.Workplane("XY").box(150, wall * 4, 72).translate((0, -depth / 2, 261)))
+    chassis_spec = SPEC["chassis"]
+    head_spec = SPEC["head"]
+    shoulder_spec = SPEC["shoulder_shell"]
     chassis = (
         cq.Workplane("XY")
-        .box(260, 220, 4)
+        .box(chassis_spec["width"], chassis_spec["depth"], 4)
         .faces(">Z")
         .workplane()
         .rect(230, 190, forConstruction=True)
         .vertices()
         .hole(4.2)
         .translate((0, 0, 24))
+    )
+    lower_shell = cq.Workplane("XY").box(260, 220, 70).edges("|Z").fillet(20).translate((0, 0, 65))
+    shoulder_shell = (
+        cq.Workplane("XY")
+        .box(shoulder_spec["top_width"], shoulder_spec["top_depth"], 136)
+        .edges("|Z")
+        .fillet(16)
+        .translate((0, 0, 160))
+    )
+    head = (
+        cq.Workplane("XY")
+        .box(head_spec["width"], head_spec["depth"], head_spec["height"])
+        .edges("|Z")
+        .fillet(15)
+        .rotate((0, 0, 0), (1, 0, 0), head_spec["tilt_deg"])
+        .translate((0, -10, 264))
+    )
+    neck = cq.Workplane("XY").box(66, 58, 34).edges("|Z").fillet(12).translate((0, 4, 245))
+    service_panel = cq.Workplane("XZ").box(170, 120, 5).translate((0, 117, 150))
+    display_bracket = (
+        cq.Workplane("XZ")
+        .rect(head_spec["width"], head_spec["height"])
+        .extrude(4)
+        .cut(cq.Workplane("XZ").rect(head_spec["display_cutout"][0], head_spec["display_cutout"][1]).extrude(6))
+        .translate((0, -46, 264))
     )
     tray = (
         cq.Workplane("XY")
@@ -156,25 +171,20 @@ def export_cad_package() -> bool:
         .hole(3.4)
         .translate((0, 0, 43))
     )
-    display_bracket = (
-        cq.Workplane("XZ")
-        .rect(180, 92)
-        .extrude(4)
-        .cut(cq.Workplane("XZ").rect(150, 72).extrude(6))
-        .translate((0, -116, 261))
-    )
-    bumper_outer = cq.Workplane("XY").box(width + 16, depth + 16, 24).edges("|Z").fillet(radius + 8)
-    bumper_inner = cq.Workplane("XY").box(width, depth, 26).edges("|Z").fillet(radius)
-    bumper = bumper_outer.cut(bumper_inner).translate((0, 0, 22))
-    motor_bracket = cq.Workplane("XY").box(45, 35, 4).union(cq.Workplane("XZ").box(45, 28, 4).translate((0, -15.5, 14)))
+    wheel_pod = cq.Workplane("XY").box(74, 22, 24).edges("|Z").fillet(10)
+    wheel_pods = wheel_pod.translate((-90, -105, 60)).union(wheel_pod.translate((90, -105, 60)))
+    wheel_pods = wheel_pods.union(wheel_pod.translate((-90, 105, 60))).union(wheel_pod.translate((90, 105, 60)))
+    bumper_pad = cq.Workplane("XY").box(42, 30, 28).edges("|Z").fillet(10)
+    bumper = bumper_pad.translate((-114, -98, 30)).union(bumper_pad.translate((114, -98, 30)))
+    bumper = bumper.union(bumper_pad.translate((-114, 98, 30))).union(bumper_pad.translate((114, 98, 30)))
 
     parts = {
-        "upper_shell": shell,
+        "upper_shell": lower_shell.union(shoulder_shell),
         "lower_chassis": chassis,
         "electronics_tray": tray,
         "display_bracket": display_bracket,
         "impact_bumper": bumper,
-        "motor_bracket": motor_bracket,
+        "motor_bracket": wheel_pods,
     }
     part_dir = OUT / "parts"
     part_dir.mkdir(exist_ok=True)
@@ -182,17 +192,20 @@ def export_cad_package() -> bool:
         part_path = part_dir / f"{name}.step"
         cq.exporters.export(shape, str(part_path), exportType="STEP")
         normalize_step(part_path)
-    cq.exporters.export(shell, str(OUT / "enclosure.step"), exportType="STEP")
+    cq.exporters.export(lower_shell.union(shoulder_shell), str(OUT / "enclosure.step"), exportType="STEP")
     normalize_step(OUT / "enclosure.step")
 
     assembly = cq.Assembly(name="desk_robot")
-    assembly.add(shell, name="upper_shell", color=cq.Color(0.75, 0.75, 0.78, 0.45))
+    assembly.add(lower_shell, name="lower_shell", color=cq.Color(0.16, 0.18, 0.19))
+    assembly.add(shoulder_shell, name="shoulder_shell", color=cq.Color(0.78, 0.80, 0.78))
+    assembly.add(head, name="head_module", color=cq.Color(0.80, 0.82, 0.80))
+    assembly.add(neck, name="neck_module", color=cq.Color(0.22, 0.25, 0.26))
+    assembly.add(service_panel, name="rear_service_panel", color=cq.Color(0.25, 0.28, 0.29))
     assembly.add(chassis, name="lower_chassis", color=cq.Color(0.25, 0.25, 0.28))
     assembly.add(tray, name="electronics_tray", color=cq.Color(0.45, 0.48, 0.52))
     assembly.add(display_bracket, name="display_bracket", color=cq.Color(0.1, 0.1, 0.12))
-    assembly.add(bumper, name="impact_bumper", color=cq.Color(0.95, 0.35, 0.05))
-    assembly.add(motor_bracket.translate((-85, 0, 38)), name="motor_bracket_left")
-    assembly.add(motor_bracket.translate((85, 0, 38)), name="motor_bracket_right")
+    assembly.add(bumper, name="impact_bumper", color=cq.Color(0.20, 0.48, 0.45))
+    assembly.add(wheel_pods, name="wheel_pods", color=cq.Color(0.20, 0.22, 0.23))
     assembly_path = OUT / "desk_robot_assembly.step"
     assembly.save(str(assembly_path), exportType="STEP")
     normalize_step(assembly_path)
@@ -200,7 +213,10 @@ def export_cad_package() -> bool:
     exploded = cq.Assembly(name="desk_robot_exploded")
     exploded.add(chassis.translate((0, 0, -30)), name="lower_chassis")
     exploded.add(tray.translate((0, 0, 45)), name="electronics_tray")
-    exploded.add(shell.translate((0, 0, 130)), name="upper_shell")
+    exploded.add(lower_shell.translate((0, 0, -30)), name="lower_shell")
+    exploded.add(shoulder_shell.translate((0, 0, 20)), name="shoulder_shell")
+    exploded.add(head.translate((0, -10, 90)), name="head_module")
+    exploded.add(neck.translate((0, 0, 80)), name="neck_module")
     exploded.add(display_bracket.translate((0, -35, 180)), name="display_bracket")
     exploded.add(bumper.translate((0, 0, -70)), name="impact_bumper")
     exploded_path = OUT / "desk_robot_exploded.step"
@@ -218,17 +234,17 @@ def write_engineering_drawings(report: dict[str, object]) -> None:
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760">
 <style>text{{font-family:Arial,sans-serif;fill:#111}} .part{{fill:#e8edf2;stroke:#111;stroke-width:2}} .dim{{stroke:#1769aa;stroke-width:2;marker-start:url(#a);marker-end:url(#a)}} .note{{font-size:18px}}</style>
 <defs><marker id="a" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M8,0 L0,4 L8,8" fill="none" stroke="#1769aa"/></marker></defs>
-<text x="40" y="45" font-size="28" font-weight="bold">Workbench-1 General Arrangement - mm - REV A</text>
+<text x="40" y="45" font-size="28" font-weight="bold">Workbench-1 General Arrangement - mm - REV B</text>
 <rect class="part" x="90" y="120" width="{width * 1.5}" height="{height * 1.5}" rx="27"/>
 <rect x="187" y="450" width="225" height="108" fill="#20252b" stroke="#111" stroke-width="2"/>
 <line class="dim" x1="90" y1="90" x2="510" y2="90"/><text x="280" y="80" class="note">{width}</text>
 <line class="dim" x1="55" y1="120" x2="55" y2="615"/><text x="12" y="375" class="note" transform="rotate(-90 12 375)">{height}</text>
-<text x="120" y="650" class="note">Front: display cutout 150 x 72; nominal wall 2.5</text>
+<text x="120" y="650" class="note">Front: separate 8 deg head; recessed display 150 x 72; nominal wall 2.5</text>
 <rect class="part" x="660" y="170" width="{width * 1.5}" height="{depth * 1.5}" rx="27"/>
 <line class="dim" x1="660" y1="140" x2="1080" y2="140"/><text x="850" y="130" class="note">{width}</text>
 <line class="dim" x1="1120" y1="170" x2="1120" y2="530"/><text x="1140" y="370" class="note" transform="rotate(-90 1140 370)">{depth}</text>
-<rect x="675" y="185" width="390" height="330" fill="none" stroke="#e65c00" stroke-width="12" rx="24"/>
-<text x="700" y="565" class="note">8 TPU skin over 24 effective compliant stroke</text>
+<rect x="675" y="185" width="390" height="330" fill="none" stroke="#2f7770" stroke-width="12" rx="24"/>
+<text x="700" y="565" class="note">Four TPU corner pads; 8 skin over 24 effective compliant stroke</text>
 <text x="660" y="625" class="note">CG Z={report["center_of_gravity_mm"][2]}; static tip angle={report["static_tip_angle_deg"]} deg</text>
 <text x="660" y="660" class="note">ISO 2768-m unless noted; prototype only until physical validation</text>
 </svg>"""

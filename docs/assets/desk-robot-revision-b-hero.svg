@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Workbench Desk Robot Revision B</title>
+  <desc id="desc">A product-style three-quarter render of a compact desk robot with a low chassis, hidden wheel pods, tilted display head and teal corner bumpers.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#0b1115"/><stop offset="1" stop-color="#202d31"/></linearGradient>
+    <linearGradient id="shell" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#f1f3ee"/><stop offset="1" stop-color="#9ca9a8"/></linearGradient>
+    <linearGradient id="side" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#6f7c7d"/><stop offset="1" stop-color="#303b3e"/></linearGradient>
+    <linearGradient id="screen" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#f8fff3"/><stop offset="1" stop-color="#8fe0cc"/></linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%"><feGaussianBlur stdDeviation="18"/></filter>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#bg)"/>
+  <ellipse cx="820" cy="850" rx="515" ry="74" fill="#000" opacity=".46" filter="url(#shadow)"/>
+  <path d="M0 840h1600v160H0z" fill="#182226"/>
+  <path d="M0 840h1600" stroke="#405158" stroke-width="2"/>
+
+  <!-- Rear wheel and pod, partially hidden by the shell. -->
+  <ellipse cx="1090" cy="724" rx="90" ry="33" fill="#080b0c" transform="rotate(-8 1090 724)"/>
+  <path d="M1018 684l118-18 41 56-125 35z" fill="#253033" stroke="#11191d" stroke-width="8"/>
+  <ellipse cx="1074" cy="726" rx="57" ry="24" fill="#111719" transform="rotate(-8 1074 726)"/>
+
+  <!-- Low chassis: wide stance and chamfered shoulder. -->
+  <path d="M340 634L1014 585 1194 686 1056 804 391 814 271 720z" fill="#293538" stroke="#121b1e" stroke-width="10"/>
+  <path d="M271 720l120 94 665-10 138-118-44 105-146 119-668 4-126-111z" fill="#141d20"/>
+  <path d="M340 634l674-49 137 78-133 82-663 9-119-66z" fill="url(#side)" stroke="#788585" stroke-width="4"/>
+  <path d="M377 623l602-43 92 55-116 64-592 9-77-44z" fill="#4b585a" opacity=".7"/>
+
+  <!-- Teal corner protection pads. -->
+  <path d="M294 699l47-24 60 35-34 40-55-8z" fill="#3aa596" stroke="#8fe0cc" stroke-width="4"/>
+  <path d="M1016 659l51-16 55 31-30 42-64-8z" fill="#3aa596" stroke="#8fe0cc" stroke-width="4"/>
+  <path d="M345 786l44-30 54 21-23 40-61 7z" fill="#2f7770"/>
+
+  <!-- Tapered shoulder shell. -->
+  <path d="M416 611l75-286 458-32 103 276-165 101-450 25z" fill="url(#shell)" stroke="#f8fbf6" stroke-width="5"/>
+  <path d="M949 293l103 276-165 101 51-290z" fill="url(#side)" opacity=".9"/>
+  <path d="M416 611l75-286 47 10-45 272z" fill="#c1cdca" opacity=".75"/>
+  <path d="M509 344l425-28 69 195-76 48-376 23z" fill="#b7c3c1" opacity=".45"/>
+
+  <!-- Neck and separate tilted head module. -->
+  <path d="M623 314l12-72 104-11 27 62-38 40z" fill="#2b383b" stroke="#101719" stroke-width="7"/>
+  <path d="M563 211l364-33 88 64-333 47-86-33z" fill="url(#shell)" stroke="#f7fbf8" stroke-width="5"/>
+  <path d="M563 211l86 33 333-47-55-42-294 23z" fill="#e5ebe7"/>
+  <path d="M649 244l333-47 33 45-333 48z" fill="#728080" opacity=".8"/>
+  <path d="M649 244l333-47 28 22-331 48z" fill="#0b1114" stroke="#8fe0cc" stroke-width="4"/>
+  <path d="M665 245l298-40 13 12-298 43z" fill="url(#screen)"/>
+  <circle cx="920" cy="213" r="7" fill="#f28b6b"/>
+
+  <!-- Front access/display cue. -->
+  <path d="M716 571l177-24 35 42-180 27z" fill="#263235" stroke="#8fa7ad" stroke-width="3"/>
+  <path d="M748 575l128-17 19 23-131 18z" fill="#8fe0cc" opacity=".8"/>
+  <path d="M700 612l208-28" stroke="#8fa7ad" stroke-width="3" opacity=".8"/>
+
+  <!-- Minimal campaign copy. -->
+  <text x="118" y="146" fill="#8fe0cc" font-family="Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="5">WORKBENCH DESK ROBOT</text>
+  <text x="118" y="212" fill="#f4f7f5" font-family="Arial, sans-serif" font-size="58" font-weight="700">A robot that can prove it.</text>
+  <text x="120" y="258" fill="#afc0c2" font-family="Arial, sans-serif" font-size="24">Revision B mechanical concept · evidence-first embodied runtime</text>
+  <rect x="120" y="310" width="220" height="48" rx="24" fill="#2f7770"/>
+  <text x="155" y="342" fill="#f4f7f5" font-family="Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="2">REVISION B</text>
+  <text x="1210" y="780" fill="#8fa7ad" font-family="Arial, sans-serif" font-size="15" letter-spacing="3">280 × 240 × 330 MM ENVELOPE</text>
+  <text x="1210" y="815" fill="#8fa7ad" font-family="Arial, sans-serif" font-size="15" letter-spacing="3">LOW CHASSIS · TILTED HEAD · HIDDEN WHEELS</text>
+</svg>

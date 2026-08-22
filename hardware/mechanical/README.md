@@ -1,10 +1,11 @@
 # Mechanical engineering package
 
 This directory is the source-controlled mechanical baseline for the desk robot.
-Dimensions are millimetres and mass values are kilograms. The design is a compact
-two-piece enclosure around a 260 x 220 mm chassis with a removable 150 x 72 mm
-face module, internal electronics tray, motor mounts, cable channels, and a
-perimeter TPU impact bumper.
+Dimensions are millimetres and mass values are kilograms. Revision B keeps the
+280 x 240 x 330 mm envelope but turns the toy-like box into a product-shaped
+desktop mobile robot: a low chassis, a drafted shoulder shell, a separate 8 deg
+head module, recessed display bezel, hidden wheel pods, four corner bumpers, a
+rear service panel, and a protected neck cable channel.
 
 ## Reproduce
 
@@ -46,6 +47,25 @@ remain controlled by the injection-moulding supplier after DFM review.
 | Estimated CG from floor | 101.9 mm |
 | Static tip angle | 45.9 deg |
 | Target drop | 0.75 m onto plywood over concrete |
+
+## Revision B mechanism decisions
+
+- **Low visual mass:** the main chassis starts above the 18 mm ground-clearance
+  plane; heavy battery and electronics remain below the shoulder datum.
+- **Distinct head:** the 190 x 72 x 92 mm head is a separate service module at an
+  8 deg datum, with a 3 mm display bezel and a 24 mm neck cable channel.
+- **Protected mobility:** 50 mm wheels sit in recessed pods with a 3 mm guard
+  clearance instead of exposed cylinders.
+- **Controlled impact:** four compact TPU 95A corner pads replace the visually
+  heavy full-perimeter orange bumper while retaining the 8 mm skin / 24 mm
+  effective-stroke analytical gate.
+- **Serviceability:** the rear 170 x 120 mm panel uses four captive M3 points and
+  preserves the 20 mm rear clearance requirement.
+
+The SCAD and CadQuery generator are now aligned to this Revision B structure.
+The checked-in STEP remains an exchange artifact until CadQuery/SolidWorks
+regeneration is available; no physical fit, drop, or appearance claim is made
+from the digital model alone.
 
 ## Release status
 

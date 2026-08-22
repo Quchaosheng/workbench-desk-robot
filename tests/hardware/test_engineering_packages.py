@@ -73,6 +73,22 @@ class MechanicalPackageTests(unittest.TestCase):
         spec = json.loads((ROOT / "hardware/mechanical/design-spec.json").read_text(encoding="utf-8"))
         self.assertEqual(spec["electronics_tray"]["pcb_mount_pattern"], [152, 122])
 
+    def test_revision_b_product_mechanics_are_explicit_and_aligned(self) -> None:
+        spec = json.loads((ROOT / "hardware/mechanical/design-spec.json").read_text(encoding="utf-8"))
+        self.assertEqual(spec["revision"], "B")
+        self.assertEqual(
+            spec["enclosure"], {"width": 280, "depth": 240, "height": 330, "wall": 2.5, "corner_radius": 18}
+        )
+        self.assertEqual(spec["head"]["display_cutout"], [150, 72])
+        self.assertEqual(spec["head"]["tilt_deg"], 8)
+        self.assertTrue(spec["wheel_pods"]["recessed"])
+        self.assertEqual(spec["bumper_pads"]["count"], 4)
+        scad = (ROOT / "hardware/mechanical/cad/desk_robot.scad").read_text(encoding="utf-8")
+        for feature in ("shoulder_shell", "neck_and_head", "wheels_and_pods", "corner_bumpers"):
+            self.assertIn(f"module {feature}", scad)
+        drawing = (ROOT / "hardware/mechanical/generated/drawings/general-arrangement.svg").read_text(encoding="utf-8")
+        self.assertIn("REV B", drawing)
+
 
 class PcbPackageTests(unittest.TestCase):
     def test_power_budget_and_protection_checks_pass(self) -> None:

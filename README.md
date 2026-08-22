@@ -6,7 +6,7 @@
 > bounded actions, replayable event logs, and a verifier that can say
 > **confirmed**, **refuted**, or **insufficient evidence** instead of guessing.
 
-![Workbench Desk Robot: evidence-first tabletop robotics](docs/assets/workbench-desk-robot-banner.png)
+![Workbench Desk Robot Revision B: compact desktop robot](docs/assets/desk-robot-revision-b-hero.png)
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2ea44f)](LICENSE)
@@ -16,6 +16,11 @@
 
 The project is built around one practical question: **did the robot actually
 complete the task, and can we prove it?**
+
+The current mechanical baseline is **Revision B**: a low chassis, tapered
+shoulder shell, separate tilted head, hidden wheel pods, and serviceable outer
+modules. The hero visual is a product concept based on the controlled
+mechanical envelope; physical appearance and fit remain validation gates.
 
 ## Why It Matters
 

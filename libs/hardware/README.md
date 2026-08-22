@@ -7,7 +7,7 @@
 ## Components
 
 - **HW1**: URDF Parser (implemented)
-- **HW2**: CAN Driver (planned)
+- **HW2**: Bounded CAN transport adapter (host-side, fake-transport verified)
 - **HW3**: Motor Feedback Parser (planned)
 - **HW4**: PID Controller (planned)
 - **HW5**: Sensor Simulator (planned)
@@ -58,7 +58,8 @@ generated motor configuration are recorded in
 ## P1 Deliverables
 
 - HW1: Motor configuration from expanded URDF (implemented)
-- HW2-3: CAN communication + feedback parsing (planned)
+- HW2: bounded host CAN transport adapter (implemented; physical transport not claimed)
+- HW3: CAN feedback parsing (planned)
 - HW4: PID controller (planned)
 - HW5-6: Sensor simulation + 100Hz real-time control loop (planned)
 - HW7: Full integration test (planned)

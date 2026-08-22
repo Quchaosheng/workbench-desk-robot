@@ -22,8 +22,6 @@
   ],
   "commands": [
     "<kicad>/bin/python hardware/pcb/tools/generate_kicad_board.py --session hardware/pcb/kicad/controller.ses",
-    "<kicad>/bin/kicad-cli pcb drc hardware/pcb/kicad/controller.kicad_pcb --output hardware/pcb/generated/drc.rpt",
-    "<kicad>/bin/kicad-cli sch erc hardware/pcb/kicad/controller.kicad_sch --output hardware/pcb/generated/erc.rpt",
     "python hardware/pcb/tools/audit_connectivity.py",
     "python hardware/pcb/tools/layout_audit.py",
     "python hardware/pcb/tools/release_readiness.py",

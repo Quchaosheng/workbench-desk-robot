@@ -1,0 +1,64 @@
+{
+  "issue": "130,132",
+  "issues": [130, 132],
+  "human_owner": "Quchaosheng",
+  "objective": "Integrate the reviewable eight-layer controller PCB with the fail-closed chassis traction, wheel, battery, and replaceable motor-driver childboard engineering package.",
+  "allowed_paths": [
+    "docs/hardware/wiring.md",
+    "docs/task_packets/hardware-evt-traction-pcb-integration.json",
+    "docs/task_packets/motor-integration-traction-childboard.json",
+    "docs/task_packets/pcb-detailed-design-readiness.json",
+    "hardware/README.md",
+    "hardware/mechanical/**",
+    "hardware/motor_driver/**",
+    "hardware/pcb/**",
+    "hardware/procurement/bom.csv",
+    "hardware/release/**",
+    "tests/hardware/**"
+  ],
+  "read_only_paths": [
+    "interfaces/**"
+  ],
+  "forbidden": [
+    "firmware/**",
+    "robot/control/**",
+    "interfaces/**"
+  ],
+  "acceptance": [
+    "the detailed controller schematic, eight-layer board, controlled stackup, routed session, fabrication outputs, and connectivity/layout reports are reproducible",
+    "the controller keeps procurement, safety, supplier, and physical bring-up gates fail-closed",
+    "the chassis package declares four wheel envelopes, two traction motor envelopes, a battery reservation, motor brackets, and a serviceable childboard support",
+    "the traction package distinguishes chassis motors from the six vendor-controlled UR5e joints and preserves independent hardware safety gating",
+    "motor, wheel, battery, isolated-power, regeneration, thermal, harness, DFM, and physical validation unknowns are not promoted to approved selections",
+    "deterministic hardware tests and release-readiness checks pass without modifying firmware, robot control, or shared interfaces"
+  ],
+  "commands": [
+    "python hardware/mechanical/tools/generate_artifacts.py",
+    "<kicad>/bin/python hardware/pcb/tools/generate_kicad_board.py --session hardware/pcb/kicad/controller.ses",
+    "python hardware/pcb/tools/audit_connectivity.py",
+    "python hardware/pcb/tools/layout_audit.py",
+    "python hardware/pcb/tools/release_readiness.py",
+    "python hardware/motor_driver/tools/validate_motor_driver.py",
+    "python hardware/release/tools/check_release_readiness.py",
+    "python -m pytest tests/hardware -v"
+  ],
+  "evidence": [
+    "hardware/pcb/generated/drc.rpt",
+    "hardware/pcb/generated/erc.rpt",
+    "hardware/pcb/generated/connectivity_report.json",
+    "hardware/pcb/generated/layout_report.json",
+    "hardware/pcb/generated/release_readiness.json",
+    "hardware/motor_driver/generated/engineering-report.json",
+    "hardware/motor_driver/generated/release-readiness.json",
+    "hardware/mechanical/generated/analysis.json",
+    "hardware/release/generated/release_readiness_report.json",
+    "hardware test output"
+  ],
+  "stop_conditions": [
+    "an approved orderable MPN, AVL, datasheet revision, or land pattern is missing",
+    "regenerative energy lacks an approved clamp and absorption path",
+    "a safety output could be created by software alone",
+    "KiCad, connectivity, layout, mechanical, motor-package, or release-readiness validation fails",
+    "supplier DFM, calibrated physical measurements, safety approval, or prototype bring-up is required"
+  ]
+}

@@ -52,13 +52,13 @@ independent cause-cleared gate.
 
 For a completely valid STOP, the core dispatches the state-machine STOP event
 first, disables the software link deadline, stores the STOP command ID and
-retry count, and creates a correlated `STOP_ACK` record immediately. The record
-is eligible for transport handoff until the inclusive `MCU_STOP_ACK_DEADLINE_US`
-deadline.
+attempt metadata, and creates a correlated `STOP_ACK` record immediately. The
+record is eligible for transport handoff until the inclusive
+`MCU_STOP_ACK_DEADLINE_US` deadline.
 
 The transport-facing adapter confirms the handoff with
-`mcu_watchdog_confirm_stop_ack()`. The command ID, retry count and local
-monotonic timestamp must match the pending slot. A confirmation at the exact
+`mcu_watchdog_confirm_stop_ack()`. The command ID and retry count of the most
+recently emitted ACK must match the pending slot. A confirmation at the exact
 deadline is accepted; a late confirmation is rejected.
 
 If the handoff is not confirmed after the deadline, the pending slot is closed
@@ -68,12 +68,19 @@ never evidence that stopped confirmation was received. The safe state remains
 active and trusted reset cannot clear the timing cause until the owner marks it
 cleared.
 
-An exact STOP retry while the pending slot is live replays the cached original
-STOP ACK record, including its observed timestamp, wire result, fault and
-device mode, and does not extend the deadline. The replay remains unchanged if
-the state machine enters a fault after the first ACK was created. A different
-pending STOP is rejected by the bounded single-slot implementation; retry
-deduplication and multi-command windows remain separate work.
+An exact link-level STOP retry while the pending slot is live replays the cached
+original STOP ACK record, including its observed timestamp, retry count, wire
+result, fault and device mode, and does not extend the deadline. A
+protocol-level retry with the same STOP command ID and a different
+`retry_count` matches the same command semantics, emits a new observation that
+echoes the received `retry_count`, and preserves the original wire result,
+fault and device mode. Neither form repeats the STOP side effect or extends the
+deadline; the most recently emitted retry count is the one used for transport
+handoff confirmation and timeout correlation. Both replays remain unchanged in
+their semantic fields if the state machine enters a fault after the first ACK
+was created. A different pending STOP is rejected by the bounded single-slot
+implementation; retry deduplication and multi-command windows remain separate
+work.
 
 ## Hardware watchdog and HAL boundary
 

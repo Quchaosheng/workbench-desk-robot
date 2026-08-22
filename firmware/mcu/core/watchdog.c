@@ -71,8 +71,10 @@ static bool activity_is_valid(mcu_watchdog_activity_t activity)
 static bool stop_matches_pending(const mcu_watchdog_t *watchdog,
                                  const mcu_wire_frame_t *stop)
 {
-    return watchdog->stop_ack_pending && watchdog->stop_command_id == stop->command_id &&
-           watchdog->stop_retry_count == stop->retry_count;
+    /* retry_count is attempt metadata, not part of STOP command semantics.
+     * mcu_frame_encode() has already validated the STOP opcode and frame kind,
+     * so the command ID is the remaining correlation key. */
+    return watchdog->stop_ack_pending && watchdog->stop_command_id == stop->command_id;
 }
 
 static mcu_wire_fault_t map_fault(mcu_fault_code_t fault_code)
@@ -135,6 +137,33 @@ static void make_stop_ack(const mcu_wire_frame_t *stop,
     record->frame.device_mode = transition->device_mode == MCU_DEVICE_MODE_FAULTED
                                     ? MCU_WIRE_MODE_FAULTED
                                     : MCU_WIRE_MODE_STOPPED;
+}
+
+static void replay_pending_stop_ack(mcu_watchdog_t *watchdog,
+                                    const mcu_wire_frame_t *stop,
+                                    uint64_t now_us,
+                                    mcu_watchdog_record_t *record)
+{
+    bool exact_retry = watchdog->stop_retry_count == stop->retry_count;
+
+    clear_record(record);
+    record->kind = MCU_WATCHDOG_RECORD_STOP_ACK;
+    record->fault = MCU_WATCHDOG_FAULT_NONE;
+    record->observed_at_us = exact_retry ? watchdog->stop_ack_observed_at_us : now_us;
+    record->deadline_us = watchdog->stop_deadline_us;
+    record->command_id = watchdog->stop_command_id;
+    record->retry_count = stop->retry_count;
+    copy_frame(&record->frame, &watchdog->stop_ack_frame);
+    /* Preserve the original result/fault/device mode while echoing the
+     * attempt metadata carried by a protocol-level retry. */
+    record->frame.retry_count = stop->retry_count;
+    if (!exact_retry) {
+        /* The next exact link retry must replay this most recently emitted
+         * attempt, while the semantic response fields remain immutable. */
+        watchdog->stop_ack_observed_at_us = now_us;
+        watchdog->stop_ack_frame.retry_count = stop->retry_count;
+    }
+    watchdog->stop_retry_count = stop->retry_count;
 }
 
 void mcu_watchdog_init(mcu_watchdog_t *watchdog, uint32_t first_telemetry_sequence)
@@ -271,13 +300,7 @@ bool mcu_watchdog_receive_stop(mcu_watchdog_t *watchdog,
             deadline_after(now_us, watchdog->stop_deadline_us)) {
             return false;
         }
-        clear_record(record);
-        record->kind = MCU_WATCHDOG_RECORD_STOP_ACK;
-        record->observed_at_us = watchdog->stop_ack_observed_at_us;
-        record->deadline_us = watchdog->stop_deadline_us;
-        record->command_id = stop->command_id;
-        record->retry_count = stop->retry_count;
-        copy_frame(&record->frame, &watchdog->stop_ack_frame);
+        replay_pending_stop_ack(watchdog, stop, now_us, record);
         return true;
     }
 

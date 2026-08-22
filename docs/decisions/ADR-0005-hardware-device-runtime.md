@@ -40,6 +40,10 @@ physical device / Linux driver
   envelope. It does not write WorldState, call HTTP, or expose a raw handle.
 - `DeviceRuntime` owns `configure -> activate -> deactivate -> cleanup`,
   cancellation, worker joins, queue limits, backpressure and health counters.
+- A ROS 2 wrapper should use `rclcpp_lifecycle::LifecycleNode` (or the
+  equivalent lifecycle API) so lifecycle transitions create and destroy the
+  adapter workers and DDS entities as one idempotent operation. A failed
+  activation must not leave a half-active publisher or device handle.
 - Each device's mutable state has one writer. Callbacks hand work to a bounded
   queue instead of mutating state concurrently.
 - Bridge, device and touch implementations are plugins of the same port; their

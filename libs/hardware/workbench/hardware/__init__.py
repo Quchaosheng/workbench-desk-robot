@@ -32,11 +32,6 @@ from .urdf_parser import (
 )
 
 __all__ = [
-    "MotorConfig",
-    "UrdfMotorConfigError",
-    "dump_motor_config_yaml",
-    "load_urdf_motor_config",
-    "parse_urdf_motor_config",
     "MCU_CAN_ID_ACK",
     "MCU_CAN_ID_COMMAND",
     "MCU_CAN_ID_STOP",
@@ -58,6 +53,11 @@ __all__ = [
     "CanTransportError",
     "CanTransportPort",
     "CanWireFrame",
+    "MotorConfig",
     "SafeCANBus",
+    "UrdfMotorConfigError",
     "decode_can_frame",
+    "dump_motor_config_yaml",
+    "load_urdf_motor_config",
+    "parse_urdf_motor_config",
 ]

@@ -1,11 +1,42 @@
 {
   "status": "ANALYTICAL_ONLY_PHYSICAL_VALIDATION_REQUIRED",
+  "mass_scope": {
+    "configuration_id": "COMPACT_ENCLOSURE_SPACE_CLAIM_6P42KG",
+    "use_for_full_system_release": false,
+    "excluded_configuration": "DUAL_ARM_WORKBENCH_55KG_DESIGN_CASE_IN_MASS_LEDGER",
+    "status": "ANALYTICAL_SCREEN_ONLY_PHYSICAL_MASS_CG_AND_STABILITY_REQUIRED"
+  },
   "mass_kg": 6.42,
   "center_of_gravity_mm": [
     0.0,
     1.7,
     97.9
   ],
+  "mass_cases": {
+    "compact_enclosure": {
+      "configuration_id": "COMPACT_ENCLOSURE_SPACE_CLAIM_6P42KG",
+      "mass_kg": 6.42,
+      "center_of_gravity_mm": [
+        0.0,
+        1.7,
+        97.9
+      ],
+      "status": "ESTIMATE_NOT_MEASURED",
+      "physical_validation": "NOT_EXECUTED"
+    },
+    "full_system": {
+      "configuration_id": "DUAL_ARM_WORKBENCH_55KG_DESIGN_CASE",
+      "mass_kg": 55.0,
+      "center_of_gravity_mm": [
+        0.0,
+        -9.1,
+        470.0
+      ],
+      "source": "hardware/mechanical/mass-ledger.csv",
+      "status": "ESTIMATE_NOT_MEASURED",
+      "physical_validation": "NOT_EXECUTED"
+    }
+  },
   "static_tip_angle_deg": 42.6,
   "static_tip_angles_deg": {
     "roll_about_y": 47.0,
@@ -25,6 +56,12 @@
     "wheel_envelopes_fit_chassis_projection": true,
     "wheel_axis_mapping_is_explicit": true,
     "wheel_lateral_clearance_is_nonnegative": true,
+    "wheel_axial_clearance_within_tolerance": true,
+    "wheel_shell_radial_clearance_within_tolerance": true,
+    "wheel_longitudinal_overhang_within_tolerance": true,
+    "wheel_mount_to_envelope_ligament_met": true,
+    "wheel_mount_to_well_ligament_met": true,
+    "wheel_mount_to_chassis_edge_ligament_met": true,
     "wheel_bottom_matches_ground_clearance": true,
     "battery_envelope_is_declared": true,
     "battery_clear_of_traction_motors": true,
@@ -49,9 +86,16 @@
     "traction_drivetrain_definition_declared": true,
     "traction_drivetrain_pairs_match_motor_and_wheel_datums": true,
     "traction_drivetrain_axis_convention_is_explicit": true,
+    "traction_drivetrain_axes_are_lateral": true,
+    "traction_wheel_axles_match_lateral_axis": true,
+    "traction_drivetrain_toward_hub_geometry_is_declared": true,
+    "traction_drivetrain_face_origins_are_outboard": true,
+    "traction_drivetrain_roll_direction_matches_forward": true,
     "traction_drivetrain_roles_cover_all_wheels": true,
     "traction_drivetrain_interface_deltas_match_datums": true,
-    "traction_drivetrain_reaction_path_is_declared": true
+    "traction_drivetrain_reaction_path_is_declared": true,
+    "compact_analysis_scope_is_not_full_system_release": true,
+    "full_system_mass_case_is_separate_and_unmeasured": true
   },
   "pcb_tray_margin_mm": [
     60,
@@ -78,8 +122,8 @@
     "status": "TBD_WHEEL_HUB_TYRE_SELECTION_DO_NOT_ORDER",
     "wheel_count": 4,
     "wheel_envelope_mm": [
-      50,
       12,
+      50,
       50
     ],
     "wheel_centres": [
@@ -89,6 +133,12 @@
           -105,
           -90,
           43
+        ],
+        "support_role": "PASSIVE_CASTER_CONCEPT",
+        "axle_axis_direction": [
+          1,
+          0,
+          0
         ]
       },
       {
@@ -97,6 +147,12 @@
           105,
           -90,
           43
+        ],
+        "support_role": "PASSIVE_CASTER_CONCEPT",
+        "axle_axis_direction": [
+          1,
+          0,
+          0
         ]
       },
       {
@@ -105,6 +161,12 @@
           -105,
           90,
           43
+        ],
+        "support_role": "DRIVEN_FIXED",
+        "axle_axis_direction": [
+          1,
+          0,
+          0
         ]
       },
       {
@@ -113,16 +175,31 @@
           105,
           90,
           43
+        ],
+        "support_role": "DRIVEN_FIXED",
+        "axle_axis_direction": [
+          1,
+          0,
+          0
         ]
       }
     ],
     "wheelbase_mm": 180.0,
     "track_mm": 210.0,
     "maximum_wheel_axial_overhang_mm": 0.0,
-    "wheel_lateral_clearance_mm": 0.0,
+    "maximum_wheel_longitudinal_overhang_mm": 5.0,
+    "longitudinal_overhang_nominal_allocation_mm": 5,
+    "longitudinal_overhang_max_allocation_mm": 6,
+    "wheel_lateral_clearance_mm": 19.0,
+    "wheel_axial_clearance_mm": 19.0,
+    "wheel_shell_radial_clearance_mm": 4.5,
+    "mount_to_wheel_ligament_mm": 7.9,
+    "mount_to_well_cut_ligament_mm": 3.9,
+    "mount_to_chassis_edge_ligament_mm": 6.9,
     "ground_contact_z_mm": 18.0,
     "release_blockers": [
       "wheel_hub_tyre_bearing_and_fastener_mpn_not_selected",
+      "front_passive_caster_geometry_load_rating_and_floor_interface_not_selected",
       "wheel_load_traction_and_floor_interface_not_validated",
       "wheel_sweep_and_chafe_clearance_not_physically_executed"
     ],
@@ -141,14 +218,14 @@
       52
     ],
     "battery_to_motor_clearances_mm": [
-      22.0,
-      22.0
+      24.0,
+      24.0
     ],
     "battery_to_wheel_clearances_mm": [
-      34.0,
-      34.0,
-      34.0,
-      34.0
+      15.0,
+      15.0,
+      15.0,
+      15.0
     ],
     "battery_to_tray_clearance_mm": 27.0,
     "battery_to_childboard_clearance_mm": 69.0,
@@ -175,7 +252,7 @@
         "id": "traction_motor_left",
         "side": "left",
         "xyz": [
-          -86,
+          -88,
           0,
           49
         ]
@@ -184,7 +261,7 @@
         "id": "traction_motor_right",
         "side": "right",
         "xyz": [
-          86,
+          88,
           0,
           49
         ]
@@ -231,12 +308,12 @@
       }
     },
     "controller_to_childboard_clearance_mm": 7.0,
-    "rear_connector_corridor_mm": 22.5,
+    "rear_connector_corridor_mm": 24.5,
     "motor_to_childboard_clearances_mm": [
-      3.0,
-      3.0
+      5.0,
+      5.0
     ],
-    "minimum_motor_to_childboard_clearance_mm": 3.0,
+    "minimum_motor_to_childboard_clearance_mm": 5.0,
     "drivetrain": {
       "status": "CONCEPT_INTERFACE_BASELINE_PHYSICAL_VALIDATION_REQUIRED",
       "architecture": "TWO_MOTOR_REAR_WHEEL_DIFFERENTIAL",
@@ -249,21 +326,51 @@
         "wheel_front_left",
         "wheel_front_right"
       ],
+      "support_architecture": "REAR_DIFFERENTIAL_DRIVE_WITH_TWO_FRONT_PASSIVE_CASTERS",
+      "kinematic_reference": {
+        "frame": "rear_axle_midpoint",
+        "origin_xyz": [
+          0,
+          90,
+          43
+        ],
+        "status": "NOMINAL_GEOMETRY_ONLY_CONTROL_MODEL_AND_PHYSICAL_VALIDATION_REQUIRED"
+      },
       "axis_convention": {
         "coordinate_frame": "chassis_base_xyz_mm",
         "lateral_axis": "X",
         "longitudinal_axis": "Y",
-        "motor_output_axis_direction": [
+        "forward_axis_direction": [
           0,
+          -1,
+          0
+        ],
+        "up_axis_direction": [
+          0,
+          0,
+          1
+        ],
+        "ground_contact_radial_direction": [
+          0,
+          0,
+          -1
+        ],
+        "motor_output_axis_direction": [
           1,
+          0,
           0
         ],
         "wheel_hub_axis_direction": [
-          0,
           1,
+          0,
           0
         ],
-        "axis_note": "Motor and hub axes are parallel to the wheel Y axis; controller rotation sense is configured per side for forward travel."
+        "nominal_forward_hub_angular_velocity_direction": [
+          -1,
+          0,
+          0
+        ],
+        "axis_note": "Motor, hub and wheel axles are lateral along chassis X. At the floor contact, (-X angular velocity) cross (-Z radial direction) produces -Y forward velocity."
       },
       "motor_to_wheel_interfaces": [
         {
@@ -271,23 +378,29 @@
           "wheel_id": "wheel_rear_left",
           "motor_output": {
             "axis_direction": [
-              0,
               1,
+              0,
               0
             ],
             "origin_xyz": [
-              -86,
-              36,
+              -112,
+              0,
               49
             ],
-            "face": "+Y",
+            "toward_hub_direction": [
+              1,
+              0,
+              0
+            ],
+            "face": "-X",
+            "nominal_shaft_projection_to_transmission_plane_mm": 7,
             "shaft_diameter_mm": null,
             "interface_status": "TBD_APPROVED_MOTOR_OUTPUT_AND_COUPLER"
           },
           "wheel_hub": {
             "axis_direction": [
-              0,
               1,
+              0,
               0
             ],
             "origin_xyz": [
@@ -301,8 +414,8 @@
             "bearing_support": "TBD_CHASSIS_SIDE_PLATE_OR_HUB_BEARING"
           },
           "nominal_interface_delta_xyz_mm": [
-            -19,
-            54,
+            7,
+            90,
             -6
           ],
           "transmission": {
@@ -317,23 +430,29 @@
           "wheel_id": "wheel_rear_right",
           "motor_output": {
             "axis_direction": [
-              0,
               1,
+              0,
               0
             ],
             "origin_xyz": [
-              86,
-              36,
+              112,
+              0,
               49
             ],
-            "face": "+Y",
+            "toward_hub_direction": [
+              -1,
+              0,
+              0
+            ],
+            "face": "+X",
+            "nominal_shaft_projection_to_transmission_plane_mm": 7,
             "shaft_diameter_mm": null,
             "interface_status": "TBD_APPROVED_MOTOR_OUTPUT_AND_COUPLER"
           },
           "wheel_hub": {
             "axis_direction": [
-              0,
               1,
+              0,
               0
             ],
             "origin_xyz": [
@@ -347,8 +466,8 @@
             "bearing_support": "TBD_CHASSIS_SIDE_PLATE_OR_HUB_BEARING"
           },
           "nominal_interface_delta_xyz_mm": [
-            19,
-            54,
+            -7,
+            90,
             -6
           ],
           "transmission": {
@@ -361,14 +480,24 @@
       ],
       "hub_interface": {
         "axis_direction": [
-          0,
           1,
+          0,
           0
         ],
         "wheel_axle_datum": "rear_wheel_centres.xyz",
         "shaft_and_pilot": "TBD_AFTER_APPROVED_WHEEL_HUB_AND_BEARING_SELECTION",
         "retention": "TBD_SPLINED_SHAFT_OR_CLAMP_AND_FASTENER",
         "serviceability": "REAR_WHEEL_AND_TRANSMISSION_SERVICEABLE_WITH_CHILDBOARD_INSTALLED"
+      },
+      "tolerance_allocations": {
+        "status": "DESIGN_ALLOCATIONS_ONLY_PHYSICAL_MEASUREMENT_REQUIRED",
+        "rear_wheel_radius_match_mm_max": 0.5,
+        "rear_axle_height_mismatch_mm_max": 0.5,
+        "rear_axle_parallelism_deg_max": 0.5,
+        "transmission_plane_alignment_mm_max": 0.5,
+        "four_contact_coplanarity_mm_max": 1.0,
+        "wheel_to_fixed_clearance_mm_min": 3.0,
+        "evidence_status": "NOT_EXECUTED"
       },
       "reaction_load_path": "MOTOR_FACE_TO_MOTOR_BRACKET_TO_LOWER_CHASSIS; HUB_BEARING_TO_SIDE_SUPPORT_TO_LOWER_CHASSIS",
       "release_blockers": [

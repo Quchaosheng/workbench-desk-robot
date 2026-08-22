@@ -17,6 +17,7 @@
     "j2_power_pinout_is_complete": true,
     "layout_matches_mechanical_envelope": true,
     "logic_power_candidates_are_unapproved": true,
+    "motor_and_encoder_interface_topology_is_closed": true,
     "motor_power_inputs_remain_unknown": true,
     "nFAULT_pin_is_declared_hardware_inhibit_source": true,
     "no_component_is_falsely_approved": true,
@@ -32,10 +33,19 @@
     "software_has_no_safety_authority": true,
     "sources_are_traceable_not_approval": true,
     "supply_ground_topology_is_closed": true,
+    "traction_power_stage_is_partitioned_from_controller_pcb": true,
     "truth_table_is_fail_closed": true,
     "two_brushed_axes_only": true
   },
   "engineering_package_pass": true,
+  "interface_topology_checks": {
+    "controlled_motor_io_nets_are_unique": true,
+    "current_sense_paths_are_four_independent_channels": true,
+    "driver_vm_uses_protected_bus": true,
+    "encoder_power_and_returns_are_closed": true,
+    "encoder_quadrature_channels_are_individual": true,
+    "motor_outputs_reach_exact_connector_pins": true
+  },
   "metrics": {
     "board_envelope_mm": [
       118.0,
@@ -46,15 +56,18 @@
     "candidate_dual_stall_current_a": 11.0,
     "candidate_motor_count": 1,
     "controlled_driver_pin_count": 44,
+    "encoder_interface_path_count": 8,
+    "independent_current_sense_path_count": 4,
     "j2_current_ceiling_a": 10.0,
     "j2_power_ceiling_w": 120.0,
     "logic_power_candidate_count": 2,
+    "motor_output_path_count": 4,
     "mounting_pattern_mm": [
       108.0,
       72.0
     ],
     "nFAULT_hardware_inhibit_path_count": 2,
-    "net_topology_row_count": 21,
+    "net_topology_row_count": 32,
     "release_blocker_count": 13,
     "release_gate_count": 15,
     "safety_path_count": 11,
@@ -100,7 +113,7 @@
     "MTR-DFM",
     "MTR-BRINGUP"
   ],
-  "revision": "CONCEPT-A",
+  "revision": "CONCEPT-B",
   "safety_path_checks": {
     "dual_enable_paths_are_present": true,
     "every_safety_path_is_hardware_default_inhibit": true,

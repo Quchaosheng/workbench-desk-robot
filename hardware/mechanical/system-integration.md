@@ -81,11 +81,13 @@ mounting provisions.
 
 The chassis frame uses X lateral and Y longitudinal coordinates. The current integration baseline assigns the left and right traction motors to
 the rear left and rear right wheels respectively. This is a two-motor
-differential-drive concept; the front wheels remain passive until a later
-architecture change is approved. Motor output and rear hub axes are both
-declared along chassis `+Y`, with nominal motor-output origins at `[-86, 36, 49]`
-and `[86, 36, 49]` mm and rear hub datums at `[-105, 90, 43]` and `[105, 90, 43]`
-mm. This gives a 210 mm X-axis track and 180 mm Y-axis wheelbase. Each side reserves an offset reduction/coupler or belt path, a supported
+differential-drive concept; the front wheels remain passive support concepts
+until a caster or roller architecture is approved. Motor output and rear hub
+axes are lateral along chassis `+X`, with nominal motor-face origins at
+`[-112, 0, 49]` and `[112, 0, 49]` mm and rear hub datums at `[-105, 90, 43]`
+and `[105, 90, 43]` mm. At the ground contact, nominal `-X` angular velocity
+crossed with the `-Z` radial vector gives forward `-Y` velocity. This gives a
+210 mm X-axis track and 180 mm Y-axis wheelbase. Each side reserves an offset reduction/coupler or belt path, a supported
 intermediate shaft, and an enclosed rotating-part guard. The reaction path is
 motor face -> motor bracket -> lower chassis and hub bearing -> side support ->
 lower chassis.
@@ -97,7 +99,10 @@ fastener stack, and reaction-load sizing remain `TBD`; `physical_validation` is
 and nominal deltas are internally consistent without claiming a usable
 transmission or a physical fit.
 
-The reserved childboard volume sits above the controller service volume, retains
+Four X-axis cylindrical wheel-well cuts remove the nominal tyre/chassis-plate intersection. The wheel-well nominal allocation is 4 mm radial/side clearance, 5 mm nominal
+(6 mm allocated maximum) longitudinal overhang into the compliant bumper, and at least 3 mm mount-hole
+ligament. The generator checks these values against the shell and chassis
+projections; they are not a physical tolerance-stack result. The reserved childboard volume sits above the controller service volume, retains
 an upward extraction path, and leaves a rear connector corridor. Physical release
 requires an approved motor and childboard, tolerance-stack review, bracket load
 analysis, wheel/hub/tyre/bearing selection, wheel load and traction review,

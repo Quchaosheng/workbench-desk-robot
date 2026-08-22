@@ -9,12 +9,21 @@
     "all_bend_radii_fit_20mm_service_margin": true,
     "minimum_bend_radius_is_explicit": true,
     "signal_and_safety_harness_shields_defined": true,
+    "all_fourteen_harnesses_are_evaluated": true,
     "traction_harness_ids_complete": true,
     "traction_interfaces_cover_childboard": true,
     "traction_safety_eco_is_explicit": true,
     "traction_motor_rows_remain_candidate_limits": true,
     "traction_motor_bend_radius_is_20mm": true,
-    "cross_package_motor_budget_is_explicit": true
+    "cross_package_motor_budget_is_explicit": true,
+    "fourteen_harness_rows_are_present": true,
+    "endpoint_semantics_fields_are_present": true,
+    "pin_maps_are_well_formed": true,
+    "signal_and_shield_conductor_counts_reconcile": true,
+    "traction_endpoint_contract_is_explicit": true,
+    "traction_pin_maps_match_controlled_interfaces": true,
+    "traction_active_semantics_are_explicit": true,
+    "traction_shield_and_drain_semantics_are_explicit": true
   },
   "release_checks": {
     "all_mating_parts_approved": false,
@@ -33,7 +42,13 @@
       "declared_bend_radius_mm": 20.0,
       "required_bend_radius_mm": 20.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J1",
+      "destination_endpoint": "BATTERY_OR_BENCH",
+      "pin_map": "J1.1->BAT.+;J1.2->BAT.+;J1.3->BAT.-;J1.4->BAT.-",
+      "active_semantics": "VBAT_RAW_DC",
+      "shield_semantics": "UNSHIELDED_POWER",
+      "drain_semantics": "NONE"
     },
     {
       "harness_id": "H02",
@@ -45,7 +60,13 @@
       "declared_bend_radius_mm": 15.0,
       "required_bend_radius_mm": 15.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J2",
+      "destination_endpoint": "TRACTION_CHILDBOARD_J_PWR",
+      "pin_map": "J2.1->J_PWR.1;J2.2->J_PWR.2;J2.3->J_PWR.3;J2.4->J_PWR.4",
+      "active_semantics": "12V_MOTOR_AUX_DC",
+      "shield_semantics": "UNSHIELDED_POWER",
+      "drain_semantics": "NONE"
     },
     {
       "harness_id": "H03",
@@ -57,7 +78,13 @@
       "declared_bend_radius_mm": 12.0,
       "required_bend_radius_mm": 12.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J3",
+      "destination_endpoint": "JETSON_DEVKIT_DC_INPUT",
+      "pin_map": "J3.1->DEVKIT.+;J3.2->DEVKIT.+;J3.3->DEVKIT.-;J3.4->DEVKIT.-",
+      "active_semantics": "JETSON_12V_DC",
+      "shield_semantics": "UNSHIELDED_POWER",
+      "drain_semantics": "NONE"
     },
     {
       "harness_id": "H04",
@@ -69,7 +96,13 @@
       "declared_bend_radius_mm": 8.0,
       "required_bend_radius_mm": 8.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J4",
+      "destination_endpoint": "JETSON_MCU_BACKPLANE",
+      "pin_map": "J4.1-20->BACKPLANE.1-20",
+      "active_semantics": "3V3_LOGIC_AND_DIGITAL_SIGNALS",
+      "shield_semantics": "OVERALL_BRAID",
+      "drain_semantics": "SHIELD_DRAIN_TERMINATION_TBD"
     },
     {
       "harness_id": "H05",
@@ -81,7 +114,13 @@
       "declared_bend_radius_mm": 8.0,
       "required_bend_radius_mm": 8.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J5",
+      "destination_endpoint": "CAN_FIELD_ENDPOINT_A",
+      "pin_map": "J5.1->CANH;J5.2->CANL;J5.3->GND_CAN_ISO;SHIELD_DRAIN->DRAIN_TERMINATION_TBD",
+      "active_semantics": "CAN_FD_DIFFERENTIAL",
+      "shield_semantics": "BRAID",
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
     },
     {
       "harness_id": "H06",
@@ -93,7 +132,13 @@
       "declared_bend_radius_mm": 8.0,
       "required_bend_radius_mm": 8.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J6",
+      "destination_endpoint": "CAN_FIELD_ENDPOINT_B",
+      "pin_map": "J6.1->CANH;J6.2->CANL;J6.3->GND_CAN_ISO;SHIELD_DRAIN->DRAIN_TERMINATION_TBD",
+      "active_semantics": "CAN_FD_DIFFERENTIAL",
+      "shield_semantics": "BRAID",
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
     },
     {
       "harness_id": "H07",
@@ -105,7 +150,13 @@
       "declared_bend_radius_mm": 10.0,
       "required_bend_radius_mm": 10.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J10",
+      "destination_endpoint": "ESTOP_DEVICE",
+      "pin_map": "J10.1->ESTOP.A_OUT;J10.2->ESTOP.A_RETURN;J10.3->ESTOP.B_OUT;J10.4->ESTOP.B_RETURN",
+      "active_semantics": "DUAL_CHANNEL_12V_SAFETY_LOOP",
+      "shield_semantics": "OVERALL_BRAID",
+      "drain_semantics": "SHIELD_DRAIN_TERMINATION_TBD"
     },
     {
       "harness_id": "H08",
@@ -117,7 +168,13 @@
       "declared_bend_radius_mm": 8.0,
       "required_bend_radius_mm": 8.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J11_CURRENT",
+      "destination_endpoint": "UNDEFINED_SINGLE_CHANNEL_DRIVER_ENDPOINT",
+      "pin_map": "J11.1->SAFE_ENABLE_SINGLE;J11.2->ESTOP_SENSE;J11.3->GND;J11.4->3V3_LOGIC",
+      "active_semantics": "SINGLE_MOTOR_ENABLE_SAFE_PLUS_DIAGNOSTIC",
+      "shield_semantics": "OVERALL_BRAID",
+      "drain_semantics": "SHIELD_DRAIN_TERMINATION_TBD"
     }
   ],
   "traction_results": [
@@ -131,7 +188,13 @@
       "declared_bend_radius_mm": 10.0,
       "required_bend_radius_mm": 10.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J10_K1_K2_SAFETY_ECO",
+      "destination_endpoint": "TRACTION_CHILDBOARD_J_SAFE",
+      "pin_map": "J10-ECO.A_OUT->J_SAFE.1;J10-ECO.A_RETURN->J_SAFE.2;J10-ECO.B_OUT->J_SAFE.3;J10-ECO.B_RETURN->J_SAFE.4",
+      "active_semantics": "DUAL_CHANNEL_HARDWIRED_SAFETY_PERMISSIVE",
+      "shield_semantics": "OVERALL_BRAID",
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ONLY_TBD"
     },
     {
       "harness_id": "H10",
@@ -143,7 +206,13 @@
       "declared_bend_radius_mm": 8.0,
       "required_bend_radius_mm": 8.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J5_OR_J6_ISOLATED_CAN",
+      "destination_endpoint": "TRACTION_CHILDBOARD_J_CAN",
+      "pin_map": "J5/J6.1->J_CAN.1;J5/J6.2->J_CAN.2;J5/J6.3->J_CAN.3;SHIELD_DRAIN->DRAIN_TERMINATION_TBD",
+      "active_semantics": "CAN_FD_DIFFERENTIAL",
+      "shield_semantics": "BRAID",
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
     },
     {
       "harness_id": "H11",
@@ -155,7 +224,13 @@
       "declared_bend_radius_mm": 20.0,
       "required_bend_radius_mm": 20.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "TRACTION_CHILDBOARD_J_ML",
+      "destination_endpoint": "M1_LEFT_TRACTION_MOTOR",
+      "pin_map": "J_ML.1->M1.TERM_A;J_ML.2->M1.TERM_B",
+      "active_semantics": "BIDIRECTIONAL_BRUSHED_MOTOR_OUTPUT",
+      "shield_semantics": "UNSHIELDED_HIGH_CURRENT_PAIR",
+      "drain_semantics": "NONE"
     },
     {
       "harness_id": "H12",
@@ -167,7 +242,13 @@
       "declared_bend_radius_mm": 20.0,
       "required_bend_radius_mm": 20.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "TRACTION_CHILDBOARD_J_MR",
+      "destination_endpoint": "M2_RIGHT_TRACTION_MOTOR",
+      "pin_map": "J_MR.1->M2.TERM_A;J_MR.2->M2.TERM_B",
+      "active_semantics": "BIDIRECTIONAL_BRUSHED_MOTOR_OUTPUT",
+      "shield_semantics": "UNSHIELDED_HIGH_CURRENT_PAIR",
+      "drain_semantics": "NONE"
     },
     {
       "harness_id": "H13",
@@ -179,7 +260,13 @@
       "declared_bend_radius_mm": 8.0,
       "required_bend_radius_mm": 8.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "TRACTION_CHILDBOARD_J_ENC_L",
+      "destination_endpoint": "M1_LEFT_ENCODER",
+      "pin_map": "J_ENC_L.1->M1.ENC_VCC;J_ENC_L.2->M1.ENC_GND;J_ENC_L.3->M1.ENC_A;J_ENC_L.4->M1.ENC_B",
+      "active_semantics": "QUADRATURE_ENCODER_LEVEL_TBD",
+      "shield_semantics": "BRAID",
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
     },
     {
       "harness_id": "H14",
@@ -191,7 +278,141 @@
       "declared_bend_radius_mm": 8.0,
       "required_bend_radius_mm": 8.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "TRACTION_CHILDBOARD_J_ENC_R",
+      "destination_endpoint": "M2_RIGHT_ENCODER",
+      "pin_map": "J_ENC_R.1->M2.ENC_VCC;J_ENC_R.2->M2.ENC_GND;J_ENC_R.3->M2.ENC_A;J_ENC_R.4->M2.ENC_B",
+      "active_semantics": "QUADRATURE_ENCODER_LEVEL_TBD",
+      "shield_semantics": "BRAID",
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
+    }
+  ],
+  "integration_results": [
+    {
+      "harness_id": "H02",
+      "voltage_drop_v": 0.08,
+      "voltage_drop_percent": 0.67,
+      "current_density_a_per_mm2": 3.82,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 15.0,
+      "required_bend_radius_mm": 15.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J2",
+      "destination_endpoint": "TRACTION_CHILDBOARD_J_PWR",
+      "pin_map": "J2.1->J_PWR.1;J2.2->J_PWR.2;J2.3->J_PWR.3;J2.4->J_PWR.4",
+      "active_semantics": "12V_MOTOR_AUX_DC",
+      "shield_semantics": "UNSHIELDED_POWER",
+      "drain_semantics": "NONE"
+    },
+    {
+      "harness_id": "H09",
+      "voltage_drop_v": 0.017,
+      "voltage_drop_percent": 0.14,
+      "current_density_a_per_mm2": 0.61,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 10.0,
+      "required_bend_radius_mm": 10.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J10_K1_K2_SAFETY_ECO",
+      "destination_endpoint": "TRACTION_CHILDBOARD_J_SAFE",
+      "pin_map": "J10-ECO.A_OUT->J_SAFE.1;J10-ECO.A_RETURN->J_SAFE.2;J10-ECO.B_OUT->J_SAFE.3;J10-ECO.B_RETURN->J_SAFE.4",
+      "active_semantics": "DUAL_CHANNEL_HARDWIRED_SAFETY_PERMISSIVE",
+      "shield_semantics": "OVERALL_BRAID",
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ONLY_TBD"
+    },
+    {
+      "harness_id": "H10",
+      "voltage_drop_v": 0.014,
+      "voltage_drop_percent": 0.27,
+      "current_density_a_per_mm2": 0.49,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 8.0,
+      "required_bend_radius_mm": 8.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J5_OR_J6_ISOLATED_CAN",
+      "destination_endpoint": "TRACTION_CHILDBOARD_J_CAN",
+      "pin_map": "J5/J6.1->J_CAN.1;J5/J6.2->J_CAN.2;J5/J6.3->J_CAN.3;SHIELD_DRAIN->DRAIN_TERMINATION_TBD",
+      "active_semantics": "CAN_FD_DIFFERENTIAL",
+      "shield_semantics": "BRAID",
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
+    },
+    {
+      "harness_id": "H11",
+      "voltage_drop_v": 0.046,
+      "voltage_drop_percent": 0.39,
+      "current_density_a_per_mm2": 2.64,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 20.0,
+      "required_bend_radius_mm": 20.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true,
+      "source_endpoint": "TRACTION_CHILDBOARD_J_ML",
+      "destination_endpoint": "M1_LEFT_TRACTION_MOTOR",
+      "pin_map": "J_ML.1->M1.TERM_A;J_ML.2->M1.TERM_B",
+      "active_semantics": "BIDIRECTIONAL_BRUSHED_MOTOR_OUTPUT",
+      "shield_semantics": "UNSHIELDED_HIGH_CURRENT_PAIR",
+      "drain_semantics": "NONE"
+    },
+    {
+      "harness_id": "H12",
+      "voltage_drop_v": 0.046,
+      "voltage_drop_percent": 0.39,
+      "current_density_a_per_mm2": 2.64,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 20.0,
+      "required_bend_radius_mm": 20.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true,
+      "source_endpoint": "TRACTION_CHILDBOARD_J_MR",
+      "destination_endpoint": "M2_RIGHT_TRACTION_MOTOR",
+      "pin_map": "J_MR.1->M2.TERM_A;J_MR.2->M2.TERM_B",
+      "active_semantics": "BIDIRECTIONAL_BRUSHED_MOTOR_OUTPUT",
+      "shield_semantics": "UNSHIELDED_HIGH_CURRENT_PAIR",
+      "drain_semantics": "NONE"
+    },
+    {
+      "harness_id": "H13",
+      "voltage_drop_v": 0.01,
+      "voltage_drop_percent": 0.2,
+      "current_density_a_per_mm2": 0.49,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 8.0,
+      "required_bend_radius_mm": 8.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true,
+      "source_endpoint": "TRACTION_CHILDBOARD_J_ENC_L",
+      "destination_endpoint": "M1_LEFT_ENCODER",
+      "pin_map": "J_ENC_L.1->M1.ENC_VCC;J_ENC_L.2->M1.ENC_GND;J_ENC_L.3->M1.ENC_A;J_ENC_L.4->M1.ENC_B",
+      "active_semantics": "QUADRATURE_ENCODER_LEVEL_TBD",
+      "shield_semantics": "BRAID",
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
+    },
+    {
+      "harness_id": "H14",
+      "voltage_drop_v": 0.01,
+      "voltage_drop_percent": 0.2,
+      "current_density_a_per_mm2": 0.49,
+      "drop_pass": true,
+      "current_density_pass": true,
+      "declared_bend_radius_mm": 8.0,
+      "required_bend_radius_mm": 8.0,
+      "bend_radius_pass": true,
+      "shield_required_and_defined": true,
+      "source_endpoint": "TRACTION_CHILDBOARD_J_ENC_R",
+      "destination_endpoint": "M2_RIGHT_ENCODER",
+      "pin_map": "J_ENC_R.1->M2.ENC_VCC;J_ENC_R.2->M2.ENC_GND;J_ENC_R.3->M2.ENC_A;J_ENC_R.4->M2.ENC_B",
+      "active_semantics": "QUADRATURE_ENCODER_LEVEL_TBD",
+      "shield_semantics": "BRAID",
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
     }
   ],
   "all_results": [
@@ -205,7 +426,13 @@
       "declared_bend_radius_mm": 20.0,
       "required_bend_radius_mm": 20.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J1",
+      "destination_endpoint": "BATTERY_OR_BENCH",
+      "pin_map": "J1.1->BAT.+;J1.2->BAT.+;J1.3->BAT.-;J1.4->BAT.-",
+      "active_semantics": "VBAT_RAW_DC",
+      "shield_semantics": "UNSHIELDED_POWER",
+      "drain_semantics": "NONE"
     },
     {
       "harness_id": "H02",
@@ -217,7 +444,13 @@
       "declared_bend_radius_mm": 15.0,
       "required_bend_radius_mm": 15.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J2",
+      "destination_endpoint": "TRACTION_CHILDBOARD_J_PWR",
+      "pin_map": "J2.1->J_PWR.1;J2.2->J_PWR.2;J2.3->J_PWR.3;J2.4->J_PWR.4",
+      "active_semantics": "12V_MOTOR_AUX_DC",
+      "shield_semantics": "UNSHIELDED_POWER",
+      "drain_semantics": "NONE"
     },
     {
       "harness_id": "H03",
@@ -229,7 +462,13 @@
       "declared_bend_radius_mm": 12.0,
       "required_bend_radius_mm": 12.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J3",
+      "destination_endpoint": "JETSON_DEVKIT_DC_INPUT",
+      "pin_map": "J3.1->DEVKIT.+;J3.2->DEVKIT.+;J3.3->DEVKIT.-;J3.4->DEVKIT.-",
+      "active_semantics": "JETSON_12V_DC",
+      "shield_semantics": "UNSHIELDED_POWER",
+      "drain_semantics": "NONE"
     },
     {
       "harness_id": "H04",
@@ -241,7 +480,13 @@
       "declared_bend_radius_mm": 8.0,
       "required_bend_radius_mm": 8.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J4",
+      "destination_endpoint": "JETSON_MCU_BACKPLANE",
+      "pin_map": "J4.1-20->BACKPLANE.1-20",
+      "active_semantics": "3V3_LOGIC_AND_DIGITAL_SIGNALS",
+      "shield_semantics": "OVERALL_BRAID",
+      "drain_semantics": "SHIELD_DRAIN_TERMINATION_TBD"
     },
     {
       "harness_id": "H05",
@@ -253,7 +498,13 @@
       "declared_bend_radius_mm": 8.0,
       "required_bend_radius_mm": 8.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J5",
+      "destination_endpoint": "CAN_FIELD_ENDPOINT_A",
+      "pin_map": "J5.1->CANH;J5.2->CANL;J5.3->GND_CAN_ISO;SHIELD_DRAIN->DRAIN_TERMINATION_TBD",
+      "active_semantics": "CAN_FD_DIFFERENTIAL",
+      "shield_semantics": "BRAID",
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
     },
     {
       "harness_id": "H06",
@@ -265,7 +516,13 @@
       "declared_bend_radius_mm": 8.0,
       "required_bend_radius_mm": 8.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J6",
+      "destination_endpoint": "CAN_FIELD_ENDPOINT_B",
+      "pin_map": "J6.1->CANH;J6.2->CANL;J6.3->GND_CAN_ISO;SHIELD_DRAIN->DRAIN_TERMINATION_TBD",
+      "active_semantics": "CAN_FD_DIFFERENTIAL",
+      "shield_semantics": "BRAID",
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
     },
     {
       "harness_id": "H07",
@@ -277,7 +534,13 @@
       "declared_bend_radius_mm": 10.0,
       "required_bend_radius_mm": 10.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J10",
+      "destination_endpoint": "ESTOP_DEVICE",
+      "pin_map": "J10.1->ESTOP.A_OUT;J10.2->ESTOP.A_RETURN;J10.3->ESTOP.B_OUT;J10.4->ESTOP.B_RETURN",
+      "active_semantics": "DUAL_CHANNEL_12V_SAFETY_LOOP",
+      "shield_semantics": "OVERALL_BRAID",
+      "drain_semantics": "SHIELD_DRAIN_TERMINATION_TBD"
     },
     {
       "harness_id": "H08",
@@ -289,7 +552,13 @@
       "declared_bend_radius_mm": 8.0,
       "required_bend_radius_mm": 8.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J11_CURRENT",
+      "destination_endpoint": "UNDEFINED_SINGLE_CHANNEL_DRIVER_ENDPOINT",
+      "pin_map": "J11.1->SAFE_ENABLE_SINGLE;J11.2->ESTOP_SENSE;J11.3->GND;J11.4->3V3_LOGIC",
+      "active_semantics": "SINGLE_MOTOR_ENABLE_SAFE_PLUS_DIAGNOSTIC",
+      "shield_semantics": "OVERALL_BRAID",
+      "drain_semantics": "SHIELD_DRAIN_TERMINATION_TBD"
     },
     {
       "harness_id": "H09",
@@ -301,7 +570,13 @@
       "declared_bend_radius_mm": 10.0,
       "required_bend_radius_mm": 10.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J10_K1_K2_SAFETY_ECO",
+      "destination_endpoint": "TRACTION_CHILDBOARD_J_SAFE",
+      "pin_map": "J10-ECO.A_OUT->J_SAFE.1;J10-ECO.A_RETURN->J_SAFE.2;J10-ECO.B_OUT->J_SAFE.3;J10-ECO.B_RETURN->J_SAFE.4",
+      "active_semantics": "DUAL_CHANNEL_HARDWIRED_SAFETY_PERMISSIVE",
+      "shield_semantics": "OVERALL_BRAID",
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ONLY_TBD"
     },
     {
       "harness_id": "H10",
@@ -313,7 +588,13 @@
       "declared_bend_radius_mm": 8.0,
       "required_bend_radius_mm": 8.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "CONTROLLER_J5_OR_J6_ISOLATED_CAN",
+      "destination_endpoint": "TRACTION_CHILDBOARD_J_CAN",
+      "pin_map": "J5/J6.1->J_CAN.1;J5/J6.2->J_CAN.2;J5/J6.3->J_CAN.3;SHIELD_DRAIN->DRAIN_TERMINATION_TBD",
+      "active_semantics": "CAN_FD_DIFFERENTIAL",
+      "shield_semantics": "BRAID",
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
     },
     {
       "harness_id": "H11",
@@ -325,7 +606,13 @@
       "declared_bend_radius_mm": 20.0,
       "required_bend_radius_mm": 20.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "TRACTION_CHILDBOARD_J_ML",
+      "destination_endpoint": "M1_LEFT_TRACTION_MOTOR",
+      "pin_map": "J_ML.1->M1.TERM_A;J_ML.2->M1.TERM_B",
+      "active_semantics": "BIDIRECTIONAL_BRUSHED_MOTOR_OUTPUT",
+      "shield_semantics": "UNSHIELDED_HIGH_CURRENT_PAIR",
+      "drain_semantics": "NONE"
     },
     {
       "harness_id": "H12",
@@ -337,7 +624,13 @@
       "declared_bend_radius_mm": 20.0,
       "required_bend_radius_mm": 20.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "TRACTION_CHILDBOARD_J_MR",
+      "destination_endpoint": "M2_RIGHT_TRACTION_MOTOR",
+      "pin_map": "J_MR.1->M2.TERM_A;J_MR.2->M2.TERM_B",
+      "active_semantics": "BIDIRECTIONAL_BRUSHED_MOTOR_OUTPUT",
+      "shield_semantics": "UNSHIELDED_HIGH_CURRENT_PAIR",
+      "drain_semantics": "NONE"
     },
     {
       "harness_id": "H13",
@@ -349,7 +642,13 @@
       "declared_bend_radius_mm": 8.0,
       "required_bend_radius_mm": 8.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "TRACTION_CHILDBOARD_J_ENC_L",
+      "destination_endpoint": "M1_LEFT_ENCODER",
+      "pin_map": "J_ENC_L.1->M1.ENC_VCC;J_ENC_L.2->M1.ENC_GND;J_ENC_L.3->M1.ENC_A;J_ENC_L.4->M1.ENC_B",
+      "active_semantics": "QUADRATURE_ENCODER_LEVEL_TBD",
+      "shield_semantics": "BRAID",
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
     },
     {
       "harness_id": "H14",
@@ -361,7 +660,13 @@
       "declared_bend_radius_mm": 8.0,
       "required_bend_radius_mm": 8.0,
       "bend_radius_pass": true,
-      "shield_required_and_defined": true
+      "shield_required_and_defined": true,
+      "source_endpoint": "TRACTION_CHILDBOARD_J_ENC_R",
+      "destination_endpoint": "M2_RIGHT_ENCODER",
+      "pin_map": "J_ENC_R.1->M2.ENC_VCC;J_ENC_R.2->M2.ENC_GND;J_ENC_R.3->M2.ENC_A;J_ENC_R.4->M2.ENC_B",
+      "active_semantics": "QUADRATURE_ENCODER_LEVEL_TBD",
+      "shield_semantics": "BRAID",
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
     }
   ],
   "traction_engineering_checks": {
@@ -369,7 +674,11 @@
     "traction_interfaces_cover_childboard": true,
     "traction_safety_eco_is_explicit": true,
     "traction_motor_rows_remain_candidate_limits": true,
-    "traction_motor_bend_radius_is_20mm": true
+    "traction_motor_bend_radius_is_20mm": true,
+    "traction_endpoint_contract_is_explicit": true,
+    "traction_pin_maps_match_controlled_interfaces": true,
+    "traction_active_semantics_are_explicit": true,
+    "traction_shield_and_drain_semantics_are_explicit": true
   },
   "cross_package_checks": {
     "motor_spec_is_fail_closed": true,

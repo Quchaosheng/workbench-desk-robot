@@ -24,7 +24,7 @@ newer is installed it also regenerates the solid STEP file; otherwise the checke
 STEP remains unchanged.
 
 - `generated/enclosure.step`: AP203 STEP envelope for supplier exchange.
-- `generated/desk_robot_assembly.step`: seventeen-solid assembly including eight translucent TBD envelopes and the childboard support.
+- `generated/desk_robot_assembly.step`: reproducible seventeen-solid assembly including eight named TBD envelopes and the childboard support.
 - `generated/desk_robot_exploded.step`: exploded assembly for work instructions.
 - `generated/parts/*.step`: eight part STEP files covering shell, chassis, tray,
   display bracket, bumper, motor bracket, childboard support plate, and
@@ -46,14 +46,14 @@ remain controlled by the injection-moulding supplier after DFM review.
 
 | Property | Value |
 |---|---:|
-| Overall envelope | 280 x 240 x 330 mm |
+| Overall envelope | 280 x 244 x 330 mm |
 | Chassis wheelbase / track | 180 mm along Y / 210 mm along X |
-| Wheel space claim | 4 x diameter 50 x width 12 mm; contact Z=18 mm |
+| Wheel space claim | 4 x diameter 50 x width 12 mm; lateral X axles; contact Z=18 mm |
 | Ground clearance | 18 mm |
 | Shell nominal wall | 2.5 mm |
 | Electronics tray | 220 x 170 x 3 mm; top datum Z=102 mm |
 | Controller PCB / mount pattern | 160 x 130 / 152 x 122 mm |
-| Traction motor space claim | 2 x 48 x 72 x 46 mm; left/right centres X = -86/+86 mm |
+| Traction motor space claim | 2 x 48 x 72 x 46 mm; left/right centres X = -88/+88 mm |
 | Driver childboard space claim | 118 x 82 x 20 mm; centre [0, 54, 151] mm |
 | Battery reservation | 80 x 100 x 40 mm; centre [0, 0, 52] mm; restraint TBD |
 | Childboard service reservation | 35 mm upward removal; 20 mm rear connector corridor |
@@ -75,8 +75,10 @@ fit check also enforces 30 mm side and 20 mm front/rear service margins around t
 
 The chassis datum is conventional XYZ: X is lateral left/right and Y is
 longitudinal front/rear. Wheel centres are X = +/-105 mm and Y = +/-90 mm;
-therefore track is 210 mm and wheelbase is 180 mm. The generated STEP and SCAD
-models use the same axis mapping. Motor brackets sit on the lower-chassis top
+therefore track is 210 mm and wheelbase is 180 mm. Wheel axles are lateral
+along X, so nominal rear-wheel angular velocity `-X` crossed with the ground
+radial direction `-Z` produces forward velocity along `-Y`. The generated STEP
+and SCAD models use the same axis mapping. Motor brackets sit on the lower-chassis top
 datum (Z=26 mm), and the childboard support has lower posts to the tray top
 datum (Z=102 mm); both contacts are checked by the generator.
 
@@ -89,7 +91,18 @@ solution are frozen, and a guarded physical fit plus harness sweep is executed.
 
 The current drivetrain is a reviewable concept only: two independent motors are
 assigned to the rear left/right wheels for differential drive. Motor outputs and
-rear hub axes are parallel to chassis `+Y`; each side reserves an offset
-motor-to-hub transmission path and a supported hub/bearing interface. Shaft
-diameter, pilot, bolt pattern, reduction ratio, intermediate shaft, guard, and
-reaction-load sizing remain `TBD` and `NOT_EXECUTED` for physical validation.
+rear hub axes are lateral along chassis `+X`; each motor face is outboard and
+each side reserves an offset motor-to-hub transmission path and a supported
+hub/bearing interface. The front wheels remain passive support concepts until
+the caster/roller geometry is selected. Shaft diameter, pilot, bolt pattern,
+reduction ratio, intermediate shaft, guard, and reaction-load sizing remain
+`TBD` and `NOT_EXECUTED` for physical validation.
+
+The chassis mount pattern is 242 x 205 mm. Four local X-axis cylindrical wheel-well cuts remove the tyre/chassis intersection. The nominal wheel-well model reserves 4 mm side/radial clearance, a 5 mm
+longitudinal wheel overhang (6 mm allocated maximum) into the compliant bumper, and 3 mm minimum
+mount-hole ligament. These are tolerance allocations, not measured fit
+evidence; the guarded wheel sweep and physical tolerance stack remain open.
+
+The 6.42 kg compact enclosure analysis is intentionally separate from the
+55 kg dual-arm workbench design case in `mass-ledger.csv`. Neither mass, CG,
+or stability result is a measured release result.

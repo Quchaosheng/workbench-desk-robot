@@ -1,6 +1,6 @@
 reference,pins,pin_name,controlled_net,role,freeze_status,source_id
 U1,1 44,GND,GND_LOGIC,device ground,CANDIDATE_PINOUT,SRC-TI-DRV8962-DS
-U1,2 11 12 21,VM,12V_MOTOR_LOCAL,motor supply,CANDIDATE_PINOUT,SRC-TI-DRV8962-DS
+U1,2 11 12 21,VM,VM_PROTECTED,motor supply after fuse and reverse-current blocker,CANDIDATE_PINOUT,SRC-TI-DRV8962-DS
 U1,3,PGND3,GND_MOTOR,half-bridge 3 power return,CANDIDATE_PINOUT,SRC-TI-DRV8962-DS
 U1,4 5 6,OUT3,MOTOR_R_A,right motor output A,CANDIDATE_PINOUT,SRC-TI-DRV8962-DS
 U1,7 8 9,OUT4,MOTOR_R_B,right motor output B,CANDIDATE_PINOUT,SRC-TI-DRV8962-DS

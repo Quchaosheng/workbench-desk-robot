@@ -87,6 +87,8 @@ CAN_PAIR_MAX_AGGREGATE_DELTA_MM = 5.0
 CAN_TESTPOINT_STUB_MAX_MM = 3.5
 CAN_TESTPOINT_PAIR_STUB_DELTA_MM = 1.0
 CAN_TESTPOINT_POSITION_TOLERANCE_MM = 0.01
+OSC_GROUND_RETURN_MAX_MM = 2.0
+REFERENCE_LAYER_LOW_SPEED_REVIEW_THRESHOLD_MM = 250.0
 COPPER_LAYERS = {"F.Cu", "In1.Cu", "In2.Cu", "In3.Cu", "In4.Cu", "In5.Cu", "In6.Cu", "B.Cu"}
 RAW_CAN_NETS = ("CANH_RAW", "CANL_RAW")
 RAW_CAN_BLIND_VIA_LAYERS = {"F.Cu", "In3.Cu"}
@@ -357,6 +359,10 @@ def _width_check(segments: list[dict[str, Any]], zones: list[dict[str, Any]]) ->
             "zone_count": zone_counts[net],
             "state": state,
             "nominal_width_coverage_pct": round(nominal_coverage, 3) if total_length else None,
+            "total_route_length_mm": round(total_length, 4),
+            "nominal_width_length_mm": round(nominal_length, 4),
+            "neckdown_total_length_mm": round(neckdown_length, 4),
+            "minimum_width_ratio": round(min((track["width_mm"] / target for track in tracks), default=0.0), 4),
             "neckdown_rule": neck_rule,
             "accepted_neckdowns": neckdowns,
             "violations": violations,
@@ -397,7 +403,9 @@ def _reference_layer_check(segments: list[dict[str, Any]]) -> tuple[bool, dict[s
     return not violations, {"policy": policy, "usage_length_by_category_mm": usage, "violations": violations}
 
 
-def _oscillator_check(segments: list[dict[str, Any]], vias: list[dict[str, Any]]) -> tuple[bool, dict[str, Any]]:
+def _oscillator_check(
+    segments: list[dict[str, Any]], vias: list[dict[str, Any]], pads: list[dict[str, Any]]
+) -> tuple[bool, dict[str, Any]]:
     details: dict[str, Any] = {}
     passed = True
     for net in sorted(OSCILLATOR_NETS):
@@ -414,7 +422,95 @@ def _oscillator_check(segments: list[dict[str, Any]], vias: list[dict[str, Any]]
             "non_fcu_layers": off_top,
             "aggregate_length_mm": sum(segment["length_mm"] for segment in net_segments),
         }
+    lengths = [details[net]["aggregate_length_mm"] for net in sorted(OSCILLATOR_NETS)]
+    details["pair_length_delta_mm"] = round(abs(lengths[0] - lengths[1]), 4)
+    load_cap_pads = [pad for pad in pads if pad["reference"] in {"CY1", "CY2"}]
+    if not load_cap_pads:
+        details["load_cap_ground_returns"] = {"pass": True, "state": "not_applicable", "points": {}}
+        return passed, details
+    return_points: dict[str, Any] = {}
+    ground_return_pass = True
+    for reference in ("CY1", "CY2"):
+        matching_pads = [
+            pad
+            for pad in load_cap_pads
+            if pad["reference"] == reference and pad["number"] == "2" and pad["net"] == "GND"
+        ]
+        if len(matching_pads) != 1:
+            return_points[reference] = {"pass": False, "reason": "ground_pad_missing_or_ambiguous"}
+            ground_return_pass = False
+            continue
+        position = matching_pads[0]["position"]
+        distances = [
+            math.hypot(via["position"][0] - position[0], via["position"][1] - position[1])
+            for via in vias
+            if via["net"] == "GND"
+        ]
+        nearest = min(distances, default=None)
+        point_pass = nearest is not None and nearest <= OSC_GROUND_RETURN_MAX_MM + 1e-9
+        return_points[reference] = {
+            "pass": point_pass,
+            "ground_pad_position_mm": [round(value, 4) for value in position],
+            "nearest_ground_via_distance_mm": round(nearest, 4) if nearest is not None else None,
+        }
+        ground_return_pass = ground_return_pass and point_pass
+    details["load_cap_ground_returns"] = {
+        "pass": ground_return_pass,
+        "state": "checked",
+        "maximum_via_distance_mm": OSC_GROUND_RETURN_MAX_MM,
+        "points": return_points,
+    }
+    passed = passed and ground_return_pass
     return passed, details
+
+
+def _point_in_polygon(point: tuple[float, float], polygon: list[tuple[float, float]]) -> bool:
+    if len(polygon) < 3:
+        return False
+    x, y = point
+    inside = False
+    previous_x, previous_y = polygon[-1]
+    for current_x, current_y in polygon:
+        cross = (current_y > y) != (previous_y > y)
+        if cross:
+            boundary_x = (previous_x - current_x) * (y - current_y) / (previous_y - current_y) + current_x
+            if x <= boundary_x + 1e-9:
+                inside = not inside
+        previous_x, previous_y = current_x, current_y
+    return inside
+
+
+def _can_reference_coverage_check(segments: list[dict[str, Any]], zones: list[dict[str, Any]]) -> dict[str, Any]:
+    reference_polygons = [
+        zone["points"]
+        for zone in zones
+        if zone["net"] == "GND_CAN_ISO" and zone["layer"] == "In1.Cu" and not zone["is_rule_area"]
+    ]
+    endpoints = sorted(
+        {
+            (round(point[0], 4), round(point[1], 4))
+            for segment in segments
+            if segment["net"] in {"CANH", "CANL"} and segment["layer"] == "F.Cu"
+            for point in (segment["start"], segment["end"])
+        }
+    )
+    uncovered = [
+        point for point in endpoints if not any(_point_in_polygon(point, polygon) for polygon in reference_polygons)
+    ]
+    covered_count = len(endpoints) - len(uncovered)
+    return {
+        "pass": bool(endpoints) and bool(reference_polygons) and not uncovered,
+        "scope": "F.Cu CANH/CANL endpoint bounds against declared In1.Cu GND_CAN_ISO polygons",
+        "reference_polygon_count": len(reference_polygons),
+        "endpoint_count": len(endpoints),
+        "covered_endpoint_count": covered_count,
+        "coverage_percent": round(100 * covered_count / len(endpoints), 3) if endpoints else 0.0,
+        "uncovered_endpoints_mm": [list(point) for point in uncovered],
+        "note": (
+            "Polygon-bound coverage does not prove the filled copper shape, clearance voids, or return-current "
+            "continuity."
+        ),
+    }
 
 
 def _can_reference_zone_check(zones: list[dict[str, Any]]) -> tuple[bool, dict[str, Any]]:
@@ -810,6 +906,41 @@ def _can_testpoint_stub_check(
     return all_pass, details
 
 
+def _can_graph_metrics(net_segments: list[dict[str, Any]]) -> dict[str, Any]:
+    adjacency: dict[tuple[float, float], set[tuple[float, float]]] = {}
+    layer_lengths: dict[str, float] = {}
+    for segment in net_segments:
+        start = (round(segment["start"][0], 4), round(segment["start"][1], 4))
+        end = (round(segment["end"][0], 4), round(segment["end"][1], 4))
+        adjacency.setdefault(start, set()).add(end)
+        adjacency.setdefault(end, set()).add(start)
+        layer = segment["layer"]
+        layer_lengths[layer] = layer_lengths.get(layer, 0.0) + segment["length_mm"]
+    remaining = set(adjacency)
+    component_count = 0
+    while remaining:
+        component_count += 1
+        pending = [remaining.pop()]
+        while pending:
+            node = pending.pop()
+            for neighbour in adjacency[node]:
+                if neighbour in remaining:
+                    remaining.remove(neighbour)
+                    pending.append(neighbour)
+    degrees = [len(neighbours) for neighbours in adjacency.values()]
+    degree_histogram = {str(degree): degrees.count(degree) for degree in sorted(set(degrees))}
+    return {
+        "segment_count": len(net_segments),
+        "node_count": len(adjacency),
+        "connected_component_count": component_count,
+        "terminal_count": sum(degree == 1 for degree in degrees),
+        "branch_node_count": sum(degree > 2 for degree in degrees),
+        "maximum_node_degree": max(degrees, default=0),
+        "degree_histogram": degree_histogram,
+        "length_by_layer_mm": {layer: round(length, 4) for layer, length in sorted(layer_lengths.items())},
+    }
+
+
 def _can_check(segments: list[dict[str, Any]], vias: list[dict[str, Any]]) -> tuple[bool, dict[str, Any]]:
     details: dict[str, Any] = {}
     lengths: dict[str, float] = {}
@@ -836,6 +967,8 @@ def _can_check(segments: list[dict[str, Any]], vias: list[dict[str, Any]]) -> tu
         delta = abs(lengths[positive] - lengths[negative])
         positive_segments = [segment for segment in segments if segment["net"] == positive]
         negative_segments = [segment for segment in segments if segment["net"] == negative]
+        positive_graph = _can_graph_metrics(positive_segments)
+        negative_graph = _can_graph_metrics(negative_segments)
 
         def branched(net_segments: list[dict[str, Any]]) -> bool:
             endpoint_degree: dict[tuple[float, float], int] = {}
@@ -852,6 +985,10 @@ def _can_check(segments: list[dict[str, Any]], vias: list[dict[str, Any]]) -> tu
         negative_layers = {segment["layer"] for segment in negative_segments}
         topology_compatible = positive_branched == negative_branched
         topology_compatible = topology_compatible and positive_layers == negative_layers
+        graph_shape_compatible = all(
+            positive_graph[field] == negative_graph[field]
+            for field in ("connected_component_count", "terminal_count", "branch_node_count", "maximum_node_degree")
+        )
         length_matched = delta <= CAN_PAIR_MAX_AGGREGATE_DELTA_MM
         positive_via_count = sum(via["net"] == positive for via in vias)
         negative_via_count = sum(via["net"] == negative for via in vias)
@@ -866,6 +1003,8 @@ def _can_check(segments: list[dict[str, Any]], vias: list[dict[str, Any]]) -> tu
             "topology": "branched_multidrop" if pair_is_branched else "point_to_point",
             "length_matching_applicable": not pair_is_branched,
             "topology_compatible": topology_compatible,
+            "graph_shape_compatible": graph_shape_compatible,
+            "graph_metrics": {positive: positive_graph, negative: negative_graph},
             "via_counts_matched": via_counts_matched,
             "via_count_delta": via_count_delta,
             "aggregate_length_delta_mm": delta,
@@ -883,8 +1022,9 @@ def audit(board_path: str | Path | None = None) -> dict[str, Any]:
     zones = _parse_zones(text)
     width_pass, width_details = _width_check(segments, zones)
     layer_pass, layer_details = _reference_layer_check(segments)
-    oscillator_pass, oscillator_details = _oscillator_check(segments, vias)
+    oscillator_pass, oscillator_details = _oscillator_check(segments, vias, pads)
     can_reference_zone_pass, can_reference_zone_details = _can_reference_zone_check(zones)
+    can_reference_coverage = _can_reference_coverage_check(segments, zones)
     u6_keepout_pass, u6_keepout_details = _u6_isolation_keepout_check(pads, zones)
     u7_keepout_pass, u7_keepout_details = _u7_isolation_keepout_check(pads, zones)
     u2_via_array_pass, u2_via_array_details = _u2_via_array_check(pads, vias)
@@ -908,6 +1048,26 @@ def audit(board_path: str | Path | None = None) -> dict[str, Any]:
         "can_testpoint_stub_geometry": can_testpoint_pass,
     }
     can_vias = {net: sum(via["net"] == net for via in vias) for net in sorted(CAN_NETS)}
+    current_path_review = {
+        net: {
+            "state": details["state"],
+            "target_width_mm": details["target_width_mm"],
+            "minimum_width_mm": details["min_width_mm"],
+            "minimum_width_ratio": details["minimum_width_ratio"],
+            "neckdown_total_length_mm": details["neckdown_total_length_mm"],
+            "accepted_neckdown_count": len(details["accepted_neckdowns"]),
+            "allowed_use": (details["neckdown_rule"] or {}).get("allowed_use"),
+        }
+        for net, details in width_details.items()
+        if details["accepted_neckdowns"]
+    }
+    reference_layer_low_speed_mm = {
+        layer: round(categories.get("low_speed_signal", 0.0), 4)
+        for layer, categories in layer_details["usage_length_by_category_mm"].items()
+    }
+    reference_layer_review_open = any(
+        length > REFERENCE_LAYER_LOW_SPEED_REVIEW_THRESHOLD_MM for length in reference_layer_low_speed_mm.values()
+    )
     risks = {
         "can_differential_impedance": {
             "status": "OPEN_SUPPLIER_FIELD_SOLVE_REQUIRED",
@@ -923,6 +1083,10 @@ def audit(board_path: str | Path | None = None) -> dict[str, Any]:
         "can_pair_coupling_and_stub_geometry": {
             "status": "OPEN_LAYOUT_REVIEW_REQUIRED",
             "machine_verifiable": False,
+            "machine_evidence": {
+                "pair_route_metrics": can_details["pairs"],
+                "testpoint_stubs": can_testpoint_details,
+            },
             "note": (
                 "Branched CAN totals are not differential length; review coupled runs and connector, TVS, "
                 "testpoint, and termination stubs manually."
@@ -931,6 +1095,13 @@ def audit(board_path: str | Path | None = None) -> dict[str, Any]:
         "can_branched_path_correspondence": {
             "status": "OPEN_LAYOUT_REVIEW_REQUIRED",
             "machine_verifiable": False,
+            "machine_evidence": {
+                pair: {
+                    "graph_shape_compatible": details["graph_shape_compatible"],
+                    "graph_metrics": details["graph_metrics"],
+                }
+                for pair, details in can_details["pairs"].items()
+            },
             "note": (
                 "Branch presence and layer parity do not prove matching endpoint paths; compare each CANH/CANL "
                 "connector, protection, testpoint, and termination branch manually."
@@ -947,6 +1118,7 @@ def audit(board_path: str | Path | None = None) -> dict[str, Any]:
         "can_reference_plane_continuity": {
             "status": "OPEN_LAYOUT_REVIEW_REQUIRED",
             "machine_verifiable": False,
+            "machine_evidence": can_reference_coverage,
             "note": (
                 "Candidate signal layers do not prove a continuous adjacent GND_CAN_ISO reference plane; "
                 "review plane coverage and return-path discontinuities manually."
@@ -955,7 +1127,32 @@ def audit(board_path: str | Path | None = None) -> dict[str, Any]:
         "oscillator_return_path_and_load": {
             "status": "OPEN_MANUAL_REVIEW_REQUIRED",
             "machine_verifiable": False,
+            "machine_evidence": {
+                "pair_length_delta_mm": oscillator_details["pair_length_delta_mm"],
+                "load_cap_ground_returns": oscillator_details["load_cap_ground_returns"],
+            },
             "note": "Top-layer routing and zero vias do not prove crystal load, return-path, or EMI margin.",
+        },
+        "high_current_path_semantics_and_thermal": {
+            "status": "OPEN_PI_THERMAL_REVIEW_REQUIRED" if current_path_review else "NO_NECKDOWNS_PRESENT",
+            "machine_verifiable": False,
+            "machine_evidence": current_path_review,
+            "note": (
+                "Geometric neckdown limits do not prove that only monitor, feedback, and package-escape current "
+                "uses the narrow segments; review extracted current paths, IR drop, SOA, and copper temperature."
+            ),
+        },
+        "reference_layer_signal_occupancy": {
+            "status": "OPEN_STACKUP_RETURN_PATH_REVIEW_REQUIRED"
+            if reference_layer_review_open
+            else "MACHINE_CHECKED_BELOW_REVIEW_THRESHOLD",
+            "machine_verifiable": True,
+            "review_threshold_mm": REFERENCE_LAYER_LOW_SPEED_REVIEW_THRESHOLD_MM,
+            "low_speed_route_length_mm": reference_layer_low_speed_mm,
+            "note": (
+                "Low-speed routing on a reference layer can fragment return-current copper even when net "
+                "categories pass."
+            ),
         },
         "u3_microvia_fabrication": {
             "status": "OPEN_SUPPLIER_DFM_REQUIRED",
@@ -1006,6 +1203,7 @@ def audit(board_path: str | Path | None = None) -> dict[str, Any]:
             "reference_layer_net_categories": layer_details,
             "oscillator_fcu_only_no_vias": oscillator_details,
             "can_in1_reference_zone_declared": can_reference_zone_details,
+            "can_reference_zone_coverage_bounds": can_reference_coverage,
             "u6_full_copper_isolation_keepout": u6_keepout_details,
             "u7_full_copper_isolation_keepout": u7_keepout_details,
             "u2_source_return_via_arrays": u2_via_array_details,
@@ -1034,7 +1232,8 @@ def main() -> int:
     args = parser.parse_args()
     report = audit(args.board)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    with args.output.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(report, indent=2) + "\n")
     print(json.dumps(report, indent=2))
     return 0 if report["hard_gate_pass"] else 1
 

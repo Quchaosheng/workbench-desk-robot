@@ -11,6 +11,8 @@ from design_data import COMPONENTS
 ROOT = Path(__file__).resolve().parents[1]
 BOM = ROOT / "fabrication" / "bom.csv"
 APPROVALS = ROOT / "component-approval-register.csv"
+SIGNATURES = ROOT / "component-approval-signatures.csv"
+APPROVAL_DATA_FIELDS = ("decision", "approved_mpn", "datasheet_revision", "approved_by", "approved_at", "evidence_ref")
 
 
 def natural_key(reference: str) -> tuple[object, ...]:
@@ -89,6 +91,47 @@ def write_csv(path: Path, rows: list[dict[str, str]]) -> None:
         writer.writerows(rows)
 
 
+def _has_recorded_approval_data(rows: list[dict[str, str]]) -> bool:
+    """Return true when a register contains a decision or any signed evidence."""
+    return any(
+        row.get("decision", "PENDING") != "PENDING"
+        or any(row.get(field, "").strip() for field in APPROVAL_DATA_FIELDS[1:])
+        for row in rows
+    )
+
+
+def initialize_approval_register(
+    rows: list[dict[str, str]], approval_path: Path = APPROVALS, signature_path: Path = SIGNATURES
+) -> bool:
+    """Create a pristine register without ever replacing human-owned decisions."""
+    if approval_path.exists():
+        with approval_path.open(newline="", encoding="utf-8") as handle:
+            existing = list(csv.DictReader(handle))
+        if _has_recorded_approval_data(existing):
+            raise RuntimeError(
+                f"refusing to overwrite recorded approvals in {approval_path}; use an explicit ECO migration"
+            )
+        if existing != rows:
+            raise RuntimeError(
+                f"refusing to replace a manually changed pending register at {approval_path}; use an explicit ECO"
+            )
+        if signature_path.exists():
+            with signature_path.open(newline="", encoding="utf-8") as handle:
+                signatures = list(csv.DictReader(handle))
+            if _has_recorded_approval_data(signatures) or any(
+                row.get("signed_by", "").strip()
+                or row.get("signed_at", "").strip()
+                or row.get("evidence_ref", "").strip()
+                for row in signatures
+            ):
+                raise RuntimeError(
+                    f"refusing to reinitialize {approval_path}; signed role evidence exists in {signature_path}"
+                )
+        return False
+    write_csv(approval_path, rows)
+    return True
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate the controlled EVT BOM")
     parser.add_argument(
@@ -98,12 +141,14 @@ def main() -> None:
     )
     args = parser.parse_args()
     bom_rows, approval_rows = build_rows()
-    write_csv(BOM, bom_rows)
+    initialized = None
     if args.initialize_approval_register:
-        write_csv(APPROVALS, approval_rows)
+        initialized = initialize_approval_register(approval_rows)
+    write_csv(BOM, bom_rows)
     print(f"saved {BOM}: {len(bom_rows)} grouped lines")
     if args.initialize_approval_register:
-        print(f"initialized {APPROVALS}: {len(approval_rows)} pending lines")
+        action = "initialized" if initialized else "left unchanged"
+        print(f"{action} {APPROVALS}: {len(approval_rows)} pending lines")
 
 
 if __name__ == "__main__":

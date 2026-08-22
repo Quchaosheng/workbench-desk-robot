@@ -1,6 +1,6 @@
 {
   "baseline_id": "WB1-HW-ICD-REV-A",
-  "review_date": "2026-08-21",
+  "review_date": "2026-08-22",
   "maturity": "EVT_REVIEWABLE_NOT_PRODUCTION_RELEASED",
   "sources": [
     {
@@ -121,6 +121,56 @@
       "claim": "SFM4-DC12V is a force-guided relay candidate only; exact contact numbering, footprint, diagnostic coverage and safety suitability require vendor drawing and safety-owner approval.",
       "confidence": "OFFICIAL_PRIMARY",
       "freeze_status": "SAFETY_AND_VENDOR_REVIEW_REQUIRED",
+      "owner": "Safety Owner"
+    },
+    {
+      "id": "SRC-VISHAY-WSL3637",
+      "vendor": "Vishay",
+      "title": "WSL power metal strip resistor series datasheet",
+      "url": "https://www.vishay.com/docs/30100/wsl.pdf",
+      "claim": "WSL3637R0060FEA remains a current-sense candidate; pulse energy, Kelvin implementation and temperature rise require signed design analysis and bench validation.",
+      "confidence": "OFFICIAL_PRIMARY",
+      "freeze_status": "CANDIDATE_NOT_FROZEN",
+      "owner": "Electrical Owner"
+    },
+    {
+      "id": "SRC-TDK-ACT45B",
+      "vendor": "TDK",
+      "title": "ACT45B automotive common-mode filter product data",
+      "url": "https://product.tdk.com/en/search/emc/automotive/choke/info?part_no=ACT45B-101-2P-TL003",
+      "claim": "ACT45B-101-2P-TL003 remains the CAN FD choke candidate; insertion loss, current rating, land pattern and CAN eye margin require owner and supplier closure.",
+      "confidence": "OFFICIAL_PRIMARY",
+      "freeze_status": "CANDIDATE_NOT_FROZEN",
+      "owner": "Electrical Owner"
+    },
+    {
+      "id": "SRC-NEXPERIA-PESD2CANFD",
+      "vendor": "Nexperia",
+      "title": "PESD2CANFD24V-T CAN FD protection product page",
+      "url": "https://www.nexperia.com/product/PESD2CANFD24V-T",
+      "claim": "PESD2CANFD24V-T remains the CAN protection candidate; standoff voltage, dynamic clamp, capacitance, pinout and transient performance require approved evidence.",
+      "confidence": "OFFICIAL_PRIMARY",
+      "freeze_status": "CANDIDATE_NOT_FROZEN",
+      "owner": "Electrical Owner"
+    },
+    {
+      "id": "SRC-TOSHIBA-TLP293-4",
+      "vendor": "Toshiba",
+      "title": "Toshiba isolators and solid-state relays product catalog",
+      "url": "https://toshiba.semicon-storage.com/us/semiconductor/product/isolators-solid-state-relays.html",
+      "claim": "TLP293-4 remains a diagnostic isolation candidate only; its exact official datasheet revision, CTR, propagation, creepage and safety diagnostic coverage require procurement and safety-owner closure.",
+      "confidence": "OFFICIAL_VENDOR_CATALOG_PART_DATASHEET_PENDING",
+      "freeze_status": "SAFETY_OWNER_APPROVAL_REQUIRED",
+      "owner": "Safety Owner"
+    },
+    {
+      "id": "SRC-LITTELFUSE-1206L",
+      "vendor": "Littelfuse",
+      "title": "1206L resettable PTC series product data",
+      "url": "https://www.littelfuse.com/products/polyswitch-resettable-pptcs/surface-mount/1206l",
+      "claim": "1206L025YR remains the E-stop loop protection candidate; hold, trip, voltage and reset behavior require safety-owner approval and fault testing.",
+      "confidence": "OFFICIAL_PRIMARY",
+      "freeze_status": "SAFETY_OWNER_APPROVAL_REQUIRED",
       "owner": "Safety Owner"
     }
   ],

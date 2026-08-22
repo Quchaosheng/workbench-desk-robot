@@ -14,6 +14,7 @@ except ImportError as exc:
     raise SystemExit("Run with KiCad's bundled Python interpreter (bin/python.exe)") from exc
 
 from design_data import BLOCK_ORDER, COMPONENTS, Component
+from deterministic_ids import normalize_kicad_board
 from embed_stackup import embed_stackup
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1678,8 +1679,18 @@ class Router:
                             mm(first.GetPosition().x - second.GetPosition().x),
                             mm(first.GetPosition().y - second.GetPosition().y),
                         ),
-                        id(first),
-                        id(second),
+                        (
+                            first.GetParentFootprint().GetReference(),
+                            first.GetNumber(),
+                            first.GetPosition().x,
+                            first.GetPosition().y,
+                        ),
+                        (
+                            second.GetParentFootprint().GetReference(),
+                            second.GetNumber(),
+                            second.GetPosition().x,
+                            second.GetPosition().y,
+                        ),
                         first,
                         second,
                     )
@@ -1741,6 +1752,7 @@ def build_board(session_path: Path = ROUTING_SESSION, output_path: Path = OUTPUT
     add_plane_zones(board, nets)
     add_board_markings(board)
     board.Save(str(output_path.resolve()))
+    normalize_kicad_board(output_path.resolve(), "controller.kicad_pcb")
     embed_stackup(output_path.resolve())
     return board, route_count
 
@@ -1755,6 +1767,7 @@ if __name__ == "__main__":
     if args.placement_only:
         board, _, _ = build_placement_board()
         board.Save(str(args.output.resolve()))
+        normalize_kicad_board(args.output.resolve(), "controller-placement.kicad_pcb")
         embed_stackup(args.output.resolve())
         if args.dsn_output and not pcbnew.ExportSpecctraDSN(board, str(args.dsn_output.resolve())):
             raise SystemExit("failed to export Specctra DSN")

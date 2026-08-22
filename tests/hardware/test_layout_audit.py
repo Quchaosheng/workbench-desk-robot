@@ -589,6 +589,68 @@ class LayoutAuditTests(unittest.TestCase):
         )
         self.assertFalse(report["risks"]["oscillator_return_path_and_load"]["machine_verifiable"])
 
+    def test_oscillator_load_capacitors_require_local_ground_vias(self) -> None:
+        module = load_module()
+        segments = [
+            {"net": "OSC_IN", "layer": "F.Cu", "start": (1.0, 1.0), "end": (2.0, 1.0), "length_mm": 1.0},
+            {"net": "OSC_OUT", "layer": "F.Cu", "start": (1.0, 2.0), "end": (2.0, 2.0), "length_mm": 1.0},
+        ]
+        pads = [
+            {"reference": "CY1", "number": "2", "net": "GND", "position": (5.0, 5.0)},
+            {"reference": "CY2", "number": "2", "net": "GND", "position": (10.0, 5.0)},
+        ]
+        local_vias = [
+            {"net": "GND", "position": (6.0, 5.0)},
+            {"net": "GND", "position": (11.5, 5.0)},
+        ]
+        passed, details = module._oscillator_check(segments, local_vias, pads)
+        self.assertTrue(passed)
+        self.assertTrue(details["load_cap_ground_returns"]["pass"])
+        far_vias = [{"net": "GND", "position": (20.0, 20.0)}]
+        passed, details = module._oscillator_check(segments, far_vias, pads)
+        self.assertFalse(passed)
+        self.assertFalse(details["load_cap_ground_returns"]["points"]["CY1"]["pass"])
+
+    def test_can_reference_report_quantifies_polygon_bound_coverage(self) -> None:
+        field_routes = [
+            segment("CANH", 11, 21, 0.2),
+            segment("CANL", 11, 20.5, 0.2),
+        ]
+        uncovered = self.run_audit(board_text(*field_routes, omit={"CANH", "CANL"}))
+        evidence = uncovered["details"]["can_reference_zone_coverage_bounds"]
+        self.assertFalse(evidence["pass"])
+        self.assertGreater(len(evidence["uncovered_endpoints_mm"]), 0)
+        covering_zone = (
+            '(zone (net "GND_CAN_ISO") (layer "In1.Cu") (polygon (pts (xy 0 0) (xy 40 0) (xy 40 5) (xy 0 5))))'
+        )
+        covered = self.run_audit(
+            board_text(*field_routes, covering_zone, omit={"CANH", "CANL"}, include_can_reference_zone=False)
+        )
+        evidence = covered["details"]["can_reference_zone_coverage_bounds"]
+        self.assertTrue(evidence["pass"])
+        self.assertEqual(evidence["coverage_percent"], 100.0)
+
+    def test_can_graph_and_current_path_risks_include_machine_evidence(self) -> None:
+        report = self.run_audit(board_text())
+        pair = report["details"]["can_candidate_layers_and_pair_delta"]["pairs"]["CANH/CANL"]
+        self.assertIn("graph_metrics", pair)
+        self.assertIn("terminal_count", pair["graph_metrics"]["CANH"])
+        current_risk = report["risks"]["high_current_path_semantics_and_thermal"]
+        self.assertEqual(current_risk["status"], "NO_NECKDOWNS_PRESENT")
+        neckdown = segment("INPUT_SENSE", 40, 41.5, 0.2)
+        report = self.run_audit(board_text(neckdown))
+        current_risk = report["risks"]["high_current_path_semantics_and_thermal"]
+        self.assertEqual(current_risk["status"], "OPEN_PI_THERMAL_REVIEW_REQUIRED")
+        self.assertEqual(current_risk["machine_evidence"]["INPUT_SENSE"]["accepted_neckdown_count"], 1)
+
+    def test_reference_layer_signal_occupancy_is_reported_without_becoming_a_false_plane_proof(self) -> None:
+        long_route = segment("MCU_RESET", 40, 300, 0.2, "In1.Cu")
+        report = self.run_audit(board_text(long_route))
+        risk = report["risks"]["reference_layer_signal_occupancy"]
+        self.assertEqual(risk["status"], "OPEN_STACKUP_RETURN_PATH_REVIEW_REQUIRED")
+        self.assertTrue(risk["machine_verifiable"])
+        self.assertGreater(risk["low_speed_route_length_mm"]["In1.Cu"], 250.0)
+
     def test_zone_only_high_current_net_is_explicitly_not_a_pass(self) -> None:
         zone = '(zone (net "VBAT_RAW") (layer "F.Cu") (polygon (pts (xy 0 0) (xy 1 0) (xy 1 1))))'
         report = self.run_audit(board_text(zone, omit={"VBAT_RAW"}))

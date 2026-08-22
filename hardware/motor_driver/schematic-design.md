@@ -37,6 +37,16 @@ remains pending in `bom.csv` and `component-approval-register.csv`.
    protection and `J_CAN.3`. There is no DC, shield, capacitor or test-point
    connection to `GND_MOTOR` or `GND_LOGIC` without an approved EMC/isolation
    design.
+7. `U1.OUT1/OUT2` close only to `J_ML.1/.2`, and `U1.OUT3/OUT4` close only to
+   `J_MR.1/.2`. Each output is a separate wide switching path; there is no
+   shared motor terminal or logic-domain return.
+8. `J_ENC_L/J_ENC_R` receive separately protected `ENC_*_VCC` branches and
+   explicit `ENC_*_GND` returns to `GND_LOGIC`. All four quadrature channels
+   remain separate through the controller inputs and local protection.
+9. `U1.IPROPI1..4` route to four independent ADC inputs. They must not be wired
+   together or collapsed into a single `ADC_CURRENT` net. The selected scaling,
+   filtering, ADC protection and hardware current limit remain part of
+   `MTR-CURRENT` closure.
 
 ## Safety and fault topology
 

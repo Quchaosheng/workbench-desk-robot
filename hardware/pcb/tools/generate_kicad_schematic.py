@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from copy import deepcopy
 from pathlib import Path
-from uuid import uuid4
 
 from design_data import BLOCK_ORDER, COMPONENTS, CUSTOM_SYMBOLS, Component, Pin
+from deterministic_ids import DeterministicUuidFactory, normalize_line_endings
 from kiutils.items.common import Effects, Fill, Font, Justify, Position, Property, Stroke, TitleBlock
 from kiutils.items.schitems import (
     Connection,
@@ -23,7 +23,11 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "kicad" / "controller.kicad_sch"
 SYMBOL_LIBRARY = ROOT / "kicad" / "controller.kicad_sym"
 SYMBOL_TABLE = ROOT / "kicad" / "sym-lib-table"
-KICAD_DEMO = Path.home() / "AppData/Local/Programs/KiCad/10.0/share/kicad/demos/ecc83/ecc83-pp.kicad_sch"
+KICAD_DEMO_CANDIDATES = (
+    ROOT / "kicad" / "controller.kicad_sch",
+    Path.home() / "AppData/Local/Programs/KiCad/10.0/share/kicad/demos/ecc83/ecc83-pp.kicad_sch",
+)
+KICAD_DEMO = next((path for path in KICAD_DEMO_CANDIDATES if path.is_file()), KICAD_DEMO_CANDIDATES[0])
 
 
 BLOCK_AREAS = {
@@ -38,10 +42,11 @@ BLOCK_AREAS = {
     "TEST ACCESS": (410.0, 425.0, 605.0, 570.0),
 }
 GRID = 1.27
+UUID_FACTORY = DeterministicUuidFactory("controller.kicad_sch")
 
 
 def uid() -> str:
-    return str(uuid4())
+    return UUID_FACTORY.next()
 
 
 def snap(value: float) -> float:
@@ -234,7 +239,13 @@ def add_component(
             f"missing={missing}, unexpected={unexpected}"
         )
     source = Schematic.from_file(str(KICAD_DEMO), encoding="utf-8")
-    symbol = deepcopy(next(item for item in source.schematicSymbols if item.entryName == "R"))
+    template = next(
+        (item for item in source.schematicSymbols if item.entryName in {"R", "RESISTOR"}),
+        None,
+    )
+    if template is None:
+        raise ValueError(f"schematic template {KICAD_DEMO} has no resistor symbol")
+    symbol = deepcopy(template)
     symbol.libraryNickname = "controller"
     symbol.entryName = component.symbol
     symbol.position = Position(x, y, 0)
@@ -283,6 +294,7 @@ def add_block_titles(schematic: Schematic) -> None:
 
 
 def build_schematic() -> Schematic:
+    UUID_FACTORY.reset()
     geometries = build_symbol_library()
     positions = component_positions(geometries)
     schematic = base_schematic()
@@ -297,6 +309,7 @@ def build_schematic() -> Schematic:
 def main() -> None:
     schematic = build_schematic()
     schematic.to_file(str(OUTPUT), encoding="utf-8")
+    normalize_line_endings(OUTPUT)
     print(f"saved {OUTPUT}: {len(schematic.schematicSymbols)} symbols")
 
 

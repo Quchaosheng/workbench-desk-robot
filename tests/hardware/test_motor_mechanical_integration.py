@@ -82,7 +82,7 @@ def test_concept_drivetrain_pair_map_and_axes_are_auditable() -> None:
     assert set(drivetrain["driven_wheels"]) == {"wheel_rear_left", "wheel_rear_right"}
     assert set(drivetrain["passive_wheels"]) == {"wheel_front_left", "wheel_front_right"}
     assert all(
-        item["motor_output"]["axis_direction"] == [0, 1, 0] and item["wheel_hub"]["axis_direction"] == [0, 1, 0]
+        item["motor_output"]["axis_direction"] == [1, 0, 0] and item["wheel_hub"]["axis_direction"] == [1, 0, 0]
         for item in drivetrain["motor_to_wheel_interfaces"]
     )
     assert {(item["motor_id"], item["wheel_id"]) for item in drivetrain["motor_to_wheel_interfaces"]} == {
@@ -92,6 +92,24 @@ def test_concept_drivetrain_pair_map_and_axes_are_auditable() -> None:
     assert drivetrain["physical_validation"] == "NOT_EXECUTED"
 
 
+def test_lateral_axle_roll_vector_matches_declared_forward_direction() -> None:
+    spec = json.loads((ROOT / "hardware/mechanical/design-spec.json").read_text(encoding="utf-8"))
+    convention = spec["traction_integration"]["drivetrain"]["axis_convention"]
+    assert convention["wheel_hub_axis_direction"] == [1, 0, 0]
+    assert convention["ground_contact_radial_direction"] == [0, 0, -1]
+    assert convention["forward_axis_direction"] == [0, -1, 0]
+    assert convention["nominal_forward_hub_angular_velocity_direction"] == [-1, 0, 0]
+    # omega x r at the floor contact is the chassis forward velocity direction.
+    omega = convention["nominal_forward_hub_angular_velocity_direction"]
+    radial = convention["ground_contact_radial_direction"]
+    cross = [
+        omega[1] * radial[2] - omega[2] * radial[1],
+        omega[2] * radial[0] - omega[0] * radial[2],
+        omega[0] * radial[1] - omega[1] * radial[0],
+    ]
+    assert cross == convention["forward_axis_direction"]
+
+
 def test_scad_and_generated_report_share_battery_and_stability_baseline() -> None:
     scad = (ROOT / "hardware/mechanical/cad/desk_robot.scad").read_text(encoding="utf-8")
     assert "BATTERY_ENV = [80,100,40]" in scad
@@ -99,8 +117,12 @@ def test_scad_and_generated_report_share_battery_and_stability_baseline() -> Non
     assert "BATTERY_Z = 52" in scad
     assert "HUB_REAR_Y = 90" in scad
     assert "HUB_REAR_X = 105" in scad
-    assert "CHASSIS_MOUNT_X = 115" in scad
-    assert "CHASSIS_MOUNT_Y = 95" in scad
+    assert "CHASSIS_MOUNT_X = 121" in scad
+    assert "CHASSIS_MOUNT_Y = 102.5" in scad
+    assert "translate([30,37,99]) cube([220,170,3]);" in scad
+    assert "WHEEL_TRACK_HALF = 105" in scad
+    assert "WHEELBASE_HALF = 90" in scad
+    assert "rotate([0,90,0])" in scad
     assert "traction_motor_bracket" in scad
     assert "traction_childboard_support" in scad
     assert "CHILDBOARD_Z = 151" in scad
@@ -110,6 +132,15 @@ def test_scad_and_generated_report_share_battery_and_stability_baseline() -> Non
     assert report["static_tip_angle_deg"] == 42.6
     assert report["static_tip_angles_deg"] == {"roll_about_y": 47.0, "pitch_about_x": 42.6}
     assert report["traction_integration"]["drivetrain"]["physical_validation"] == "NOT_EXECUTED"
+    assert report["checks"]["traction_drivetrain_roll_direction_matches_forward"]
+    assert report["checks"]["wheel_axial_clearance_within_tolerance"]
+    assert report["checks"]["wheel_shell_radial_clearance_within_tolerance"]
+    assert report["wheel_integration"]["wheel_shell_radial_clearance_mm"] >= 4.0
+    assert report["wheel_integration"]["mount_to_wheel_ligament_mm"] >= 3.0
+    assert report["wheel_integration"]["mount_to_well_cut_ligament_mm"] >= 3.0
+    assert report["mass_cases"]["compact_enclosure"]["mass_kg"] == 6.42
+    assert report["mass_cases"]["full_system"]["mass_kg"] == 55.0
+    assert report["mass_cases"]["full_system"]["status"] == "ESTIMATE_NOT_MEASURED"
 
 
 def test_generated_step_datums_match_fixed_mechanical_contacts() -> None:
@@ -121,6 +152,13 @@ def test_generated_step_datums_match_fixed_mechanical_contacts() -> None:
         return tuple(round(value, 3) for value in (box.xmin, box.xmax, box.ymin, box.ymax, box.zmin, box.zmax))
 
     assert bounds(ROOT / "hardware/mechanical/generated/parts/electronics_tray.step")[4:] == (99.0, 102.0)
+    lower_chassis = cadquery.importers.importStep(str(ROOT / "hardware/mechanical/generated/parts/lower_chassis.step"))
+    assert len(lower_chassis.solids().vals()) == 1
+    nominal_plate_volume = 260 * 220 * 4 - 4 * 3.141592653589793 * (4.2 / 2) ** 2 * 4
+    assert lower_chassis.val().Volume() < nominal_plate_volume - 3000
+    for wheel_path in sorted((ROOT / "hardware/mechanical/generated/envelopes").glob("wheel_*.step")):
+        wheel = cadquery.importers.importStep(str(wheel_path))
+        assert lower_chassis.val().intersect(wheel.val()).Volume() < 0.001
     assert bounds(ROOT / "hardware/mechanical/generated/parts/motor_bracket.step")[4:] == (0.0, 46.0)
     assert bounds(ROOT / "hardware/mechanical/generated/parts/traction_childboard_standoffs.step")[4:] == (
         102.0,

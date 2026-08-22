@@ -98,7 +98,7 @@ def render_svg() -> str:
             (
                 f'<text x="{canvas_width / 2:.1f}" y="26" text-anchor="middle" '
                 'font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#172026">'
-                "DUAL-AXIS TRACTION CHILDBOARD - CONCEPT-A</text>"
+                f"DUAL-AXIS TRACTION CHILDBOARD - {html.escape(spec['revision'])}</text>"
             ),
             (
                 f'<text x="{canvas_width / 2:.1f}" y="{title_y:.1f}" text-anchor="middle" '

@@ -24,6 +24,7 @@ to the developer-kit DC input through a keyed harness. J4 is the populated
 | E-stop / J10 | Common protected 12 V source on pins 1/3 with independent channel A/B returns on pins 2/4 | Safety owner must approve circuit, diagnostic coverage and measured disable time |
 | Manual reset / J12 | Independent channel A/B reset returns feeding K1/K2 coil paths | Approve monitored-reset behavior, reset device, harness and welded-contact response |
 | Safety output / J11 | `MOTOR_ENABLE_SAFE`, E-stop sense, GND and 3.3 V; software request is a separate net | Freeze mating motor-driver safety interface and prove MCU cannot bypass K1/K2 |
+| Traction childboard / H02 + H09-H14 | H02 maps controller J2 pins 1-4 one-for-one to childboard `J_PWR`; H09 maps the future `J10/K1/K2` safety ECO to `J_SAFE`; H10 isolated CAN to `J_CAN`; H11/H12 motor outputs to external M1/M2; H13/H14 encoder I/O to external M1/M2 encoders | `J_SAFE` is an ECO endpoint, not current J11; freeze external motor/encoder MPNs, connector pin maps, shield/drain terminations and harness evidence |
 | J7-J9 | Downstream harness/daughterboard endpoint definitions only | Not populated on this companion-board revision |
 | PCB / tray | 160 x 130 x 1.6 mm; 152 x 122 mm M3 pattern; 220 x 170 mm tray | 60 x 40 mm total planar margin; verify connector bend radii and 32 mm vertical clearance |
 | Display | 150 x 72 mm opening only | Select display and freeze outline, keep-outs, data and power before tooling |
@@ -49,3 +50,10 @@ All computed rails require at least 20 percent continuous-power headroom.
 
 Until all five gates close, the package is EVT-reviewable and supplier-RFQ-ready,
 but it is not a production release and does not claim physical validation.
+
+The current J11 provides only one `MOTOR_ENABLE_SAFE` output plus `ESTOP_SENSE`;
+it cannot be split into the two independent childboard channels. The controlled
+traction safety harness therefore terminates at the future `J10/K1/K2` ECO
+endpoint (`J_SAFE`) and must not be wired to J11. H02 remains the only shared
+power path from controller J2 to the childboard and its four pins are mapped
+one-for-one in `hardware/manufacturing/harness-spec.csv`.

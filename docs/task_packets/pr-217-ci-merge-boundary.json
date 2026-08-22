@@ -1,0 +1,62 @@
+{
+  "issue": "PR-217-CI",
+  "human_owner": "TH3478",
+  "objective": "Make CI Task Packet changed-path validation compare the pull request head instead of a synthetic merge commit.",
+  "allowed_paths": [
+    ".github/workflows/ci.yml",
+    "docs/architecture/mcu-watchdog-v1.md",
+    "docs/task_packets/issue-60-mcu-watchdog-stop-timing.json",
+    "docs/task_packets/pr-217-ci-merge-boundary.json",
+    "firmware/mcu/Makefile",
+    "firmware/mcu/README.md",
+    "firmware/mcu/core/hal.h",
+    "firmware/mcu/core/watchdog.c",
+    "firmware/mcu/core/watchdog.h",
+    "firmware/mcu/hal/host/hal_host.c",
+    "firmware/mcu/hal/qemu/crt0.S",
+    "firmware/mcu/hal/qemu/hal_qemu.c",
+    "firmware/mcu/hal/qemu/main_qemu.c",
+    "firmware/mcu/tests/main_host.c",
+    "firmware/mcu/tests/watchdog_tests.c",
+    "firmware/mcu/tests/watchdog_tests.h",
+    "tests/unit/test_task_packet.py",
+    "tools/scripts/check_task_packet.py"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "docs/architecture/mcu-protocol-v1.md",
+    "tools/schemas/task-packet-v1.schema.json"
+  ],
+  "forbidden": [
+    "hardware/**",
+    "interfaces/**",
+    "robot/control/**",
+    "services/**"
+  ],
+  "acceptance": [
+    "CI keeps foundation tests on the pull request merge result",
+    "Task Packet boundary validation can compare the base revision with an explicit pull request head",
+    "main-only changes present in a synthetic merge commit are excluded from the pull request changed-path set",
+    "the explicit-head path remains commit-only and does not include local untracked files"
+  ],
+  "commands": [
+    "python tools/scripts/check_task_packet.py --all",
+    "python -m pytest tests/unit -k task_packet -v",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "git diff --check"
+  ],
+  "evidence": [
+    "explicit-head changed-path regression output",
+    "Task Packet validation output",
+    "repository test and contract output",
+    "clean diff check"
+  ],
+  "stop_conditions": [
+    "the fix requires changing protocol schemas or MCU safety behavior",
+    "a workflow outside .github/workflows/ci.yml must change",
+    "the PR head revision cannot be resolved in the CI checkout"
+  ]
+}

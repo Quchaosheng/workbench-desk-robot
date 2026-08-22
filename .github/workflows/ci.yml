@@ -101,17 +101,33 @@ jobs:
 
       - name: Run the fault suite
         id: fault_suite
-        run: sudo ./kernel/wbcan/test_wbcan.sh wbcan0
+        env:
+          WBCAN_TEST_REPORT: ${{ runner.temp }}/wbcan-test-report.tsv
+        run: sudo env WBCAN_TEST_REPORT="$WBCAN_TEST_REPORT" ./kernel/wbcan/test_wbcan.sh wbcan0
+
+      - name: Validate structured driver test report
+        id: fault_report
+        if: always()
+        run: python3 kernel/wbcan/validate_test_report.py "$RUNNER_TEMP/wbcan-test-report.tsv"
+
+      - name: Upload driver test report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: wbcan-driver-test-report
+          path: ${{ runner.temp }}/wbcan-test-report.tsv
+          if-no-files-found: error
 
       - name: Report runtime fault result
         if: always()
         env:
           MODULE_LOAD_OUTCOME: ${{ steps.module_load.outcome }}
           FAULT_SUITE_OUTCOME: ${{ steps.fault_suite.outcome }}
+          REPORT_VALIDATION_OUTCOME: ${{ steps.fault_report.outcome }}
         run: |
-          case "$FAULT_SUITE_OUTCOME" in
-            success) status=PASS ;;
-            failure) status=FAIL ;;
+          case "$FAULT_SUITE_OUTCOME:$REPORT_VALIDATION_OUTCOME" in
+            success:success) status=PASS ;;
+            *:failure|failure:*) status=FAIL ;;
             *) status=NOT_EXECUTED ;;
           esac
           {
@@ -123,6 +139,7 @@ jobs:
             echo "| --- | --- |"
             echo "| Module insertion | $MODULE_LOAD_OUTCOME |"
             echo "| Fault suite | $FAULT_SUITE_OUTCOME |"
+            echo "| Structured report | $REPORT_VALIDATION_OUTCOME |"
             if [ "$MODULE_LOAD_OUTCOME" = success ] && [ "$FAULT_SUITE_OUTCOME" = success ]; then
               echo "| Fault-plane readiness | PASS |"
             elif [ "$MODULE_LOAD_OUTCOME" = skipped ] || [ "$FAULT_SUITE_OUTCOME" = skipped ]; then

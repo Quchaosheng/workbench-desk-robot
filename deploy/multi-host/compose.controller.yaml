@@ -1,10 +1,24 @@
 services:
   controller:
     image: ${WORKBENCH_IMAGE:-workbench-1:local}
-    command: ["python", "-m", "workbench_backend.server", "--host", "0.0.0.0", "--port", "8080", "--event-source-url", "${WORKBENCH_EVENT_SOURCE_URL:?Set WORKBENCH_EVENT_SOURCE_URL to the simulation host}"]
+    command:
+      [
+        "python",
+        "-m",
+        "workbench_backend.server",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8080",
+        "--event-source-url",
+        "${WORKBENCH_EVENT_SOURCE_URL:?Set WORKBENCH_EVENT_SOURCE_URL to the simulation host}",
+        "--event-source-allowlist",
+        "${WORKBENCH_EVENT_SOURCE_ALLOWLIST:?Set WORKBENCH_EVENT_SOURCE_ALLOWLIST to literal IP addresses or CIDR ranges}",
+      ]
     environment:
       WORKBENCH_OFFLINE: "1"
-      WORKBENCH_EVENT_SOURCE_URL: ${WORKBENCH_EVENT_SOURCE_URL}
+      WORKBENCH_EVENT_SOURCE_URL: ${WORKBENCH_EVENT_SOURCE_URL:?Set WORKBENCH_EVENT_SOURCE_URL to the simulation host}
+      WORKBENCH_EVENT_SOURCE_ALLOWLIST: ${WORKBENCH_EVENT_SOURCE_ALLOWLIST:?Set WORKBENCH_EVENT_SOURCE_ALLOWLIST to literal IP addresses or CIDR ranges}
     ports:
       - "${CONTROLLER_PORT:-8080}:8080"
     read_only: true

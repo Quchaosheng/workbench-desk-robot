@@ -1,0 +1,49 @@
+{
+  "issue": 230,
+  "human_owner": "TH3478",
+  "objective": "Document a transport-neutral, bounded hardware DeviceRuntime boundary with ROS 2 and Fast DDS deployment guidance without claiming physical implementation.",
+  "allowed_paths": [
+    "docs/decisions/ADR-0005-hardware-device-runtime.md",
+    "docs/architecture/system.md",
+    "docs/task_packets/issue-230-hardware-device-runtime.json"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "interfaces/**",
+    "firmware/**",
+    "robot/control/**"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "firmware/**",
+    "robot/control/**",
+    "hardware/**",
+    "libs/hardware/**",
+    "services/**"
+  ],
+  "acceptance": [
+    "the ADR describes adapter, runtime, ROS 2, RMW/Fast DDS, validation and read-only exposure boundaries",
+    "the ADR defines bounded worker and queue lifecycle, cancellation, backpressure and shutdown semantics",
+    "the ADR keeps E-stop, watchdog, safe-enable and direct motion authority outside DDS",
+    "the ADR distinguishes simulation or loopback evidence from physical and hard-real-time evidence",
+    "the system architecture names the proposed hardware runtime as planned rather than implemented",
+    "no public schema, firmware, robot-control, hardware adapter or service implementation changes are made"
+  ],
+  "commands": [
+    "python tools/scripts/check_task_packet.py docs/task_packets/issue-230-hardware-device-runtime.json --base origin/main",
+    "make docs",
+    "git diff --check origin/main...HEAD"
+  ],
+  "evidence": [
+    "validated Task Packet output",
+    "strict MkDocs build output",
+    "clean whitespace diff",
+    "owner review of ADR open decisions and protected boundaries"
+  ],
+  "stop_conditions": [
+    "a public schema or ROS interface change is required before the design is reviewed",
+    "Fast DDS is treated as the only transport or safety channel",
+    "an unbounded worker, queue or callback is proposed",
+    "physical or hard-real-time evidence would be inferred from documentation or loopback"
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "issue": "LINUX9",
+  "human_owner": "Quchaosheng",
+  "objective": "Make the wbcan driver test suite produce validated, machine-readable evidence that CI archives without treating skipped or partial execution as a pass.",
+  "allowed_paths": [
+    "kernel/wbcan/test_wbcan.sh",
+    "kernel/wbcan/validate_test_report.py",
+    ".github/workflows/ci.yml",
+    "tests/unit/test_linux_driver_tests.py",
+    "tests/unit/test_release_workflow.py",
+    "docs/task_packets/linux-driver-tests.json"
+  ],
+  "read_only_paths": [
+    "firmware/**",
+    "interfaces/**",
+    "robot/control/**",
+    "AGENTS.md"
+  ],
+  "forbidden": [
+    "firmware/**",
+    "interfaces/**",
+    "robot/control/**"
+  ],
+  "acceptance": [
+    "every wbcan assertion is recorded with a unique test id, expected value and actual value",
+    "the report validator rejects missing, malformed, duplicate or failed rows and enforces a minimum check count",
+    "CI validates and uploads the report even when the privileged suite fails",
+    "CI cannot report a passing structured suite when the report is missing or incomplete",
+    "the report remains software-driver evidence and does not claim physical throughput, latency or jitter"
+  ],
+  "commands": [
+    "python -m pytest tests/unit/test_linux_driver_tests.py tests/unit/test_release_workflow.py -v",
+    "make -C kernel/wbcan",
+    "make -C kernel/wbcan checkpatch",
+    "sudo make -C kernel/wbcan test",
+    "git diff --check"
+  ],
+  "evidence": [
+    "unit test output for report validation and CI wiring",
+    "kernel module build and checkpatch output",
+    "privileged wbcan suite output",
+    "uploaded wbcan-driver-test-report artifact"
+  ],
+  "stop_conditions": [
+    "the hosted runner cannot execute privileged kernel-module tests",
+    "a physical CAN controller or hardware performance measurement is required",
+    "the change would require firmware, interface or robot-control writes"
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "issue": "LINUX-APP10",
+  "human_owner": "Quchaosheng",
+  "objective": "Add a reproducible offline application integration gate for the template planner, semantic task graph, read-only backend and event replay path.",
+  "allowed_paths": [
+    "tests/integration/test_offline_system.py",
+    "Makefile",
+    "docs/task_packets/linux-app10-offline-integration.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "firmware/**",
+    "robot/control/**",
+    "hardware/**",
+    "AGENTS.md"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "firmware/**",
+    "robot/control/**",
+    "hardware/**"
+  ],
+  "acceptance": [
+    "the offline template runner emits only bounded semantic actions without a model or network",
+    "the read-only backend serves health, readiness and versioned replay endpoints from checked-in fixtures",
+    "confirmed, refuted and insufficient-evidence states are observed through the public read model",
+    "POST, PUT, PATCH and DELETE fail closed with 405 read_only",
+    "an invalid event source makes readiness fail while process health remains available",
+    "the test gate is runnable with one command and does not claim ROS, Docker, GPU or physical hardware evidence"
+  ],
+  "commands": [
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/linux-app10-offline-integration.json",
+    "python3 -m pytest tests/integration/test_offline_system.py -v",
+    "make offline-integration",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "git diff --check"
+  ],
+  "evidence": [
+    "offline integration test output",
+    "template planner action-boundary assertions",
+    "backend health/readiness/replay and read-only HTTP assertions",
+    "invalid event-source readiness assertion",
+    "repository gate output"
+  ],
+  "stop_conditions": [
+    "a frozen interface or contract change is required",
+    "a ROS 2 node, Docker daemon, model server or physical device is required for the test",
+    "the test would grant the application layer joint, velocity, firmware or emergency-stop control",
+    "scripted fixtures would be presented as physical hardware evidence"
+  ]
+}

@@ -37,3 +37,16 @@ axes, power, safety, PCB, harness, mechanical, validation, and compliance
 owners. Its `evt_order_blocker` and `production_release_blocker` columns make
 the stage boundary explicit while keeping all physical and commercial unknowns
 fail-closed.
+
+`hardware-optimization-register.csv` is the cross-domain action register for
+the remaining P0/P1/P2 risks. Each row binds a current state to one concrete
+optimization, an owner, an acceptance evidence contract, and the release stage
+it affects. Validate it with:
+
+```bash
+python hardware/release/tools/validate_optimization_register.py
+```
+
+The register is intentionally not a release waiver: an item may be marked
+`CLOSED` only after its listed evidence is attached to the normal release
+evidence register and upstream reports are regenerated.

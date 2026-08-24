@@ -6,7 +6,9 @@
     "kernel/wbcan/wbcan.c",
     "kernel/wbcan/test_wbcan.sh",
     "kernel/wbcan/test_state_concurrency.py",
-    "docs/task_packets/linux-wbcan-state-serialization.json"
+    "kernel/wbcan/test_tx_timestamp.py",
+    "docs/task_packets/linux-wbcan-state-serialization.json",
+    "docs/task_packets/linux-wbcan-software-tx-timestamps.json"
   ],
   "read_only_paths": [
     ".github/workflows/ci.yml",

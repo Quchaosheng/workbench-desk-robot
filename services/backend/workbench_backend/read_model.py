@@ -1,12 +1,11 @@
 import json
 import threading
-import urllib.error
 import urllib.parse
-import urllib.request
 from pathlib import Path
 from typing import Any
 
 from .expression import ALLOWED_TRANSITIONS, ExpressionState, derive_expression
+from .remote_http import RemoteHttpClient, RemoteHttpError, RemoteHttpResponseTooLarge
 
 STATUS_LABELS = {
     "confirmed": "已确认",
@@ -40,7 +39,6 @@ EVENT_TYPES = {
 MAX_EVENT_LOG_BYTES = 10 * 1024 * 1024
 MAX_EVENTS_PER_RUN = 10_000
 MAX_READ_ATTEMPTS = 2
-MAX_REMOTE_RESPONSE_BYTES = 4 * 1024 * 1024
 
 
 class ReadModelError(ValueError):
@@ -220,30 +218,36 @@ class RemoteDashboardReadModel(DashboardReadModel):
 
     data_source = "remote-simulation-event-source"
 
-    def __init__(self, base_url: str, timeout_s: float = 1.0) -> None:
-        parsed = urllib.parse.urlparse(base_url)
-        if parsed.scheme != "http" or not parsed.hostname or parsed.username or parsed.password:
-            raise ValueError("event source URL must be an unauthenticated http URL")
-        self.base_url = base_url.rstrip("/")
-        self.timeout_s = timeout_s
+    def __init__(
+        self,
+        base_url: str,
+        timeout_s: float = 1.0,
+        event_source_allowlist: str | None = None,
+    ) -> None:
+        self._http = RemoteHttpClient(
+            base_url,
+            allowlist=event_source_allowlist,
+            timeout_s=timeout_s,
+        )
+        self.base_url = self._http.base_url
+        self.timeout_s = self._http.timeout_s
 
     def _request(self, path: str) -> dict[str, Any]:
-        request = urllib.request.Request(f"{self.base_url}{path}", headers={"Accept": "application/json"})
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout_s) as response:
-                body = response.read(MAX_REMOTE_RESPONSE_BYTES + 1)
-                if len(body) > MAX_REMOTE_RESPONSE_BYTES:
-                    raise ReadModelError("remote event source response is too large")
-                payload = json.loads(body, object_pairs_hook=_object_without_duplicates)
-        except urllib.error.HTTPError as exc:
-            if exc.code == 404:
-                raise KeyError(path) from None
-            if exc.code == 413:
-                raise ReadModelResponseTooLarge("remote event source response is too large") from None
+            response = self._http.get(path)
+        except RemoteHttpResponseTooLarge as exc:
+            raise ReadModelResponseTooLarge("remote event source response is too large") from exc
+        except RemoteHttpError as exc:
             raise ReadModelError(f"remote event source unavailable: {self.base_url}") from exc
+        if response.status == 404:
+            raise KeyError(path)
+        if not 200 <= response.status < 300:
+            raise ReadModelError(f"remote event source unavailable: {self.base_url}")
+        try:
+            payload = json.loads(response.body, object_pairs_hook=_object_without_duplicates)
         except _DuplicateJsonKey as exc:
             raise ReadModelError(f"remote event source returned {exc}: {self.base_url}") from exc
-        except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
+        except (UnicodeError, json.JSONDecodeError) as exc:
             raise ReadModelError(f"remote event source unavailable: {self.base_url}") from exc
         if not isinstance(payload, dict):
             raise ReadModelError("remote event source returned a non-object payload")
@@ -252,7 +256,7 @@ class RemoteDashboardReadModel(DashboardReadModel):
     def ready(self) -> bool:
         try:
             payload = self._request("/readyz")
-        except ReadModelError:
+        except (KeyError, ReadModelError):
             return False
         return payload.get("status") == "ready"
 
@@ -284,3 +288,21 @@ class RemoteDashboardReadModel(DashboardReadModel):
                 for state, transitions in ALLOWED_TRANSITIONS.items()
             },
         }
+
+
+class UnavailableRemoteDashboardReadModel(RemoteDashboardReadModel):
+    """Keep the Backend live while rejecting an invalid remote configuration."""
+
+    def __init__(self, error: Exception) -> None:
+        self._configuration_error = str(error)
+        self.base_url = "invalid-remote-event-source"
+        self.timeout_s = 0.0
+
+    def ready(self) -> bool:
+        return False
+
+    def list_runs(self) -> list[dict[str, Any]]:
+        raise ReadModelError("remote event source configuration is invalid")
+
+    def list_events(self, run_id: str) -> list[dict[str, Any]]:
+        raise ReadModelError("remote event source configuration is invalid")

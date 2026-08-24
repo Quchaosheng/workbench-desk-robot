@@ -47,6 +47,26 @@ def test_kernel_fault_suite_cannot_be_skipped_as_green() -> None:
     assert "GITHUB_STEP_SUMMARY" in summary_step
 
 
+def test_kernel_fault_suite_publishes_and_validates_structured_report() -> None:
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+    kernel_job = workflow.split("  kernel-module:", maxsplit=1)[1].split("\n  mcu-qemu:", maxsplit=1)[0]
+    fault_step = _step_block(kernel_job, "name: Run the fault suite")
+    validate_step = _step_block(kernel_job, "name: Validate structured driver test report")
+    artifact_step = _step_block(kernel_job, "name: Upload driver test report")
+
+    assert "WBCAN_TEST_REPORT" in fault_step
+    assert "sudo env WBCAN_TEST_REPORT" in fault_step
+    assert "kernel/wbcan/validate_test_report.py" in validate_step
+    assert "id: fault_report" in validate_step
+    assert "if: always()" in validate_step
+    assert "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a" in artifact_step
+    assert "wbcan-driver-test-report" in artifact_step
+    assert "if-no-files-found: error" in artifact_step
+    assert "REPORT_VALIDATION_OUTCOME" in kernel_job
+    assert "success:success)" in kernel_job
+    assert "status=PASS" in kernel_job
+
+
 def test_kernel_module_builds_against_lts_and_runner_headers() -> None:
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
     kernel_job = workflow.split("  kernel-module:", maxsplit=1)[1].split("\n  mcu-qemu:", maxsplit=1)[0]

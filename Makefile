@@ -2,7 +2,7 @@ PYTHON ?= python3
 
 .PHONY: bootstrap lint fmt test contract scenario-check golden-check evaluation-check evaluation-scripted context-check \
 	dashboard-test dashboard demo demo-scripted demo-offline demo-model model-provision performance-test benchmark-startup \
-	benchmark-resources docs task-check check container-smoke sim sim-doctor sim-list sim-run
+	benchmark-resources offline-integration docs task-check check container-smoke sim sim-doctor sim-list sim-run
 
 bootstrap:
 	$(PYTHON) -m pip install --upgrade pip
@@ -82,6 +82,9 @@ benchmark-resources:
 
 dashboard-test:
 	$(PYTHON) -m unittest tests.unit.test_dashboard_backend -v
+
+offline-integration:
+	$(PYTHON) -m pytest tests/integration/test_offline_system.py -v
 
 dashboard:
 	$(PYTHON) -m workbench_backend.server --host 127.0.0.1 --port 8080

@@ -45,6 +45,137 @@ class SchemaValidationError(ValueError):
     """Raised when a value does not satisfy the supported schema subset."""
 
 
+class _SchemaMismatch(SchemaValidationError):
+    """Raised when a value does not match an otherwise valid schema."""
+
+
+class _MalformedSchema(SchemaValidationError):
+    """Raised when a schema cannot be evaluated safely."""
+
+
+def _is_finite_json_number(value: Any) -> bool:
+    """Return whether value is a JSON number representable by the runtime validator."""
+    if type(value) is int:
+        return True
+    return type(value) is float and math.isfinite(value)
+
+
+def _numeric_constraint(schema: dict[str, Any], keyword: str, location: str) -> int | float:
+    bound = schema[keyword]
+    if not _is_finite_json_number(bound):
+        raise _MalformedSchema(f"schema {keyword} at {location} must be a finite number")
+    return bound
+
+
+def _validate_schema_structure(
+    schema: Any,
+    *,
+    references: dict[str, dict[str, Any]] | None,
+    location: str,
+    reference_stack: frozenset[str] = frozenset(),
+) -> None:
+    if not isinstance(schema, dict):
+        raise _MalformedSchema(f"schema at {location} must be an object")
+    if "$ref" in schema:
+        reference = schema["$ref"]
+        if not isinstance(reference, str):
+            raise _MalformedSchema(f"schema reference at {location} must be a string")
+        referenced = (references or {}).get(reference)
+        if referenced is None:
+            raise _MalformedSchema(f"unresolved schema reference {reference!r} at {location}")
+        if reference not in reference_stack:
+            _validate_schema_structure(
+                referenced,
+                references=references,
+                location=location,
+                reference_stack=reference_stack | {reference},
+            )
+        return
+
+    if "enum" in schema and not isinstance(schema["enum"], list):
+        raise _MalformedSchema(f"schema enum at {location} must be a list")
+    schema_types = schema.get("type")
+    if schema_types is not None:
+        allowed_types = schema_types if isinstance(schema_types, list) else [schema_types]
+        if not allowed_types or not all(isinstance(schema_type, str) for schema_type in allowed_types):
+            raise _MalformedSchema(f"schema type at {location} must be a string or string list")
+        supported_types = {"null", "boolean", "integer", "number", "string", "array", "object"}
+        if any(schema_type not in supported_types for schema_type in allowed_types):
+            raise _MalformedSchema(f"unsupported schema type(s) {allowed_types!r} at {location}")
+    for constraint_name in ("minimum", "maximum"):
+        if constraint_name in schema:
+            _numeric_constraint(schema, constraint_name, location)
+    if "pattern" in schema:
+        pattern = schema["pattern"]
+        if not isinstance(pattern, str):
+            raise _MalformedSchema(f"schema pattern at {location} must be a string")
+        try:
+            re.compile(pattern)
+        except (re.error, OverflowError) as exc:
+            raise _MalformedSchema(f"schema pattern at {location} is invalid") from exc
+    if "minItems" in schema and (type(schema["minItems"]) is not int or schema["minItems"] < 0):
+        raise _MalformedSchema(f"schema minItems at {location} must be a non-negative integer")
+
+    items = schema.get("items")
+    if items is not None:
+        _validate_schema_structure(
+            items,
+            references=references,
+            location=f"{location}.items",
+            reference_stack=reference_stack,
+        )
+    properties = schema.get("properties")
+    if properties is not None:
+        if not isinstance(properties, dict):
+            raise _MalformedSchema(f"properties at {location} must be an object")
+        for field_name, definition in properties.items():
+            if not isinstance(field_name, str):
+                raise _MalformedSchema(f"property names at {location} must be strings")
+            _validate_schema_structure(
+                definition,
+                references=references,
+                location=f"{location}.{field_name}",
+                reference_stack=reference_stack,
+            )
+    required = schema.get("required")
+    if required is not None and (
+        not isinstance(required, list) or any(not isinstance(field_name, str) for field_name in required)
+    ):
+        raise _MalformedSchema(f"required at {location} must be a string list")
+
+    all_of = schema.get("allOf")
+    if all_of is not None:
+        if not isinstance(all_of, list) or any(not isinstance(branch, dict) for branch in all_of):
+            raise _MalformedSchema(f"schema allOf at {location} must be an object list")
+        for index, branch in enumerate(all_of, start=1):
+            _validate_schema_structure(
+                branch,
+                references=references,
+                location=f"{location}.allOf[{index}]",
+                reference_stack=reference_stack,
+            )
+    any_of = schema.get("anyOf")
+    if any_of is not None:
+        if not isinstance(any_of, list) or not any_of or any(not isinstance(branch, dict) for branch in any_of):
+            raise _MalformedSchema(f"schema anyOf at {location} must be a non-empty object list")
+        for index, branch in enumerate(any_of, start=1):
+            _validate_schema_structure(
+                branch,
+                references=references,
+                location=f"{location}.anyOf[{index}]",
+                reference_stack=reference_stack,
+            )
+    for branch_name in ("if", "then", "else", "not"):
+        branch = schema.get(branch_name)
+        if branch is not None:
+            _validate_schema_structure(
+                branch,
+                references=references,
+                location=f"{location}.{branch_name}",
+                reference_stack=reference_stack,
+            )
+
+
 def _matches_json_type(value: Any, schema_type: str) -> bool:
     if schema_type == "null":
         return value is None
@@ -53,14 +184,14 @@ def _matches_json_type(value: Any, schema_type: str) -> bool:
     if schema_type == "integer":
         return type(value) is int
     if schema_type == "number":
-        return type(value) in {int, float} and math.isfinite(value)
+        return _is_finite_json_number(value)
     if schema_type == "string":
         return isinstance(value, str)
     if schema_type == "array":
         return isinstance(value, list)
     if schema_type == "object":
         return isinstance(value, dict)
-    raise SchemaValidationError(f"unsupported schema type {schema_type!r}")
+    raise _MalformedSchema(f"unsupported schema type {schema_type!r}")
 
 
 def _enum_contains(enum: list[Any], value: Any) -> bool:
@@ -73,10 +204,17 @@ def _schema_matches(
     *,
     references: dict[str, dict[str, Any]] | None,
     location: str,
+    reference_stack: frozenset[str],
 ) -> bool:
     try:
-        validate_schema_instance(value, schema, references=references, location=location)
-    except SchemaValidationError:
+        validate_schema_instance(
+            value,
+            schema,
+            references=references,
+            location=location,
+            _reference_stack=reference_stack,
+        )
+    except _SchemaMismatch:
         return False
     return True
 
@@ -87,42 +225,82 @@ def validate_schema_instance(
     *,
     references: dict[str, dict[str, Any]] | None = None,
     location: str = "$",
+    _reference_stack: frozenset[str] = frozenset(),
 ) -> None:
     """Validate one value against the JSON Schema subset the compiler supports."""
+    _validate_schema_structure(schema, references=references, location=location)
     if not isinstance(schema, dict):
-        raise SchemaValidationError(f"schema at {location} must be an object")
+        raise _MalformedSchema(f"schema at {location} must be an object")
+    if type(value) is float and not math.isfinite(value):
+        raise SchemaValidationError(f"value at {location} must be a finite JSON number")
     if "$ref" in schema:
         reference = schema["$ref"]
+        if not isinstance(reference, str):
+            raise _MalformedSchema(f"schema reference at {location} must be a string")
         referenced = (references or {}).get(reference)
         if referenced is None:
-            raise SchemaValidationError(f"unresolved schema reference {reference!r} at {location}")
-        validate_schema_instance(value, referenced, references=references, location=location)
+            raise _MalformedSchema(f"unresolved schema reference {reference!r} at {location}")
+        if reference in _reference_stack:
+            raise _MalformedSchema(f"schema reference cycle at {location} does not advance the instance")
+        validate_schema_instance(
+            value,
+            referenced,
+            references=references,
+            location=location,
+            _reference_stack=_reference_stack | {reference},
+        )
         return
 
     if "const" in schema and (type(value) is not type(schema["const"]) or value != schema["const"]):
-        raise SchemaValidationError(f"value at {location} does not match const {schema['const']!r}")
+        raise _SchemaMismatch(f"value at {location} does not match const {schema['const']!r}")
 
     if "enum" in schema:
         enum = schema["enum"]
-        if not isinstance(enum, list) or not _enum_contains(enum, value):
-            raise SchemaValidationError(f"value at {location} is not in the allowed enum")
+        if not isinstance(enum, list):
+            raise _MalformedSchema(f"schema enum at {location} must be a list")
+        if not _enum_contains(enum, value):
+            raise _SchemaMismatch(f"value at {location} is not in the allowed enum")
 
     schema_types = schema.get("type")
     if schema_types is not None:
         allowed_types = schema_types if isinstance(schema_types, list) else [schema_types]
         if not all(isinstance(schema_type, str) for schema_type in allowed_types):
-            raise SchemaValidationError(f"schema type at {location} must be a string or string list")
+            raise _MalformedSchema(f"schema type at {location} must be a string or string list")
         if not any(_matches_json_type(value, schema_type) for schema_type in allowed_types):
-            raise SchemaValidationError(f"value at {location} does not match type {schema_types!r}")
+            raise _SchemaMismatch(f"value at {location} does not match type {schema_types!r}")
 
-    if "minimum" in schema and (type(value) not in {int, float} or value < schema["minimum"]):
-        raise SchemaValidationError(f"value at {location} is below minimum {schema['minimum']!r}")
-    if "maximum" in schema and (type(value) not in {int, float} or value > schema["maximum"]):
-        raise SchemaValidationError(f"value at {location} is above maximum {schema['maximum']!r}")
-    if "pattern" in schema and (not isinstance(value, str) or re.search(schema["pattern"], value) is None):
-        raise SchemaValidationError(f"value at {location} does not match pattern {schema['pattern']!r}")
-    if "minItems" in schema and (not isinstance(value, list) or len(value) < schema["minItems"]):
-        raise SchemaValidationError(f"array at {location} has fewer than {schema['minItems']} items")
+    if "minimum" in schema:
+        minimum = _numeric_constraint(schema, "minimum", location)
+        try:
+            below_minimum = not _is_finite_json_number(value) or value < minimum
+        except (OverflowError, TypeError) as exc:
+            raise _SchemaMismatch(f"value at {location} cannot be compared with minimum {minimum!r}") from exc
+        if below_minimum:
+            raise _SchemaMismatch(f"value at {location} is below minimum {minimum!r}")
+    if "maximum" in schema:
+        maximum = _numeric_constraint(schema, "maximum", location)
+        try:
+            above_maximum = not _is_finite_json_number(value) or value > maximum
+        except (OverflowError, TypeError) as exc:
+            raise _SchemaMismatch(f"value at {location} cannot be compared with maximum {maximum!r}") from exc
+        if above_maximum:
+            raise _SchemaMismatch(f"value at {location} is above maximum {maximum!r}")
+    if "pattern" in schema:
+        pattern = schema["pattern"]
+        if not isinstance(pattern, str):
+            raise _MalformedSchema(f"schema pattern at {location} must be a string")
+        try:
+            matcher = re.compile(pattern)
+        except (re.error, OverflowError) as exc:
+            raise _MalformedSchema(f"schema pattern at {location} is invalid") from exc
+        if not isinstance(value, str) or matcher.search(value) is None:
+            raise _SchemaMismatch(f"value at {location} does not match pattern {pattern!r}")
+    if "minItems" in schema:
+        min_items = schema["minItems"]
+        if type(min_items) is not int or min_items < 0:
+            raise _MalformedSchema(f"schema minItems at {location} must be a non-negative integer")
+        if not isinstance(value, list) or len(value) < min_items:
+            raise _SchemaMismatch(f"array at {location} has fewer than {min_items} items")
 
     if isinstance(value, list) and "items" in schema:
         for index, item in enumerate(value):
@@ -137,14 +315,14 @@ def validate_schema_instance(
         properties = schema.get("properties", {})
         required = schema.get("required", [])
         if not isinstance(properties, dict) or not isinstance(required, list):
-            raise SchemaValidationError(f"object schema at {location} has invalid properties or required fields")
+            raise _MalformedSchema(f"object schema at {location} has invalid properties or required fields")
         missing = set(required) - set(value)
         if missing:
-            raise SchemaValidationError(f"object at {location} is missing fields: {sorted(missing)}")
+            raise _SchemaMismatch(f"object at {location} is missing fields: {sorted(missing)}")
         if schema.get("additionalProperties", True) is False:
             extra = set(value) - set(properties)
             if extra:
-                raise SchemaValidationError(f"object at {location} has extra fields: {sorted(extra)}")
+                raise _SchemaMismatch(f"object at {location} has extra fields: {sorted(extra)}")
         for field_name, definition in properties.items():
             if field_name in value:
                 validate_schema_instance(
@@ -155,23 +333,71 @@ def validate_schema_instance(
                 )
 
     any_of = schema.get("anyOf")
-    if any_of is not None and not any(
-        _schema_matches(value, candidate, references=references, location=location) for candidate in any_of
-    ):
-        raise SchemaValidationError(f"value at {location} does not match any allowed schema")
+    if any_of is not None:
+        if not isinstance(any_of, list) or not any_of or any(not isinstance(candidate, dict) for candidate in any_of):
+            raise _MalformedSchema(f"schema anyOf at {location} must be a non-empty object list")
+        if not any(
+            _schema_matches(
+                value,
+                candidate,
+                references=references,
+                location=location,
+                reference_stack=_reference_stack,
+            )
+            for candidate in any_of
+        ):
+            raise _SchemaMismatch(f"value at {location} does not match any allowed schema")
 
     excluded = schema.get("not")
-    if excluded is not None and _schema_matches(value, excluded, references=references, location=location):
-        raise SchemaValidationError(f"value at {location} matches a forbidden schema")
+    if excluded is not None:
+        if not isinstance(excluded, dict):
+            raise _MalformedSchema(f"schema not at {location} must be an object")
+        if _schema_matches(
+            value,
+            excluded,
+            references=references,
+            location=location,
+            reference_stack=_reference_stack,
+        ):
+            raise _SchemaMismatch(f"value at {location} matches a forbidden schema")
 
-    for constraint in schema.get("allOf", []):
-        validate_schema_instance(value, constraint, references=references, location=location)
+    all_of = schema.get("allOf", [])
+    if not isinstance(all_of, list) or any(not isinstance(constraint, dict) for constraint in all_of):
+        raise _MalformedSchema(f"schema allOf at {location} must be an object list")
+    for constraint in all_of:
+        validate_schema_instance(
+            value,
+            constraint,
+            references=references,
+            location=location,
+            _reference_stack=_reference_stack,
+        )
 
     condition = schema.get("if")
     if condition is not None:
-        branch = "then" if _schema_matches(value, condition, references=references, location=location) else "else"
+        if not isinstance(condition, dict):
+            raise _MalformedSchema(f"schema if at {location} must be an object")
+        branch = (
+            "then"
+            if _schema_matches(
+                value,
+                condition,
+                references=references,
+                location=location,
+                reference_stack=_reference_stack,
+            )
+            else "else"
+        )
         if branch in schema:
-            validate_schema_instance(value, schema[branch], references=references, location=location)
+            if not isinstance(schema[branch], dict):
+                raise _MalformedSchema(f"schema {branch} at {location} must be an object")
+            validate_schema_instance(
+                value,
+                schema[branch],
+                references=references,
+                location=location,
+                _reference_stack=_reference_stack,
+            )
 
 
 def _model_name(value: str) -> str:

@@ -10,7 +10,102 @@ from pydantic import BaseModel
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "libs" / "kernel"))
 
-from workbench.kernel.schema_compiler import SchemaCompiler
+from workbench.kernel.schema_compiler import SchemaCompiler, SchemaValidationError, validate_schema_instance
+
+
+def test_runtime_number_validation_handles_large_integers_and_non_finite_floats() -> None:
+    for value in (10**400, 1, 1.5):
+        validate_schema_instance(value, {"type": "number"})
+
+    for value in (float("nan"), float("inf"), float("-inf")):
+        with pytest.raises(SchemaValidationError, match="finite"):
+            validate_schema_instance(value, {"type": "number"})
+
+
+@pytest.mark.parametrize(
+    "schema",
+    [
+        {"type": "number", "minimum": "not-a-number"},
+        {"type": "number", "maximum": "not-a-number"},
+        {"type": "number", "maximum": float("inf")},
+        {"type": "string", "pattern": "["},
+        {"type": "string", "pattern": 123},
+        {"type": "array", "minItems": "not-an-integer"},
+    ],
+)
+def test_runtime_validation_normalizes_malformed_constraints(schema: dict) -> None:
+    value = 1 if schema.get("type") == "number" else "value" if schema.get("type") == "string" else []
+    with pytest.raises(SchemaValidationError):
+        validate_schema_instance(value, schema)
+
+
+def test_runtime_validation_normalizes_oversized_regex_repetition() -> None:
+    with pytest.raises(SchemaValidationError, match="pattern"):
+        validate_schema_instance("a", {"type": "string", "pattern": "a{999999999999999999999}"})
+
+
+def test_runtime_validation_supports_finite_recursive_instances() -> None:
+    references = {
+        "node": {
+            "type": "object",
+            "properties": {"next": {"$ref": "node"}},
+            "additionalProperties": False,
+        }
+    }
+
+    validate_schema_instance({"next": {"next": {}}}, {"$ref": "node"}, references=references)
+
+
+def test_runtime_validation_rejects_reference_cycles_that_do_not_advance_the_instance() -> None:
+    references = {"first": {"$ref": "second"}, "second": {"$ref": "first"}}
+
+    with pytest.raises(SchemaValidationError, match="reference cycle"):
+        validate_schema_instance({}, {"$ref": "first"}, references=references)
+
+
+@pytest.mark.parametrize(
+    "schema, value, error",
+    [
+        (
+            {
+                "anyOf": [
+                    {"type": "string", "pattern": "["},
+                    {"type": "string", "const": "ok"},
+                ]
+            },
+            "ok",
+            "pattern",
+        ),
+        (
+            {
+                "anyOf": [
+                    {"type": "number", "minimum": "bad"},
+                    {"type": "string", "const": "ok"},
+                ]
+            },
+            "ok",
+            "minimum",
+        ),
+        (
+            {"not": {"type": "string", "pattern": "["}},
+            "ok",
+            "pattern",
+        ),
+        (
+            {
+                "if": {"type": "string", "pattern": "["},
+                "then": {"type": "string"},
+            },
+            "ok",
+            "pattern",
+        ),
+    ],
+)
+def test_runtime_validation_does_not_hide_malformed_combinator_branches(
+    schema: dict, value: object, error: str
+) -> None:
+    with pytest.raises(SchemaValidationError, match=error):
+        validate_schema_instance(value, schema)
 
 
 def test_generated_models_are_valid_and_typed(tmp_path: Path) -> None:

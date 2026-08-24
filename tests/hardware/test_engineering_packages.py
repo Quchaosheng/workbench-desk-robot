@@ -87,10 +87,15 @@ class MechanicalPackageTests(unittest.TestCase):
         self.assertEqual(spec["chassis"]["stabilizer_count"], 4)
         self.assertEqual(spec["manipulator"]["count"], 2)
         self.assertEqual(spec["manipulator"]["total_revolute_axes"], 14)
-        self.assertEqual(spec["head"]["display_shape"], "round")
-        self.assertEqual(spec["head"]["display_cutout"], [96, 96])
+        self.assertEqual(spec["head"]["display_shape"], "rounded_rectangle")
+        self.assertEqual(spec["head"]["display_cutout"], [228, 92])
+        self.assertEqual(spec["head"]["display_corner_radius_mm"], 24)
         self.assertEqual(len(spec["manipulator"]["joints"]), 7)
         self.assertEqual([joint["id"] for joint in spec["manipulator"]["joints"]], [f"J{i}" for i in range(1, 8)])
+        arm_design = spec["manipulator"]["industrial_design"]
+        self.assertEqual(arm_design["shoulder_module"], "torso_recessed_three_axis_yoke")
+        self.assertEqual(arm_design["upper_arm_shell"], "tapered_rounded_rect_fairing")
+        self.assertEqual(arm_design["nominal_motion_gap_mm"], 6)
         self.assertEqual(spec["tool_system"]["interface"], "kinematic_quick_change_with_mechanical_lock")
         scad = (ROOT / "hardware/mechanical/cad/desk_robot.scad").read_text(encoding="utf-8")
         for feature in (

@@ -1,0 +1,43 @@
+{
+  "issue": "domestic-industrial-design-refinement",
+  "human_owner": "Quchaosheng",
+  "objective": "Replace the undersized circular expression window with a wide rounded-rectangle face and replace tube-like arm geometry with legible joint cartridges and directional link fairings while preserving the independent neck, torso-side shoulders, and seven-axis Revision D architecture.",
+  "allowed_paths": [
+    "hardware/mechanical/**",
+    "tests/hardware/test_engineering_packages.py",
+    "docs/assets/premium-product-render.html",
+    "docs/assets/workbench-home-robot-premium.png",
+    "docs/task_packets/domestic-industrial-design-refinement.json"
+  ],
+  "read_only_paths": ["robot/**", "interfaces/**", "firmware/**", "hardware/pcb/**"],
+  "forbidden": ["robot/control/**", "firmware/**", "services/**", "interfaces/**"],
+  "acceptance": [
+    "the expression display is a landscape rounded rectangle that occupies most of the existing head front",
+    "each arm remains seven-axis with a recessed three-axis shoulder, readable elbow cartridge, roll cuff, and compact two-axis wrist",
+    "upper-arm and forearm fairings are directional rounded housings rather than undifferentiated cylinders",
+    "the SCAD, STEP, engineering drawing, interactive render, and campaign image use the same face and arm design language",
+    "the independent neck and torso-side shoulder architecture remain unchanged",
+    "mechanical tests, Ruff, and Task Packet validation pass"
+  ],
+  "commands": [
+    "python hardware/mechanical/tools/generate_artifacts.py",
+    "python -m pytest tests/hardware/test_engineering_packages.py::MechanicalPackageTests -q",
+    "python -m ruff check hardware/mechanical tests/hardware/test_engineering_packages.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/domestic-industrial-design-refinement.json"
+  ],
+  "evidence": [
+    "hardware/mechanical/design-spec.json",
+    "hardware/mechanical/cad/desk_robot.scad",
+    "hardware/mechanical/generated/parts/head_module.step",
+    "hardware/mechanical/generated/parts/left_seven_axis_arm.step",
+    "hardware/mechanical/generated/drawings/general-arrangement.svg",
+    "docs/assets/premium-product-render.html",
+    "docs/assets/workbench-home-robot-premium.png"
+  ],
+  "stop_conditions": [
+    "the refinement requires altering robot control, firmware, interfaces, or PCB ownership",
+    "the display cannot retain a structural border inside the existing head envelope",
+    "arm styling would hide axis centers or contradict the declared seven-axis topology",
+    "the visual would imply a physical prototype or validation result that does not exist"
+  ]
+}

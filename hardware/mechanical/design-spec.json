@@ -48,9 +48,10 @@
     "width": 260,
     "depth": 105,
     "height": 128,
-    "display_cutout": [96, 96],
-    "display_shape": "round",
-    "display_bezel_mm": 3.5,
+    "display_cutout": [228, 92],
+    "display_shape": "rounded_rectangle",
+    "display_corner_radius_mm": 24,
+    "display_bezel_mm": 8,
     "tilt_deg": 6,
     "pan_deg": 160,
     "neck_channel_width": 32
@@ -80,6 +81,15 @@
     "reduced_speed_payload": {"mass_kg": 3, "reach_mm": 400},
     "links_mm": {"upper_arm": 275, "forearm": 245, "wrist_stack": 115},
     "internal_cable_routing": true,
+    "industrial_design": {
+      "shoulder_module": "torso_recessed_three_axis_yoke",
+      "upper_arm_shell": "tapered_rounded_rect_fairing",
+      "elbow_module": "side_readable_bearing_cartridge",
+      "forearm_shell": "tapered_rounded_rect_fairing_with_roll_cuff",
+      "wrist_module": "compact_pitch_yoke_and_tool_roll_flange",
+      "nominal_motion_gap_mm": 6,
+      "service_strategy": "joint cartridges removable before cosmetic link fairings"
+    },
     "bimanual_payload": {"mass_kg": 4, "reach_mm": 450, "mode": "reduced_speed_shared_workspace"},
     "workspace_partition": {
       "left_only": true,

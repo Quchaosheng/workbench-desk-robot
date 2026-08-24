@@ -16,6 +16,9 @@ from workbench.hardware import (
     CanReceiveStatus,
     CanSendStatus,
     CanTransportConfig,
+    CanTransportEnvelope,
+    DeviceRuntime,
+    DeviceRuntimeState,
     SafeCANBus,
     decode_can_frame,
 )
@@ -65,6 +68,31 @@ class FakeTransport:
 
     def close(self) -> None:
         self.closed = True
+
+
+class RecordingAdapter:
+    def __init__(self) -> None:
+        self.events: list[str] = []
+
+    def configure(self) -> bool:
+        self.events.append("configure")
+        return True
+
+    def activate(self) -> bool:
+        self.events.append("activate")
+        return True
+
+    def poll(self, receive_timeout_s: float) -> None:
+        del receive_timeout_s
+        self.events.append("poll")
+
+    def deactivate(self) -> bool:
+        self.events.append("deactivate")
+        return True
+
+    def cleanup(self) -> bool:
+        self.events.append("cleanup")
+        return True
 
 
 def can_frame(arbitration_id: int, payload: list[int], **flags: bool) -> CanFrame:
@@ -150,6 +178,41 @@ def test_send_requires_lifecycle_and_queue_backpressure_is_typed() -> None:
     assert bus.send(command(2)).status is CanSendStatus.BACKPRESSURE
     assert bus.queued_count == 1
     assert bus.send(telemetry()).status is CanSendStatus.INVALID_FRAME
+
+
+def test_can_adapter_uses_one_runtime_for_lifecycle_worker_and_command_plane() -> None:
+    transport = FakeTransport()
+    bus = SafeCANBus(transport, clock=FakeClock())
+
+    assert bus.runtime.state is DeviceRuntimeState.NEW
+    assert not hasattr(bus, "_worker")
+    assert bus.start(background=True)
+    assert bus.runtime.state is DeviceRuntimeState.ACTIVE
+    assert bus.runtime.worker_alive
+    assert bus.runtime.command_depth == bus.queued_count
+
+    assert bus.shutdown(timeout_s=1.0)
+    assert bus.runtime.state is DeviceRuntimeState.CLEANED
+    assert not bus.runtime.worker_alive
+    assert bus.shutdown(timeout_s=0.0)
+
+
+def test_device_runtime_owns_the_adapter_lifecycle_sequence() -> None:
+    adapter = RecordingAdapter()
+    runtime = DeviceRuntime(
+        adapter,
+        command_capacity=1,
+        telemetry_capacity=1,
+        health_capacity=1,
+        max_subscribers_per_id=1,
+        poll_interval_s=0.001,
+    )
+
+    assert runtime.start(background=False)
+    assert runtime.state is DeviceRuntimeState.ACTIVE
+    assert runtime.shutdown(timeout_s=1.0)
+    assert runtime.state is DeviceRuntimeState.CLEANED
+    assert adapter.events == ["configure", "activate", "deactivate", "cleanup"]
 
 
 def test_worker_drains_one_command_and_correlates_ack_once() -> None:
@@ -375,6 +438,10 @@ def test_telemetry_is_delivered_without_confirming_command() -> None:
     assert result is not None
     assert result.status is CanReceiveStatus.ACCEPTED
     assert not result.confirmed
+    assert isinstance(result.envelope, CanTransportEnvelope)
+    assert result.envelope.source == "mcu-can"
+    assert result.envelope.interface == "injected-can"
+    assert result.envelope.sequence == 0
     assert received == [CanFrameKind.TELEMETRY]
 
 
@@ -413,6 +480,56 @@ def test_fault_telemetry_fails_closed_until_explicit_recovery() -> None:
     transport.incoming.append(telemetry(0))
     recovered = bus.service_once()
     assert recovered is not None and recovered.status is CanReceiveStatus.ACCEPTED
+    assert recovered.envelope is not None
+    assert recovered.envelope.sequence == 1
+
+
+def test_health_plane_capacity_is_bounded_independently_from_command_plane() -> None:
+    transport = FakeTransport()
+    clock = FakeClock()
+    config = CanTransportConfig(queue_capacity=2, diagnostic_capacity=1, health_capacity=1)
+    bus = running_bus(transport, clock, config)
+
+    assert bus.send(telemetry()).status is CanSendStatus.INVALID_FRAME
+    assert bus.send(telemetry(2)).status is CanSendStatus.INVALID_FRAME
+    assert len(bus.diagnostics()) == 1
+    assert bus.runtime.health_drop_count == 1
+    assert bus.runtime.command_depth == 0
+
+
+def test_runtime_telemetry_plane_drops_oldest_when_not_drained() -> None:
+    transport = FakeTransport()
+    bus = SafeCANBus(
+        transport,
+        clock=FakeClock(),
+        config=CanTransportConfig(telemetry_capacity=1),
+    )
+    first = decode_can_frame(telemetry(1))
+    second = decode_can_frame(telemetry(2))
+
+    bus.runtime.publish_telemetry(first)
+    bus.runtime.publish_telemetry(second)
+
+    assert bus.runtime.telemetry_drop_count == 1
+    assert bus.runtime.take_telemetry() == second
+
+
+def test_wall_clock_rollback_is_an_observable_fail_closed_ingress_error() -> None:
+    transport = FakeTransport()
+    wall_times = iter((10.0, 9.0))
+    bus = SafeCANBus(transport, clock=FakeClock(), wall_clock=lambda: next(wall_times))
+    assert bus.start(background=False)
+
+    transport.incoming.append(telemetry(1))
+    first = bus.service_once()
+    assert first is not None and first.status is CanReceiveStatus.ACCEPTED
+
+    transport.incoming.append(telemetry(2))
+    second = bus.service_once()
+    assert second is not None and second.status is CanReceiveStatus.INVALID_FRAME
+    assert bus.state is CanLinkState.LINK_LOST
+    assert any(item.code.value == "clock_rollback" for item in bus.diagnostics())
+    assert bus.send(command(24)).status is CanSendStatus.LINK_UNAVAILABLE
 
 
 def test_rejected_ordinary_ack_is_not_confirmation_and_fails_closed() -> None:
@@ -507,6 +624,7 @@ def test_shutdown_retries_join_after_an_initial_timeout() -> None:
     assert bus.start(background=True)
     assert transport.receive_entered.wait(1.0)
 
+    assert not bus.shutdown(timeout_s=0.0)
     assert not bus.shutdown(timeout_s=0.0)
     transport.release_receive.set()
     assert bus.shutdown(timeout_s=1.0)

@@ -2,9 +2,44 @@
 
 Status: **bounded host-adapter contract** for Issue #55.
 
-`SafeCANBus` owns a small injected transport port. It does not open SocketCAN
-or any hardware device in its constructor, and it does not claim that a
-successful queue or write means that an MCU accepted a command.
+`SafeCANBus` is the CAN `DeviceAdapter` for the unified `DeviceRuntime`
+defined by ADR-0005. It owns the injected blocking transport port and the
+CAN Wire V1 protocol state, but it does not own a lifecycle, worker, queue or
+subscriber registry. Construction never opens SocketCAN or any hardware
+device, and a successful queue or write never means that an MCU accepted a
+command.
+
+## Unified runtime ownership
+
+`DeviceRuntime` is the only owner of:
+
+```text
+configure -> activate -> one I/O worker -> deactivate -> cleanup
+                     |                    |
+             cancellation + join     bounded data planes
+```
+
+The legacy `SafeCANBus.start()`, `service_once()` and `shutdown()` methods are
+compatibility delegates to that runtime. `CanLinkState` reports CAN link and
+protocol health only; it is not a second lifecycle state machine. The adapter
+implements `configure`, `activate`, `poll`, `deactivate` and `cleanup`, and
+uses the runtime's one lock when it updates protocol correlation state.
+
+The runtime owns three independent bounded planes:
+
+| Plane | Owner and policy | Observable boundary |
+| --- | --- | --- |
+| command/ACK | fixed command queue; reject ordinary commands at capacity; STOP is priority and preempts | typed backpressure, correlation and timeout diagnostics |
+| telemetry | fixed ingress queue; duplicate/stale frames are rejected before dispatch | telemetry depth and drop counter |
+| health/provenance | fixed diagnostic queue with oldest-record eviction | error and health-drop counters |
+
+Subscriber registration and callback snapshot dispatch also belong to the
+runtime. Callback exceptions are isolated and become health records. A
+shutdown cancels producers, rejects new commands, clears queued work, joins
+the single worker by deadline, and only then lets the adapter close the port.
+A join timeout leaves cleanup pending and returns `False`; a later call may
+retry. A terminal cleanup result is retained, so a lifecycle label cannot be
+mistaken for successful cleanup.
 
 ## Safety and ownership boundary
 
@@ -29,17 +64,29 @@ successful queue or write means that an MCU accepted a command.
   snapshots are ignored, while valid fault telemetry disables ordinary traffic
   until explicit transport recovery.
 
+Every valid inbound result carries an immutable `CanTransportEnvelope` with
+`source`, `interface`, an adapter-ingress sequence, monotonic and wall-clock
+observation times, current link health, the validated wire frame and immutable
+evidence references. The adapter-ingress sequence is never reset by link
+recovery; the separate MCU telemetry sequence follows the Wire V1 half-range
+ordering rule. A non-finite or regressed wall-clock observation is an
+observable `clock_rollback` ingress error and blocks normal commands; it is
+not silently normalized. A bridge may map this envelope to the later typed
+ROS 2/event contract without exposing a raw device handle.
+
 ## Concurrency and backpressure
 
-The outbound queue, subscriber registry, error counter, diagnostics and
-correlation windows are protected by one lock. Subscriber dispatch uses an
-immutable snapshot, so a callback may subscribe or unsubscribe without
-changing the current iteration. Callback exceptions are isolated and recorded.
+The runtime's data planes, subscriber registry, error counter and the
+adapter's correlation windows are protected by one shared lock. Subscriber
+dispatch uses an immutable snapshot, so a callback may subscribe or
+unsubscribe without changing the current iteration. Callback exceptions are
+isolated and recorded.
 
-Queue capacity, subscriber count, diagnostic count and correlation count are
-fixed by `CanTransportConfig`. Queue saturation returns a typed backpressure
-result. `shutdown()` stops the worker, clears pending work, and closes the
-injected port within a caller-supplied bound.
+Command, telemetry, health, subscriber and correlation capacities are fixed by
+`CanTransportConfig`. Queue saturation returns a typed backpressure result.
+`shutdown()` stops the runtime worker, clears pending work, and closes the
+injected port within a caller-supplied bound. There is no adapter-local
+fallback worker or unbounded callback path.
 
 ## Evidence limits
 

@@ -170,6 +170,29 @@ def export_cad_package() -> bool:
         .fillet(45)
         .translate((0, 0, 84))
     )
+    drive_module_solids = [chassis.val()]
+    steering_angle = math.radians(18)
+    wheel_axis = cq.Vector(math.cos(steering_angle), math.sin(steering_angle), 0)
+    for x in (-195, 195):
+        for y in (-185, 185):
+            wheel_center = cq.Vector(x, y, chassis_spec["wheel_diameter_mm"] / 2)
+            wheel_width = chassis_spec["wheel_width_mm"]
+            wheel = cq.Solid.makeCylinder(
+                chassis_spec["wheel_diameter_mm"] / 2,
+                wheel_width,
+                wheel_center - wheel_axis.multiply(wheel_width / 2),
+                wheel_axis,
+            )
+            hub = cq.Solid.makeCylinder(
+                24,
+                wheel_width + 6,
+                wheel_center - wheel_axis.multiply((wheel_width + 6) / 2),
+                wheel_axis,
+            )
+            fork = cq.Workplane("XY").box(62, 58, 42).edges("|Z").fillet(14).translate((x, y, 88)).val()
+            steering_bearing = cq.Solid.makeCylinder(31, 34, cq.Vector(x, y, 96), cq.Vector(0, 0, 1))
+            drive_module_solids.extend((wheel, hub, fork, steering_bearing))
+    mobile_base = cq.Compound.makeCompound(drive_module_solids)
     lift_lower = cq.Workplane("XY").box(210, 175, 255).edges("|Z").fillet(22).translate((0, 12, 270))
     lift_upper = cq.Workplane("XY").box(170, 138, 250).edges("|Z").fillet(18).translate((0, 12, 440))
     lifting_platform = lift_lower.union(lift_upper)
@@ -248,9 +271,9 @@ def export_cad_package() -> bool:
     )
     stabilizer = cq.Workplane("XY").box(48, 48, 18).edges("|Z").fillet(10)
     stabilizers = None
-    for x in (-286, 286):
-        for y in (-281, 281):
-            foot = stabilizer.translate((x, y, 38))
+    for x in (-230, 230):
+        for y in (-225, 225):
+            foot = stabilizer.translate((x, y, 104))
             stabilizers = foot if stabilizers is None else stabilizers.union(foot)
     tool_dock = cq.Workplane("XY").box(62, 160, 230).edges("|Z").fillet(18).translate((-178, 86, 357))
 
@@ -322,7 +345,7 @@ def export_cad_package() -> bool:
     right_seven_axis_arm = make_arm(right_arm_points)
 
     parts = {
-        "mobile_base": chassis,
+        "mobile_base": mobile_base,
         "lifting_platform": lifting_platform,
         "utility_torso": torso,
         "left_seven_axis_arm": left_seven_axis_arm,
@@ -345,7 +368,7 @@ def export_cad_package() -> bool:
     normalize_step(OUT / "enclosure.step")
 
     assembly = cq.Assembly(name="workbench_home_robot")
-    assembly.add(chassis, name="mobile_base", color=cq.Color(0.08, 0.10, 0.10))
+    assembly.add(mobile_base, name="mobile_base", color=cq.Color(0.08, 0.10, 0.10))
     assembly.add(lifting_platform, name="lifting_platform", color=cq.Color(0.26, 0.28, 0.27))
     assembly.add(torso, name="utility_torso", color=cq.Color(0.90, 0.89, 0.85))
     assembly.add(neck_mount, name="neck_mount", color=cq.Color(0.24, 0.26, 0.25))
@@ -361,7 +384,7 @@ def export_cad_package() -> bool:
     normalize_step(assembly_path)
 
     exploded = cq.Assembly(name="workbench_home_robot_exploded")
-    exploded.add(chassis.translate((0, 0, -100)), name="mobile_base")
+    exploded.add(mobile_base.translate((0, 0, -100)), name="mobile_base")
     exploded.add(stabilizers.translate((0, 0, -150)), name="stabilizers")
     exploded.add(tray.translate((0, 0, 80)), name="electronics_tray")
     exploded.add(lifting_platform.translate((0, 0, 80)), name="lifting_platform")
@@ -386,8 +409,9 @@ def write_engineering_drawings(report: dict[str, object]) -> None:
 <style>text{{font-family:Arial,sans-serif;fill:#17201f}} .shell{{fill:#ecece7;stroke:#17201f;stroke-width:3}} .frame{{fill:#404745;stroke:#17201f;stroke-width:3}} .link-outline{{fill:none;stroke:#17201f;stroke-width:34;stroke-linecap:round;stroke-linejoin:round}} .link-shell{{fill:none;stroke:#ecece7;stroke-width:26;stroke-linecap:round;stroke-linejoin:round}} .joint{{fill:#202625;stroke:#7a807d;stroke-width:5}} .dim{{stroke:#287b70;stroke-width:2;marker-start:url(#a);marker-end:url(#a)}} .note{{font-size:17px}}</style>
 <defs><marker id="a" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M8,0 L0,4 L8,8" fill="none" stroke="#287b70"/></marker></defs>
 <text x="36" y="44" font-size="28" font-weight="bold">Workbench Home Robot - General Arrangement - REV D</text>
-<text x="36" y="72" class="note">Dual seven-axis arms + 350 mm braked lift; concept geometry; mm</text>
+<text x="36" y="72" class="note">Dual seven-axis arms + four steer-drive modules + 350 mm braked lift; concept geometry; mm</text>
 <rect class="frame" x="115" y="590" width="270" height="72" rx="24"/><rect class="frame" x="188" y="452" width="124" height="150" rx="16"/>
+<circle class="joint" cx="155" cy="660" r="28"/><circle class="frame" cx="155" cy="660" r="10"/><circle class="joint" cx="345" cy="660" r="28"/><circle class="frame" cx="345" cy="660" r="10"/>
 <path class="shell" d="M160 218 Q160 190 190 188 L315 188 Q342 190 342 220 L328 456 L174 456 Z"/>
 <rect class="frame" x="230" y="167" width="44" height="34" rx="12"/><rect class="shell" x="185" y="100" width="135" height="70" rx="28"/><rect x="195" y="110" width="115" height="50" rx="14" fill="#101716"/><circle cx="237" cy="132" r="4" fill="#72c9b4"/><circle cx="267" cy="132" r="4" fill="#72c9b4"/>
 <polyline class="link-outline" points="342,318 382,306 420,350 458,405 493,444 525,466 553,480"/><polyline class="link-shell" points="342,318 382,306 420,350 458,405 493,444 525,466 553,480"/>
@@ -398,12 +422,12 @@ def write_engineering_drawings(report: dict[str, object]) -> None:
 <line class="dim" x1="90" y1="112" x2="90" y2="662"/><text x="50" y="410" class="note" transform="rotate(-90 50 410)">max {height}</text>
 <line class="dim" x1="115" y1="700" x2="385" y2="700"/><text x="222" y="725" class="note">base {width}</text>
 <text x="630" y="130" font-size="21" font-weight="bold">LIFT STATES</text>
-<rect class="frame" x="650" y="520" width="190" height="70" rx="22"/><rect class="frame" x="710" y="385" width="70" height="145" rx="14"/><rect class="shell" x="680" y="245" width="130" height="145" rx="30"/>
-<rect class="frame" x="930" y="520" width="190" height="70" rx="22"/><rect class="frame" x="990" y="260" width="70" height="270" rx="14"/><rect class="shell" x="960" y="120" width="130" height="145" rx="30"/>
+<rect class="frame" x="650" y="520" width="190" height="70" rx="22"/><circle class="joint" cx="685" cy="588" r="22"/><circle class="joint" cx="805" cy="588" r="22"/><rect class="frame" x="710" y="385" width="70" height="145" rx="14"/><rect class="shell" x="680" y="245" width="130" height="145" rx="30"/>
+<rect class="frame" x="930" y="520" width="190" height="70" rx="22"/><circle class="joint" cx="965" cy="588" r="22"/><circle class="joint" cx="1085" cy="588" r="22"/><rect class="frame" x="990" y="260" width="70" height="270" rx="14"/><rect class="shell" x="960" y="120" width="130" height="145" rx="30"/>
 <line class="dim" x1="875" y1="260" x2="875" y2="385"/><text x="892" y="330" class="note">travel {SPEC["lifting_platform"]["travel"]}</text>
 <text x="675" y="625" class="note">LOW / DRIVE</text><text x="958" y="625" class="note">RAISED / WORK</text>
 <text x="630" y="680" class="note">CG Z={report["center_of_gravity_mm"][2]} · drive tip={report["drive_footprint_tip_angle_deg"]} deg · stabilized tip={report["stabilized_tip_angle_deg"]} deg</text>
-<text x="630" y="712" class="note">Manipulation requires wheel brakes + deployed support feet.</text>
+<text x="630" y="712" class="note">Holonomic self-motion in navigation; manipulation requires wheel brakes + deployed support feet.</text>
 </svg>"""
     (drawings / "general-arrangement.svg").write_text(svg, encoding="utf-8", newline="\n")
     thermal = f"""<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="420" viewBox="0 0 1100 420">
@@ -434,7 +458,7 @@ def write_engineering_drawings(report: dict[str, object]) -> None:
     }
     (OUT / "drop-screening.json").write_text(json.dumps(fea, indent=2) + "\n", encoding="utf-8")
     sequence = [
-        {"step": 10, "part": "mobile_base", "fastener": "fixture datum A + brake check"},
+        {"step": 10, "part": "mobile_base", "fastener": "4x steer-drive datum + absolute encoder zero + brake check"},
         {"step": 20, "part": "stabilizers", "fastener": "4x captive M6 + deployed-foot witness"},
         {"step": 30, "part": "lifting_platform", "fastener": "dual screw synchronization + lock pins"},
         {"step": 40, "part": "electronics_tray", "fastener": "4x M3x8 @ 0.55 Nm"},
@@ -461,7 +485,8 @@ def main() -> None:
         step_path.write_text(step_box(enclosure["width"], enclosure["depth"], enclosure["height"]), encoding="ascii")
     write_engineering_drawings(report)
     rows = [
-        ["ME-C01", "Mobile base and enclosed drive skirt", "5052-H32 aluminium + TPU", 1],
+        ["ME-C01", "Holonomic base frame and perimeter bumper", "5052-H32 aluminium + TPU", 1],
+        ["ME-D01A", "Independent steer-drive wheel module", "6061-T6 aluminium + non-marking PU", 4],
         ["ME-C02", "Dual-screw lifting platform", "6061-T6 aluminium + steel screws", 1],
         ["ME-C03", "Utility torso and parcel bay", "mineral PC-ABS + recycled PET", 1],
         ["ME-D04", "Seven-axis arm joint set", "bead-blasted anodized aluminium", 2],

@@ -2,7 +2,7 @@
   {
     "step": 10,
     "part": "mobile_base",
-    "fastener": "fixture datum A + brake check"
+    "fastener": "4x steer-drive datum + absolute encoder zero + brake check"
   },
   {
     "step": 20,

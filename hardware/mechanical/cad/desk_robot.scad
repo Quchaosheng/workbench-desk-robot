@@ -14,6 +14,7 @@ TORSO_D = 330;
 HEAD_W = 260;
 HEAD_D = 105;
 HEAD_H = 128;
+STABILIZERS_DEPLOYED = false;
 
 module rounded_prism(w, d, h, r) {
   linear_extrude(height=h)
@@ -56,14 +57,31 @@ module mobile_base() {
   color([0.34, 0.36, 0.35])
     translate([0, 0, GROUND+BASE_H-10]) rounded_prism(480, 420, 18, 36);
 
-  // Wheels are enclosed by the skirt; only the controlled contact slot remains.
-  color([0.035, 0.04, 0.04])
-    translate([0, 0, GROUND+8]) rounded_prism(486, 426, 24, 38);
+  // Four independent steer-drive modules support holonomic self-motion.
+  // Each module has a visible wheel, vertical steering bearing and local fork.
+  for (x=[-195, 195], y=[-185, 185]) {
+    color([0.24, 0.27, 0.26])
+      translate([x, y, 100]) cylinder(h=34, d=62, center=true);
+    color([0.12, 0.14, 0.14])
+      translate([x, y, 76]) rounded_prism(62, 58, 42, 14);
+    color([0.035, 0.04, 0.04])
+      translate([x, y, 70]) rotate([0, 90, 18]) cylinder(h=42, d=140, center=true);
+    color([0.42, 0.44, 0.42])
+      translate([x, y, 70]) rotate([0, 90, 18]) cylinder(h=46, d=48, center=true);
+  }
 
-  // Four stationary manipulation feet expand the support polygon to 620 x 610.
+  // The perimeter bumper is structural and sits above the wheel contact plane.
+  color([0.035, 0.04, 0.04])
+    translate([0, 0, GROUND+58]) rounded_prism(512, 492, 28, 44);
+
+  // Stabilizers are flush in navigation and only deploy for manipulation.
   for (x=[-286, 286], y=[-281, 281])
-    color([0.10, 0.11, 0.11])
-      translate([x, y, GROUND+10]) rounded_prism(48, 48, 18, 12);
+    if (STABILIZERS_DEPLOYED)
+      color([0.10, 0.11, 0.11])
+        translate([x, y, GROUND+10]) rounded_prism(48, 48, 18, 12);
+    else
+      color([0.18, 0.20, 0.19])
+        translate([x*0.80, y*0.80, GROUND+72]) rounded_prism(46, 46, 18, 12);
 }
 
 module lifting_platform() {

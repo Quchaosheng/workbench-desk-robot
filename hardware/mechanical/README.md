@@ -8,8 +8,11 @@ and a locked quick-change tool system.
 
 ## Product architecture
 
-- **Mobile base:** low-mounted battery and ballast, enclosed drive pods, wheel
-  brakes, and four deployable stabilizer feet for stationary manipulation.
+- **Mobile base:** four independent steer-drive modules provide longitudinal,
+  lateral, diagonal, and rotate-in-place self-motion. Each module has a 140 mm
+  non-marking wheel, absolute steering encoder, drive encoder, 30 mm suspension,
+  and a normally-closed brake. Stabilizer feet remain flush during navigation
+  and deploy only for stationary manipulation.
 - **Lift:** four guides, two synchronized screws, two normally-closed brakes,
   two mechanical lock pins, dual encoders, hard limits, and pinch detection.
 - **Arms:** each arm has J1 base yaw, J2 shoulder pitch, J3 shoulder roll,
@@ -28,8 +31,10 @@ primary parting lines. The structural waist, lift, and arm links use bead-blaste
 graphite anodized aluminium; the face is a single smoked strengthened-glass
 lens; the parcel-bay/acoustic insert is graphite 3D-knit recycled PET. Jade or
 warm amber is reserved for one status light. Visible glossy plastic, exposed
-fasteners, decorative color blocks, toy-like antennae, and exposed wheels are
-out of scope.
+fasteners, decorative color blocks, toy-like antennae, and unguarded wheel
+mechanisms are out of scope. The four wheel treads remain visually readable so
+the product clearly communicates self-motion, while the steering bearings and
+cabling stay guarded inside the base skirt.
 
 The head uses a wide rounded-rectangle expression window inside a soft white
 frame. It is not a floating shell: a dedicated neck mount has a load-bearing

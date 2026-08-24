@@ -1,5 +1,6 @@
 part_number,description,material,quantity
-ME-C01,Mobile base and enclosed drive skirt,5052-H32 aluminium + TPU,1
+ME-C01,Holonomic base frame and perimeter bumper,5052-H32 aluminium + TPU,1
+ME-D01A,Independent steer-drive wheel module,6061-T6 aluminium + non-marking PU,4
 ME-C02,Dual-screw lifting platform,6061-T6 aluminium + steel screws,1
 ME-C03,Utility torso and parcel bay,mineral PC-ABS + recycled PET,1
 ME-D04,Seven-axis arm joint set,bead-blasted anodized aluminium,2

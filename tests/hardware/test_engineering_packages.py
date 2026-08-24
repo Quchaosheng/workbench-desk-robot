@@ -64,6 +64,8 @@ class MechanicalPackageTests(unittest.TestCase):
         self.assertGreater((generated / "desk_robot_assembly.step").stat().st_size, 100_000)
         self.assertGreater((generated / "desk_robot_exploded.step").stat().st_size, 100_000)
         self.assertEqual(len(list((generated / "parts").glob("*.step"))), 10)
+        mobile_base_step = (generated / "parts/mobile_base.step").read_text(encoding="ascii")
+        self.assertGreaterEqual(mobile_base_step.count("MANIFOLD_SOLID_BREP"), 17)
         neck_step = (generated / "parts/neck_mount.step").read_text(encoding="ascii")
         self.assertIn("MANIFOLD_SOLID_BREP", neck_step)
         sequence = json.loads((generated / "assembly-sequence.json").read_text(encoding="utf-8"))
@@ -89,6 +91,15 @@ class MechanicalPackageTests(unittest.TestCase):
         self.assertEqual(spec["enclosure"]["depth"], 520)
         self.assertEqual(spec["lifting_platform"]["travel"], 350)
         self.assertEqual(spec["chassis"]["stabilizer_count"], 4)
+        self.assertEqual(spec["chassis"]["drive_architecture"], "four_module_independent_steer_and_drive")
+        self.assertTrue(spec["chassis"]["holonomic_motion"])
+        self.assertEqual(spec["chassis"]["drive_module_count"], 4)
+        self.assertEqual(spec["chassis"]["wheel_diameter_mm"], 140)
+        self.assertEqual(spec["chassis"]["suspension_travel_mm"], 30)
+        self.assertIn("SOFTWARE_AND_PHYSICAL_VALIDATION_REQUIRED", spec["chassis"]["autonomous_navigation_status"])
+        self.assertEqual(
+            set(spec["chassis"]["motion_modes"]), {"longitudinal", "lateral", "diagonal", "rotate_in_place"}
+        )
         self.assertEqual(spec["manipulator"]["count"], 2)
         self.assertEqual(spec["manipulator"]["total_revolute_axes"], 14)
         self.assertEqual(spec["head"]["display_shape"], "rounded_rectangle")
@@ -106,6 +117,7 @@ class MechanicalPackageTests(unittest.TestCase):
         self.assertEqual(arm_design["nominal_motion_gap_mm"], 6)
         self.assertEqual(spec["tool_system"]["interface"], "kinematic_quick_change_with_mechanical_lock")
         scad = (ROOT / "hardware/mechanical/cad/desk_robot.scad").read_text(encoding="utf-8")
+        self.assertIn("STABILIZERS_DEPLOYED = false", scad)
         for feature in (
             "mobile_base",
             "lifting_platform",

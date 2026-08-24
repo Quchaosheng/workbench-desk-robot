@@ -54,7 +54,22 @@
     "display_bezel_mm": 8,
     "tilt_deg": 6,
     "pan_deg": 160,
-    "neck_channel_width": 32
+    "neck_channel_width": 32,
+    "neck_mount": {
+      "type": "keyed_pedestal_with_hidden_bolted_flange",
+      "pedestal_width_mm": 132,
+      "pedestal_depth_mm": 86,
+      "pedestal_height_mm": 72,
+      "shoulder_plate_width_mm": 184,
+      "shoulder_plate_depth_mm": 74,
+      "shoulder_plate_thickness_mm": 10,
+      "head_register_width_mm": 154,
+      "head_register_depth_mm": 58,
+      "head_register_height_mm": 8,
+      "fasteners": "4x M6 captive from underside + 2x dowel pins",
+      "cable_passage_mm": 32,
+      "service_order": ["remove rear service cover", "unplug head harness", "remove four underside M6", "lift head vertically off register"]
+    }
   },
   "torso": {
     "width": 420,

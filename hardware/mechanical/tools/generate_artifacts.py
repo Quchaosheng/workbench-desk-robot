@@ -195,6 +195,46 @@ def export_cad_package() -> bool:
         .fillet(head_spec["display_corner_radius_mm"])
         .translate((0, -67, 900))
     )
+    neck_spec = head_spec["neck_mount"]
+    neck_pedestal = (
+        cq.Workplane("XY")
+        .box(neck_spec["pedestal_width_mm"], neck_spec["pedestal_depth_mm"], neck_spec["pedestal_height_mm"])
+        .edges("|Z")
+        .fillet(24)
+        .translate((0, 12, 844))
+    )
+    neck_plate = (
+        cq.Workplane("XY")
+        .box(
+            neck_spec["shoulder_plate_width_mm"],
+            neck_spec["shoulder_plate_depth_mm"],
+            neck_spec["shoulder_plate_thickness_mm"],
+        )
+        .edges("|Z")
+        .fillet(14)
+        .translate((0, 12, 890))
+    )
+    head_register = (
+        cq.Workplane("XY")
+        .box(
+            neck_spec["head_register_width_mm"],
+            neck_spec["head_register_depth_mm"],
+            neck_spec["head_register_height_mm"],
+        )
+        .edges("|Z")
+        .fillet(12)
+        .translate((0, 12, 900))
+    )
+    neck_mount = neck_pedestal.union(neck_plate).union(head_register)
+    cable_passage = cq.Workplane("XY").circle(neck_spec["cable_passage_mm"] / 2).extrude(100).translate((0, 12, 804))
+    neck_mount = neck_mount.cut(cable_passage)
+    for x in (-48, 48):
+        for y in (-22, 22):
+            fastener_clearance = cq.Workplane("XY").circle(3.4).extrude(36).translate((x, 12 + y, 866))
+            neck_mount = neck_mount.cut(fastener_clearance)
+    for x in (-60, 60):
+        dowel_clearance = cq.Workplane("XY").circle(2.05).extrude(18).translate((x, 12, 884))
+        neck_mount = neck_mount.cut(dowel_clearance)
     tray_spec = SPEC["electronics_tray"]
     tray = (
         cq.Workplane("XY")
@@ -287,6 +327,7 @@ def export_cad_package() -> bool:
         "utility_torso": torso,
         "left_seven_axis_arm": left_seven_axis_arm,
         "right_seven_axis_arm": right_seven_axis_arm,
+        "neck_mount": neck_mount,
         "head_module": head.union(face_lens),
         "electronics_tray": tray,
         "stabilizers": stabilizers,
@@ -307,6 +348,7 @@ def export_cad_package() -> bool:
     assembly.add(chassis, name="mobile_base", color=cq.Color(0.08, 0.10, 0.10))
     assembly.add(lifting_platform, name="lifting_platform", color=cq.Color(0.26, 0.28, 0.27))
     assembly.add(torso, name="utility_torso", color=cq.Color(0.90, 0.89, 0.85))
+    assembly.add(neck_mount, name="neck_mount", color=cq.Color(0.24, 0.26, 0.25))
     assembly.add(head, name="head_module", color=cq.Color(0.90, 0.89, 0.85))
     assembly.add(face_lens, name="face_lens", color=cq.Color(0.03, 0.04, 0.04))
     assembly.add(left_seven_axis_arm, name="left_seven_axis_arm", color=cq.Color(0.26, 0.28, 0.27))
@@ -324,6 +366,7 @@ def export_cad_package() -> bool:
     exploded.add(tray.translate((0, 0, 80)), name="electronics_tray")
     exploded.add(lifting_platform.translate((0, 0, 80)), name="lifting_platform")
     exploded.add(torso.translate((0, 0, 180)), name="utility_torso")
+    exploded.add(neck_mount.translate((0, 0, 240)), name="neck_mount")
     exploded.add(head.translate((0, 0, 300)), name="head_module")
     exploded.add(left_seven_axis_arm.translate((-180, 0, 120)), name="left_seven_axis_arm")
     exploded.add(right_seven_axis_arm.translate((180, 0, 120)), name="right_seven_axis_arm")
@@ -351,7 +394,7 @@ def write_engineering_drawings(report: dict[str, object]) -> None:
 <g>{"".join(f'<circle class="joint" cx="{x}" cy="{y}" r="{r}"/>' for x, y, r in [(342, 318, 22), (382, 306, 20), (420, 350, 18), (458, 405, 16), (493, 444, 14), (525, 466, 12), (553, 480, 10)])}</g>
 <polyline class="link-outline" points="163,318 126,306 94,350 72,405 58,444 48,466 40,480"/><polyline class="link-shell" points="163,318 126,306 94,350 72,405 58,444 48,466 40,480"/>
 <g>{"".join(f'<circle class="joint" cx="{x}" cy="{y}" r="{r}"/>' for x, y, r in [(163, 318, 22), (126, 306, 20), (94, 350, 18), (72, 405, 16), (58, 444, 14), (48, 466, 12), (40, 480, 10)])}</g>
-<text x="187" y="224" class="note">full-width rounded face</text><text x="195" y="246" class="note">independent neck</text><text x="167" y="276" class="note">recessed 3-axis shoulders</text><text x="352" y="522" class="note">faired links</text><text x="352" y="544" class="note">readable joint cartridges</text>
+<text x="187" y="224" class="note">full-width rounded face</text><text x="187" y="246" class="note">keyed bolted neck mount</text><text x="167" y="276" class="note">recessed 3-axis shoulders</text><text x="352" y="522" class="note">faired links</text><text x="352" y="544" class="note">readable joint cartridges</text>
 <line class="dim" x1="90" y1="112" x2="90" y2="662"/><text x="50" y="410" class="note" transform="rotate(-90 50 410)">max {height}</text>
 <line class="dim" x1="115" y1="700" x2="385" y2="700"/><text x="222" y="725" class="note">base {width}</text>
 <text x="630" y="130" font-size="21" font-weight="bold">LIFT STATES</text>
@@ -398,8 +441,9 @@ def write_engineering_drawings(report: dict[str, object]) -> None:
         {"step": 50, "part": "utility_torso", "fastener": "8x M4 captive @ 1.2 Nm"},
         {"step": 60, "part": "left_seven_axis_arm", "fastener": "left shoulder datum + torque witness"},
         {"step": 70, "part": "right_seven_axis_arm", "fastener": "right shoulder datum + torque witness"},
-        {"step": 80, "part": "head_module", "fastener": "4x M4 captive @ 0.8 Nm"},
-        {"step": 90, "part": "tool_dock", "fastener": "3x M4 captive @ 0.8 Nm"},
+        {"step": 80, "part": "neck_mount", "fastener": "4x M6 captive + 2x dowel pins; loom through 32 mm passage"},
+        {"step": 90, "part": "head_module", "fastener": "lift onto keyed register; connect head harness"},
+        {"step": 100, "part": "tool_dock", "fastener": "3x M4 captive @ 0.8 Nm"},
     ]
     (OUT / "assembly-sequence.json").write_text(json.dumps(sequence, indent=2) + "\n", encoding="utf-8")
 
@@ -421,10 +465,13 @@ def main() -> None:
         ["ME-C02", "Dual-screw lifting platform", "6061-T6 aluminium + steel screws", 1],
         ["ME-C03", "Utility torso and parcel bay", "mineral PC-ABS + recycled PET", 1],
         ["ME-D04", "Seven-axis arm joint set", "bead-blasted anodized aluminium", 2],
-        ["ME-C05", "Smoked glass head module", "chemically strengthened glass + PC-ABS", 1],
-        ["ME-C06", "Deployable stabilizer feet", "steel core + charcoal TPU", 4],
-        ["ME-C07", "Tool dock and quick-change datum", "6061-T6 aluminium + PEEK", 1],
+        ["ME-C05", "Keyed neck mount and head flange", "6061-T6 aluminium + steel inserts", 1],
+        ["ME-C06", "Smoked glass head module", "chemically strengthened glass + PC-ABS", 1],
+        ["ME-C07", "Deployable stabilizer feet", "steel core + charcoal TPU", 4],
+        ["ME-C08", "Tool dock and quick-change datum", "6061-T6 aluminium + PEEK", 1],
         ["ISO4762-M4", "Captive socket screw", "A2-70 stainless", 28],
+        ["ISO4762-M6", "Captive neck mount socket screw", "A2-70 stainless", 4],
+        ["DOWEL-04", "Head register dowel pin", "hardened stainless", 2],
         ["LIFT-LOCK-01", "Normally-closed brake and lock pin set", "steel + spring", 2],
     ]
     with (OUT / "bom.csv").open("w", newline="", encoding="utf-8") as handle:

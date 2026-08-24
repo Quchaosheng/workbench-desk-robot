@@ -2,12 +2,14 @@
 
 > **先验证，再说完成。**
 >
-> Workbench Desk Robot 是一个面向桌面机器人的证据优先基础：受限语义动作、
+> Workbench Home Robot 是一个面向移动家务作业机器人的证据优先基础：受限语义动作、
 > 可回放事件日志，以及能够明确说出**已确认、未满足、证据不足**的验证器。
 
 ![Workbench Home Robot 高质感产品概念图](docs/assets/workbench-home-robot-premium.png)
 
 [查看可旋转的 3D 产品主视觉](docs/assets/premium-product-render.html)
+
+主视觉只展示取件姿态；清洁和感应炉锅边工具是独立快换概念，不代表同时执行或已完成验证。
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2ea44f)](LICENSE)
@@ -17,10 +19,10 @@
 
 这个项目只问一个很实际的问题：**机器人真的完成任务了吗？我们能证明吗？**
 
-当前机械基线是 **Revision B**：低底盘、渐缩肩壳、独立倾角头、内藏轮舱和可维护外壳，
-并预留取快递的折叠双连杆机械臂、8 L 前置货舱和刷头/干拖快换接口。头部屏幕提供
-`idle`、`happy`、`thinking`、`help_needed`、`task_complete` 等情绪状态。
-这些是面向取物与轻清洁的机构概念，真实载荷、地面清洁效果和安全边界仍需样机验证。
+当前机械基线是 **Revision C**：`520 × 460 mm` 稳定移动底座、`250 mm` 带刹车升降平台、
+七轴机械臂、14 L 货舱和机械锁止快换工具。取快递、清洁和感应炉锅边备餐是目标能力，
+仍需样机验证；宣传图不是已装配或已认证产品的性能承诺。头部屏幕提供 `idle`、`happy`、
+`thinking`、`help_needed`、`task_complete`、`hot_zone_warning` 等状态。
 
 ## 为什么值得做
 

@@ -1,9 +1,10 @@
 part_number,description,material,quantity
-ME-001,Lower chassis,5052-H32 aluminium,1
-ME-002,Upper shell,PC-ABS FR,1
-ME-003,Impact bumper,TPU 95A,1
-ME-004,Electronics tray,5052-H32 aluminium,1
-ISO4762-M3x8,Socket screw,A2-70 stainless,16
-DIN934-M3,Hex nut,A2 stainless,16
-ME-005,Motor bracket,6061-T6 aluminium,2
-ME-006,Display bracket,PC-ABS FR,1
+ME-C01,Mobile base and enclosed drive skirt,5052-H32 aluminium + TPU,1
+ME-C02,Dual-screw lifting platform,6061-T6 aluminium + steel screws,1
+ME-C03,Utility torso and parcel bay,mineral PC-ABS + recycled PET,1
+ME-C04,Seven-axis arm joint set,bead-blasted anodized aluminium,1
+ME-C05,Smoked glass head module,chemically strengthened glass + PC-ABS,1
+ME-C06,Deployable stabilizer feet,steel core + charcoal TPU,4
+ME-C07,Tool dock and quick-change datum,6061-T6 aluminium + PEEK,1
+ISO4762-M4,Captive socket screw,A2-70 stainless,28
+LIFT-LOCK-01,Normally-closed brake and lock pin set,steel + spring,2

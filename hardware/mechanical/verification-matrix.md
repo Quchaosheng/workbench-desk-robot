@@ -1,32 +1,29 @@
-# Mechanical verification matrix
+# Mechanical verification matrix — Revision C
 
 | Task | Evidence | Status / gate |
 |---|---|---|
-| MECH1 | Revision B SCAD, assembly STEP, enclosure and six part STEP files | ENGINEERING COMPLETE; CAD REGENERATION REQUIRED |
-| MECH2 | `generated/bom.csv`, parameterized fastener/mount dimensions | COMPLETE |
-| MECH3 | Separate 190 x 72 x 92 mm head, recessed 150 x 72 display, 8 deg datum | COMPLETE |
-| MECH4 | Assembly STEP, low chassis, wheel pods, service panel and datums | ENGINEERING COMPLETE; PHYSICAL FIT REQUIRED |
-| MECH5 | `drawings/thermal-flow.svg`, 1800/2200 mm2 flow path | ENGINEERING COMPLETE; smoke test external |
-| MECH6 | analysis and drop-screening JSON, 24 mm stroke, 35 g target | SCREEN COMPLETE; nonlinear FEA/drop external |
-| MECH7 | exploded STEP, assembly sequence and manufacturing route | COMPLETE |
-| MECH8 | six part STEP files, SCAD source and BOM | READY FOR PROTOTYPE QUOTE |
-| MECH9 | assembly STEP and minimum-clearance rules | DIGITAL CHECK COMPLETE; physical fit external |
-| MECH10 | CG and tip angle in `generated/analysis.json` | ANALYTICAL PASS |
-| MECH11 | exploded assembly and timed manufacturing route | EXECUTION READY; parts required |
-| MECH12 | 0.75 m method, limits and report fields | EXECUTION READY; prototype required |
-| MECH13 | assembly model, datums and fit acceptance | EXECUTION READY; production parts required |
-| MECH14 | wall/rib/draft baseline and supplier gate | RFQ READY; toolmaker DFM required |
-| MECH15 | PC-ABS FR, TPU, aluminium, stainless BOM; supplier declarations | MATERIALS SELECTED; RoHS declarations pending |
-| MECH16 | revision-controlled BOM/ECN gate | TEMPLATE COMPLETE; approvals required |
+| MECH1 | Revision C SCAD, mobile base, lift, torso, head and 7R assembly STEP | ENGINEERING COMPLETE; CAD REGENERATION REQUIRED |
+| MECH2 | `generated/bom.csv`, lift locks, brake and tool-datum parts | COMPLETE |
+| MECH3 | 260 x 105 x 128 mm smoked-glass head and 220 x 88 display | COMPLETE |
+| MECH4 | base, enclosed drive skirt, four stabilizers and 250 mm lift | ENGINEERING COMPLETE; PHYSICAL FIT REQUIRED |
+| MECH5 | `drawings/thermal-flow.svg`, isolated electronics and food-tool heat zone | ENGINEERING COMPLETE; thermal test external |
+| MECH6 | analysis and drop-screening JSON, 28 mm absorber, 20 g screen | SCREEN COMPLETE; nonlinear FEA/drop external |
+| MECH7 | seven joint IDs/limits, arm sweep and exploded STEP | DIGITAL CHECK COMPLETE; guarded motion external |
+| MECH8 | eight C revision part STEP files, SCAD source and BOM | READY FOR PROTOTYPE QUOTE |
+| MECH9 | quick-change tool interface, force/slip/tool-ID requirements | DIGITAL CHECK COMPLETE; tool tests external |
+| MECH10 | CG, drive/stabilized tip screens and arm moment in `analysis.json` | ANALYTICAL PASS; not release evidence |
+| MECH11 | lift dual encoders, brakes, lock pins, hard limits and pinch sensors | DESIGN COMPLETE; synchronization test required |
+| MECH12 | parcel, cleaning and supervised induction task boundary | CONCEPT ONLY; physical validation required |
+| MECH13 | CMF and concealed parting strategy in design spec | DESIGN COMPLETE; DFM and finish sample required |
 
 ## Assembly and tolerance datums
 
-- Datum A: top face of lower chassis; flatness 0.30 mm.
-- Datum B: chassis longitudinal centre plane; motor axes symmetric within 0.25 mm.
-- Datum C: front display plane; display opening positional tolerance 0.30 mm to B.
+- Datum A: mobile-base top frame; flatness 0.30 mm.
+- Datum B: lift-column centre plane; guide parallelism within 0.20 mm over travel.
+- Datum C: shoulder mounting plate; arm base position tolerance 0.30 mm to B.
 - General prototype tolerance: ISO 2768-m; printed parts +/-0.30 mm.
-- Injection shell wall 2.5 +/-0.20 mm, draft 1.5 deg minimum, rib thickness 0.55-0.65 times wall.
-- Harnesses use 6 mm minimum bend radius for signal wiring and 20 mm for the 48 V trunk.
-- Revision B shoulder draft target: 6 deg; head-to-neck moving clearance: 3 mm.
-- Wheel pod guard clearance: 3 mm; display bezel target: 3 mm; rear service-panel
-  clearance: 20 mm.
+- Lift guide/lock clearance, brake hold, synchronization error, pinch detection and
+  emergency stop must be tested before powered payload work.
+- Primary arm links use internal cables and controlled 4–6 mm shadow gaps. Tool
+  surfaces use removable 316L/PEEK/silicone parts; open flame and hot-liquid carry
+  remain prohibited.

@@ -1,28 +1,33 @@
 {
-  "status": "ANALYTICAL_ONLY_PHYSICAL_VALIDATION_REQUIRED",
-  "mass_kg": 6.42,
+  "status": "CONCEPT_PHYSICAL_VALIDATION_REQUIRED",
+  "mass_kg": 49.5,
   "center_of_gravity_mm": [
-    0.0,
-    -4.5,
-    101.9
+    33.9,
+    -14.4,
+    365.9
   ],
-  "static_tip_angle_deg": 45.9,
-  "drop_energy_j": 47.2,
-  "minimum_energy_absorber_stroke_mm": 21.4,
+  "static_tip_angle_deg": 40.3,
+  "drive_footprint_tip_angle_deg": 31.0,
+  "stabilized_tip_angle_deg": 40.3,
+  "payload_only_moment_nm": 12.7,
+  "arm_plus_payload_screen_moment_nm": 57.4,
+  "drop_energy_j": 97.1,
+  "minimum_energy_absorber_stroke_mm": 10.0,
   "vent_area_ratio_outlet_to_inlet": 1.22,
   "checks": {
-    "tip_angle_at_least_35_deg": true,
+    "drive_tip_angle_at_least_25_deg": true,
+    "stabilized_tip_angle_at_least_35_deg": true,
     "outlet_area_at_least_inlet": true,
     "absorber_at_least_derived_stroke": true,
     "pcb_fits_electronics_tray": true,
     "pcb_edge_service_margin_met": true
   },
   "pcb_tray_margin_mm": [
-    60,
-    40
+    140,
+    130
   ],
   "pcb_edge_service_margin_mm": [
-    30.0,
-    20.0
+    70.0,
+    65.0
   ]
 }

@@ -1,57 +1,47 @@
 <!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Workbench Home Robot</title>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Workbench Home Robot — Revision C</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#dfe2df;font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif;color:#18201f;letter-spacing:0}
-#scene{position:fixed;inset:0}.copy{position:fixed;left:7vw;top:7vh;z-index:2;pointer-events:none}.eyebrow{font-size:13px;font-weight:700;letter-spacing:4px;color:#5f6d69}.copy h1{margin:17px 0 10px;font-size:clamp(42px,5.3vw,84px);line-height:1.02;font-weight:650}.copy p{margin:0;font-size:clamp(16px,1.5vw,23px);color:#65716e}.capabilities{position:fixed;left:7vw;bottom:7vh;z-index:2;display:flex;gap:11px}.chip{padding:11px 15px;border:1px solid rgba(38,51,48,.18);background:rgba(244,246,243,.62);backdrop-filter:blur(18px);border-radius:6px;font-size:13px;color:#46534f}.note{position:fixed;right:4vw;bottom:4vh;color:#78837f;font-size:11px;letter-spacing:1px}
-@media(max-width:700px){.copy{top:5vh}.copy h1{font-size:42px}.capabilities{bottom:4vh;flex-wrap:wrap;width:84vw}.note{display:none}}
-</style>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
-</head>
-<body><div id="scene"></div><div class="copy"><div class="eyebrow">WORKBENCH HOME ROBOT</div><h1>替你跑一趟，<br>也懂你的心情。</h1><p>取快递 · 轻家务 · 情绪回应</p></div><div class="capabilities"><span class="chip">3 kg 取物载荷</span><span class="chip">隐藏式清洁模块</span><span class="chip">五种情绪状态</span></div><div class="note">CONCEPT DESIGN · REV C</div>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#e7e4dc;color:#252a28;font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif;letter-spacing:0}#scene{position:fixed;inset:0}.copy{position:fixed;z-index:3;left:6.8vw;top:8vh;max-width:380px;pointer-events:none}.eyebrow{font-size:11px;letter-spacing:4px;color:#69716d;font-weight:700}.copy h1{font-size:clamp(38px,4.4vw,68px);line-height:1.05;font-weight:620;margin:18px 0 14px}.copy p{font-size:18px;line-height:1.7;color:#6d736f;margin:0}.scene-label{position:fixed;z-index:3;right:6vw;bottom:7vh;text-align:right;color:#727973;font-size:11px;letter-spacing:2px;line-height:1.9}.scene-label b{font-size:13px;letter-spacing:1px;color:#4a524d;font-weight:600}@media(max-width:700px){.copy{left:6vw;top:5vh}.copy h1{font-size:40px}.copy p{font-size:15px}.scene-label{right:5vw;bottom:4vh}}
+</style><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script></head>
+<body><div id="scene"></div><div class="copy"><div class="eyebrow">WORKBENCH HOME ROBOT · REV C</div><h1>把杂事，<br>交给它。</h1><p>七轴操作臂、可升降底盘、可换工具。<br>取件、清洁、锅边备餐，先从受控场景开始。</p></div><div class="scene-label"><b>CONCEPT · PHYSICAL VALIDATION REQUIRED</b><br>PARCEL ASSIST / SUPERVISED INDUCTION TOOL</div>
 <script type="module">
-import * as THREE from 'three';
-import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-const mount=document.querySelector('#scene'),scene=new THREE.Scene();scene.background=new THREE.Color(0xdfe2df);scene.fog=new THREE.Fog(0xdfe2df,12,25);
-const camera=new THREE.PerspectiveCamera(31,innerWidth/innerHeight,.1,100);camera.position.set(7.6,4.8,13.4);
-const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,preserveDrawingBuffer:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;renderer.outputColorSpace=THREE.SRGBColorSpace;mount.appendChild(renderer.domElement);
-const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(-.35,2.35,0);controls.enableDamping=true;controls.enablePan=false;controls.minDistance=9;controls.maxDistance=16;controls.autoRotate=false;
-const mat=(color,rough=.45,metal=0)=>new THREE.MeshPhysicalMaterial({color,roughness:rough,metalness:metal,clearcoat:.18,clearcoatRoughness:.35});
-const ceramic=mat(0xf4f2ed,.26,.03),aluminum=mat(0x59615f,.23,.72),dark=mat(0x151b1b,.31,.42),rubber=mat(0x111515,.72,.05),accent=mat(0x70d8c0,.25,.16),fabric=new THREE.MeshStandardMaterial({color:0x7e8580,roughness:.96,metalness:0});
-const glass=new THREE.MeshPhysicalMaterial({color:0x071011,roughness:.08,metalness:.22,clearcoat:1,clearcoatRoughness:.05,transmission:.04});
-function mesh(geo,material,pos,rot=[0,0,0]){const m=new THREE.Mesh(geo,material);m.position.set(...pos);m.rotation.set(...rot);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m}
-function rounded(w,h,d,r,material,pos,rot){return mesh(new RoundedBoxGeometry(w,h,d,8,r),material,pos,rot)}
-// Grounded mobility platform: visually slim, mechanisms hidden.
-rounded(4.15,.48,3.18,.34,dark,[.75,.48,0]);rounded(3.78,.12,2.8,.14,aluminum,[.75,.76,0]);
-for(const x of[-1.48,2.98])for(const z of[-1.05,1.05]){const wheel=mesh(new THREE.CylinderGeometry(.36,.36,.22,48),rubber,[x,.42,z],[Math.PI/2,0,0]);wheel.castShadow=true}
-// Quiet continuous shell, shaped as one soft ceramic volume.
-const body=mesh(new THREE.SphereGeometry(1,72,48),ceramic,[.55,2.34,.02]);body.scale.set(1.62,1.7,1.17);
-rounded(2.62,.12,1.94,.06,aluminum,[.55,1.14,.02]);
-rounded(1.72,.74,.045,.18,aluminum,[.54,1.67,1.14],[-.03,0,0]);rounded(1.54,.57,.026,.14,new THREE.MeshStandardMaterial({color:0x252c2a,roughness:.94}),[.54,1.67,1.173],[-.03,0,0]);
-// Head: a single black-glass face framed by ceramic, slightly tilted toward user.
-rounded(1.8,.38,.66,.2,aluminum,[.55,4.0,.02]);
-const head=rounded(3.08,1.34,1.14,.42,ceramic,[.55,4.58,.04],[-.06,0,0]);
-rounded(2.58,.98,.08,.3,glass,[.55,4.56,.615],[-.06,0,0]);
-// Soft expressive eyes and a subtle status halo.
-for(const x of[-.02,1.12]) rounded(.46,.16,.025,.08,accent,[x,4.62,.668],[-.06,0,0]);
-const halo=mesh(new THREE.TorusGeometry(.13,.024,14,40),new THREE.MeshBasicMaterial({color:0xf0a183}),[1.58,4.25,.672],[-.06,0,0]);
-// Folded arm becomes a flush shoulder ribbon; deployed forearm reaches parcel.
-rounded(.42,1.72,.58,.2,aluminum,[2.21,2.82,.02],[0,0,-.14]);rounded(.38,1.46,.48,.18,aluminum,[2.67,2.26,.12],[0,0,-.62]);
-mesh(new THREE.SphereGeometry(.28,40,24),dark,[2.25,2.07,.08]);mesh(new THREE.SphereGeometry(.25,40,24),dark,[3.12,1.76,.12]);
-rounded(.76,.31,.4,.14,dark,[3.31,1.68,.13],[0,0,-.18]);rounded(.15,.55,.15,.07,accent,[3.58,1.53,.03],[0,0,-.35]);rounded(.15,.55,.15,.07,accent,[3.58,1.53,.28],[0,0,.35]);
-// Premium parcel prop gives scale and communicates the task without infographic clutter.
-const parcel=rounded(1.35,.92,1.05,.09,mat(0xb99d78,.68,.02),[4.35,.58,.12],[0,-.18,0]);
-mesh(new THREE.BoxGeometry(.1,.94,1.07),mat(0x242b29,.55,.08),[4.35,.59,.12],[0,-.18,0]);
-// Cleaning cassette peeks out as an intentional accent under the rear edge.
-rounded(2.05,.13,.45,.08,accent,[.65,.21,-1.48]);rounded(1.75,.08,.18,.06,fabric,[.65,.12,-1.58]);
-// Studio floor and curved cyclorama.
-const floor=mesh(new THREE.PlaneGeometry(40,40),new THREE.MeshStandardMaterial({color:0xd9dcd8,roughness:.77}),[0,0,0],[-Math.PI/2,0,0]);floor.receiveShadow=true;
-const hemi=new THREE.HemisphereLight(0xf8faf7,0x69736f,2.2);scene.add(hemi);
-const a=new THREE.DirectionalLight(0xffffff,4.1);a.position.set(-4,9,7);a.castShadow=true;a.shadow.mapSize.set(2048,2048);a.shadow.camera.left=-7;a.shadow.camera.right=7;a.shadow.camera.top=8;a.shadow.camera.bottom=-4;scene.add(a);
-const rim=new THREE.DirectionalLight(0x9fd9cd,2.4);rim.position.set(7,5,-5);scene.add(rim);const warm=new THREE.PointLight(0xffd8bd,18,10);warm.position.set(-4,3,4);scene.add(warm);
-function draw(){controls.update();renderer.render(scene,camera);requestAnimationFrame(draw)}draw();
-addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+import * as THREE from 'three';import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xe7e4dc);scene.fog=new THREE.Fog(0xe7e4dc,10,30);const camera=new THREE.PerspectiveCamera(38,innerWidth/innerHeight,.1,100);camera.position.set(7.6,5.9,13.6);
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;renderer.outputColorSpace=THREE.SRGBColorSpace;document.querySelector('#scene').appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(.55,3.65,0);controls.enableDamping=true;controls.enablePan=false;controls.autoRotate=false;
+const physical=(c,r=.4,m=0)=>new THREE.MeshPhysicalMaterial({color:c,roughness:r,metalness:m,clearcoat:.18,clearcoatRoughness:.3});const shell=physical(0xf1eee7,.25,.03),metal=physical(0x4c5350,.3,.68),graphite=physical(0x17201e,.4,.4),elastomer=physical(0x1b211f,.75,.05),jade=physical(0x75c9b4,.25,.12),glass=physical(0x07100f,.1,.25);const textile=new THREE.MeshStandardMaterial({color:0x383e3b,roughness:.98});
+function add(g,mat,p,r=[0,0,0],scale=[1,1,1]){const raw=p?.isVector3?[p.x,p.y,p.z]:p;const q=(Array.isArray(raw)?raw:[0,0,0]).map(v=>Number.isFinite(v)?v:0);const o=new THREE.Mesh(g,mat);o.position.set(...q);o.rotation.set(...r);o.scale.set(...scale);o.castShadow=true;o.receiveShadow=true;scene.add(o);return o}function box(w,h,d,r,mat,p,rot=[0,0,0]){const rr=Math.max(.008,Math.min(r,w/2-.006,h/2-.006,d/2-.006));return add(new RoundedBoxGeometry(w,h,d,8,rr),mat,p,rot)}function cyl(rad,len,mat,p,rot=[0,0,0]){const R=Number.isFinite(rad)?Math.max(.01,rad):.1;const L=Number.isFinite(len)?Math.max(.02,len):.1;return add(new THREE.CylinderGeometry(R,R,L,48),mat,p,rot)}
+// Scale is intentionally architectural: the visible layers are base, lift, torso, shoulder and head.
+box(4.9,.62,4.25,.38,graphite,[.65,.38,0]);box(4.55,.18,3.85,.16,metal,[.65,.76,0]);box(4.74,.22,4.02,.18,elastomer,[.65,.58,0]);
+// Enclosed drive pods and a thin contact slot, never exposed toy wheels.
+for(const x of[-1.42,2.72]){box(.38,.22,2.55,.16,elastomer,[x,.28,0]);cyl(.28,.12,metal,[x,.29,0],[0,0,Math.PI/2])}
+// Deployed stabilizers read as serious stationary manipulation hardware.
+for(const x of[-2.65,3.95])for(const z of[-1.85,1.85]){box(.42,.12,.58,.1,metal,[x,.33,z]);box(.5,.07,.66,.06,elastomer,[x,.25,z])}
+// Dual guide lift with bellows skirt and visible lock collars.
+box(2.25,2.05,1.95,.24,metal,[.65,1.78,0]);box(1.72,2.1,1.45,.2,metal,[.65,2.86,0]);box(1.48,1.78,1.25,.16,textile,[.65,2.93,0]);
+for(const x of[.02,1.28]){cyl(.13,2.55,metal,[x,2.25,0],[0,0,0]);cyl(.18,.12,jade,[x,1.25,0],[0,0,0])}
+// Mineral-white utility torso, slightly tapered via two rounded volumes.
+const lower=box(2.95,2.32,2.65,.48,shell,[.65,4.12,0],[0,0,-.02]);box(2.7,.18,2.35,.08,metal,[.65,3.02,0]);
+// Flush parcel drawer: graphite textile field inside an aluminium aperture.
+box(1.98,.78,.08,.16,metal,[.65,3.97,1.34],[0,0,0]);box(1.72,.58,.04,.12,textile,[.65,3.99,1.405]);
+// Rear load-bearing shoulder yoke, tied directly to the lift core.
+box(.92,2.05,.82,.2,metal,[2.0,5.08,.12],[0,0,-.18]);box(.72,.4,.76, .16,elastomer,[2.0,6.06,.12],[0,0,-.18]);
+// Seven revolute axes: three shoulder/yoke axes, two large links, compact forearm roll + wrist pair.
+const P={j1:[2.02,5.42,.12],j2:[2.16,5.55,.2],j3:[2.34,5.58,.38],j4:[3.28,4.92,.72],j5:[4.22,4.38,.92],j6:[4.64,4.16,1.0],j7:[4.94,4.02,1.05],ee:[5.22,3.9,1.08]};
+function joint(p,r,rot=[Math.PI/2,0,0]){cyl(r*.72,.28,metal,p,rot);cyl(r*.42,.30,elastomer,p,rot);cyl(r*.20,.32,jade,p,rot)}function link(a,b,r,matl=metal){const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),v=B.clone().sub(A),mid=A.clone().add(B).multiplyScalar(.5);const o=add(new THREE.CylinderGeometry(r*.86,r*1.08,v.length(),36),matl,mid);o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.normalize());return o}
+joint(P.j1,.45,[0,0,0]);joint(P.j2,.4,[0,Math.PI/2,0]);joint(P.j3,.34,[Math.PI/2,0,0]);link(P.j3,P.j4,.34);joint(P.j4,.3,[0,Math.PI/2,0]);link(P.j4,P.j5,.27,metal);joint(P.j5,.24,[Math.PI/2,0,0]);link(P.j5,P.j6,.18,graphite);joint(P.j6,.2,[0,Math.PI/2,0]);link(P.j6,P.j7,.15,graphite);joint(P.j7,.17,[Math.PI/2,0,0]);
+for(const x of[-2.65,3.95])for(const z of[-1.85,1.85])link([x*.82,.53,z*.82],[x,.28,z],.09,metal);
+// Internal-cable arm silhouette and food-safe quick-change wrist.
+link(P.j7,P.ee,.13,graphite);cyl(.15,.28,physical(0xc5c6bb,.28,.55),P.ee,[Math.PI/2,0,0]);
+// Adaptive gripper is actually wrapped around the parcel handle.
+box(.16,.55,.12,.05,elastomer,[5.28,3.76,.92],[0,0,-.28]);box(.16,.55,.12,.05,elastomer,[5.28,3.76,1.24],[0,0,.28]);
+const parcel=box(1.12,.9,.95,.08,physical(0xb79d7c,.7,.02),[5.7,3.45,1.08]);box(.08,.92,1.0,.02,physical(0x252a27,.62,.1),[5.7,3.45,1.08],[0,0,0]);
+// Head: one coherent smoked-glass face, carried by a real neck bracket.
+box(1.0,.48,.78,.2,metal,[.65,6.1,0]);box(2.62,1.18,1.05,.34,shell,[.65,6.68,0],[-.05,0,0]);box(2.22,.88,.07,.24,glass,[.65,6.66,.56],[-.05,0,0]);for(const x of[-.02,1.08])box(.4,.13,.025,.06,jade,[x,6.71,.61],[-.05,0,0]);
+// A detachable tool dock carries brush, dry mop, and insulated cooking tool.
+box(.62,2.0,.88,.2,metal,[-1.45,2.0,-1.65]);for(const z of[-1.88,-1.65,-1.42])cyl(.12,.4,physical(0xb9b7aa,.45,.2),[-1.45,2.0,z],[0,Math.PI/2,0]);
+// Studio architecture: limestone floor, warm wall, soft window key.
+const floor=add(new THREE.PlaneGeometry(40,40),new THREE.MeshStandardMaterial({color:0xd9d5cc,roughness:.84}),[0,0,0],[-Math.PI/2,0,0]);floor.receiveShadow=true;const wall=add(new THREE.PlaneGeometry(40,14),new THREE.MeshStandardMaterial({color:0xe7e4dc,roughness:.9}),[0,7,-5],[0,0,0]);
+scene.add(new THREE.HemisphereLight(0xfffcf6,0x52605b,2.2));const key=new THREE.DirectionalLight(0xfff9ed,4.4);key.position.set(-4,11,7);key.castShadow=true;key.shadow.mapSize.set(2048,2048);scene.add(key);const rim=new THREE.DirectionalLight(0x9ccfc1,2.3);rim.position.set(8,6,-5);scene.add(rim);const warm=new THREE.PointLight(0xffd9bd,14,12);warm.position.set(-3,4,5);scene.add(warm);
+function draw(){controls.update();renderer.render(scene,camera);requestAnimationFrame(draw)}draw();addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>

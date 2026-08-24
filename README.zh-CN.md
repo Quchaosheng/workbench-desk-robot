@@ -9,7 +9,7 @@
 
 [查看可旋转的 3D 产品主视觉](docs/assets/premium-product-render.html)
 
-主视觉只展示取件姿态；清洁和感应炉锅边工具是独立快换概念，不代表同时执行或已完成验证。
+主视觉只展示双臂取件姿态；清洁和感应炉锅边工具是独立快换概念，不代表同时执行或已完成验证。
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2ea44f)](LICENSE)
@@ -19,8 +19,8 @@
 
 这个项目只问一个很实际的问题：**机器人真的完成任务了吗？我们能证明吗？**
 
-当前机械基线是 **Revision C**：`520 × 460 mm` 稳定移动底座、`250 mm` 带刹车升降平台、
-七轴机械臂、14 L 货舱和机械锁止快换工具。取快递、清洁和感应炉锅边备餐是目标能力，
+当前机械基线是 **Revision D**：`540 × 520 mm` 稳定移动底座、`350 mm` 带刹车升降躯干、
+两只七轴机械臂、18 L 货舱和机械锁止快换工具。双臂取快递、清洁和感应炉锅边备餐是目标能力，
 仍需样机验证；宣传图不是已装配或已认证产品的性能承诺。头部屏幕提供 `idle`、`happy`、
 `thinking`、`help_needed`、`task_complete`、`hot_zone_warning` 等状态。
 

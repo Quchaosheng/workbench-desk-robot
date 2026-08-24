@@ -1,0 +1,46 @@
+{
+  "issue": "home-robot-revision-d",
+  "human_owner": "Quchaosheng",
+  "objective": "Upgrade Revision C into a wheeled bimanual household robot with two seven-axis arms, a liftable torso, shared-workspace interlocks, quick-change tools, and a premium product visual grounded in public dual-arm mobile-manipulator references.",
+  "allowed_paths": [
+    "hardware/mechanical/**",
+    "tests/hardware/test_engineering_packages.py",
+    "docs/assets/premium-product-render.html",
+    "docs/assets/workbench-home-robot-premium.png",
+    "docs/task_packets/home-robot-revision-d.json",
+    "README.md",
+    "README.zh-CN.md"
+  ],
+  "read_only_paths": ["robot/**", "interfaces/**", "firmware/**", "hardware/pcb/**"],
+  "forbidden": ["robot/control/**", "firmware/**", "services/**", "interfaces/**"],
+  "acceptance": [
+    "Revision D declares two arms and seven revolute joints per arm",
+    "the lift and mobile base dimensions are compatible with a 1100-1450 mm working height and indoor doorway footprint",
+    "left-only, right-only, shared bimanual, and forbidden interference volumes are explicit",
+    "SCAD and CadQuery depict two coherent seven-axis arms attached to the lift-supported structural torso",
+    "the product visual shows both arms in a physically plausible bimanual parcel pose with enclosed wheels",
+    "cooking remains supervised induction-only assistance pending thermal and force validation",
+    "mechanical tests, Ruff, and Task Packet validation pass"
+  ],
+  "commands": [
+    "python hardware/mechanical/tools/generate_artifacts.py",
+    "python -m pytest tests/hardware/test_engineering_packages.py::MechanicalPackageTests -q",
+    "python -m ruff check hardware/mechanical tests/hardware/test_engineering_packages.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/home-robot-revision-d.json"
+  ],
+  "evidence": [
+    "hardware/mechanical/design-spec.json",
+    "hardware/mechanical/cad/desk_robot.scad",
+    "hardware/mechanical/tools/generate_artifacts.py",
+    "hardware/mechanical/generated/desk_robot_assembly.step",
+    "hardware/mechanical/generated/drawings/general-arrangement.svg",
+    "hardware/mechanical/revision-d-architecture.md",
+    "docs/assets/workbench-home-robot-premium.png"
+  ],
+  "stop_conditions": [
+    "a change requires robot control, firmware, interfaces, or PCB ownership",
+    "the concept would claim autonomous open-flame cooking, stairs, person lifting, or certified payload performance",
+    "dual-arm interference or lift stability evidence would need to be invented",
+    "the visual cannot show both arms connected to a credible structural shoulder"
+  ]
+}

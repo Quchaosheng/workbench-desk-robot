@@ -1,16 +1,16 @@
-// Workbench Home Robot mechanical concept, Revision C.
-// Seven-axis mobile manipulator with a braked lifting platform.
+// Workbench Home Robot mechanical concept, Revision D.
+// Dual seven-axis mobile manipulator with a braked lifting platform.
 // Dimensions are millimetres; physical validation remains required.
 $fn = 56;
 
-BASE_W = 520;
-BASE_D = 460;
+BASE_W = 540;
+BASE_D = 520;
 BASE_H = 112;
 GROUND = 28;
-LIFT_TRAVEL = 250;
+LIFT_TRAVEL = 350;
 LIFT_EXTENSION = LIFT_TRAVEL;
-TORSO_W = 330;
-TORSO_D = 285;
+TORSO_W = 420;
+TORSO_D = 330;
 HEAD_W = 260;
 HEAD_D = 105;
 HEAD_H = 128;
@@ -103,17 +103,17 @@ module head_and_face() {
   }
 }
 
-module seven_axis_arm() {
+module seven_axis_arm(side=1) {
   // Active parcel pose. Three shoulder axes, two primary links, and a compact
   // three-axis wrist keep the load path legible without a bead-chain look.
-  p1 = [142, 54, 710];
-  p2 = [170, 20, 724];
-  p3 = [225, -20, 690];
-  p4 = [400, -130, 560];
-  p5 = [535, -175, 470];
-  p6 = [578, -190, 445];
-  p7 = [610, -202, 430];
-  ee = [642, -212, 420];
+  p1 = [side*176, 54, 810];
+  p2 = [side*204, 20, 824];
+  p3 = [side*250, -20, 790];
+  p4 = [side*375, -165, 655];
+  p5 = [side*330, -280, 575];
+  p6 = [side*270, -315, 550];
+  p7 = [side*225, -330, 535];
+  ee = [side*182, -342, 525];
 
   // Two load-bearing elliptical arm shells.
   tapered_link(p1, p2, 39, 36);
@@ -141,6 +141,11 @@ module seven_axis_arm() {
         rotate([18, 0, 0]) rounded_prism(10, 14, 62, 5);
 }
 
+module dual_seven_axis_arms() {
+  seven_axis_arm(-1);
+  seven_axis_arm(1);
+}
+
 module tool_dock() {
   // Cleaning and food-contact tools are removable and segregated.
   color([0.26, 0.28, 0.27])
@@ -150,13 +155,13 @@ module tool_dock() {
       translate([-211, 44, z]) rotate([0, 90, 0]) cylinder(h=34, d=28, center=true);
 }
 
-module workbench_home_robot_revision_c() {
+module workbench_home_robot_revision_d() {
   mobile_base();
   lifting_platform();
   utility_torso();
   head_and_face();
-  seven_axis_arm();
+  dual_seven_axis_arms();
   tool_dock();
 }
 
-workbench_home_robot_revision_c();
+workbench_home_robot_revision_d();

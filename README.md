@@ -11,7 +11,7 @@
 
 [Explore the interactive 3D product view](docs/assets/premium-product-render.html)
 
-The hero shows the parcel-assist pose; cleaning and supervised induction tools
+The hero shows the bimanual parcel-assist pose; cleaning and supervised induction tools
 are separate quick-change concepts, not simultaneous performance claims.
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](pyproject.toml)
@@ -23,9 +23,9 @@ are separate quick-change concepts, not simultaneous performance claims.
 The project is built around one practical question: **did the robot actually
 complete the task, and can we prove it?**
 
-The current mechanical baseline is **Revision C**: a 520 x 460 mm stabilized
-mobile base, 250 mm braked lift, seven-axis arm, 14 L parcel bay, and locked
-quick-change tools. Parcel handling, cleaning, and induction-cooking assistance
+The current mechanical baseline is **Revision D**: a 540 x 520 mm stabilized
+mobile base, 350 mm braked liftable torso, two seven-axis arms, 18 L parcel bay,
+and locked quick-change tools. Bimanual parcel handling, cleaning, and induction-cooking assistance
 are target capabilities under physical validation; the visual is not a claim of
 an assembled or certified product.
 

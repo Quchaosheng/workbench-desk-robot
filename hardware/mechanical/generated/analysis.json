@@ -1,17 +1,18 @@
 {
   "status": "CONCEPT_PHYSICAL_VALIDATION_REQUIRED",
-  "mass_kg": 49.5,
+  "mass_kg": 63.5,
   "center_of_gravity_mm": [
-    33.9,
-    -14.4,
-    365.9
+    0.0,
+    -24.1,
+    441.6
   ],
-  "static_tip_angle_deg": 40.3,
-  "drive_footprint_tip_angle_deg": 31.0,
-  "stabilized_tip_angle_deg": 40.3,
+  "static_tip_angle_deg": 38.0,
+  "drive_footprint_tip_angle_deg": 27.5,
+  "stabilized_tip_angle_deg": 38.0,
   "payload_only_moment_nm": 12.7,
-  "arm_plus_payload_screen_moment_nm": 57.4,
-  "drop_energy_j": 97.1,
+  "arm_plus_payload_screen_moment_nm": 51.0,
+  "bimanual_shared_workspace_screen_moment_nm": 70.6,
+  "drop_energy_j": 124.5,
   "minimum_energy_absorber_stroke_mm": 10.0,
   "vent_area_ratio_outlet_to_inlet": 1.22,
   "checks": {

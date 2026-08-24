@@ -1,9 +1,9 @@
 # Legacy 55 kg dual-arm workbench integration
 
 > **Scope note:** this document is retained for the earlier dual-arm workbench
-> planning case. It does not describe the Revision C Workbench Home Robot,
-> which is a single 7R arm on a 49.5 kg concept mobile base. Use
-> `revision-c-architecture.md`, `design-spec.json`, and the C verification matrix
+> planning case. It does not describe the Revision D Workbench Home Robot,
+> which is a dual 7R-arm mobile platform. Use `revision-d-architecture.md`,
+> `design-spec.json`, and the D verification matrix
 > for the current product direction.
 
 This document controls the issue 21 design case without replacing the existing

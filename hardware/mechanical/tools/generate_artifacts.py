@@ -15,7 +15,7 @@ OUT = ROOT / "generated"
 
 def analyse() -> dict[str, object]:
     components = SPEC["components"]
-    arm_mass = next(item["mass_kg"] for item in components if item["name"] == "seven_axis_arm")
+    arm_mass = max(item["mass_kg"] for item in components if item["name"].endswith("seven_axis_arm"))
     total = sum(item["mass_kg"] for item in components)
     cg = [sum(item["mass_kg"] * item["xyz"][axis] for item in components) / total for axis in range(3)]
     drive_half_support = SPEC["chassis"]["track"] / 2
@@ -45,6 +45,13 @@ def analyse() -> dict[str, object]:
             (SPEC["manipulator"]["continuous_payload"]["mass_kg"] + arm_mass)
             * 9.80665
             * SPEC["manipulator"]["continuous_payload"]["reach_mm"]
+            / 1000,
+            1,
+        ),
+        "bimanual_shared_workspace_screen_moment_nm": round(
+            (2 * arm_mass + SPEC["manipulator"]["bimanual_payload"]["mass_kg"])
+            * 9.80665
+            * SPEC["manipulator"]["bimanual_payload"]["reach_mm"]
             / 1000,
             1,
         ),
@@ -203,33 +210,40 @@ def export_cad_package() -> bool:
             stabilizers = foot if stabilizers is None else stabilizers.union(foot)
     tool_dock = cq.Workplane("XY").box(62, 160, 230).edges("|Z").fillet(18).translate((-178, 86, 357))
 
-    arm_points = [
-        (142, 54, 710),
-        (170, 20, 724),
-        (207, -18, 675),
-        (252, -78, 555),
-        (302, -132, 474),
-        (344, -166, 438),
-        (378, -188, 420),
-        (426, -213, 402),
+    right_arm_points = [
+        (176, 54, 810),
+        (204, 20, 824),
+        (250, -20, 790),
+        (375, -165, 655),
+        (330, -280, 575),
+        (270, -315, 550),
+        (225, -330, 535),
+        (182, -342, 525),
     ]
     joint_radii = [41, 38, 34, 29, 24, 20, 17]
-    arm_solids = []
-    for index, (start, end) in enumerate(pairwise(arm_points)):
-        start_vector = cq.Vector(*start)
-        end_vector = cq.Vector(*end)
-        direction = end_vector - start_vector
-        radius = max(joint_radii[index] * 0.52, 10)
-        arm_solids.append(cq.Solid.makeCylinder(radius, direction.Length, start_vector, direction.normalized()))
-        arm_solids.append(cq.Solid.makeSphere(joint_radii[index], start_vector))
-    arm_solids.append(cq.Solid.makeSphere(14, cq.Vector(*arm_points[-1])))
-    seven_axis_arm = cq.Compound.makeCompound(arm_solids)
+    left_arm_points = [(-x, y, z) for x, y, z in right_arm_points]
+
+    def make_arm(points: list[tuple[float, float, float]]) -> object:
+        arm_solids = []
+        for index, (start, end) in enumerate(pairwise(points)):
+            start_vector = cq.Vector(*start)
+            end_vector = cq.Vector(*end)
+            direction = end_vector - start_vector
+            radius = max(joint_radii[index] * 0.52, 10)
+            arm_solids.append(cq.Solid.makeCylinder(radius, direction.Length, start_vector, direction.normalized()))
+            arm_solids.append(cq.Solid.makeSphere(joint_radii[index], start_vector))
+        arm_solids.append(cq.Solid.makeSphere(14, cq.Vector(*points[-1])))
+        return cq.Compound.makeCompound(arm_solids)
+
+    left_seven_axis_arm = make_arm(left_arm_points)
+    right_seven_axis_arm = make_arm(right_arm_points)
 
     parts = {
         "mobile_base": chassis,
         "lifting_platform": lifting_platform,
         "utility_torso": torso,
-        "seven_axis_arm": seven_axis_arm,
+        "left_seven_axis_arm": left_seven_axis_arm,
+        "right_seven_axis_arm": right_seven_axis_arm,
         "head_module": head.union(face_lens),
         "electronics_tray": tray,
         "stabilizers": stabilizers,
@@ -252,7 +266,8 @@ def export_cad_package() -> bool:
     assembly.add(torso, name="utility_torso", color=cq.Color(0.90, 0.89, 0.85))
     assembly.add(head, name="head_module", color=cq.Color(0.90, 0.89, 0.85))
     assembly.add(face_lens, name="face_lens", color=cq.Color(0.03, 0.04, 0.04))
-    assembly.add(seven_axis_arm, name="seven_axis_arm", color=cq.Color(0.26, 0.28, 0.27))
+    assembly.add(left_seven_axis_arm, name="left_seven_axis_arm", color=cq.Color(0.26, 0.28, 0.27))
+    assembly.add(right_seven_axis_arm, name="right_seven_axis_arm", color=cq.Color(0.26, 0.28, 0.27))
     assembly.add(tray, name="electronics_tray", color=cq.Color(0.42, 0.44, 0.42))
     assembly.add(stabilizers, name="stabilizers", color=cq.Color(0.08, 0.09, 0.09))
     assembly.add(tool_dock, name="tool_dock", color=cq.Color(0.22, 0.24, 0.23))
@@ -267,7 +282,8 @@ def export_cad_package() -> bool:
     exploded.add(lifting_platform.translate((0, 0, 80)), name="lifting_platform")
     exploded.add(torso.translate((0, 0, 180)), name="utility_torso")
     exploded.add(head.translate((0, 0, 300)), name="head_module")
-    exploded.add(seven_axis_arm.translate((180, 0, 120)), name="seven_axis_arm")
+    exploded.add(left_seven_axis_arm.translate((-180, 0, 120)), name="left_seven_axis_arm")
+    exploded.add(right_seven_axis_arm.translate((180, 0, 120)), name="right_seven_axis_arm")
     exploded.add(tool_dock.translate((-120, 0, 120)), name="tool_dock")
     exploded_path = OUT / "desk_robot_exploded.step"
     exploded.save(str(exploded_path), exportType="STEP")
@@ -283,13 +299,15 @@ def write_engineering_drawings(report: dict[str, object]) -> None:
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760">
 <style>text{{font-family:Arial,sans-serif;fill:#17201f}} .shell{{fill:#ecece7;stroke:#17201f;stroke-width:3}} .frame{{fill:#404745;stroke:#17201f;stroke-width:3}} .joint{{fill:#202625;stroke:#7a807d;stroke-width:5}} .dim{{stroke:#287b70;stroke-width:2;marker-start:url(#a);marker-end:url(#a)}} .note{{font-size:17px}}</style>
 <defs><marker id="a" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M8,0 L0,4 L8,8" fill="none" stroke="#287b70"/></marker></defs>
-<text x="36" y="44" font-size="28" font-weight="bold">Workbench Home Robot - General Arrangement - REV C</text>
-<text x="36" y="72" class="note">Seven-axis arm + 250 mm braked lift; concept geometry; mm</text>
+<text x="36" y="44" font-size="28" font-weight="bold">Workbench Home Robot - General Arrangement - REV D</text>
+<text x="36" y="72" class="note">Dual seven-axis arms + 350 mm braked lift; concept geometry; mm</text>
 <rect class="frame" x="115" y="590" width="270" height="72" rx="24"/><rect class="frame" x="188" y="452" width="124" height="150" rx="16"/>
 <path class="shell" d="M160 218 Q160 190 190 188 L315 188 Q342 190 342 220 L328 456 L174 456 Z"/>
 <rect class="shell" x="185" y="112" width="135" height="70" rx="24"/><rect x="198" y="125" width="109" height="42" rx="14" fill="#101716"/>
 <polyline points="320,268 382,244 420,302 458,370 493,424 525,452 553,468" fill="none" stroke="#404745" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
 <g>{''.join(f'<circle class="joint" cx="{x}" cy="{y}" r="{r}"/>' for x, y, r in [(320,268,22),(382,244,20),(420,302,18),(458,370,16),(493,424,14),(525,452,12),(553,468,10)])}</g>
+<polyline points="185,268 126,244 94,302 72,370 58,424 48,452 40,468" fill="none" stroke="#404745" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+<g>{''.join(f'<circle class="joint" cx="{x}" cy="{y}" r="{r}"/>' for x, y, r in [(185,268,22),(126,244,20),(94,302,18),(72,370,16),(58,424,14),(48,452,12),(40,468,10)])}</g>
 <line class="dim" x1="90" y1="112" x2="90" y2="662"/><text x="50" y="410" class="note" transform="rotate(-90 50 410)">max {height}</text>
 <line class="dim" x1="115" y1="700" x2="385" y2="700"/><text x="222" y="725" class="note">base {width}</text>
 <text x="630" y="130" font-size="21" font-weight="bold">LIFT STATES</text>
@@ -328,9 +346,10 @@ def write_engineering_drawings(report: dict[str, object]) -> None:
         {"step": 30, "part": "lifting_platform", "fastener": "dual screw synchronization + lock pins"},
         {"step": 40, "part": "electronics_tray", "fastener": "4x M3x8 @ 0.55 Nm"},
         {"step": 50, "part": "utility_torso", "fastener": "8x M4 captive @ 1.2 Nm"},
-        {"step": 60, "part": "seven_axis_arm", "fastener": "shoulder datum + torque witness"},
-        {"step": 70, "part": "head_module", "fastener": "4x M4 captive @ 0.8 Nm"},
-        {"step": 80, "part": "tool_dock", "fastener": "3x M4 captive @ 0.8 Nm"},
+        {"step": 60, "part": "left_seven_axis_arm", "fastener": "left shoulder datum + torque witness"},
+        {"step": 70, "part": "right_seven_axis_arm", "fastener": "right shoulder datum + torque witness"},
+        {"step": 80, "part": "head_module", "fastener": "4x M4 captive @ 0.8 Nm"},
+        {"step": 90, "part": "tool_dock", "fastener": "3x M4 captive @ 0.8 Nm"},
     ]
     (OUT / "assembly-sequence.json").write_text(json.dumps(sequence, indent=2) + "\n", encoding="utf-8")
 
@@ -351,7 +370,7 @@ def main() -> None:
         ["ME-C01", "Mobile base and enclosed drive skirt", "5052-H32 aluminium + TPU", 1],
         ["ME-C02", "Dual-screw lifting platform", "6061-T6 aluminium + steel screws", 1],
         ["ME-C03", "Utility torso and parcel bay", "mineral PC-ABS + recycled PET", 1],
-        ["ME-C04", "Seven-axis arm joint set", "bead-blasted anodized aluminium", 1],
+        ["ME-D04", "Seven-axis arm joint set", "bead-blasted anodized aluminium", 2],
         ["ME-C05", "Smoked glass head module", "chemically strengthened glass + PC-ABS", 1],
         ["ME-C06", "Deployable stabilizer feet", "steel core + charcoal TPU", 4],
         ["ME-C07", "Tool dock and quick-change datum", "6061-T6 aluminium + PEEK", 1],

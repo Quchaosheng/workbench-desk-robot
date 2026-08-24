@@ -1,9 +1,9 @@
 # Mechanical engineering package
 
 This directory is the source-controlled mechanical concept for the Workbench
-Home Robot, Revision C. It is no longer the 280 x 240 x 330 mm tabletop shell.
-The current target is a 520 x 460 mm mobile base with a 250 mm braked lift, a
-continuous mineral-white utility torso, one seven-axis arm, a 14 L parcel bay,
+Home Robot, Revision D. It is no longer the 280 x 240 x 330 mm tabletop shell.
+The current target is a 540 x 520 mm mobile base with a 350 mm braked liftable torso,
+a continuous mineral-white utility body, two seven-axis arms, an 18 L parcel bay,
 and a locked quick-change tool system.
 
 ## Product architecture
@@ -12,9 +12,9 @@ and a locked quick-change tool system.
   brakes, and four deployable stabilizer feet for stationary manipulation.
 - **Lift:** four guides, two synchronized screws, two normally-closed brakes,
   two mechanical lock pins, dual encoders, hard limits, and pinch detection.
-- **Arm:** J1 base yaw, J2 shoulder pitch, J3 shoulder roll, J4 elbow pitch,
-  J5 forearm roll, J6 wrist pitch, and J7 tool roll. The planning envelope is
-  2 kg at 650 mm reach or 3 kg at 400 mm at reduced speed; these are not yet
+- **Arms:** each arm has J1 base yaw, J2 shoulder pitch, J3 shoulder roll,
+  J4 elbow pitch, J5 forearm roll, J6 wrist pitch, and J7 tool roll. The per-arm
+  planning envelope is 2 kg at 650 mm reach or 3 kg at 400 mm at reduced speed; these are not yet
   certified performance claims.
 - **Tools:** adaptive parcel gripper, compliant brush/dry-mop head, and a
   removable 316L/PEEK/silicone induction-cooking tool. Cooking is supervised,
@@ -44,11 +44,11 @@ or analytical result substitutes for lift synchronization, arm sweep, thermal,
 stability, force-limit, or guarded household-task tests on a serialized unit.
 
 - `generated/enclosure.step`: torso exchange solid for supplier review.
-- `generated/desk_robot_assembly.step`: mobile base, lift, torso, head, 7R arm,
+- `generated/desk_robot_assembly.step`: mobile base, lift, torso, head, dual 7R arms,
   stabilizers, and tool dock assembly.
 - `generated/desk_robot_exploded.step`: exploded assembly for work instructions.
-- `generated/parts/*.step`: eight C revision concept parts.
-- `generated/drawings/general-arrangement.svg`: C revision architecture and lift states.
+- `generated/parts/*.step`: nine D revision concept parts.
+- `generated/drawings/general-arrangement.svg`: D revision architecture and lift states.
 - `generated/drawings/thermal-flow.svg`: isolated electronics airflow path.
 - `generated/analysis.json`: mass, CG, drive/stabilized tip screens, payload moment, and clearances.
-- `revision-c-architecture.md`: task boundary, safety gates, and architecture rationale.
+- `revision-d-architecture.md`: bimanual workspace, task boundary, and architecture rationale.

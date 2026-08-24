@@ -26,16 +26,21 @@
   },
   {
     "step": 60,
-    "part": "seven_axis_arm",
-    "fastener": "shoulder datum + torque witness"
+    "part": "left_seven_axis_arm",
+    "fastener": "left shoulder datum + torque witness"
   },
   {
     "step": 70,
+    "part": "right_seven_axis_arm",
+    "fastener": "right shoulder datum + torque witness"
+  },
+  {
+    "step": 80,
     "part": "head_module",
     "fastener": "4x M4 captive @ 0.8 Nm"
   },
   {
-    "step": 80,
+    "step": 90,
     "part": "tool_dock",
     "fastener": "3x M4 captive @ 0.8 Nm"
   }

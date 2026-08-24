@@ -47,6 +47,9 @@ class MechanicalPackageTests(unittest.TestCase):
         self.assertTrue(all(report["checks"].values()))
         self.assertGreaterEqual(report["static_tip_angle_deg"], 35)
         self.assertGreater(report["arm_plus_payload_screen_moment_nm"], report["payload_only_moment_nm"])
+        self.assertGreater(
+            report["bimanual_shared_workspace_screen_moment_nm"], report["arm_plus_payload_screen_moment_nm"]
+        )
         self.assertEqual(report["status"], "CONCEPT_PHYSICAL_VALIDATION_REQUIRED")
         self.assertIn("PHYSICAL_VALIDATION_REQUIRED", report["status"])
 
@@ -60,7 +63,7 @@ class MechanicalPackageTests(unittest.TestCase):
         generated = ROOT / "hardware/mechanical/generated"
         self.assertGreater((generated / "desk_robot_assembly.step").stat().st_size, 100_000)
         self.assertGreater((generated / "desk_robot_exploded.step").stat().st_size, 100_000)
-        self.assertEqual(len(list((generated / "parts").glob("*.step"))), 8)
+        self.assertEqual(len(list((generated / "parts").glob("*.step"))), 9)
         self.assertTrue((generated / "drawings/general-arrangement.svg").exists())
         screening = json.loads((generated / "drop-screening.json").read_text(encoding="utf-8"))
         self.assertEqual(screening["acceptance"]["peak_deceleration_g"], 20)
@@ -75,22 +78,24 @@ class MechanicalPackageTests(unittest.TestCase):
         spec = json.loads((ROOT / "hardware/mechanical/design-spec.json").read_text(encoding="utf-8"))
         self.assertEqual(spec["electronics_tray"]["pcb_mount_pattern"], [152, 122])
 
-    def test_revision_c_home_robot_mechanics_are_explicit_and_aligned(self) -> None:
+    def test_revision_d_bimanual_home_robot_mechanics_are_explicit_and_aligned(self) -> None:
         spec = json.loads((ROOT / "hardware/mechanical/design-spec.json").read_text(encoding="utf-8"))
-        self.assertEqual(spec["revision"], "C")
-        self.assertEqual(spec["enclosure"]["width"], 520)
-        self.assertEqual(spec["enclosure"]["depth"], 460)
-        self.assertEqual(spec["lifting_platform"]["travel"], 250)
+        self.assertEqual(spec["revision"], "D")
+        self.assertEqual(spec["enclosure"]["width"], 540)
+        self.assertEqual(spec["enclosure"]["depth"], 520)
+        self.assertEqual(spec["lifting_platform"]["travel"], 350)
         self.assertEqual(spec["chassis"]["stabilizer_count"], 4)
+        self.assertEqual(spec["manipulator"]["count"], 2)
+        self.assertEqual(spec["manipulator"]["total_revolute_axes"], 14)
         self.assertEqual(len(spec["manipulator"]["joints"]), 7)
         self.assertEqual([joint["id"] for joint in spec["manipulator"]["joints"]], [f"J{i}" for i in range(1, 8)])
         self.assertEqual(spec["tool_system"]["interface"], "kinematic_quick_change_with_mechanical_lock")
         scad = (ROOT / "hardware/mechanical/cad/desk_robot.scad").read_text(encoding="utf-8")
-        for feature in ("mobile_base", "lifting_platform", "seven_axis_arm", "tool_dock"):
+        for feature in ("mobile_base", "lifting_platform", "seven_axis_arm", "dual_seven_axis_arms", "tool_dock"):
             self.assertIn(f"module {feature}", scad)
         drawing = (ROOT / "hardware/mechanical/generated/drawings/general-arrangement.svg").read_text(encoding="utf-8")
-        self.assertIn("REV C", drawing)
-        self.assertIn("Seven-axis arm", drawing)
+        self.assertIn("REV D", drawing)
+        self.assertIn("Dual seven-axis arms", drawing)
 
 
 class PcbPackageTests(unittest.TestCase):

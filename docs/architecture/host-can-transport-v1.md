@@ -25,6 +25,9 @@ successful queue or write means that an MCU accepted a command.
   send ordinary commands until an explicit successful recovery.
 - Recovery clears queued and pending pre-fault frames. It never replays stale
   traffic. The caller must establish any higher-level session/startup gate.
+- Telemetry uses the protocol half-range ordering rule. Duplicate and stale
+  snapshots are ignored, while valid fault telemetry disables ordinary traffic
+  until explicit transport recovery.
 
 ## Concurrency and backpressure
 

@@ -1,3 +1,4 @@
+import threading
 from collections import deque
 
 import pytest
@@ -102,8 +103,11 @@ def stop_ack(command_id: int = 0x8001, retry_count: int = 0, accepted: bool = Tr
     )
 
 
-def telemetry(sequence_no: int = 1) -> CanFrame:
-    return can_frame(MCU_CAN_ID_TELEMETRY, [0x10, 0, 0, 0, sequence_no, 0, 0, 0])
+def telemetry(sequence_no: int = 1, *, fault_code: int = 0, device_mode: int = 0) -> CanFrame:
+    return can_frame(
+        MCU_CAN_ID_TELEMETRY,
+        [0x10, *sequence_no.to_bytes(4, "big"), fault_code, device_mode, 0],
+    )
 
 
 def running_bus(
@@ -234,7 +238,7 @@ def test_stop_rejection_and_timeout_fail_closed() -> None:
     assert bus.service_once() is None
     transport.incoming.append(stop_ack(0x8003, accepted=False))
     rejected = bus.service_once()
-    assert rejected is not None and rejected.confirmed
+    assert rejected is not None and not rejected.confirmed
     assert bus.state is CanLinkState.LINK_LOST
 
     second_transport = FakeTransport()
@@ -372,6 +376,171 @@ def test_telemetry_is_delivered_without_confirming_command() -> None:
     assert result.status is CanReceiveStatus.ACCEPTED
     assert not result.confirmed
     assert received == [CanFrameKind.TELEMETRY]
+
+
+def test_telemetry_ordering_handles_wrap_and_rejects_duplicate_or_stale_frames() -> None:
+    transport = FakeTransport()
+    clock = FakeClock()
+    bus = running_bus(transport, clock)
+
+    for sequence_no, status in (
+        (0xFFFFFFFF, CanReceiveStatus.ACCEPTED),
+        (0, CanReceiveStatus.ACCEPTED),
+        (0, CanReceiveStatus.DUPLICATE),
+        (0xFFFFFFFF, CanReceiveStatus.LATE),
+    ):
+        transport.incoming.append(telemetry(sequence_no))
+        result = bus.service_once()
+        assert result is not None and result.status is status
+
+
+def test_fault_telemetry_fails_closed_until_explicit_recovery() -> None:
+    transport = FakeTransport()
+    clock = FakeClock()
+    bus = running_bus(transport, clock)
+    assert bus.send(command(19)).accepted
+    assert bus.service_once() is None
+
+    transport.incoming.append(telemetry(1, fault_code=4, device_mode=4))
+    result = bus.service_once()
+    assert result is not None and result.status is CanReceiveStatus.ACCEPTED
+    assert not result.confirmed
+    assert bus.state is CanLinkState.LINK_LOST
+    assert bus.pending_command_id is None
+    assert bus.send(command(20)).status is CanSendStatus.LINK_UNAVAILABLE
+
+    assert bus.recover()
+    transport.incoming.append(telemetry(0))
+    recovered = bus.service_once()
+    assert recovered is not None and recovered.status is CanReceiveStatus.ACCEPTED
+
+
+def test_rejected_ordinary_ack_is_not_confirmation_and_fails_closed() -> None:
+    transport = FakeTransport()
+    clock = FakeClock()
+    bus = running_bus(transport, clock)
+    assert bus.send(command(21)).accepted
+    assert bus.service_once() is None
+
+    transport.incoming.append(rejected_ack(21))
+    result = bus.service_once()
+    assert result is not None and result.status is CanReceiveStatus.ACCEPTED
+    assert not result.confirmed
+    assert bus.state is CanLinkState.LINK_LOST
+    assert bus.send(command(22)).status is CanSendStatus.LINK_UNAVAILABLE
+
+
+def test_stop_preempts_a_command_blocked_inside_transport_send() -> None:
+    class BlockingSendTransport(FakeTransport):
+        def __init__(self) -> None:
+            super().__init__()
+            self.send_entered = threading.Event()
+            self.release_send = threading.Event()
+
+        def send(self, frame: CanFrame) -> None:
+            if frame.arbitration_id == MCU_CAN_ID_COMMAND:
+                self.send_entered.set()
+                assert self.release_send.wait(1.0)
+            super().send(frame)
+
+    transport = BlockingSendTransport()
+    clock = FakeClock()
+    bus = running_bus(transport, clock)
+    assert bus.send(command(23)).accepted
+    service_thread = threading.Thread(target=bus.service_once)
+    service_thread.start()
+    assert transport.send_entered.wait(1.0)
+
+    assert bus.send(stop(0x8017)).accepted
+    transport.release_send.set()
+    service_thread.join(1.0)
+    assert not service_thread.is_alive()
+    assert bus.queued_count == 1
+
+    assert bus.service_once() is None
+    assert bus.pending_command_id == 0x8017
+    assert [frame.arbitration_id for frame in transport.sent] == [MCU_CAN_ID_COMMAND, MCU_CAN_ID_STOP]
+
+
+def test_start_cannot_reactivate_after_concurrent_shutdown() -> None:
+    class BlockingOpenTransport(FakeTransport):
+        def __init__(self) -> None:
+            super().__init__()
+            self.open_entered = threading.Event()
+            self.release_open = threading.Event()
+
+        def open(self) -> None:
+            self.open_entered.set()
+            assert self.release_open.wait(1.0)
+            super().open()
+
+    transport = BlockingOpenTransport()
+    bus = SafeCANBus(transport, clock=FakeClock())
+    start_result: list[bool] = []
+    start_thread = threading.Thread(target=lambda: start_result.append(bus.start(background=False)))
+    start_thread.start()
+    assert transport.open_entered.wait(1.0)
+
+    assert bus.shutdown(timeout_s=0.0)
+    transport.release_open.set()
+    start_thread.join(1.0)
+    assert start_result == [False]
+    assert transport.closed
+    assert bus.state is CanLinkState.SHUTDOWN
+
+
+def test_shutdown_retries_join_after_an_initial_timeout() -> None:
+    class BlockingReceiveTransport(FakeTransport):
+        def __init__(self) -> None:
+            super().__init__()
+            self.receive_entered = threading.Event()
+            self.release_receive = threading.Event()
+
+        def receive(self, timeout_s: float) -> CanFrame | None:
+            del timeout_s
+            self.receive_entered.set()
+            assert self.release_receive.wait(1.0)
+            return None
+
+    transport = BlockingReceiveTransport()
+    bus = SafeCANBus(transport, clock=FakeClock())
+    assert bus.start(background=True)
+    assert transport.receive_entered.wait(1.0)
+
+    assert not bus.shutdown(timeout_s=0.0)
+    transport.release_receive.set()
+    assert bus.shutdown(timeout_s=1.0)
+    assert transport.closed
+
+
+def test_recovery_cannot_reactivate_after_concurrent_shutdown() -> None:
+    class BlockingRecoverTransport(FakeTransport):
+        def __init__(self) -> None:
+            super().__init__()
+            self.recover_entered = threading.Event()
+            self.release_recover = threading.Event()
+
+        def recover(self) -> bool:
+            self.recover_entered.set()
+            assert self.release_recover.wait(1.0)
+            return True
+
+    transport = BlockingRecoverTransport()
+    clock = FakeClock()
+    bus = running_bus(transport, clock)
+    transport.receive_error = CanLinkLostError("link lost")
+    assert bus.service_once() is None
+
+    recovery_result: list[bool] = []
+    recovery_thread = threading.Thread(target=lambda: recovery_result.append(bus.recover()))
+    recovery_thread.start()
+    assert transport.recover_entered.wait(1.0)
+    assert bus.shutdown(timeout_s=0.0)
+    transport.release_recover.set()
+    recovery_thread.join(1.0)
+
+    assert recovery_result == [False]
+    assert bus.state is CanLinkState.SHUTDOWN
 
 
 def test_shutdown_stops_worker_closes_transport_and_rejects_future_send() -> None:

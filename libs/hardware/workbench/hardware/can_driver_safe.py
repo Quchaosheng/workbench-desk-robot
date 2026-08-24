@@ -69,6 +69,9 @@ class CanDiagnosticCode(StrEnum):
     DUPLICATE_ACK = "duplicate_ack"
     LATE_ACK = "late_ack"
     UNCORRELATED_ACK = "uncorrelated_ack"
+    COMMAND_REJECTED = "command_rejected"
+    DUPLICATE_TELEMETRY = "duplicate_telemetry"
+    STALE_TELEMETRY = "stale_telemetry"
     SUBSCRIBER_ERROR = "subscriber_error"
     STOP_PREEMPTED = "stop_preempted"
     SHUTDOWN_TIMEOUT = "shutdown_timeout"
@@ -395,6 +398,7 @@ class SafeCANBus:
         self._outbound: deque[CanWireFrame] = deque()
         self._pending_command: _PendingRequest | None = None
         self._pending_stop: _PendingRequest | None = None
+        self._dispatching: _Dispatch | None = None
         self._subscribers: dict[int, list[Subscriber]] = {}
         self._diagnostics: deque[CanDiagnostic] = deque(maxlen=self._config.diagnostic_capacity)
         self._error_count = 0
@@ -403,6 +407,7 @@ class SafeCANBus:
         self._timed_out: dict[CorrelationKey, frozenset[int]] = {}
         self._timed_out_order: deque[CorrelationKey] = deque()
         self._next_stop_command_id = self._config.initial_stop_command_id
+        self._last_telemetry_sequence: int | None = None
 
     @property
     def state(self) -> CanLinkState:
@@ -426,6 +431,8 @@ class SafeCANBus:
                 return self._pending_stop.wire_frame.command_id
             if self._pending_command is not None:
                 return self._pending_command.wire_frame.command_id
+            if self._dispatching is not None:
+                return self._dispatching.wire_frame.command_id
             return None
 
     def start(self, *, background: bool = True) -> bool:
@@ -436,20 +443,34 @@ class SafeCANBus:
         try:
             self._transport.open()
         except CanTransportError as exc:
-            self._handle_transport_error(exc)
+            with self._lock:
+                if self._state is CanLinkState.STARTING:
+                    self._state = CanLinkState.LINK_LOST
+                self._record_diagnostic_locked(CanDiagnosticCode.LINK_LOST, str(exc))
             return False
 
         with self._lock:
-            self._opened = True
-            self._state = CanLinkState.ACTIVE
-            self._stop_event.clear()
-            if background:
-                self._worker = threading.Thread(
-                    target=self._worker_main,
-                    name="safe-can-transport",
-                    daemon=True,
-                )
-                self._worker.start()
+            if self._state is not CanLinkState.STARTING:
+                abandoned = True
+            else:
+                abandoned = False
+                self._opened = True
+                self._state = CanLinkState.ACTIVE
+                self._stop_event.clear()
+                if background:
+                    self._worker = threading.Thread(
+                        target=self._worker_main,
+                        name="safe-can-transport",
+                        daemon=True,
+                    )
+                    self._worker.start()
+        if abandoned:
+            try:
+                self._transport.close()
+            except CanTransportError as exc:
+                with self._lock:
+                    self._record_diagnostic_locked(CanDiagnosticCode.LINK_LOST, str(exc))
+            return False
         return True
 
     def send(self, frame: object) -> CanSendResult:
@@ -480,7 +501,9 @@ class SafeCANBus:
             }:
                 return CanSendResult(CanSendStatus.LINK_UNAVAILABLE, command_id=wire_frame.command_id)
             if wire_frame.kind is CanFrameKind.STOP and (
-                self._pending_stop is not None or any(queued.kind is CanFrameKind.STOP for queued in self._outbound)
+                self._pending_stop is not None
+                or (self._dispatching is not None and self._dispatching.wire_frame.kind is CanFrameKind.STOP)
+                or any(queued.kind is CanFrameKind.STOP for queued in self._outbound)
             ):
                 reason = "a STOP acknowledgement is already pending"
                 self._record_diagnostic_locked(
@@ -524,6 +547,8 @@ class SafeCANBus:
             if self._state not in {CanLinkState.ACTIVE, CanLinkState.STOPPING}:
                 return None
             dispatch = self._next_dispatch_locked(self._clock.monotonic())
+            if dispatch is not None:
+                self._dispatching = dispatch
 
         if dispatch is not None:
             try:
@@ -532,6 +557,9 @@ class SafeCANBus:
                 self._handle_transport_error(exc)
                 return None
             with self._lock:
+                if self._dispatching is not dispatch:
+                    return None
+                self._dispatching = None
                 self._record_dispatch_locked(dispatch, self._clock.monotonic())
 
         try:
@@ -555,11 +583,25 @@ class SafeCANBus:
         if not recovered:
             return False
         with self._lock:
-            self._outbound.clear()
-            self._pending_command = None
-            self._pending_stop = None
-            self._state = CanLinkState.ACTIVE
-        return True
+            if self._state not in {CanLinkState.BUS_OFF, CanLinkState.LINK_LOST}:
+                applied = False
+                close_abandoned_recovery = self._state is CanLinkState.SHUTDOWN
+            else:
+                applied = True
+                close_abandoned_recovery = False
+                self._outbound.clear()
+                self._pending_command = None
+                self._pending_stop = None
+                self._dispatching = None
+                self._last_telemetry_sequence = None
+                self._state = CanLinkState.ACTIVE
+        if close_abandoned_recovery:
+            try:
+                self._transport.close()
+            except CanTransportError as exc:
+                with self._lock:
+                    self._record_diagnostic_locked(CanDiagnosticCode.LINK_LOST, str(exc))
+        return applied
 
     def shutdown(self, *, timeout_s: float | None = None) -> bool:
         timeout = self._config.shutdown_timeout_s if timeout_s is None else timeout_s
@@ -571,12 +613,13 @@ class SafeCANBus:
         ):
             raise ValueError("timeout_s must be a finite non-negative number")
         with self._lock:
-            if self._state is CanLinkState.SHUTDOWN:
+            if self._state is CanLinkState.SHUTDOWN and self._worker is None and not self._opened:
                 return True
             self._state = CanLinkState.SHUTDOWN
             self._outbound.clear()
             self._pending_command = None
             self._pending_stop = None
+            self._dispatching = None
             self._stop_event.set()
             worker = self._worker
             opened = self._opened
@@ -781,6 +824,28 @@ class SafeCANBus:
 
     def _correlate_received_locked(self, wire_frame: CanWireFrame) -> tuple[CanReceiveStatus, bool]:
         if wire_frame.kind is CanFrameKind.TELEMETRY:
+            sequence_no = wire_frame.sequence_no
+            if sequence_no is None:
+                raise RuntimeError("telemetry is missing sequence_no")
+            if self._last_telemetry_sequence is not None:
+                delta = (sequence_no - self._last_telemetry_sequence) & 0xFFFFFFFF
+                if delta == 0:
+                    self._record_diagnostic_locked(
+                        CanDiagnosticCode.DUPLICATE_TELEMETRY,
+                        "duplicate telemetry ignored",
+                    )
+                    return CanReceiveStatus.DUPLICATE, False
+                if delta >= 0x80000000:
+                    self._record_diagnostic_locked(
+                        CanDiagnosticCode.STALE_TELEMETRY,
+                        "stale or ambiguous telemetry ignored",
+                    )
+                    return CanReceiveStatus.LATE, False
+            self._last_telemetry_sequence = sequence_no
+            if wire_frame.fault_code != _WireFault.NONE:
+                self._handle_transport_error(
+                    CanLinkLostError(f"MCU fault telemetry reported fault code {wire_frame.fault_code}")
+                )
             return CanReceiveStatus.ACCEPTED, False
         key = _correlation_key(wire_frame)
         retry_count = wire_frame.retry_count
@@ -807,7 +872,16 @@ class SafeCANBus:
                     )
             else:
                 self._pending_command = None
-            return CanReceiveStatus.ACCEPTED, True
+                if wire_frame.result_code != _WireResult.ACCEPTED:
+                    self._outbound.clear()
+                    self._state = CanLinkState.LINK_LOST
+                    self._record_diagnostic_locked(
+                        CanDiagnosticCode.COMMAND_REJECTED,
+                        "MCU returned a rejected ordinary acknowledgement",
+                        wire_frame.command_id,
+                    )
+                    return CanReceiveStatus.ACCEPTED, False
+            return CanReceiveStatus.ACCEPTED, wire_frame.result_code == _WireResult.ACCEPTED
 
         if retry_count in self._completed.get(key, ()):
             self._record_diagnostic_locked(
@@ -846,26 +920,51 @@ class SafeCANBus:
                 )
             self._pending_command = None
             self._pending_stop = None
+            self._dispatching = None
             self._outbound.clear()
             if isinstance(error, CanBusOffError):
-                self._state = CanLinkState.BUS_OFF
                 code = CanDiagnosticCode.BUS_OFF
+                next_state = CanLinkState.BUS_OFF
             else:
-                self._state = CanLinkState.LINK_LOST
                 code = CanDiagnosticCode.LINK_LOST
+                next_state = CanLinkState.LINK_LOST
+            if self._state is not CanLinkState.SHUTDOWN:
+                self._state = next_state
             self._record_diagnostic_locked(code, str(error))
 
     def _preempt_for_stop_locked(self, detail: str) -> None:
         preempted = len(self._outbound)
         self._outbound.clear()
         if self._pending_command is not None:
+            sent_retry_counts = set(self._pending_command.sent_retry_counts)
+            if self._dispatching is not None and self._dispatching.wire_frame.kind is CanFrameKind.COMMAND:
+                retry_count = self._dispatching.wire_frame.retry_count
+                if retry_count is not None:
+                    sent_retry_counts.add(retry_count)
             self._remember_correlation_locked(
                 self._timed_out,
                 self._timed_out_order,
-                self._pending_command,
+                _PendingRequest(
+                    self._pending_command.wire_frame,
+                    self._pending_command.deadline,
+                    self._pending_command.retry_budget_used,
+                    sent_retry_counts,
+                ),
             )
             self._pending_command = None
             preempted += 1
+        elif self._dispatching is not None and self._dispatching.wire_frame.kind is CanFrameKind.COMMAND:
+            retry_count = self._dispatching.wire_frame.retry_count
+            if retry_count is None:
+                raise RuntimeError("dispatching command is missing retry_count")
+            self._remember_correlation_locked(
+                self._timed_out,
+                self._timed_out_order,
+                _PendingRequest(self._dispatching.wire_frame, 0.0, 0, {retry_count}),
+            )
+            preempted += 1
+        if self._dispatching is not None and self._dispatching.wire_frame.kind is CanFrameKind.COMMAND:
+            self._dispatching = None
         if preempted:
             self._record_diagnostic_locked(CanDiagnosticCode.STOP_PREEMPTED, detail)
 
@@ -894,6 +993,8 @@ class SafeCANBus:
             return False
         request_kind = CanFrameKind.STOP if kind in {CanFrameKind.STOP, CanFrameKind.STOP_ACK} else CanFrameKind.COMMAND
         candidates = list(self._outbound)
+        if self._dispatching is not None:
+            candidates.append(self._dispatching.wire_frame)
         if self._pending_command is not None:
             candidates.append(self._pending_command.wire_frame)
         if self._pending_stop is not None:

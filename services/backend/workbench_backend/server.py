@@ -15,7 +15,9 @@ from .read_model import (
     ReadModelError,
     ReadModelResponseTooLarge,
     RemoteDashboardReadModel,
+    UnavailableRemoteDashboardReadModel,
 )
+from .remote_http import RemoteHttpError
 
 SOURCE_ROOT = Path(__file__).resolve().parents[3]
 ROOT = Path.cwd() if (Path.cwd() / "apps" / "dashboard").is_dir() else SOURCE_ROOT
@@ -198,10 +200,18 @@ def create_server(
     data_dir: str | Path = DEFAULT_DATA_DIR,
     static_dir: str | Path = DEFAULT_STATIC_DIR,
     event_source_url: str | None = None,
+    event_source_allowlist: str | None = None,
 ) -> ThreadingHTTPServer:
-    configured_read_model = (
-        RemoteDashboardReadModel(event_source_url) if event_source_url else DashboardReadModel(data_dir)
-    )
+    if event_source_url:
+        try:
+            configured_read_model = RemoteDashboardReadModel(
+                event_source_url,
+                event_source_allowlist=event_source_allowlist,
+            )
+        except RemoteHttpError as exc:
+            configured_read_model = UnavailableRemoteDashboardReadModel(exc)
+    else:
+        configured_read_model = DashboardReadModel(data_dir)
     configured_static_dir = Path(static_dir)
 
     class ConfiguredHandler(DashboardHandler):
@@ -218,8 +228,15 @@ def main() -> int:
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     parser.add_argument("--event-source-url", default=os.environ.get("WORKBENCH_EVENT_SOURCE_URL"))
+    parser.add_argument("--event-source-allowlist")
     args = parser.parse_args()
-    server = create_server(args.host, args.port, data_dir=args.data_dir, event_source_url=args.event_source_url)
+    server = create_server(
+        args.host,
+        args.port,
+        data_dir=args.data_dir,
+        event_source_url=args.event_source_url,
+        event_source_allowlist=args.event_source_allowlist,
+    )
     DashboardHandler.logger.emit(
         "service_started",
         f"dashboard listening on http://{args.host}:{args.port}",

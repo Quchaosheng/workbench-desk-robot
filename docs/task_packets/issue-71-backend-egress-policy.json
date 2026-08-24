@@ -1,0 +1,113 @@
+{
+  "issue": 71,
+  "human_owner": "kukuboring",
+  "objective": "Constrain the Backend remote Dashboard event-source HTTP client to loopback or an explicit IP/CIDR allow-list, pin validated DNS results to the actual connection, disable redirects, bound remote responses and timeouts, and make invalid configuration fail readiness closed without changing deployment wiring or public data contracts.",
+  "allowed_paths": [
+    "services/backend/workbench_backend/remote_http.py",
+    "services/backend/workbench_backend/read_model.py",
+    "services/backend/workbench_backend/server.py",
+    "tests/unit/test_multi_host.py",
+    "docs/task_packets/issue-71-backend-egress-policy.json"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "CONTRIBUTING.md",
+    "Makefile",
+    "docs/architecture/system.md",
+    "docs/api-openapi-v1.json",
+    "services/backend/workbench_backend/api-openapi-v1.json",
+    "interfaces/json_schema/world_event.schema.json",
+    "apps/dashboard/data/run-confirmed.jsonl",
+    "apps/dashboard/data/run-uncertain.jsonl",
+    "tests/unit/test_dashboard_backend.py",
+    "deploy/multi-host/compose.controller.yaml",
+    "docs/deployment/multi-host.md",
+    "docs/task_packets/example-001-world-reducer.json"
+  ],
+  "forbidden": [
+    "libs/contracts/**",
+    "services/world_model/**",
+    "services/agent_runtime/**",
+    "robot/control/**",
+    "firmware/**",
+    "sim/**",
+    ".github/**"
+  ],
+  "input_refs": [
+    "AGENTS.md",
+    "CONTRIBUTING.md",
+    "Makefile",
+    "docs/architecture/system.md",
+    "docs/api-openapi-v1.json",
+    "services/backend/workbench_backend/api-openapi-v1.json",
+    "interfaces/json_schema/world_event.schema.json",
+    "apps/dashboard/data/run-confirmed.jsonl",
+    "apps/dashboard/data/run-uncertain.jsonl",
+    "services/backend/workbench_backend/read_model.py",
+    "services/backend/workbench_backend/server.py",
+    "tests/unit/test_multi_host.py",
+    "tests/unit/test_dashboard_backend.py",
+    "deploy/multi-host/compose.controller.yaml",
+    "docs/deployment/multi-host.md",
+    "docs/task_packets/example-001-world-reducer.json"
+  ],
+  "acceptance": [
+    "IPv4 loopback, IPv6 loopback, and localhost are accepted without an allow-list.",
+    "Every non-loopback resolved address must match an explicit comma-separated IP or CIDR allow-list supplied to the Backend application.",
+    "Missing or malformed allow-list configuration rejects every non-loopback target fail closed.",
+    "The Phase A allow-list is supplied only through create_server(..., event_source_allowlist=...) and the --event-source-allowlist CLI argument; this Packet does not add or read WORKBENCH_EVENT_SOURCE_ALLOWLIST and does not modify Compose.",
+    "Credentials, query strings, fragments, non-HTTP schemes, invalid ports, and non-root base paths are rejected.",
+    "Unspecified, link-local, multicast, and reserved addresses are rejected even when mistakenly included in the allow-list.",
+    "Every IPv4 and IPv6 DNS result is validated; mixed permitted and forbidden results fail closed.",
+    "IPv4-mapped IPv6 addresses are evaluated using their effective IPv4 address, and mixed permitted and forbidden effective addresses fail closed.",
+    "The HTTP connection uses the already validated resolved address and does not perform a second unvalidated DNS lookup.",
+    "HTTP redirects are never followed, and a local redirect target receives zero requests.",
+    "Remote responses require an application/json media type with optional charset parameters; a valid JSON response whose complete encoded body is 4194304 bytes is accepted and a 4194305-byte response is rejected, with or without Content-Length.",
+    "A timeout of 2 seconds is accepted; zero, negative, NaN, infinity, and values greater than 2 seconds are rejected before network access.",
+    "Network connection and read timeouts are converted to ReadModelError without retrying an unvalidated destination.",
+    "Invalid remote configuration keeps healthz live while readyz and remote data endpoints fail closed with HTTP 503.",
+    "Existing duplicate JSON key rejection, ordered event handling, read-only API behavior, WorldEvent shape, and OpenAPI v1 contract remain unchanged."
+  ],
+  "commands": [
+    "python -m pytest tests/unit/test_multi_host.py tests/unit/test_dashboard_backend.py -v",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "make demo-scripted",
+    "make check",
+    "git diff --check",
+    "python tools/scripts/check_task_packet.py docs/task_packets/issue-71-backend-egress-policy.json --base main"
+  ],
+  "evidence": [
+    "Targeted pytest output names and passes every new URL, address, DNS, redirect, content-type, size, timeout, and readiness test.",
+    "Verbose targeted pytest output includes the exact 4194304-byte and 4194305-byte response boundary cases.",
+    "Verbose targeted pytest output includes the accepted 2-second timeout and rejected zero, negative, NaN, infinity, and greater-than-2-second cases.",
+    "Verbose targeted pytest output includes IPv4, IPv6, IPv4-mapped IPv6, and mixed permitted-and-forbidden DNS cases.",
+    "The local redirect test records zero requests at the redirect target.",
+    "The DNS pinning test proves the connected IP is the same IP that passed policy validation.",
+    "HTTP evidence shows healthz returns 200 while readyz and data endpoints return 503 for invalid remote configuration.",
+    "The existing remote duplicate-key and controller peer-down tests continue to pass through the new HTTP client.",
+    "make check completes successfully.",
+    "git diff --check produces no output.",
+    "Task Packet diff-boundary validation confirms every changed path is allowed."
+  ],
+  "stop_conditions": [
+    "A change to deploy/multi-host/compose.controller.yaml, the deployment environment contract, or multi-host deployment documentation is required.",
+    "The Phase A implementation reads WORKBENCH_EVENT_SOURCE_ALLOWLIST instead of accepting the allow-list only through the Python and CLI parameters.",
+    "A change to interfaces, OpenAPI, Pydantic models, WorldEvent fields, or Dashboard fixtures is required.",
+    "A non-loopback target is reachable without an explicit matching allow-list entry.",
+    "The implementation validates one DNS result but connects through a second unvalidated resolution.",
+    "The redirect test cannot prove that the target received zero requests.",
+    "Testing requires public network access, real external DNS, or timing sleeps.",
+    "The work expands into Issue #66 inbound exposure controls or Issue #74 partition and recovery semantics.",
+    "The timeout bound, allow-list format, or prohibited address policy must change beyond the approved acceptance behavior.",
+    "Unrelated user changes overlap an allowed path.",
+    "The Task Packet has not received explicit approval for this bounded security behavior."
+  ],
+  "risks_and_fallbacks": [
+    "Fail closed if URL parsing, allow-list parsing, DNS resolution, address validation, content-type validation, redirect handling, or timeout enforcement is ambiguous.",
+    "Do not fall back from a rejected remote source to Dashboard fixture data.",
+    "Keep deployment wiring for a separate Task Packet under the same Issue."
+  ]
+}

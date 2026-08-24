@@ -1,0 +1,52 @@
+[
+  {
+    "step": 10,
+    "assembly": "fixed_chassis_frame",
+    "gate": "weld map flatness and bond lands inspected"
+  },
+  {
+    "step": 20,
+    "assembly": "casters_deployable_outriggers_and_leveling_feet",
+    "gate": "rated parts approved outriggers locked and all feet carry load"
+  },
+  {
+    "step": 30,
+    "assembly": "battery_ballast_tray",
+    "gate": "pack restraint and service disconnect approved"
+  },
+  {
+    "step": 40,
+    "assembly": "arm_controller_cabinets",
+    "gate": "ventilation connector and service access verified"
+  },
+  {
+    "step": 50,
+    "assembly": "guided_lift_columns_actuators_locks_upper_frame_and_deck",
+    "gate": "skew limits redundant switches anti-drop locks proof load and deck survey attached"
+  },
+  {
+    "step": 60,
+    "assembly": "left_and_right_arm_mount_plates",
+    "gate": "purchased-arm drawing and torque approved"
+  },
+  {
+    "step": 70,
+    "assembly": "seven_axis_vendor_arms",
+    "gate": "rated lift fixture and supplier installation procedure required"
+  },
+  {
+    "step": 80,
+    "assembly": "cable_management_and_bonding",
+    "gate": "full sweep bend radius and protective bond test"
+  },
+  {
+    "step": 90,
+    "assembly": "guards_and_bumpers",
+    "gate": "pinch and site risk assessment closed"
+  },
+  {
+    "step": 100,
+    "assembly": "commissioning",
+    "gate": "proof load stability pull and guarded dual-arm sweep executed"
+  }
+]

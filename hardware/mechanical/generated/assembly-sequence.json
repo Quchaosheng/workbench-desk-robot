@@ -10,9 +10,27 @@
     "fastener": "8x M3x8 @ 0.55 Nm"
   },
   {
+    "step": 25,
+    "part": "left_and_right_traction_motors",
+    "fastener": "TBD_BY_APPROVED_MOTOR",
+    "status": "BLOCKED_MOTOR_SELECTION_AND_PHYSICAL_FIT"
+  },
+  {
+    "step": 27,
+    "part": "four_wheel_hub_and_tyre_assemblies",
+    "fastener": "TBD_BY_APPROVED_WHEEL_AND_HUB",
+    "status": "BLOCKED_WHEEL_SELECTION_LOAD_AND_SWEEP_VALIDATION"
+  },
+  {
     "step": 30,
     "part": "electronics_tray",
     "fastener": "4x M3x8 @ 0.55 Nm"
+  },
+  {
+    "step": 35,
+    "part": "traction_driver_childboard",
+    "fastener": "TBD_BY_APPROVED_CHILDBOARD",
+    "status": "BLOCKED_FINAL_OUTLINE_THERMAL_AND_CONNECTOR_FREEZE"
   },
   {
     "step": 40,

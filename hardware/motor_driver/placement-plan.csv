@@ -1,0 +1,15 @@
+block_id,function,x_mm,y_mm,width_mm,height_mm,side,connector_side,domain,placement_rule,freeze_status
+J_PWR,12 V auxiliary input,10,41,10,20,left,-X_POWER,power,place at edge with polarity marking and fuse first in path,CONCEPT_ONLY
+F1,branch protection,24,41,8,14,top,INTERNAL,power,place immediately after J_PWR before unprotected copper expands,CONCEPT_ONLY
+Q1,reverse-current blocking,35,41,8,14,top,INTERNAL,power,keep source drain loop short and away from logic reference,CONCEPT_ONLY
+C_BULK,local bulk reservoir,47,41,12,16,top,INTERNAL,power,place inside driver commutation loop with pulse-current return,CONCEPT_ONLY
+CLAMP,regenerative clamp and brake switch,47,62,12,12,top,INTERNAL,power,short loop to local bulk and thermally isolate from electrolytics,CONCEPT_ONLY
+U1,DRV8962 candidate,70,41,18,22,top,INTERNAL,power_stage,centralize between bulk and equal-length motor branches,CONCEPT_ONLY
+J_CAN,field-bus connector/transceiver and protection,37,78,14,8,top,+Y_REAR,field_bus,place at rear connector edge outside motor switching loop,CONCEPT_ONLY
+CTRL,local traction controller,39,13,20,12,top,INTERNAL,logic,keep ADC references away from OUTx and clamp nodes,CONCEPT_ONLY
+SAFE_GATE,dual independent hardware gates,68,13,18,10,top,INTERNAL,safety,route SAFE A to nSLEEP and SAFE B to EN without shared permissive,CONCEPT_ONLY
+J_SAFE,dual-channel safety ECO interface,18,78,12,8,top,+Y_REAR,safety,place at rear edge and keep A/B returns separated,CONCEPT_ONLY
+J_ENC_L,left encoder interface,92,11,10,8,top,-Y_FRONT,logic,edge placement separated from motor output connector,CONCEPT_ONLY
+J_ENC_R,right encoder interface,105,11,10,8,top,-Y_FRONT,logic,edge placement separated from motor output connector,CONCEPT_ONLY
+J_ML,left motor output,78,77,10,10,top,+Y_REAR,motor,place at rear edge with short wide paired output path,CONCEPT_ONLY
+J_MR,right motor output,105,77,10,10,top,+Y_REAR,motor,place at rear edge with short wide paired output path,CONCEPT_ONLY

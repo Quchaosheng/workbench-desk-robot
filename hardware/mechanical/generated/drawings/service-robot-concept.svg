@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760">
+<rect width="1200" height="760" fill="#E7E9E8"/>
+<style>text{font-family:Arial,sans-serif;fill:#292D32;letter-spacing:0}.label{font-size:18px}.note{font-size:14px;fill:#596168}.outline{stroke:#292D32;stroke-width:4;stroke-linejoin:round}</style>
+<text x="60" y="54" font-size="28" font-weight="700">SERVICE ROBOT REV A - INDUSTRIAL DESIGN CONCEPT</text>
+<text x="60" y="82" class="note">
+  ORIGINAL FUNCTIONAL CONCEPT - NOT PRODUCTION CAD - SUPPLIER SURFACING AND PHYSICAL VALIDATION REQUIRED
+</text>
+<g transform="translate(90,115)">
+  <text x="170" y="0" class="label" font-weight="700">FRONT</text>
+  <rect x="95" y="475" width="330" height="150" rx="40" fill="#F2F1ED" class="outline"/>
+  <rect x="95" y="565" width="330" height="60" rx="26" fill="#292D32"/>
+  <circle cx="125" cy="555" r="7" fill="#202428"/><circle cx="395" cy="555" r="7" fill="#202428"/>
+  <rect x="180" y="170" width="160" height="340" rx="35" fill="#F2F1ED" class="outline"/>
+  <rect x="152" y="105" width="216" height="105" rx="28" fill="#F2F1ED" class="outline"/>
+  <rect x="188" y="128" width="144" height="54" rx="8" fill="#1E252B"/>
+  <circle cx="260" cy="121" r="7" fill="#18A999"/>
+  <path d="M180 225 L105 250 L48 335" fill="none" stroke="#292D32" stroke-width="34" stroke-linecap="round"/>
+  <path d="M340 225 L415 250 L472 335" fill="none" stroke="#292D32" stroke-width="34" stroke-linecap="round"/>
+  <circle cx="105" cy="250" r="21" fill="#F2F1ED" class="outline"/>
+  <circle cx="415" cy="250" r="21" fill="#F2F1ED" class="outline"/>
+  <circle cx="48" cy="335" r="18" fill="#F2F1ED" class="outline"/>
+  <circle cx="472" cy="335" r="18" fill="#F2F1ED" class="outline"/>
+  <rect x="220" y="485" width="80" height="18" rx="9" fill="#151A1E"/><circle cx="260" cy="494" r="5" fill="#18A999"/>
+  <circle cx="190" cy="205" r="10" fill="#D92D20"/><circle cx="330" cy="205" r="10" fill="#D92D20"/>
+</g>
+<g transform="translate(665,115)">
+  <text x="155" y="0" class="label" font-weight="700">SIDE</text>
+  <rect x="55" y="475" width="390" height="150" rx="40" fill="#F2F1ED" class="outline"/>
+  <rect x="55" y="565" width="390" height="60" rx="26" fill="#292D32"/>
+  <circle cx="115" cy="615" r="35" fill="#171B1F"/><circle cx="385" cy="615" r="35" fill="#171B1F"/>
+  <rect x="185" y="170" width="145" height="340" rx="35" fill="#F2F1ED" class="outline"/>
+  <path d="M192 185 L345 185 L365 112 L205 112 Z" fill="#F2F1ED" class="outline"/>
+  <rect x="245" y="132" width="105" height="50" rx="7" fill="#1E252B"/>
+  <path d="M235 230 L355 265 L425 350" fill="none" stroke="#292D32" stroke-width="34" stroke-linecap="round"/>
+  <circle cx="355" cy="265" r="21" fill="#F2F1ED" class="outline"/>
+  <circle cx="425" cy="350" r="18" fill="#F2F1ED" class="outline"/>
+  <rect x="70" y="490" width="65" height="18" rx="9" fill="#151A1E"/>
+  <path d="M330 230 L365 230 L365 470 L330 470" fill="none" stroke="#596168" stroke-width="8"/>
+  <text x="270" y="455" class="note">rear service spine</text>
+</g>
+<text x="60" y="728" class="note">
+  Warm-white replaceable covers / graphite impact base / functional cyan status light / red reserved for emergency stop
+</text>
+</svg>

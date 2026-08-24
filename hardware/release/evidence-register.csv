@@ -1,16 +1,19 @@
-gate_id,domain,gate,owner,status,evidence_ref,next_action,release_blocker
-REL-001,engineering,mechanical analytical package,Mechanical Owner,PASS,hardware/mechanical/generated/analysis.json,complete physical stability/drop validation,no
-REL-002,engineering,PCB architecture/ERC/DRC/connectivity,Electrical Owner,PASS,hardware/pcb/generated/release_readiness.json,close component schematic and AVL,no
-REL-003,engineering,manufacturing route and controlled traveller,Manufacturing Owner,PASS,hardware/manufacturing/generated/route_report.json,run pilot units,no
-REL-004,procurement,dated quotes and approved MPNs,Procurement Owner,BLOCKED,hardware/procurement/generated/procurement_report.json,attach dated quotes and AVL approval,yes
-REL-005,commercial,PO and lead-time decision,Project Owner,BLOCKED,hardware/procurement/po-checklist.csv,complete PO checklist with sign-off,yes
-REL-006,safety,approved safety analysis and E-stop timing,Safety Owner,BLOCKED,hardware/pcb/safety-gate-truth-table.csv,attach signed safety analysis and measured trip time,yes
-REL-007,manufacturing,supplier DFM and mating-part closure,Manufacturing Owner,BLOCKED,hardware/manufacturing/generated/harness_report.json,attach supplier DFM and physical harness tests,yes
-REL-008,quality,incoming and in-process inspection execution,Quality Owner,BLOCKED,hardware/qa/generated/qa_report.json,execute inspection plan on serialized units,yes
-REL-009,quality,FMEA and defect corrective-action closure,Quality Owner,BLOCKED,hardware/qa/fmea.csv,record observed defects and verify corrective actions,yes
-REL-010,compliance,RoHS/EMC/electrical-safety technical file,Quality Owner,BLOCKED,hardware/qa/compliance-matrix.csv,attach supplier declarations and lab reports,yes
-REL-011,physical,first-batch acceptance,Validation Owner,BLOCKED,hardware/validation/first-batch-acceptance.csv,build and test ten serialized units,yes
-REL-012,field,SIM2REAL benchmark,Validation Owner,BLOCKED,hardware/validation/sim2real-matrix.csv,run paired simulation/real-machine measurements,yes
-REL-013,field,fault-injection recovery library,Validation Owner,BLOCKED,hardware/validation/fault-scenarios.csv,execute all 20 scenarios and attach logs,yes
-REL-014,reliability,48-hour continuous run,Validation Owner,BLOCKED,hardware/validation/long-run-protocol.md,execute protocol with raw event log,yes
-REL-015,release,final GO/NO-GO decision,Project Owner,BLOCKED,hardware/manufacturing/pilot-and-release.md,obtain all sign-offs and close blockers,yes
+gate_id,domain,gate,owner,status,evidence_ref,evidence_binding,next_action,evt_order_blocker,production_release_blocker
+REL-001,engineering,mechanical analytical package,Mechanical Owner,PASS,hardware/mechanical/generated/analysis.json,ENGINEERING_PASS,retain analytical checks and complete downstream physical validation,yes,yes
+REL-002,engineering,PCB architecture ERC DRC and connectivity,Electrical Owner,BLOCKED,hardware/pcb/generated/release_readiness.json,PRODUCTION_READY,close component selection signatures and external design gates,yes,yes
+REL-003,engineering,manufacturing route and controlled traveller,Manufacturing Owner,PASS,hardware/manufacturing/generated/route_report.json,ENGINEERING_PASS,retain controlled route and run it after prototypes exist,yes,yes
+REL-003A,engineering,dual-axis traction architecture and childboard package,Electrical and Motion Owners,BLOCKED,hardware/motor_driver/generated/release-readiness.json,PRODUCTION_READY,close motor power regeneration safety schematic layout thermal and harness design gates,yes,yes
+REL-004,procurement,dated quotes and approved MPNs,Procurement Owner,BLOCKED,hardware/procurement/generated/procurement_report.json,PRODUCTION_READY,attach dated quotes AVL decisions and per-role component signatures,yes,yes
+REL-005,commercial,prototype PO and lead-time decision,Project Owner,BLOCKED,hardware/procurement/po-checklist.csv,FILE,complete the prototype PO checklist after technical gates close,yes,yes
+REL-006A,safety,signed safety design analysis,Safety Owner,BLOCKED,hardware/pcb/safety-gate-truth-table.csv,FILE,attach signed analysis covering independence reset discrepancy and software non-bypass,yes,yes
+REL-006B,safety,measured E-stop and motor-disable timing,Safety Owner,NOT_EXECUTED,hardware/pcb/fabrication/bringup-test-plan.csv,FILE,measure timing on a serialized prototype with calibrated instruments,no,yes
+REL-007A,manufacturing,supplier DFM and mating-part design closure,Manufacturing Owner,BLOCKED,hardware/manufacturing/generated/harness_report.json,PRODUCTION_READY,close supplier stackup CAM connector and harness design questions,yes,yes
+REL-007B,manufacturing,physical harness continuity pull chafe and installed-length tests,Manufacturing Owner,NOT_EXECUTED,hardware/manufacturing/generated/harness_report.json,PRODUCTION_READY,execute harness tests on controlled physical articles,no,yes
+REL-008,quality,incoming and in-process inspection execution,Quality Owner,NOT_EXECUTED,hardware/qa/generated/qa_report.json,PHYSICAL_EXECUTED,execute the inspection plan on serialized units,no,yes
+REL-009,quality,FMEA and observed-defect corrective-action closure,Quality Owner,BLOCKED,hardware/qa/fmea.csv,FILE,record observed defects and verify corrective actions,no,yes
+REL-010,compliance,RoHS EMC and electrical-safety technical file,Quality Owner,BLOCKED,hardware/qa/compliance-matrix.csv,FILE,attach supplier declarations and laboratory reports,no,yes
+REL-011,physical,first-batch acceptance,Validation Owner,NOT_EXECUTED,hardware/validation/first-batch-acceptance.csv,FILE,build and test ten serialized units,no,yes
+REL-012,field,SIM2REAL benchmark,Validation Owner,NOT_EXECUTED,hardware/validation/sim2real-matrix.csv,FILE,run paired simulation and real-machine measurements,no,yes
+REL-013,field,fault-injection recovery library,Validation Owner,NOT_EXECUTED,hardware/validation/fault-scenarios.csv,FILE,execute all twenty scenarios and attach logs,no,yes
+REL-014,reliability,48-hour continuous run,Validation Owner,NOT_EXECUTED,hardware/validation/long-run-protocol.md,FILE,execute the protocol with a raw event log,no,yes
+REL-015,release,final production GO or NO-GO decision,Project Owner,HOLD,hardware/manufacturing/pilot-and-release.md,FILE,obtain all production sign-offs after upstream closure,no,yes

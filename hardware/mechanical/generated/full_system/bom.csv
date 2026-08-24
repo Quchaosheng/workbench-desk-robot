@@ -1,0 +1,15 @@
+part_number,description,material,quantity,release_status
+FS-001,Fixed welded RHS chassis frame,S355 steel,1,ENGINEERING_BASELINE_FEA_OPEN
+FS-001A,Moving RHS upper frame,S355 steel,1,ENGINEERING_BASELINE_FEA_OPEN
+TBD-LIFT,Synchronized guided lift columns actuators locks feedback and limits,supplier assemblies,4,MPN_SAFETY_AND_PROOF_LOAD_REQUIRED
+FS-002,Worktop/deck with two arm mount zones,20 mm tooling plate,1,SUPPLIER_DRAWING_CONFIRMATION_REQUIRED
+FS-003,Undrilled seven-axis arm adapter plate,S355 steel,2,NOMINAL_PATTERN_DO_NOT_FABRICATE_BEFORE_VENDOR_CONFIRMATION
+FS-004,Battery and ballast retention tray,S355 steel,1,PACK_SELECTION_REQUIRED
+FS-005,Rear and arm-riser cable trays,galvanized steel,1 set,HARNESS_SWEEP_REQUIRED
+FS-006,Perimeter bumper/toe guard,steel plus elastomer,1,SITE_RISK_REVIEW_REQUIRED
+TBD-CASTER,Swivel braked caster 300 kg minimum,supplier assembly,4,MPN_AND_LOAD_RATING_REQUIRED
+TBD-DRIVE,48 V 400 W geared drive wheel with fail-safe brake,supplier assembly,2,MPN_CONTROLLER_BRAKE_AND_WHEEL_LOAD_VALIDATION_REQUIRED
+TBD-FOOT,Deployable outrigger and leveling foot 300 kg minimum,supplier assembly,4,MPN_LOCK_AND_LOAD_RATING_REQUIRED
+TBD-7DOF,Medium-class seven-axis collaborative arm envelope,vendor assembly,2,PURCHASED_REVISION_REQUIRED
+TBD-CTRL,Seven-axis arm controller cabinet envelope,vendor assembly,2,PURCHASED_REVISION_FIT_REQUIRED
+TBD-BATTERY,Battery ballast BMS and service disconnect envelope,supplier assembly,1,PACK_AND_RESTRAINT_REQUIRED

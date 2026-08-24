@@ -1,0 +1,12 @@
+cost_group,evt_target_usd,production_100_target_usd,make_or_buy,cost_driver,status
+two_seven_axis_arms,16000,9000,buy_then_value_engineer,dominant cost and mass item,TARGET_NOT_QUOTED
+base_structure_covers_and_stabilizers,1500,800,make,welded or bent structure cover tooling and finish,TARGET_NOT_QUOTED
+drive_motors_brakes_wheels_and_controllers,2000,1000,buy,torque brake encoder and safety interface,TARGET_NOT_QUOTED
+battery_bms_charger_and_dock,1500,900,buy,energy cells compliance dock contacts and charger,TARGET_NOT_QUOTED
+two_column_lift_and_locks,1200,700,buy_plus_make,stroke guidance locks guards and synchronization,TARGET_NOT_QUOTED
+compute_display_audio_and_storage,1500,800,buy,Jetson class compute display cameras and storage,TARGET_NOT_QUOTED
+navigation_and_safety_sensors,1700,800,buy,LiDAR depth ultrasonic IMU bumper and dock marker,TARGET_NOT_QUOTED
+controller_pcbs_and_power_distribution,1300,650,make,PCB modules protection contactors and thermal solution,TARGET_NOT_QUOTED
+harnesses_connectors_and_cable_management,900,450,make,high-flex cable connectors crimp labor and energy chains,TARGET_NOT_QUOTED
+safety_controller_estop_and_contactors,1200,600,buy,safety-rated controller devices and contactors,TARGET_NOT_QUOTED
+fasteners_labels_miscellaneous_and_scrap,1200,300,buy,hardware labels spares yield and consumables,TARGET_NOT_QUOTED

@@ -1,0 +1,25 @@
+reference,quantity,function,candidate_mpn_or_class,package_or_interface,selection_status,required_rating_or_input,owner,release_gate
+U1,1,four-half-bridge motor driver,DRV8962DDVR,DDV 44-pin HTSSOP top exposed pad,CANDIDATE_NOT_APPROVED,"motor current thermal heatsink and vendor land-pattern closure",Electrical Owner,MTR-DRV
+U2,1,local traction controller,TBD_TRACTION_CONTROL_MCU,TBD,TBD_BLOCKING,"CAN protocol PWM resources ADC current sense watchdog and diagnostics",Controls Owner,MTR-CONTROL
+U3,1,isolated CAN FD transceiver,TBD_ISOLATED_CAN_FD_INTERFACE,TBD,TBD_BLOCKING,"powered from candidate U7 isolated-side rail; preserve GND_CAN_ISO separation from GND_MOTOR; field-bus common mode ESD fault rating and termination architecture",Electrical Owner,MTR-CONTROL
+U4-U5,2,independent dominant-low safety gate,TBD_HARDWARE_SAFETY_GATE,TBD,TBD_BLOCKING,"separate SAFE A nSLEEP and SAFE B EN paths with diagnostic coverage",Safety Owner,MTR-SAFETY
+U6,1,local logic power regulator,TBD_LOGIC_BUCK_12V_TO_5V,TBD,TBD_BLOCKING,"VM_PROTECTED input; VCC_LOGIC load transient UVLO PGOOD and thermal limits",Electrical Owner,MTR-POWER
+U7,1,isolated CAN-side power converter,TBD_ISOLATED_5V_TO_5V_DC_DC,TBD,TBD_BLOCKING,"isolation rating creepage EMC load transient and no GND_CAN_ISO tie to local ground",Electrical Owner,MTR-CONTROL
+F1,1,input branch protection,TBD_DC_FUSE,TBD,TBD_BLOCKING,"motor stall current harness ampacity interrupt rating and time-current curve",Electrical Owner,MTR-POWER
+Q1,1,reverse-polarity and reverse-current blocker,TBD_20V_MIN_BLOCKING_STAGE,TBD,TBD_BLOCKING,"J2 transient envelope forward loss and no regeneration into source",Electrical Owner,MTR-REGEN
+Q2,1,brake or clamp switch,TBD_PULSE_RATED_SWITCH,TBD,TBD_BLOCKING,"local bus clamp voltage pulse current SOA and fault response",Electrical Owner,MTR-REGEN
+D1,1,local bus transient clamp,TBD_TVS_OR_ACTIVE_CLAMP,TBD,TBD_BLOCKING,"maximum local bus voltage tolerance pulse energy and failure mode",Electrical Owner,MTR-REGEN
+C1,1,VCP-to-VM charge-pump capacitor,1uF_X7R_16V_MIN,TBD,VALUE_CLASS_NOT_APPROVED,"DRV8962 datasheet bias derating and land pattern",Electrical Owner,MTR-DRV
+C2,1,CPH-to-CPL flying capacitor,0.1uF_X7R_VM_RATED,TBD,VALUE_CLASS_NOT_APPROVED,"DRV8962 datasheet bias derating and local loop",Electrical Owner,MTR-DRV
+C3,1,DVDD bypass capacitor,1uF_X7R_10V_MIN,TBD,VALUE_CLASS_NOT_APPROVED,"DRV8962 datasheet bias derating and local loop",Electrical Owner,MTR-DRV
+C4-C7,4,VM high-frequency bypass,0.01uF_X7R_VM_RATED,TBD,VALUE_CLASS_NOT_APPROVED,"one local capacitor per VM/PGND region and transient margin",Electrical Owner,MTR-DRV
+C8-CBULK,1+,local bus bulk and pulse reservoir,TBD_LOW_ESR_BULK_BANK,TBD,TBD_BLOCKING,"regenerative energy ripple current ESR temperature and life",Electrical Owner,MTR-REGEN
+R1-R4,4,IPROPI conversion resistors,TBD_IPROPI_RESISTOR,TBD,TBD_BLOCKING,"selected motor current ADC range tolerance power and fault current",Electrical Owner,MTR-CURRENT
+R5-RN,1+,MODE OCPM VREF and logic straps,TBD_CONFIGURATION_NETWORK,TBD,TBD_BLOCKING,"latch-off policy slew rate current trip and startup defaults",Electrical Owner,MTR-DRV
+HS1,1,top-pad heatsink and retention,TBD_DDV_HEATSINK,TBD,TBD_BLOCKING,"junction limit contact pressure interface material shock and service",Mechanical Owner,MTR-THERMAL
+J_PWR,1,12 V auxiliary input,TBD_KEYED_4PIN_POWER_CONNECTOR,controller J2 mate,TBD_BLOCKING,"10 A aggregate plus derating polarity CPA and touch safety",Harness Owner,MTR-HARNESS
+J_SAFE,1,dual-channel safety input,TBD_KEYED_4PIN_SAFETY_CONNECTOR,controller safety ECO mate,TBD_BLOCKING,"two independent channels no shared permissive and cross-fault review",Safety Owner,MTR-SAFETY
+J_CAN,1,traction command and diagnostics,TBD_KEYED_CAN_CONNECTOR,field-bus harness,TBD_BLOCKING,"CAN FD impedance shield reference ESD and protocol",Harness Owner,MTR-CONTROL
+J_ML-J_MR,2,motor outputs,TBD_KEYED_2PIN_MOTOR_CONNECTOR,motor harness,TBD_BLOCKING,"motor current stall pulse polarity retention and temperature",Harness Owner,MTR-HARNESS
+J_ENC_L-J_ENC_R,2,encoder inputs,TBD_KEYED_4PIN_ENCODER_CONNECTOR,encoder harness,TBD_BLOCKING,"selected encoder voltage signaling shielding and pinout",Harness Owner,MTR-HARNESS
+M1-M2,2,external chassis traction motors,Pololu 4753,external assembly,CANDIDATE_NOT_APPROVED,"12 V candidate; confirm MPN winding voltage current gearbox encoder mounting load and dual-axis limit",Motion Owner,MTR-MOTOR

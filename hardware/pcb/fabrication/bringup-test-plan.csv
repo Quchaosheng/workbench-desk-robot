@@ -1,11 +1,18 @@
-step,input_limit,measurement,acceptance,evidence
-1,0V continuity only,VBAT-to-ground resistance,greater than 10kohm,DMM record
-2,36V 0.25A,hot-swap output and inrush,no current-limit latch,scope capture
-3,36V 1A,12V rail,11.7V to 12.3V and less than 120mVpp,scope capture
-4,36V 2A,Jetson protected 12V branch,11.7V to 12.3V and less than 120mVpp,scope capture
-5,36V 2A,3.3V rail,3.20V to 3.40V and less than 50mVpp,scope capture
-6,36V 2A,power-good sequence,12V_ISO then JETSON_12V then 3.3V separated by at least 10ms,scope capture
-7,36V 2A,dual-channel E-stop assertion,MOTOR_ENABLE_SAFE removed within 1ms and reset latched while request remains asserted,logic-analyser capture
-8,36V 2A,CAN loop at 1Mbps and 5Mbps FD,zero error frames for 10min,CAN log
-9,48V rated load,thermal soak 30min,Jetson below 80C and converters below 110C,thermal log
-10,36V 2A,all populated interfaces,J4 GPIO SPI I2C UART plus J10 J11 continuity and levels,fixture JSON
+step,test_id,input_condition,stimulus,measurement,acceptance,evidence
+1,SAFE_RESISTANCE,0V continuity only,discharge all rails and connect guarded DMM,VBAT-to-ground resistance,greater than 10kohm with no unstable charging signature,DMM record
+2,INRUSH_36V,36V 0.25A current limit,apply input from 0V with electronic load disconnected,hot-swap output and inrush,no current-limit latch and waveform stays inside approved U1 Q1 Q2 SOA,scope capture
+3,RAILS_36V,36V 2A current limit,apply steady load after controlled startup,12V and 3.3V rail accuracy,"12V is 11.7V to 12.3V below 120mVpp; 3.3V is 3.20V to 3.40V below 50mVpp",scope capture
+4,RAILS_48V,48V 2A current limit,repeat steady-load rail test at nominal battery voltage,12V and 3.3V rail accuracy,"12V is 11.7V to 12.3V below 120mVpp; 3.3V is 3.20V to 3.40V below 50mVpp",scope capture
+5,RAILS_60V,60V 2A current limit,repeat steady-load rail test at the upper input endpoint,12V and 3.3V rail accuracy,"12V is 11.7V to 12.3V below 120mVpp; 3.3V is 3.20V to 3.40V below 50mVpp",scope capture
+6,UV_TRIP,36V ramping down through 34V,slowly ramp below the approved UV threshold,UV trip threshold and restart hysteresis,12V output disables without chatter and measured thresholds match the signed tolerance analysis,scope capture
+7,OV_TRIP,60V ramping up toward 63V at 0.25A limit,slowly ramp above the approved OV threshold,OV trip threshold and recovery,12V output disables before component limits are exceeded and recovery follows the approved hysteresis,scope capture
+8,REVERSE_POLARITY,-48V at 0.10A current limit,apply reverse input through guarded fixture,reverse blocking and stress,no 12V output no current-limit escalation and no component overstress,scope capture and thermal image
+9,JETSON_BRANCH_SHORT,36V 2A current limit,apply controlled short at J3 through the guarded fixture,U3 current limit fault and recovery,branch limits safely MOTOR_ENABLE_SAFE remains low and restart follows the approved latch policy,scope capture and fault log
+10,LOAD_TRANSIENT,48V rated source,step Jetson branch between 10 percent and 90 percent of approved load,12V and 3.3V transient response,no controller reset or UVLO event and rails recover inside the supplier-approved settling envelope,scope capture
+11,POWER_SEQUENCE,36V 2A current limit,power cycle from fully discharged state,power-good sequence,12V_ISO then JETSON_12V then 3V3_LOGIC separated by at least 10ms,scope capture
+12,ESTOP_DUAL_CHANNEL,36V 2A current limit,open both E-stop channels during active request,hardwired safe output latency,MOTOR_ENABLE_SAFE removed within 1ms and reset remains latched while request is asserted,logic-analyser capture
+13,ESTOP_DISCREPANCY,36V 2A current limit,open each E-stop channel separately and inject welded-contact discrepancy,channel independence discrepancy latch and reset inhibit,MOTOR_ENABLE_SAFE stays low and manual reset is rejected until both channels agree,logic-analyser capture and fault log
+14,CAN_FD,36V 2A current limit,run dual-endpoint loop with selectable termination,CAN loop at 1Mbps and 5Mbps FD,zero error frames for 10min and dominant recessive levels stay inside approved transceiver limits,CAN log and scope capture
+15,J2_REGEN_TRANSIENT,HOLD until motor regeneration ECO is approved,inject the approved motor-emulator regeneration pulse at J2,12V_ISO and VBAT_PROTECTED overshoot,no rail exceeds the approved clamp window or any component absolute maximum,scope capture and energy calculation
+16,THERMAL_SOAK_LONG,48V rated load at 35C ambient,operate for 4h with the production enclosure closed,converter Jetson MOSFET shunt connector and harness temperatures,Jetson below 80C converters below 110C and every approved component below its derated limit,thermal log and calibrated images
+17,INTERFACE_FIXTURE,36V 2A current limit,exercise all populated interfaces and fixture-access-plan rows,J4 GPIO SPI I2C UART plus J10 J11 and critical fixture nets,all levels continuity polarity and fault semantics match controlled interface data,fixture JSON

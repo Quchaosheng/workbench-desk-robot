@@ -1,5 +1,5 @@
 Drill report for controller.kicad_pcb
-Created on 2026-08-07T18:21:46
+Created on 2026-08-21T23:31:13
 
 Copper Layer Stackup:
     =============================================================
@@ -8,16 +8,47 @@ Copper Layer Stackup:
     L3 :  In2.Cu                    in2
     L4 :  In3.Cu                    in3
     L5 :  In4.Cu                    in4
-    L6 :  B.Cu                      back
+    L6 :  In5.Cu                    in5
+    L7 :  In6.Cu                    in6
+    L8 :  B.Cu                      back
 
 
 Drill file 'controller-PTH.drl' contains
     plated through holes:
     =============================================================
-    T1  0.400mm  0.0157"  (8 holes))
-    T2  1.100mm  0.0433"  (100 holes))
+    T1  0.300mm  0.0118"  (131 holes))
+    T2  0.400mm  0.0157"  (34 holes))
+    T3  1.000mm  0.0394"  (51 holes))
+    T4  1.075mm  0.0423"  (4 holes))
+    T5  1.100mm  0.0433"  (38 holes))
+    T6  1.200mm  0.0472"  (2 holes))
 
-    Total plated holes count 108
+    Total plated holes count 260
+
+
+Drill file 'controller-front-in1.drl' contains
+    holes connecting layer pair: 'F.Cu and In1.Cu' (blind vias):
+    =============================================================
+    T1  0.150mm  0.0059"  (9 holes))
+    T2  0.300mm  0.0118"  (1 hole)
+
+    Total plated holes count 10
+
+
+Drill file 'controller-front-in2.drl' contains
+    holes connecting layer pair: 'F.Cu and In2.Cu' (blind vias):
+    =============================================================
+    T1  0.300mm  0.0118"  (1 hole)
+
+    Total plated holes count 1
+
+
+Drill file 'controller-front-in3.drl' contains
+    holes connecting layer pair: 'F.Cu and In3.Cu' (blind vias):
+    =============================================================
+    T1  0.300mm  0.0118"  (4 holes))
+
+    Total plated holes count 4
 
 
 Drill file 'controller-NPTH.drl' contains

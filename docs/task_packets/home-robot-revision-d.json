@@ -1,15 +1,25 @@
 {
   "issue": "home-robot-revision-d",
   "human_owner": "Quchaosheng",
-  "objective": "Upgrade Revision C into a wheeled bimanual household robot with two seven-axis arms, a liftable torso, shared-workspace interlocks, quick-change tools, and a premium product visual grounded in public dual-arm mobile-manipulator references.",
+  "objective": "Upgrade Revision C into a wheeled bimanual household robot with two seven-axis arms, a liftable torso, shared-workspace interlocks, quick-change tools, a premium product visual grounded in public dual-arm mobile-manipulator references, and a fail-closed simulation entry point that never presents missing Gazebo execution as a pass.",
   "allowed_paths": [
     "hardware/mechanical/**",
     "tests/hardware/test_engineering_packages.py",
     "docs/assets/premium-product-render.html",
     "docs/assets/workbench-home-robot-premium.png",
+    "docs/assets/desk-robot-revision-b-hero.png",
+    "docs/task_packets/home-robot-revision-c.json",
     "docs/task_packets/home-robot-revision-d.json",
+    "docs/task_packets/issue-68-frozen-runner-truthfulness.json",
+    "docs/task_packets/mechanical-visual-revision-b.json",
+    ".github/workflows/ci.yml",
+    "Makefile",
     "README.md",
-    "README.zh-CN.md"
+    "README.zh-CN.md",
+    "sim/README.md",
+    "tests/regression/run_frozen_scenarios.py",
+    "tests/unit/test_sim_cli.py",
+    "tools/scripts/sim_cli.py"
   ],
   "read_only_paths": ["robot/**", "interfaces/**", "firmware/**", "hardware/pcb/**"],
   "forbidden": ["robot/control/**", "firmware/**", "services/**", "interfaces/**"],
@@ -20,11 +30,13 @@
     "SCAD and CadQuery depict two coherent seven-axis arms attached to the lift-supported structural torso",
     "the product visual shows both arms in a physically plausible bimanual parcel pose with enclosed wheels",
     "cooking remains supervised induction-only assistance pending thermal and force validation",
+    "missing Gazebo execution is reported as NOT_EXECUTED and cannot satisfy the regression gate",
     "mechanical tests, Ruff, and Task Packet validation pass"
   ],
   "commands": [
     "python hardware/mechanical/tools/generate_artifacts.py",
     "python -m pytest tests/hardware/test_engineering_packages.py::MechanicalPackageTests -q",
+    "python -m unittest tests.unit.test_sim_cli -v",
     "python -m ruff check hardware/mechanical tests/hardware/test_engineering_packages.py",
     "python tools/scripts/check_task_packet.py docs/task_packets/home-robot-revision-d.json"
   ],

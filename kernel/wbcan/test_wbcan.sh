@@ -32,7 +32,10 @@ report_check() {
 	[ -n "$REPORT_FILE" ] || return 0
 	slug=$(printf '%s' "$name" | tr '[:upper:] ' '[:lower:]_' | tr -cd '[:alnum:]_-')
 	printf '%s\twbcan-%s\t%s\t%s\t%s\n' \
-		"$result" "$slug" "$name" "$want" "$got" >> "$REPORT_FILE"
+		"$result" "$slug" "$name" "$want" "$got" >> "$REPORT_FILE" || {
+		red "cannot append to test report at $REPORT_FILE"
+		exit 1
+	}
 }
 
 check() {

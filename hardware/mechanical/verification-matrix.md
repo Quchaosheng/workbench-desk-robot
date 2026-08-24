@@ -5,7 +5,7 @@
 | MECH1 | Revision D SCAD, mobile base, lift, torso, head and dual 7R assembly STEP | ENGINEERING COMPLETE; CAD REGENERATION REQUIRED |
 | MECH2 | `generated/bom.csv`, lift locks, brake and tool-datum parts | COMPLETE |
 | MECH3 | 260 x 105 x 128 mm smoked-glass head, 228 x 92 rounded display, keyed neck register | COMPLETE |
-| MECH4 | base, enclosed drive skirt, four stabilizers and 350 mm lift | ENGINEERING COMPLETE; PHYSICAL FIT REQUIRED |
+| MECH4 | four steer-drive modules, guarded base skirt, retracted/deployed stabilizer states and 350 mm lift | ENGINEERING COMPLETE; PHYSICAL FIT AND DRIVE TEST REQUIRED |
 | MECH5 | `drawings/thermal-flow.svg`, isolated electronics and food-tool heat zone | ENGINEERING COMPLETE; thermal test external |
 | MECH6 | analysis and drop-screening JSON, 28 mm absorber, 20 g screen | SCREEN COMPLETE; nonlinear FEA/drop external |
 | MECH7 | two sets of seven joint IDs/limits, shared workspace and exploded STEP | DIGITAL CHECK COMPLETE; guarded motion external |
@@ -15,6 +15,7 @@
 | MECH11 | lift dual encoders, brakes, lock pins, hard limits and pinch sensors | DESIGN COMPLETE; synchronization test required |
 | MECH12 | parcel, cleaning and supervised induction task boundary | CONCEPT ONLY; physical validation required |
 | MECH13 | CMF and concealed parting strategy in design spec | DESIGN COMPLETE; DFM and finish sample required |
+| MECH14 | four steer-drive wheel/fork/bearing stacks in mobile-base STEP and visible all-angle render | DIGITAL CHECK COMPLETE; autonomous navigation software and physical drive tests required |
 
 ## Assembly and tolerance datums
 

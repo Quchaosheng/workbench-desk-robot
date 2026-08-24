@@ -14,6 +14,7 @@ from workbench_contracts import ActionResult
 from workbench_motion.evidence import EvidenceSink, ExecutionEvent
 from workbench_world_model.event_store import SQLiteEventStore
 from workbench_world_model.motion_evidence_adapter import MotionEvidenceAdapter
+from workbench_world_model.reducer import reduce_events
 
 
 def motion_event(payload: dict[str, object] | None = None) -> ExecutionEvent:
@@ -66,6 +67,9 @@ def test_motion_append_store_replay_and_lookup(tmp_path: Path) -> None:
     replayed = store.list_run("run-integration-001")
     assert len(replayed) == 1
     assert adapter.resolve(reference) == replayed[0]
+    state = reduce_events("run-integration-001", replayed)
+    assert state.entity_locations == {"red_block": "in:tray"}
+    assert state.entity_evidence_refs["red_block"] == ["mcu-frame-0142", "mcu-frame-0143"]
     assert replayed[0].payload["resulting_location"] == "in:tray"
     assert replayed[0].evidence_refs == ["mcu-frame-0142", "mcu-frame-0143"]
     store.close()

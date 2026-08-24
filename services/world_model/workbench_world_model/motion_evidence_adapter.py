@@ -10,9 +10,12 @@ from __future__ import annotations
 import json
 from typing import Any, Protocol
 
-from pydantic import ValidationError
-from workbench_contracts import ActionResult, WorldEvent, WorldEventType
+from workbench_contracts import WorldEvent, WorldEventType
 
+from .event_payloads import (
+    WorldEventPayloadValidationError,
+    normalize_action_result_payload,
+)
 from .event_store import SQLiteEventStore
 
 REFERENCE_PREFIX = "world-event:"
@@ -51,14 +54,15 @@ class MotionEvidenceAdapter:
             raise MotionEvidenceValidationError("only action_result execution events can be persisted")
 
         try:
-            result = ActionResult.model_validate(serialized.get("payload"))
-        except ValidationError as error:
-            raise MotionEvidenceValidationError("execution event payload is not a valid ActionResult") from error
-
-        if serialized.get("run_id") != result.run_id:
-            raise MotionEvidenceValidationError("ExecutionEvent run_id does not match ActionResult run_id")
-        if serialized.get("action_id") != result.action_id:
-            raise MotionEvidenceValidationError("ExecutionEvent action_id does not match ActionResult action_id")
+            result = normalize_action_result_payload(
+                serialized.get("payload"),
+                event_run_id=serialized.get("run_id"),
+                expected_action_id=serialized.get("action_id"),
+            )
+        except WorldEventPayloadValidationError as error:
+            raise MotionEvidenceValidationError(
+                "execution event payload is not a valid correlated ActionResult"
+            ) from error
 
         event_id = f"motion-result:{result.run_id}:{result.result_id}"
         stored = self._store.append_allocated(

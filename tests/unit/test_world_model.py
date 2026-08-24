@@ -18,7 +18,30 @@ from workbench_world_model import (
     verify_parcel_sorting,
     verify_workspace_clearance,
 )
+from workbench_world_model.event_payloads import WorldEventPayloadValidationError
 from workbench_world_model.reducer import WorldState
+
+
+def action_result_payload(**updates: object) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "result_id": "res-001",
+        "action_id": "act-001",
+        "run_id": "run-001",
+        "outcome": "completed",
+        "dispatch_state": "sent",
+        "device_state": "confirmed",
+        "error_code": None,
+        "error_reason": None,
+        "started_at": "2026-08-04T00:00:00Z",
+        "ended_at": "2026-08-04T00:00:01Z",
+        "clock_id": "monotonic",
+        "retry_count": 0,
+        "entity_id": "red_block",
+        "resulting_location": "in:tray",
+        "evidence_refs": ["act-001"],
+    }
+    payload.update(updates)
+    return payload
 
 
 def placed_event() -> WorldEvent:
@@ -28,7 +51,7 @@ def placed_event() -> WorldEvent:
         sequence_no=1,
         event_type=WorldEventType.ACTION_RESULT,
         occurred_at="2026-08-04T00:00:00Z",
-        payload={"outcome": "completed", "entity_id": "red_block", "resulting_location": "in:tray"},
+        payload=action_result_payload(),
         evidence_refs=["act-001"],
     )
 
@@ -39,7 +62,8 @@ def observation_event(
     *,
     run_id: str = "run-001",
     entity_id: str = "red_block",
-    location: str = "on:table",
+    location: object = "on:table",
+    confidence: object = 0.9,
 ) -> WorldEvent:
     return WorldEvent(
         event_id=event_id,
@@ -47,7 +71,7 @@ def observation_event(
         sequence_no=sequence_no,
         event_type=WorldEventType.OBSERVATION,
         occurred_at=f"2026-08-04T00:00:{sequence_no:02d}Z",
-        payload={"entity_id": entity_id, "location": location, "confidence": 0.9},
+        payload={"entity_id": entity_id, "location": location, "confidence": confidence},
         evidence_refs=[f"frame://{event_id}"],
     )
 
@@ -206,6 +230,48 @@ class WorldModelTests(unittest.TestCase):
                 reduce_events("run-001", events)
             apply_spy.assert_not_called()
 
+    def test_reduce_events_preflights_all_typed_payloads_before_apply(self) -> None:
+        events = [
+            observation_event("evt-valid", 1),
+            observation_event("evt-invalid", 2, confidence=float("nan")),
+        ]
+
+        with patch("workbench_world_model.reducer.apply_event", wraps=apply_event) as apply_spy:
+            with self.assertRaisesRegex(WorldEventPayloadValidationError, "confidence"):
+                reduce_events("run-001", events)
+            apply_spy.assert_not_called()
+
+    def test_direct_apply_rejects_invalid_payload_without_mutating_state(self) -> None:
+        state = WorldState(
+            run_id="run-001",
+            entity_locations={"existing": "on:table"},
+            evidence_refs=["frame://existing"],
+        )
+        original = state.model_dump_json()
+
+        with self.assertRaisesRegex(WorldEventPayloadValidationError, "location"):
+            apply_event(
+                state,
+                observation_event("evt-invalid", 2, location=["not", "a", "location"]),
+            )
+
+        self.assertEqual(state.model_dump_json(), original)
+
+    def test_nan_observation_cannot_reach_verifiers(self) -> None:
+        event = observation_event("evt-nan", 1, location="in:kit_tray", confidence=float("nan"))
+
+        with (
+            patch(f"{__name__}.verify_kit_contents") as kit_spy,
+            patch(f"{__name__}.verify_inspection_evidence") as inspection_spy,
+        ):
+            with self.assertRaisesRegex(WorldEventPayloadValidationError, "confidence"):
+                state = reduce_events("run-001", [event])
+                verify_kit_contents(state, "task-kit", ["red_block"])
+                verify_inspection_evidence(state, "task-inspection", ["red_block"])
+
+            kit_spy.assert_not_called()
+            inspection_spy.assert_not_called()
+
     def test_reduce_events_accepts_empty_stream_for_valid_run(self) -> None:
         state = reduce_events("run-001", [])
 
@@ -224,7 +290,13 @@ class WorldModelTests(unittest.TestCase):
         self.assertIn("no evidence", result.claim)
 
     def test_location_change_cannot_reuse_stale_or_unrelated_evidence(self) -> None:
-        move_without_evidence = placed_event().model_copy(update={"sequence_no": 3, "evidence_refs": []})
+        move_without_evidence = placed_event().model_copy(
+            update={
+                "sequence_no": 3,
+                "payload": action_result_payload(evidence_refs=[]),
+                "evidence_refs": [],
+            }
+        )
         state = reduce_events(
             "run-001",
             [

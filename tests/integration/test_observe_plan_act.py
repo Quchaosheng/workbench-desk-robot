@@ -108,7 +108,11 @@ def test_event_replay_integration(event_store):
             sequence_no=i,
             event_type=WorldEventType.OBSERVATION,
             occurred_at=f"2026-08-04T10:00:{i:02d}Z",
-            payload={"entity_id": f"block-{i}", "location": "on:table"},
+            payload={
+                "entity_id": f"block-{i}",
+                "location": "on:table",
+                "confidence": 0.9,
+            },
             evidence_refs=[f"evidence-{i}"],
         )
         for i in range(1, 4)

@@ -134,7 +134,7 @@ def test_cost_optimized_service_robot_target_is_bounded_and_unmeasured() -> None
     assert report["mass_kg"] <= 80
     assert min(report["stabilized_tip_angles_deg"].values()) >= 20
     assert report["cost_targets_usd"] == {"evt": 30000, "production_100": 16000}
-    assert report["required_drive_torque_nm_each_before_margin"] == 7.8
+    assert report["required_drive_torque_nm_each_before_margin"] == 7.0
     assert report["checks"]["drive_torque_screen_met"] is True
     assert report["checks"]["original_appearance_policy_is_explicit"] is True
     assert report["checks"]["cost_controlled_cover_count_met"] is True

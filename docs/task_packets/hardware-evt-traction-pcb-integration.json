@@ -13,6 +13,7 @@
     "hardware/mechanical/**",
     "hardware/manufacturing/README.md",
     "hardware/manufacturing/generated/harness_report.json",
+    "hardware/manufacturing/harness-component-selection.csv",
     "hardware/manufacturing/harness-spec.csv",
     "hardware/manufacturing/tools/validate_harnesses.py",
     "hardware/motor_driver/**",
@@ -35,7 +36,7 @@
     "J2 contact capability is separated from the controlled 10 A aggregate system limit and U2 remains explicitly DNP until its approved MPN and land pattern ECO",
     "CAN testpoint branches are machine-checked for short same-layer paired geometry while U7 system-isolation suitability remains release-blocking",
     "the chassis package declares four wheel envelopes, two traction motor envelopes, a battery reservation, motor brackets, and a serviceable childboard support",
-    "the traction package distinguishes chassis motors from the six vendor-controlled UR5e joints and preserves independent hardware safety gating",
+    "the traction package distinguishes chassis motors from the fourteen joints in two vendor-controlled seven-axis arms and preserves independent hardware safety gating",
     "motor, wheel, battery, isolated-power, regeneration, thermal, harness, DFM, and physical validation unknowns are not promoted to approved selections",
     "deterministic hardware tests and release-readiness checks pass without modifying firmware, robot control, or shared interfaces"
   ],

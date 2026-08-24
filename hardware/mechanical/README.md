@@ -131,11 +131,19 @@ The 6.42 kg compact enclosure analysis is intentionally separate from the
 or stability result is a measured release result.
 
 The new full-system structural baseline supersedes the 55 kg planning case for
-mechanical sizing. Its conservative maximum-height ledger is 338 kg, including
+mechanical sizing. Its conservative maximum-height ledger is 368 kg, including
 two 30 kg seven-axis arm allowances, two 7 kg payload cases, controllers,
 battery/ballast, fixed chassis, four-column lifting structure, deck, guards and
 harness allowance. The deck operates from 750 to 1100 mm only on four deployed
 leveling outriggers; lift motion disables both arms, and arm motion requires the
-platform mechanical locks to be proved engaged. The 55 kg ledger is retained only because
-the existing operations-readiness contract references that historical planning
+platform mechanical locks to be proved engaged.
+
+Two independent 48 V, 400 W-class geared drive modules with fail-safe brakes
+are reserved for full-system transport. The compact 12 V Pololu/DRV8962 package
+is an electronics and traction experiment only and cannot propel the 368 kg
+full-size chassis. Full-system travel is limited to 0.3 m/s with platform low,
+arms stowed/disabled and outriggers retracted; arm enable requires drive brakes.
+
+The 55 kg ledger is retained only because the existing operations-readiness
+contract references that historical planning
 case; it must not be used to size the new frame, casters, feet or stability test.

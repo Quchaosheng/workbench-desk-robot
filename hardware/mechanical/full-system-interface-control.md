@@ -6,7 +6,7 @@ actuator, controller, caster, leveling foot, battery pack, or safety controller.
 
 ## Configuration boundary
 
-- Configuration: `DUAL_7DOF_LIFTING_WORKBENCH_REV_B`.
+- Configuration: `DUAL_7DOF_LIFTING_WORKBENCH_REV_C`.
 - Transport envelope: 1240 x 840 x 750 mm with the platform at its lower limit,
   both arms stowed, payload removed, arm power disabled, and outriggers retracted.
 - Operating deck range: Z = 750 to 1100 mm over a 350 mm controlled stroke.
@@ -62,14 +62,21 @@ columns, lower frame, deployed outriggers, and leveling feet. The deck skin,
 actuator screws, controller cabinets, and caster brakes are not the sole
 reaction path.
 
-The maximum-lift mass ledger is an unmeasured 338 kg estimate with CG
-`[0.0, -31.4, 801.6]` mm. A 1200 x 960 mm support polygon produces analytical
-roll/pitch tip screens of 36.8/29.2 degrees. With a 1.5 allocation factor, the
-two-caster case is 253.5 kg each and the three-foot/lift-actuator case is
-169.0 kg each. Controlled minima are 300 kg per caster, leveling foot, and lift
+The maximum-lift mass ledger is an unmeasured 368 kg estimate with CG
+`[0.0, -28.8, 751.0]` mm. A 1200 x 960 mm support polygon produces analytical
+roll/pitch tip screens of 38.6/31.0 degrees. With a 1.5 allocation factor, the
+two-caster case is 276.0 kg each and the three-foot/lift-actuator case is
+184.0 kg each. Controlled minima are 300 kg per caster, leveling foot, and lift
 actuator. These allocations do not replace arm reaction loads, asymmetric
 dynamic cases, buckling/FEA, shock/fatigue analysis, or physical proof and pull
 tests. The estimate is not a measured result.
+
+Powered transport uses two separate 48 V, 400 W-class geared wheel modules; it
+must not use controller J2 or the compact 12 V traction childboard. The screen
+requires 33.5 Nm per wheel after design factor, 40 Nm continuous/80 Nm peak
+specified torque, and a 30 Nm fail-safe brake against an 18.9 Nm calculated
+requirement. Travel requires deck low, arms stowed and safety-disabled, and
+outriggers retracted. Arm enable requires both brakes applied.
 
 ## Services and release evidence
 

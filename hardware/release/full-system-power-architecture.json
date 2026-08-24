@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "status": "ENGINEERING_BASELINE_OWNER_SUPPLIER_AND_PHYSICAL_VALIDATION_REQUIRED",
+  "battery_bus": {
+    "nominal_voltage_v": 48,
+    "minimum_energy_wh": 2000,
+    "minimum_continuous_discharge_a": 80,
+    "minimum_peak_discharge_a": 120,
+    "chemistry_baseline": "16S_LIFEPO4_OR_SYSTEM_OWNER_APPROVED_EQUIVALENT",
+    "service_disconnect_required": true,
+    "main_fuse_and_dual_contactor_required": true,
+    "precharge_and_bus_discharge_required": true,
+    "insulation_monitoring_review_required": true,
+    "selected_pack_mpn": null,
+    "physical_validation": "NOT_EXECUTED"
+  },
+  "operating_modes": {
+    "ARM_OPERATION": {
+      "allowed_high_power_loads": ["dual_seven_axis_arm_controllers"],
+      "required_state": "outriggers_loaded_lift_locked_drive_brakes_applied"
+    },
+    "TRANSPORT": {
+      "allowed_high_power_loads": ["full_system_drive"],
+      "required_state": "platform_low_arms_stowed_disabled_outriggers_retracted"
+    },
+    "LIFT": {
+      "allowed_high_power_loads": ["four_column_lift"],
+      "required_state": "outriggers_loaded_arms_stowed_disabled_drive_brakes_applied"
+    }
+  },
+  "loads": [
+    {"id": "controller_auxiliary", "mode": "ALL", "continuous_w": 150, "peak_w": 240, "branch": "48V_TO_ISOLATED_12V_CONTROLLER", "branch_limit_a": 10},
+    {"id": "safety_bms_and_contactors", "mode": "ALL", "continuous_w": 30, "peak_w": 50, "branch": "48V_SAFETY_AUX", "branch_limit_a": 3},
+    {"id": "dual_seven_axis_arm_controllers", "mode": "ARM_OPERATION", "continuous_w": 1000, "peak_w": 2000, "branch": "48V_ARM_POWER_CONVERSION", "branch_limit_a": 60},
+    {"id": "full_system_drive", "mode": "TRANSPORT", "continuous_w": 800, "peak_w": 1000, "branch": "48V_DUAL_DRIVE", "branch_limit_a": 30},
+    {"id": "four_column_lift", "mode": "LIFT", "continuous_w": 600, "peak_w": 1200, "branch": "48V_LIFT", "branch_limit_a": 30}
+  ],
+  "conversion_efficiency_design_minimum": 0.9,
+  "controller_u2_scope": "JETSON_LOGIC_AND_LOW_POWER_AUXILIARIES_ONLY",
+  "controller_u2_prohibited_loads": ["seven_axis_arms", "full_system_drive", "four_column_lift"],
+  "release_blockers": [
+    "purchased arm controller input and peak power not confirmed",
+    "battery pack BMS contactor fuse precharge disconnect and charger MPNs not selected",
+    "arm power conversion architecture is not selected between native DC controller and isolated inverter",
+    "branch protection coordination conductor sizing and connector derating are not approved",
+    "mode interlock functional safety analysis and physical fault tests are not executed"
+  ]
+}

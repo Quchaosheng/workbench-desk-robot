@@ -466,6 +466,7 @@ class ManufacturingPackageTests(unittest.TestCase):
         self.assertEqual(report["status"], "HARNESS_RELEASE_BLOCKED")
         self.assertEqual(len(report["results"]), 8)
         self.assertTrue(all(item["drop_pass"] for item in report["results"]))
+        self.assertEqual(report["design_limits"]["maximum_current_density_a_per_mm2"], 6.1)
 
     def test_traction_harness_package_covers_childboard_without_approval(self) -> None:
         module = load_module("traction_harness_checks", ROOT / "hardware/manufacturing/tools/validate_harnesses.py")
@@ -493,6 +494,15 @@ class ManufacturingPackageTests(unittest.TestCase):
         self.assertEqual(report["power_budget"]["candidate_dual_stall_current_a"], 11.0)
         self.assertEqual(report["power_budget"]["j2_aggregate_current_ceiling_a"], 10.0)
         self.assertFalse(report["release_checks"]["candidate_dual_stall_within_j2_ceiling"])
+        self.assertTrue(report["engineering_checks"]["component_selection_covers_every_harness"])
+        self.assertTrue(report["engineering_checks"]["component_candidates_and_closure_actions_are_complete"])
+        self.assertTrue(report["engineering_checks"]["shield_policy_is_frozen_to_single_source_entry"])
+        self.assertTrue(
+            report["cross_package_checks"]["parallel_power_harnesses_use_microfit_compatible_candidate_gauge"]
+        )
+        self.assertTrue(report["cross_package_checks"]["motor_harnesses_use_minifit_compatible_candidate_gauge"])
+        self.assertEqual(len(report["component_selections"]), 14)
+        self.assertFalse(report["release_checks"]["all_harness_components_approved"])
 
     def test_traction_harness_contract_rejects_pin_endpoint_and_shield_drift(self) -> None:
         module = load_module(

@@ -25,9 +25,10 @@
 | MECH21 | two undrilled 300 x 300 x 25 S355 arm plates at controlled +/-300 mm bases for purchased seven-axis arms | DIGITAL RESERVED-ZONE PASS; PURCHASED-REVISION PATTERN/LOAD/TORQUE OPEN |
 | MECH22 | four 300 kg transport casters and four deployable 300 kg leveling outriggers with independent ratings and support polygon | ANALYTICAL LOAD ALLOCATION PASS; MPN/LOCK/SETUP/STABILITY TEST OPEN |
 | MECH23 | separate controller bays, battery/ballast tray, rear/riser cable trays, bond studs and service directions | DIGITAL CLEARANCE PASS; PACK/CABINET/HARNESS/BOND VALIDATION OPEN |
-| MECH24 | full-system assembly STEP, structural/lift part STEP files, five supplier envelopes, BOM and assembly sequence | REPRODUCIBLE ENGINEERING PACKAGE; SUPPLIER AND PHYSICAL GATES OPEN |
-| MECH25 | conservative 338 kg maximum-lift case, 1200 x 960 support polygon and 36.8/29.2 degree static tip screen | ANALYTICAL PASS; MEASURED MASS/CG/MAX-HEIGHT PULL TEST OPEN |
+| MECH24 | full-system assembly STEP, structural/lift part STEP files, seven supplier envelopes, BOM and assembly sequence | REPRODUCIBLE ENGINEERING PACKAGE; SUPPLIER AND PHYSICAL GATES OPEN |
+| MECH25 | conservative 368 kg maximum-lift case, 1200 x 960 support polygon and 38.6/31.0 degree static tip screen | ANALYTICAL PASS; MEASURED MASS/CG/MAX-HEIGHT PULL TEST OPEN |
 | MECH26 | 750-1100 mm four-column synchronized lift, redundant limits, per-column feedback, 2 mm skew limit, positive locks and arm/lift interlock contract | DIGITAL CONTROL/INTERFACE BASELINE; ACTUATOR SELECTION, FUNCTIONAL SAFETY, PROOF/JAM/ENDURANCE TESTS OPEN |
+| MECH27 | two full-system 48 V 400 W-class drive envelopes, 33.5 Nm calculated torque, 40/80 Nm continuous/peak allocation, 30 Nm fail-safe brakes and transport/arm interlock | ANALYTICAL DRIVE BASELINE; MOTOR/GEARBOX/BRAKE/CONTROLLER/WHEEL/LOAD-EQUALIZATION SELECTION AND PHYSICAL TEST OPEN |
 | MECH20 | drivetrain concept pair map, explicit XYZ axes, lateral rolling-vector check, motor-to-rear-hub interface deltas and reaction-load path | INTERFACE/KINEMATIC BASELINE COMPLETE; SHAFT/HUB/TRANSMISSION/LOAD/PHYSICAL VALIDATION OPEN |
 
 ## Assembly and tolerance datums

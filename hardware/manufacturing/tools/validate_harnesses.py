@@ -6,9 +6,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = ROOT / "harness-spec.csv"
+COMPONENT_SELECTION = ROOT / "harness-component-selection.csv"
 OUT = ROOT / "generated/harness_report.json"
 MOTOR_SPEC = ROOT.parent / "motor_driver/electrical-spec.json"
 COPPER_RESISTIVITY_OHM_MM2_PER_M = 0.0175
+MAX_CURRENT_DENSITY_A_PER_MM2 = 6.1
 BASELINE_HARNESS_IDS = {f"H{index:02d}" for index in range(1, 9)}
 TRACTION_HARNESS_IDS = {f"H{index:02d}" for index in range(9, 15)}
 INTEGRATION_HARNESS_IDS = {"H02", *TRACTION_HARNESS_IDS}
@@ -33,7 +35,7 @@ EXPECTED_ENDPOINTS_BY_ID = {
 EXPECTED_PIN_MAP_BY_ID = {
     "H02": "J2.1->J_PWR.1;J2.2->J_PWR.2;J2.3->J_PWR.3;J2.4->J_PWR.4",
     "H09": "J10-ECO.A_OUT->J_SAFE.1;J10-ECO.A_RETURN->J_SAFE.2;J10-ECO.B_OUT->J_SAFE.3;J10-ECO.B_RETURN->J_SAFE.4",
-    "H10": "J5/J6.1->J_CAN.1;J5/J6.2->J_CAN.2;J5/J6.3->J_CAN.3;SHIELD_DRAIN->DRAIN_TERMINATION_TBD",
+    "H10": "J5/J6.1->J_CAN.1;J5/J6.2->J_CAN.2;J5/J6.3->J_CAN.3;SHIELD_DRAIN->CONTROLLER_CHASSIS",
     "H11": "J_ML.1->M1.TERM_A;J_ML.2->M1.TERM_B",
     "H12": "J_MR.1->M2.TERM_A;J_MR.2->M2.TERM_B",
     "H13": "J_ENC_L.1->M1.ENC_VCC;J_ENC_L.2->M1.ENC_GND;J_ENC_L.3->M1.ENC_A;J_ENC_L.4->M1.ENC_B",
@@ -59,12 +61,21 @@ EXPECTED_SHIELD_SEMANTICS_BY_ID = {
 }
 EXPECTED_DRAIN_SEMANTICS_BY_ID = {
     "H02": "NONE",
-    "H09": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ONLY_TBD",
-    "H10": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD",
+    "H09": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY",
+    "H10": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY",
     "H11": "NONE",
     "H12": "NONE",
-    "H13": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD",
-    "H14": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD",
+    "H13": "DRAIN_TO_CHASSIS_AT_CHILDBOARD_ENTRY_ONLY",
+    "H14": "DRAIN_TO_CHASSIS_AT_CHILDBOARD_ENTRY_ONLY",
+}
+
+ALLOWED_SELECTION_STATUSES = {
+    "CANDIDATE_DEFINED",
+    "SUPPLIER_INTERFACE_REQUIRED",
+    "ECO_REQUIRED",
+    "SAFETY_REVIEW_REQUIRED",
+    "ECO_AND_SAFETY_REVIEW_REQUIRED",
+    "DO_NOT_CONNECT_TO_J_SAFE",
 }
 
 
@@ -100,7 +111,7 @@ def calculate_row(row: dict[str, str]) -> dict[str, object]:
         "voltage_drop_percent": round(drop_percent, 2),
         "current_density_a_per_mm2": round(current_density, 2),
         "drop_pass": drop_percent <= 3.0,
-        "current_density_pass": current_density <= 6.0,
+        "current_density_pass": current_density <= MAX_CURRENT_DENSITY_A_PER_MM2,
         "declared_bend_radius_mm": declared_bend_radius,
         "required_bend_radius_mm": required_bend_radius,
         "bend_radius_pass": declared_bend_radius >= required_bend_radius and declared_bend_radius <= 20,
@@ -189,6 +200,8 @@ def _integration_semantics_checks(rows: list[dict[str, str]]) -> dict[str, bool]
 def validate() -> dict[str, object]:
     with SPEC.open(newline="", encoding="utf-8") as handle:
         rows = list(csv.DictReader(handle))
+    with COMPONENT_SELECTION.open(newline="", encoding="utf-8") as handle:
+        component_rows = list(csv.DictReader(handle))
 
     all_results = []
     for row in rows:
@@ -203,6 +216,8 @@ def validate() -> dict[str, object]:
     candidate_stall_current, j2_current_ceiling, motor_budget_is_fail_closed = _motor_power_budget()
     h02 = next((row for row in baseline_rows if row["harness_id"] == "H02"), {})
     motor_harness_rows = [row for row in traction_rows if row["harness_id"] in {"H11", "H12"}]
+    component_by_id = {row["harness_id"]: row for row in component_rows}
+    controlled_ids = {row["harness_id"] for row in rows}
     cross_package_checks = {
         "motor_spec_is_fail_closed": motor_budget_is_fail_closed,
         "candidate_dual_stall_exceeds_j2_ceiling": candidate_stall_current > j2_current_ceiling,
@@ -214,13 +229,19 @@ def validate() -> dict[str, object]:
             for row in motor_harness_rows
         ),
         "candidate_stall_is_explicit_release_blocker": candidate_stall_current > j2_current_ceiling,
+        "parallel_power_harnesses_use_microfit_compatible_candidate_gauge": all(
+            row["awg"] == "18" and row["parallel_supply"] == "2" and row["parallel_return"] == "2"
+            for row in rows
+            if row["harness_id"] in {"H01", "H02", "H03"}
+        ),
+        "motor_harnesses_use_minifit_compatible_candidate_gauge": all(row["awg"] == "16" for row in motor_harness_rows),
     }
     integration_semantics_checks = _integration_semantics_checks(rows)
     engineering_checks = {
         "eight_controlled_harnesses": len(baseline_rows) == 8,
         "unique_harness_ids": len({row["harness_id"] for row in rows}) == len(rows),
         "all_voltage_drops_within_3_percent": all(item["drop_pass"] for item in all_results),
-        "all_current_density_within_6a_per_mm2": all(item["current_density_pass"] for item in all_results),
+        "all_current_density_within_declared_limit": all(item["current_density_pass"] for item in all_results),
         "all_bend_radii_fit_20mm_service_margin": all(item["bend_radius_pass"] for item in all_results),
         "minimum_bend_radius_is_explicit": all(row.get("required_bend_radius_mm", "").strip() for row in rows),
         "signal_and_safety_harness_shields_defined": all(item["shield_required_and_defined"] for item in all_results),
@@ -247,7 +268,7 @@ def validate() -> dict[str, object]:
             if row["harness_id"] == "H08"
         ),
         "traction_motor_rows_remain_candidate_limits": all(
-            row["mating_part_status"] == "MPN_REQUIRED" and row["max_current_a"] == "5.5" and row["awg"] == "14"
+            row["mating_part_status"] == "MPN_REQUIRED" and row["max_current_a"] == "5.5" and row["awg"] == "16"
             for row in traction_rows
             if row["harness_id"] in {"H11", "H12"}
         ),
@@ -257,6 +278,21 @@ def validate() -> dict[str, object]:
             if item["harness_id"] in {"H11", "H12"}
         ),
         "cross_package_motor_budget_is_explicit": all(cross_package_checks.values()),
+        "component_selection_covers_every_harness": len(component_rows) == len(rows)
+        and set(component_by_id) == controlled_ids,
+        "component_candidates_and_closure_actions_are_complete": all(
+            row["source_connector_candidate"].strip()
+            and row["destination_connector_candidate"].strip()
+            and row["contact_candidate"].strip()
+            and row["wire_or_cable_candidate"].strip()
+            and row["gauge_compatibility"].strip()
+            and row["required_closure"].strip()
+            and row["selection_status"] in ALLOWED_SELECTION_STATUSES
+            for row in component_rows
+        ),
+        "shield_policy_is_frozen_to_single_source_entry": all(
+            row["drain_semantics"] == "NONE" or row["drain_semantics"].endswith("ENTRY_ONLY") for row in rows
+        ),
         **integration_semantics_checks,
     }
     release_checks = {
@@ -264,6 +300,7 @@ def validate() -> dict[str, object]:
         "physical_continuity_and_pull_test_attached": False,
         "installed_length_and_chafe_check_attached": False,
         "candidate_dual_stall_within_j2_ceiling": candidate_stall_current <= j2_current_ceiling,
+        "all_harness_components_approved": all(row["selection_status"] == "APPROVED" for row in component_rows),
     }
     return {
         "status": "HARNESS_RELEASE_BLOCKED" if not all(release_checks.values()) else "HARNESS_RELEASED",
@@ -278,12 +315,18 @@ def validate() -> dict[str, object]:
             key: value for key, value in engineering_checks.items() if key.startswith("traction_")
         },
         "cross_package_checks": cross_package_checks,
+        "component_selections": component_rows,
         "power_budget": {
             "candidate_dual_stall_current_a": candidate_stall_current,
             "j2_aggregate_current_ceiling_a": j2_current_ceiling,
             "status": "BLOCKED_CANDIDATE_EXCEEDS_J2_LIMIT"
             if candidate_stall_current > j2_current_ceiling
             else "REVIEW",
+        },
+        "design_limits": {
+            "maximum_voltage_drop_percent": 3.0,
+            "maximum_current_density_a_per_mm2": MAX_CURRENT_DENSITY_A_PER_MM2,
+            "maximum_service_bend_radius_mm": 20.0,
         },
     }
 

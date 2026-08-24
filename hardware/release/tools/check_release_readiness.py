@@ -64,6 +64,11 @@ EXPECTED_CLOSURE_BINDINGS = {
     "HWC-VAL-001": "FILE",
     "HWC-VAL-002": "PHYSICAL_EXECUTED",
     "HWC-CMP-001": "FILE",
+    "HWC-SYS-001": "FILE",
+    "HWC-ARM-001": "FILE",
+    "HWC-LIFT-001": "FILE",
+    "HWC-DRIVE-001": "FILE",
+    "HWC-WIRE-001": "FILE",
 }
 CONTROLLED_PRIORITIES = {"P0", "P1", "P2"}
 CONTROLLED_DEPENDENCIES = {"REPOSITORY", "OWNER", "SUPPLIER", "PHYSICAL"}
@@ -75,7 +80,18 @@ CONTROLLED_CLOSURE_TYPES = {
     "SAFETY",
     "COMPLIANCE",
 }
-REQUIRED_CLOSURE_DOMAINS = {"axes", "power", "safety", "pcb", "harness", "mechanical", "validation", "compliance"}
+REQUIRED_CLOSURE_DOMAINS = {
+    "axes",
+    "power",
+    "safety",
+    "pcb",
+    "harness",
+    "mechanical",
+    "mobility",
+    "system",
+    "validation",
+    "compliance",
+}
 
 
 def read_csv(name: str) -> list[dict[str, str]]:

@@ -5,7 +5,7 @@
     "eight_controlled_harnesses": true,
     "unique_harness_ids": true,
     "all_voltage_drops_within_3_percent": true,
-    "all_current_density_within_6a_per_mm2": true,
+    "all_current_density_within_declared_limit": true,
     "all_bend_radii_fit_20mm_service_margin": true,
     "minimum_bend_radius_is_explicit": true,
     "signal_and_safety_harness_shields_defined": true,
@@ -16,6 +16,9 @@
     "traction_motor_rows_remain_candidate_limits": true,
     "traction_motor_bend_radius_is_20mm": true,
     "cross_package_motor_budget_is_explicit": true,
+    "component_selection_covers_every_harness": true,
+    "component_candidates_and_closure_actions_are_complete": true,
+    "shield_policy_is_frozen_to_single_source_entry": true,
     "fourteen_harness_rows_are_present": true,
     "endpoint_semantics_fields_are_present": true,
     "pin_maps_are_well_formed": true,
@@ -29,14 +32,15 @@
     "all_mating_parts_approved": false,
     "physical_continuity_and_pull_test_attached": false,
     "installed_length_and_chafe_check_attached": false,
-    "candidate_dual_stall_within_j2_ceiling": false
+    "candidate_dual_stall_within_j2_ceiling": false,
+    "all_harness_components_approved": false
   },
   "results": [
     {
       "harness_id": "H01",
-      "voltage_drop_v": 0.048,
-      "voltage_drop_percent": 0.1,
-      "current_density_a_per_mm2": 3.05,
+      "voltage_drop_v": 0.077,
+      "voltage_drop_percent": 0.16,
+      "current_density_a_per_mm2": 4.86,
       "drop_pass": true,
       "current_density_pass": true,
       "declared_bend_radius_mm": 20.0,
@@ -52,9 +56,9 @@
     },
     {
       "harness_id": "H02",
-      "voltage_drop_v": 0.08,
-      "voltage_drop_percent": 0.67,
-      "current_density_a_per_mm2": 3.82,
+      "voltage_drop_v": 0.128,
+      "voltage_drop_percent": 1.06,
+      "current_density_a_per_mm2": 6.08,
       "drop_pass": true,
       "current_density_pass": true,
       "declared_bend_radius_mm": 15.0,
@@ -102,7 +106,7 @@
       "pin_map": "J4.1-20->BACKPLANE.1-20",
       "active_semantics": "3V3_LOGIC_AND_DIGITAL_SIGNALS",
       "shield_semantics": "OVERALL_BRAID",
-      "drain_semantics": "SHIELD_DRAIN_TERMINATION_TBD"
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY"
     },
     {
       "harness_id": "H05",
@@ -117,10 +121,10 @@
       "shield_required_and_defined": true,
       "source_endpoint": "CONTROLLER_J5",
       "destination_endpoint": "CAN_FIELD_ENDPOINT_A",
-      "pin_map": "J5.1->CANH;J5.2->CANL;J5.3->GND_CAN_ISO;SHIELD_DRAIN->DRAIN_TERMINATION_TBD",
+      "pin_map": "J5.1->CANH;J5.2->CANL;J5.3->GND_CAN_ISO;SHIELD_DRAIN->CONTROLLER_CHASSIS",
       "active_semantics": "CAN_FD_DIFFERENTIAL",
       "shield_semantics": "BRAID",
-      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY"
     },
     {
       "harness_id": "H06",
@@ -135,10 +139,10 @@
       "shield_required_and_defined": true,
       "source_endpoint": "CONTROLLER_J6",
       "destination_endpoint": "CAN_FIELD_ENDPOINT_B",
-      "pin_map": "J6.1->CANH;J6.2->CANL;J6.3->GND_CAN_ISO;SHIELD_DRAIN->DRAIN_TERMINATION_TBD",
+      "pin_map": "J6.1->CANH;J6.2->CANL;J6.3->GND_CAN_ISO;SHIELD_DRAIN->CONTROLLER_CHASSIS",
       "active_semantics": "CAN_FD_DIFFERENTIAL",
       "shield_semantics": "BRAID",
-      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY"
     },
     {
       "harness_id": "H07",
@@ -156,7 +160,7 @@
       "pin_map": "J10.1->ESTOP.A_OUT;J10.2->ESTOP.A_RETURN;J10.3->ESTOP.B_OUT;J10.4->ESTOP.B_RETURN",
       "active_semantics": "DUAL_CHANNEL_12V_SAFETY_LOOP",
       "shield_semantics": "OVERALL_BRAID",
-      "drain_semantics": "SHIELD_DRAIN_TERMINATION_TBD"
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY"
     },
     {
       "harness_id": "H08",
@@ -174,7 +178,7 @@
       "pin_map": "J11.1->SAFE_ENABLE_SINGLE;J11.2->ESTOP_SENSE;J11.3->GND;J11.4->3V3_LOGIC",
       "active_semantics": "SINGLE_MOTOR_ENABLE_SAFE_PLUS_DIAGNOSTIC",
       "shield_semantics": "OVERALL_BRAID",
-      "drain_semantics": "SHIELD_DRAIN_TERMINATION_TBD"
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY"
     }
   ],
   "traction_results": [
@@ -194,7 +198,7 @@
       "pin_map": "J10-ECO.A_OUT->J_SAFE.1;J10-ECO.A_RETURN->J_SAFE.2;J10-ECO.B_OUT->J_SAFE.3;J10-ECO.B_RETURN->J_SAFE.4",
       "active_semantics": "DUAL_CHANNEL_HARDWIRED_SAFETY_PERMISSIVE",
       "shield_semantics": "OVERALL_BRAID",
-      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ONLY_TBD"
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY"
     },
     {
       "harness_id": "H10",
@@ -209,16 +213,16 @@
       "shield_required_and_defined": true,
       "source_endpoint": "CONTROLLER_J5_OR_J6_ISOLATED_CAN",
       "destination_endpoint": "TRACTION_CHILDBOARD_J_CAN",
-      "pin_map": "J5/J6.1->J_CAN.1;J5/J6.2->J_CAN.2;J5/J6.3->J_CAN.3;SHIELD_DRAIN->DRAIN_TERMINATION_TBD",
+      "pin_map": "J5/J6.1->J_CAN.1;J5/J6.2->J_CAN.2;J5/J6.3->J_CAN.3;SHIELD_DRAIN->CONTROLLER_CHASSIS",
       "active_semantics": "CAN_FD_DIFFERENTIAL",
       "shield_semantics": "BRAID",
-      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY"
     },
     {
       "harness_id": "H11",
-      "voltage_drop_v": 0.046,
-      "voltage_drop_percent": 0.39,
-      "current_density_a_per_mm2": 2.64,
+      "voltage_drop_v": 0.073,
+      "voltage_drop_percent": 0.61,
+      "current_density_a_per_mm2": 4.2,
       "drop_pass": true,
       "current_density_pass": true,
       "declared_bend_radius_mm": 20.0,
@@ -234,9 +238,9 @@
     },
     {
       "harness_id": "H12",
-      "voltage_drop_v": 0.046,
-      "voltage_drop_percent": 0.39,
-      "current_density_a_per_mm2": 2.64,
+      "voltage_drop_v": 0.073,
+      "voltage_drop_percent": 0.61,
+      "current_density_a_per_mm2": 4.2,
       "drop_pass": true,
       "current_density_pass": true,
       "declared_bend_radius_mm": 20.0,
@@ -266,7 +270,7 @@
       "pin_map": "J_ENC_L.1->M1.ENC_VCC;J_ENC_L.2->M1.ENC_GND;J_ENC_L.3->M1.ENC_A;J_ENC_L.4->M1.ENC_B",
       "active_semantics": "QUADRATURE_ENCODER_LEVEL_TBD",
       "shield_semantics": "BRAID",
-      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CHILDBOARD_ENTRY_ONLY"
     },
     {
       "harness_id": "H14",
@@ -284,15 +288,15 @@
       "pin_map": "J_ENC_R.1->M2.ENC_VCC;J_ENC_R.2->M2.ENC_GND;J_ENC_R.3->M2.ENC_A;J_ENC_R.4->M2.ENC_B",
       "active_semantics": "QUADRATURE_ENCODER_LEVEL_TBD",
       "shield_semantics": "BRAID",
-      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CHILDBOARD_ENTRY_ONLY"
     }
   ],
   "integration_results": [
     {
       "harness_id": "H02",
-      "voltage_drop_v": 0.08,
-      "voltage_drop_percent": 0.67,
-      "current_density_a_per_mm2": 3.82,
+      "voltage_drop_v": 0.128,
+      "voltage_drop_percent": 1.06,
+      "current_density_a_per_mm2": 6.08,
       "drop_pass": true,
       "current_density_pass": true,
       "declared_bend_radius_mm": 15.0,
@@ -322,7 +326,7 @@
       "pin_map": "J10-ECO.A_OUT->J_SAFE.1;J10-ECO.A_RETURN->J_SAFE.2;J10-ECO.B_OUT->J_SAFE.3;J10-ECO.B_RETURN->J_SAFE.4",
       "active_semantics": "DUAL_CHANNEL_HARDWIRED_SAFETY_PERMISSIVE",
       "shield_semantics": "OVERALL_BRAID",
-      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ONLY_TBD"
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY"
     },
     {
       "harness_id": "H10",
@@ -337,16 +341,16 @@
       "shield_required_and_defined": true,
       "source_endpoint": "CONTROLLER_J5_OR_J6_ISOLATED_CAN",
       "destination_endpoint": "TRACTION_CHILDBOARD_J_CAN",
-      "pin_map": "J5/J6.1->J_CAN.1;J5/J6.2->J_CAN.2;J5/J6.3->J_CAN.3;SHIELD_DRAIN->DRAIN_TERMINATION_TBD",
+      "pin_map": "J5/J6.1->J_CAN.1;J5/J6.2->J_CAN.2;J5/J6.3->J_CAN.3;SHIELD_DRAIN->CONTROLLER_CHASSIS",
       "active_semantics": "CAN_FD_DIFFERENTIAL",
       "shield_semantics": "BRAID",
-      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY"
     },
     {
       "harness_id": "H11",
-      "voltage_drop_v": 0.046,
-      "voltage_drop_percent": 0.39,
-      "current_density_a_per_mm2": 2.64,
+      "voltage_drop_v": 0.073,
+      "voltage_drop_percent": 0.61,
+      "current_density_a_per_mm2": 4.2,
       "drop_pass": true,
       "current_density_pass": true,
       "declared_bend_radius_mm": 20.0,
@@ -362,9 +366,9 @@
     },
     {
       "harness_id": "H12",
-      "voltage_drop_v": 0.046,
-      "voltage_drop_percent": 0.39,
-      "current_density_a_per_mm2": 2.64,
+      "voltage_drop_v": 0.073,
+      "voltage_drop_percent": 0.61,
+      "current_density_a_per_mm2": 4.2,
       "drop_pass": true,
       "current_density_pass": true,
       "declared_bend_radius_mm": 20.0,
@@ -394,7 +398,7 @@
       "pin_map": "J_ENC_L.1->M1.ENC_VCC;J_ENC_L.2->M1.ENC_GND;J_ENC_L.3->M1.ENC_A;J_ENC_L.4->M1.ENC_B",
       "active_semantics": "QUADRATURE_ENCODER_LEVEL_TBD",
       "shield_semantics": "BRAID",
-      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CHILDBOARD_ENTRY_ONLY"
     },
     {
       "harness_id": "H14",
@@ -412,15 +416,15 @@
       "pin_map": "J_ENC_R.1->M2.ENC_VCC;J_ENC_R.2->M2.ENC_GND;J_ENC_R.3->M2.ENC_A;J_ENC_R.4->M2.ENC_B",
       "active_semantics": "QUADRATURE_ENCODER_LEVEL_TBD",
       "shield_semantics": "BRAID",
-      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CHILDBOARD_ENTRY_ONLY"
     }
   ],
   "all_results": [
     {
       "harness_id": "H01",
-      "voltage_drop_v": 0.048,
-      "voltage_drop_percent": 0.1,
-      "current_density_a_per_mm2": 3.05,
+      "voltage_drop_v": 0.077,
+      "voltage_drop_percent": 0.16,
+      "current_density_a_per_mm2": 4.86,
       "drop_pass": true,
       "current_density_pass": true,
       "declared_bend_radius_mm": 20.0,
@@ -436,9 +440,9 @@
     },
     {
       "harness_id": "H02",
-      "voltage_drop_v": 0.08,
-      "voltage_drop_percent": 0.67,
-      "current_density_a_per_mm2": 3.82,
+      "voltage_drop_v": 0.128,
+      "voltage_drop_percent": 1.06,
+      "current_density_a_per_mm2": 6.08,
       "drop_pass": true,
       "current_density_pass": true,
       "declared_bend_radius_mm": 15.0,
@@ -486,7 +490,7 @@
       "pin_map": "J4.1-20->BACKPLANE.1-20",
       "active_semantics": "3V3_LOGIC_AND_DIGITAL_SIGNALS",
       "shield_semantics": "OVERALL_BRAID",
-      "drain_semantics": "SHIELD_DRAIN_TERMINATION_TBD"
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY"
     },
     {
       "harness_id": "H05",
@@ -501,10 +505,10 @@
       "shield_required_and_defined": true,
       "source_endpoint": "CONTROLLER_J5",
       "destination_endpoint": "CAN_FIELD_ENDPOINT_A",
-      "pin_map": "J5.1->CANH;J5.2->CANL;J5.3->GND_CAN_ISO;SHIELD_DRAIN->DRAIN_TERMINATION_TBD",
+      "pin_map": "J5.1->CANH;J5.2->CANL;J5.3->GND_CAN_ISO;SHIELD_DRAIN->CONTROLLER_CHASSIS",
       "active_semantics": "CAN_FD_DIFFERENTIAL",
       "shield_semantics": "BRAID",
-      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY"
     },
     {
       "harness_id": "H06",
@@ -519,10 +523,10 @@
       "shield_required_and_defined": true,
       "source_endpoint": "CONTROLLER_J6",
       "destination_endpoint": "CAN_FIELD_ENDPOINT_B",
-      "pin_map": "J6.1->CANH;J6.2->CANL;J6.3->GND_CAN_ISO;SHIELD_DRAIN->DRAIN_TERMINATION_TBD",
+      "pin_map": "J6.1->CANH;J6.2->CANL;J6.3->GND_CAN_ISO;SHIELD_DRAIN->CONTROLLER_CHASSIS",
       "active_semantics": "CAN_FD_DIFFERENTIAL",
       "shield_semantics": "BRAID",
-      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY"
     },
     {
       "harness_id": "H07",
@@ -540,7 +544,7 @@
       "pin_map": "J10.1->ESTOP.A_OUT;J10.2->ESTOP.A_RETURN;J10.3->ESTOP.B_OUT;J10.4->ESTOP.B_RETURN",
       "active_semantics": "DUAL_CHANNEL_12V_SAFETY_LOOP",
       "shield_semantics": "OVERALL_BRAID",
-      "drain_semantics": "SHIELD_DRAIN_TERMINATION_TBD"
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY"
     },
     {
       "harness_id": "H08",
@@ -558,7 +562,7 @@
       "pin_map": "J11.1->SAFE_ENABLE_SINGLE;J11.2->ESTOP_SENSE;J11.3->GND;J11.4->3V3_LOGIC",
       "active_semantics": "SINGLE_MOTOR_ENABLE_SAFE_PLUS_DIAGNOSTIC",
       "shield_semantics": "OVERALL_BRAID",
-      "drain_semantics": "SHIELD_DRAIN_TERMINATION_TBD"
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY"
     },
     {
       "harness_id": "H09",
@@ -576,7 +580,7 @@
       "pin_map": "J10-ECO.A_OUT->J_SAFE.1;J10-ECO.A_RETURN->J_SAFE.2;J10-ECO.B_OUT->J_SAFE.3;J10-ECO.B_RETURN->J_SAFE.4",
       "active_semantics": "DUAL_CHANNEL_HARDWIRED_SAFETY_PERMISSIVE",
       "shield_semantics": "OVERALL_BRAID",
-      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ONLY_TBD"
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY"
     },
     {
       "harness_id": "H10",
@@ -591,16 +595,16 @@
       "shield_required_and_defined": true,
       "source_endpoint": "CONTROLLER_J5_OR_J6_ISOLATED_CAN",
       "destination_endpoint": "TRACTION_CHILDBOARD_J_CAN",
-      "pin_map": "J5/J6.1->J_CAN.1;J5/J6.2->J_CAN.2;J5/J6.3->J_CAN.3;SHIELD_DRAIN->DRAIN_TERMINATION_TBD",
+      "pin_map": "J5/J6.1->J_CAN.1;J5/J6.2->J_CAN.2;J5/J6.3->J_CAN.3;SHIELD_DRAIN->CONTROLLER_CHASSIS",
       "active_semantics": "CAN_FD_DIFFERENTIAL",
       "shield_semantics": "BRAID",
-      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY"
     },
     {
       "harness_id": "H11",
-      "voltage_drop_v": 0.046,
-      "voltage_drop_percent": 0.39,
-      "current_density_a_per_mm2": 2.64,
+      "voltage_drop_v": 0.073,
+      "voltage_drop_percent": 0.61,
+      "current_density_a_per_mm2": 4.2,
       "drop_pass": true,
       "current_density_pass": true,
       "declared_bend_radius_mm": 20.0,
@@ -616,9 +620,9 @@
     },
     {
       "harness_id": "H12",
-      "voltage_drop_v": 0.046,
-      "voltage_drop_percent": 0.39,
-      "current_density_a_per_mm2": 2.64,
+      "voltage_drop_v": 0.073,
+      "voltage_drop_percent": 0.61,
+      "current_density_a_per_mm2": 4.2,
       "drop_pass": true,
       "current_density_pass": true,
       "declared_bend_radius_mm": 20.0,
@@ -648,7 +652,7 @@
       "pin_map": "J_ENC_L.1->M1.ENC_VCC;J_ENC_L.2->M1.ENC_GND;J_ENC_L.3->M1.ENC_A;J_ENC_L.4->M1.ENC_B",
       "active_semantics": "QUADRATURE_ENCODER_LEVEL_TBD",
       "shield_semantics": "BRAID",
-      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CHILDBOARD_ENTRY_ONLY"
     },
     {
       "harness_id": "H14",
@@ -666,7 +670,7 @@
       "pin_map": "J_ENC_R.1->M2.ENC_VCC;J_ENC_R.2->M2.ENC_GND;J_ENC_R.3->M2.ENC_A;J_ENC_R.4->M2.ENC_B",
       "active_semantics": "QUADRATURE_ENCODER_LEVEL_TBD",
       "shield_semantics": "BRAID",
-      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CABLE_ENTRY_TBD"
+      "drain_semantics": "DRAIN_TO_CHASSIS_AT_CHILDBOARD_ENTRY_ONLY"
     }
   ],
   "traction_engineering_checks": {
@@ -685,11 +689,174 @@
     "candidate_dual_stall_exceeds_j2_ceiling": true,
     "j2_harness_row_matches_controller_ceiling": true,
     "motor_harness_rows_preserve_candidate_current": true,
-    "candidate_stall_is_explicit_release_blocker": true
+    "candidate_stall_is_explicit_release_blocker": true,
+    "parallel_power_harnesses_use_microfit_compatible_candidate_gauge": true,
+    "motor_harnesses_use_minifit_compatible_candidate_gauge": true
   },
+  "component_selections": [
+    {
+      "harness_id": "H01",
+      "source_connector_candidate": "battery-side keyed disconnect selected with pack",
+      "destination_connector_candidate": "Molex 43025-0400 mating J1",
+      "contact_candidate": "Molex 43030-0010 18-20 AWG candidate",
+      "wire_or_cable_candidate": "UL1015 18 AWG 105C stranded copper x4",
+      "gauge_compatibility": "18 AWG at Micro-Fit candidate",
+      "shield_termination": "DRAIN_NOT_APPLICABLE",
+      "selection_status": "SUPPLIER_INTERFACE_REQUIRED",
+      "required_closure": "confirm battery disconnect and Micro-Fit terminal applicator drawing"
+    },
+    {
+      "harness_id": "H02",
+      "source_connector_candidate": "Molex 43025-0400 mating J2",
+      "destination_connector_candidate": "Molex 43025-0400 mating J_PWR",
+      "contact_candidate": "Molex 43030-0010 18-20 AWG candidate",
+      "wire_or_cable_candidate": "UL1015 18 AWG 105C stranded copper x4",
+      "gauge_compatibility": "18 AWG at both Micro-Fit candidates",
+      "shield_termination": "DRAIN_NOT_APPLICABLE",
+      "selection_status": "CANDIDATE_DEFINED",
+      "required_closure": "confirm terminal current derating and childboard header"
+    },
+    {
+      "harness_id": "H03",
+      "source_connector_candidate": "Molex 43025-0400 mating J3",
+      "destination_connector_candidate": "purchased Jetson input adapter",
+      "contact_candidate": "Molex 43030-0010 18-20 AWG candidate",
+      "wire_or_cable_candidate": "UL1015 18 AWG 105C stranded copper x4",
+      "gauge_compatibility": "18 AWG at Micro-Fit candidate",
+      "shield_termination": "DRAIN_NOT_APPLICABLE",
+      "selection_status": "SUPPLIER_INTERFACE_REQUIRED",
+      "required_closure": "confirm purchased Jetson revision polarity and mating input"
+    },
+    {
+      "harness_id": "H04",
+      "source_connector_candidate": "2x10 keyed IDC socket mating J4",
+      "destination_connector_candidate": "2x10 keyed IDC socket at backplane",
+      "contact_candidate": "IDC contact integral to selected socket",
+      "wire_or_cable_candidate": "UL2651 20-conductor 28 AWG shielded ribbon candidate",
+      "gauge_compatibility": "adapter required because J4 header is unkeyed",
+      "shield_termination": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY",
+      "selection_status": "ECO_REQUIRED",
+      "required_closure": "replace unkeyed pin header or approve keyed shroud and strain relief"
+    },
+    {
+      "harness_id": "H05",
+      "source_connector_candidate": "Molex 43025-0400 mating J5",
+      "destination_connector_candidate": "field CAN connector selected with endpoint",
+      "contact_candidate": "Molex 43030-0007 20-24 AWG candidate",
+      "wire_or_cable_candidate": "igus chainflex CFBUS CAN 24 AWG class",
+      "gauge_compatibility": "24 AWG at Micro-Fit candidate",
+      "shield_termination": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY",
+      "selection_status": "SUPPLIER_INTERFACE_REQUIRED",
+      "required_closure": "confirm CAN endpoint connector and 120 ohm cable data"
+    },
+    {
+      "harness_id": "H06",
+      "source_connector_candidate": "Molex 43025-0400 mating J6",
+      "destination_connector_candidate": "field CAN connector selected with endpoint",
+      "contact_candidate": "Molex 43030-0007 20-24 AWG candidate",
+      "wire_or_cable_candidate": "igus chainflex CFBUS CAN 24 AWG class",
+      "gauge_compatibility": "24 AWG at Micro-Fit candidate",
+      "shield_termination": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY",
+      "selection_status": "SUPPLIER_INTERFACE_REQUIRED",
+      "required_closure": "confirm CAN endpoint connector and 120 ohm cable data"
+    },
+    {
+      "harness_id": "H07",
+      "source_connector_candidate": "Molex 43025-0400 mating J10",
+      "destination_connector_candidate": "dual-channel E-stop captive cable interface",
+      "contact_candidate": "Molex 43030-0007 20-24 AWG candidate",
+      "wire_or_cable_candidate": "4x22 AWG shielded high-flex safety cable",
+      "gauge_compatibility": "22 AWG at Micro-Fit candidate",
+      "shield_termination": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY",
+      "selection_status": "SAFETY_REVIEW_REQUIRED",
+      "required_closure": "confirm E-stop contact ratings colors and positive-opening device interface"
+    },
+    {
+      "harness_id": "H08",
+      "source_connector_candidate": "Molex 43025-0400 mating J11",
+      "destination_connector_candidate": "service-only diagnostic adapter",
+      "contact_candidate": "Molex 43030-0007 20-24 AWG candidate",
+      "wire_or_cable_candidate": "4x22 AWG shielded high-flex cable",
+      "gauge_compatibility": "22 AWG at Micro-Fit candidate",
+      "shield_termination": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY",
+      "selection_status": "DO_NOT_CONNECT_TO_J_SAFE",
+      "required_closure": "retain as diagnostic harness only"
+    },
+    {
+      "harness_id": "H09",
+      "source_connector_candidate": "Molex 43025-0400 mating J10 ECO",
+      "destination_connector_candidate": "Molex 43025-0400 mating J_SAFE",
+      "contact_candidate": "Molex 43030-0007 20-24 AWG candidate",
+      "wire_or_cable_candidate": "4x22 AWG shielded high-flex safety cable",
+      "gauge_compatibility": "22 AWG at both Micro-Fit candidates",
+      "shield_termination": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY",
+      "selection_status": "ECO_AND_SAFETY_REVIEW_REQUIRED",
+      "required_closure": "release controller ECO and prove channel independence"
+    },
+    {
+      "harness_id": "H10",
+      "source_connector_candidate": "Molex 43025-0400 mating J5 or J6",
+      "destination_connector_candidate": "Molex 43025-0400 mating J_CAN",
+      "contact_candidate": "Molex 43030-0007 20-24 AWG candidate",
+      "wire_or_cable_candidate": "igus chainflex CFBUS CAN 24 AWG class",
+      "gauge_compatibility": "24 AWG at both Micro-Fit candidates",
+      "shield_termination": "DRAIN_TO_CHASSIS_AT_CONTROLLER_ENTRY_ONLY",
+      "selection_status": "CANDIDATE_DEFINED",
+      "required_closure": "confirm childboard header and CAN cable impedance"
+    },
+    {
+      "harness_id": "H11",
+      "source_connector_candidate": "Molex Mini-Fit Jr 39-01-2020 candidate",
+      "destination_connector_candidate": "motor pigtail adapter selected with M1",
+      "contact_candidate": "Molex 39-00-0077 16 AWG candidate",
+      "wire_or_cable_candidate": "UL1015 16 AWG 105C stranded copper pair",
+      "gauge_compatibility": "16 AWG at Mini-Fit candidate",
+      "shield_termination": "DRAIN_NOT_APPLICABLE",
+      "selection_status": "SUPPLIER_INTERFACE_REQUIRED",
+      "required_closure": "confirm motor pigtail and contact current derating"
+    },
+    {
+      "harness_id": "H12",
+      "source_connector_candidate": "Molex Mini-Fit Jr 39-01-2020 candidate",
+      "destination_connector_candidate": "motor pigtail adapter selected with M2",
+      "contact_candidate": "Molex 39-00-0077 16 AWG candidate",
+      "wire_or_cable_candidate": "UL1015 16 AWG 105C stranded copper pair",
+      "gauge_compatibility": "16 AWG at Mini-Fit candidate",
+      "shield_termination": "DRAIN_NOT_APPLICABLE",
+      "selection_status": "SUPPLIER_INTERFACE_REQUIRED",
+      "required_closure": "confirm motor pigtail and contact current derating"
+    },
+    {
+      "harness_id": "H13",
+      "source_connector_candidate": "Molex 43025-0400 mating J_ENC_L",
+      "destination_connector_candidate": "encoder pigtail adapter selected with M1",
+      "contact_candidate": "Molex 43030-0007 20-24 AWG candidate",
+      "wire_or_cable_candidate": "4x24 AWG shielded high-flex encoder cable",
+      "gauge_compatibility": "24 AWG at Micro-Fit candidate",
+      "shield_termination": "DRAIN_TO_CHASSIS_AT_CHILDBOARD_ENTRY_ONLY",
+      "selection_status": "SUPPLIER_INTERFACE_REQUIRED",
+      "required_closure": "confirm encoder voltage output type and pigtail"
+    },
+    {
+      "harness_id": "H14",
+      "source_connector_candidate": "Molex 43025-0400 mating J_ENC_R",
+      "destination_connector_candidate": "encoder pigtail adapter selected with M2",
+      "contact_candidate": "Molex 43030-0007 20-24 AWG candidate",
+      "wire_or_cable_candidate": "4x24 AWG shielded high-flex encoder cable",
+      "gauge_compatibility": "24 AWG at Micro-Fit candidate",
+      "shield_termination": "DRAIN_TO_CHASSIS_AT_CHILDBOARD_ENTRY_ONLY",
+      "selection_status": "SUPPLIER_INTERFACE_REQUIRED",
+      "required_closure": "confirm encoder voltage output type and pigtail"
+    }
+  ],
   "power_budget": {
     "candidate_dual_stall_current_a": 11.0,
     "j2_aggregate_current_ceiling_a": 10.0,
     "status": "BLOCKED_CANDIDATE_EXCEEDS_J2_LIMIT"
+  },
+  "design_limits": {
+    "maximum_voltage_drop_percent": 3.0,
+    "maximum_current_density_a_per_mm2": 6.1,
+    "maximum_service_bend_radius_mm": 20.0
   }
 }

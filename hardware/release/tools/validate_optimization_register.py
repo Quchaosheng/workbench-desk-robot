@@ -25,6 +25,7 @@ DOMAINS = {
     "validation",
     "harness",
     "mechanical",
+    "mobility",
     "manufacturing",
     "procurement",
     "release",

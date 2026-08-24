@@ -68,8 +68,25 @@ def analyse() -> dict[str, object]:
     required_caster_rating = mass * design_factor / 2
     required_foot_rating = mass * design_factor / 3
     lift = SPEC["lift"]
+    drive = SPEC["powered_mobility"]
     lift_range = lift["deck_top_max_z_mm"] - lift["deck_top_min_z_mm"]
     required_actuator_rating = mass * design_factor / 3
+    slope_radians = math.radians(drive["design_floor_slope_deg"])
+    tractive_force = (
+        mass * 9.80665 * (drive["rolling_resistance_coefficient"] + math.sin(slope_radians))
+        + mass * drive["maximum_commanded_acceleration_mps2"]
+    )
+    required_drive_torque = (
+        tractive_force * (drive["drive_wheel_diameter_mm"] / 2000) / 2 * drive["traction_design_factor"]
+    )
+    required_brake_torque = (
+        mass
+        * 9.80665
+        * math.sin(slope_radians)
+        * (drive["drive_wheel_diameter_mm"] / 2000)
+        / 2
+        * drive["traction_design_factor"]
+    )
     checks = {
         "two_arm_mounts_declared": arm_mounts["quantity"] == 2 and len(mount_positions) == 2,
         "arm_mounts_are_symmetric": mount_positions[0][0] == -mount_positions[1][0]
@@ -93,6 +110,14 @@ def analyse() -> dict[str, object]:
         and lift["motion_enable_requires_locks_engaged"],
         "lift_actuator_static_allocation_met": lift["minimum_actuator_static_rating_kg_each"]
         >= required_actuator_rating,
+        "full_system_drive_is_not_controller_j2_childboard": drive["separate_protected_48v_branch_required"]
+        and drive["controller_j2_power_prohibited"],
+        "drive_torque_allocation_met": drive["minimum_continuous_output_torque_nm_each"] >= required_drive_torque,
+        "drive_brake_allocation_met": drive["minimum_fail_safe_brake_torque_nm_each"] >= required_brake_torque,
+        "transport_and_arm_motion_are_interlocked": drive["motion_requires_platform_lower_limit"]
+        and drive["motion_requires_arms_stowed_and_disabled"]
+        and drive["motion_requires_outriggers_retracted"]
+        and drive["arm_enable_requires_drive_brakes_applied"],
         "battery_controller_clearance_met": min(battery_clearances)
         >= lower_bay["minimum_battery_to_controller_clearance_mm"],
         "power_signal_separation_is_defined": SPEC["cable_management"]["minimum_power_signal_separation_mm"] >= 50,
@@ -133,9 +158,17 @@ def analyse() -> dict[str, object]:
             "maximum_column_skew_mm": lift["maximum_column_skew_mm"],
             "mechanical_lock_positions_mm": lift["mechanical_lock_positions_mm"],
         },
+        "powered_mobility": {
+            "calculated_required_drive_torque_nm_each": round(required_drive_torque, 1),
+            "specified_continuous_drive_torque_nm_each": drive["minimum_continuous_output_torque_nm_each"],
+            "calculated_required_brake_torque_nm_each": round(required_brake_torque, 1),
+            "specified_fail_safe_brake_torque_nm_each": drive["minimum_fail_safe_brake_torque_nm_each"],
+            "power_class_w_each": drive["motor_power_class_w_each"],
+            "nominal_bus_voltage_v": drive["nominal_bus_voltage_v"],
+        },
         "battery_to_controller_clearances_mm": [round(value, 1) for value in battery_clearances],
         "release_blockers": SPEC["release_blockers"],
-        "note": "Digital geometry and load allocation are engineering screens only. The mass and CG use the maximum-lift design case. Vendor drawings, lift safety validation, FEA, proof load, stability, collision sweep, bonding, and physical fit remain release gates.",
+        "note": "Digital geometry and load allocation are engineering screens only. The mass and CG use the maximum-lift design case. The compact 12 V Pololu/DRV8962 traction childboard is not approved to propel this full-size chassis. Vendor drawings, 48 V drive selection, lift safety validation, FEA, proof load, stability, collision sweep, bonding, and physical fit remain release gates.",
     }
 
 
@@ -248,6 +281,19 @@ def build_cad() -> bool:
         fork = _box(cq, [50, 50, 60], [x, y, mobility["caster_wheel_diameter_mm"] + 30])
         caster_shapes.append(wheel.union(fork))
     caster_assembly = _union(caster_shapes)
+    drive = SPEC["powered_mobility"]
+    drive_envelopes = {}
+    for x, y, z in drive["drive_wheel_centres_xyz_mm"]:
+        side = "left" if x < 0 else "right"
+        wheel = (
+            cq.Workplane("YZ")
+            .circle(drive["drive_wheel_diameter_mm"] / 2)
+            .extrude(drive["drive_wheel_width_mm"], both=True)
+            .translate((x, y, z))
+        )
+        motor_x = x + (130 if x < 0 else -130)
+        motor = _box(cq, drive["motor_envelope_mm_each"], [motor_x, y, z + 40])
+        drive_envelopes[f"full_system_drive_{side}"] = wheel.union(motor)
     foot_shapes = []
     for x, y in mobility["leveling_foot_centres_xy_mm"]:
         pad = cq.Workplane("XY").cylinder(12, mobility["leveling_foot_pad_diameter_mm"] / 2).translate((x, y, 6))
@@ -295,7 +341,12 @@ def build_cad() -> bool:
         "leveling_feet": leveling_feet,
         "perimeter_bumper": perimeter_bumper,
     }
-    envelopes = {"battery_pack_TBD": battery_envelope, **cabinet_envelopes, **arm_envelopes}
+    envelopes = {
+        "battery_pack_TBD": battery_envelope,
+        **cabinet_envelopes,
+        **arm_envelopes,
+        **drive_envelopes,
+    }
     part_dir = OUT / "parts"
     envelope_dir = OUT / "envelopes"
     part_dir.mkdir(parents=True, exist_ok=True)
@@ -351,6 +402,8 @@ def build_cad() -> bool:
     exploded.add(cabinet_envelopes["right_arm_controller"].translate((80, 0, 0)), name="right_arm_controller")
     exploded.add(arm_envelopes["left_arm"].translate((-120, 0, 340)), name="left_arm")
     exploded.add(arm_envelopes["right_arm"].translate((120, 0, 340)), name="right_arm")
+    exploded.add(drive_envelopes["full_system_drive_left"].translate((-80, 0, -40)), name="full_system_drive_left")
+    exploded.add(drive_envelopes["full_system_drive_right"].translate((80, 0, -40)), name="full_system_drive_right")
     exploded_path = OUT / "full_system_exploded.step"
     exploded.save(str(exploded_path), exportType="STEP")
     normalize_step(exploded_path)
@@ -429,6 +482,13 @@ def write_support_files(report: dict[str, object]) -> None:
         ["FS-005", "Rear and arm-riser cable trays", "galvanized steel", "1 set", "HARNESS_SWEEP_REQUIRED"],
         ["FS-006", "Perimeter bumper/toe guard", "steel plus elastomer", "1", "SITE_RISK_REVIEW_REQUIRED"],
         ["TBD-CASTER", "Swivel braked caster 300 kg minimum", "supplier assembly", "4", "MPN_AND_LOAD_RATING_REQUIRED"],
+        [
+            "TBD-DRIVE",
+            "48 V 400 W geared drive wheel with fail-safe brake",
+            "supplier assembly",
+            "2",
+            "MPN_CONTROLLER_BRAKE_AND_WHEEL_LOAD_VALIDATION_REQUIRED",
+        ],
         [
             "TBD-FOOT",
             "Deployable outrigger and leveling foot 300 kg minimum",

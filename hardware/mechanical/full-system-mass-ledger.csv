@@ -2,6 +2,7 @@ component,mass_kg,x_mm,y_mm,z_mm,source,status
 fixed_chassis_frame_and_columns,82,0,0,350,engineering_estimate,ESTIMATE_NOT_MEASURED
 moving_upper_frame_deck_and_mounts,65,0,0,1070,engineering_estimate_at_max_lift,ESTIMATE_NOT_MEASURED
 lift_actuators_guides_locks_and_bellows,36,0,0,600,engineering_allowance,ESTIMATE_NOT_MEASURED
+two_48v_geared_drive_modules_and_brakes,30,0,0,180,supplier_class_design_allowance,VERIFY_PURCHASED_REVISION
 left_7dof_arm,30,-300,-150,1400,supplier_class_design_allowance,VERIFY_PURCHASED_REVISION
 right_7dof_arm,30,300,-150,1400,supplier_class_design_allowance,VERIFY_PURCHASED_REVISION
 left_gripper_and_adapter,2,-300,-150,1850,supplier_class_estimate,ESTIMATE_NOT_MEASURED

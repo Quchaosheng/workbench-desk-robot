@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "units": "mm",
-  "configuration_id": "DUAL_7DOF_LIFTING_WORKBENCH_REV_B",
+  "configuration_id": "DUAL_7DOF_LIFTING_WORKBENCH_REV_C",
   "status": "ENGINEERING_BASELINE_PHYSICAL_AND_SUPPLIER_VALIDATION_REQUIRED",
   "frame": {
     "transport_envelope_mm": [1240, 840, 750],
@@ -53,6 +53,32 @@
     "minimum_static_tip_angle_deg": 25,
     "maximum_operating_floor_slope_deg": 3,
     "transport_state": "PLATFORM_AT_LOWER_LIMIT_ARMS_STOWED_NO_PAYLOAD_POWER_DISABLED_OUTRIGGERS_RETRACTED"
+  },
+  "powered_mobility": {
+    "architecture": "TWO_48V_GEARED_DRIVE_WHEELS_WITH_FAIL_SAFE_BRAKES_AND_FOUR_SWIVEL_SUPPORT_CASTERS",
+    "drive_wheel_centres_xyz_mm": [[-520, 0, 100], [520, 0, 100]],
+    "drive_wheel_diameter_mm": 200,
+    "drive_wheel_width_mm": 60,
+    "motor_envelope_mm_each": [260, 180, 180],
+    "motor_power_class_w_each": 400,
+    "nominal_bus_voltage_v": 48,
+    "minimum_continuous_output_torque_nm_each": 40,
+    "minimum_peak_output_torque_nm_each": 80,
+    "minimum_fail_safe_brake_torque_nm_each": 30,
+    "target_output_speed_rpm": 30,
+    "maximum_commanded_speed_mps": 0.3,
+    "maximum_commanded_acceleration_mps2": 0.2,
+    "design_floor_slope_deg": 3,
+    "rolling_resistance_coefficient": 0.02,
+    "traction_design_factor": 2.0,
+    "separate_protected_48v_branch_required": true,
+    "controller_j2_power_prohibited": true,
+    "motion_requires_platform_lower_limit": true,
+    "motion_requires_arms_stowed_and_disabled": true,
+    "motion_requires_outriggers_retracted": true,
+    "arm_enable_requires_drive_brakes_applied": true,
+    "wheel_load_equalization_required": true,
+    "selection_and_physical_validation": "NOT_EXECUTED"
   },
   "arm_mounts": {
     "vendor_model": "7DOF_MEDIUM_COLLABORATIVE_ARM_TBD",
@@ -120,6 +146,7 @@
   },
   "release_blockers": [
     "purchased 7-DOF arm base drawing mass reaction loads controller and mounting torque not approved",
+    "full-system 48 V geared drive wheel brake controller branch protection and wheel-load equalization not selected or validated",
     "lifting-column actuator brake feedback limit switch lock and safety-controller MPNs not approved",
     "frame lift structure weldment FEA fatigue buckling skew jam and proof-load tests not executed",
     "caster leveling-foot and deployable-outrigger MPN load ratings not approved",

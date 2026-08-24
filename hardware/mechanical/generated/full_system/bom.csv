@@ -8,6 +8,7 @@ FS-004,Battery and ballast retention tray,S355 steel,1,PACK_SELECTION_REQUIRED
 FS-005,Rear and arm-riser cable trays,galvanized steel,1 set,HARNESS_SWEEP_REQUIRED
 FS-006,Perimeter bumper/toe guard,steel plus elastomer,1,SITE_RISK_REVIEW_REQUIRED
 TBD-CASTER,Swivel braked caster 300 kg minimum,supplier assembly,4,MPN_AND_LOAD_RATING_REQUIRED
+TBD-DRIVE,48 V 400 W geared drive wheel with fail-safe brake,supplier assembly,2,MPN_CONTROLLER_BRAKE_AND_WHEEL_LOAD_VALIDATION_REQUIRED
 TBD-FOOT,Deployable outrigger and leveling foot 300 kg minimum,supplier assembly,4,MPN_LOCK_AND_LOAD_RATING_REQUIRED
 TBD-7DOF,Medium-class seven-axis collaborative arm envelope,vendor assembly,2,PURCHASED_REVISION_REQUIRED
 TBD-CTRL,Seven-axis arm controller cabinet envelope,vendor assembly,2,PURCHASED_REVISION_FIT_REQUIRED

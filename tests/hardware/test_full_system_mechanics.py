@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import importlib.util
 import json
 from pathlib import Path
@@ -20,10 +21,10 @@ def load_generator():
 def test_full_system_analysis_is_consistent_and_fail_closed() -> None:
     report = load_generator().analyse()
     assert report["engineering_package_pass"] is True
-    assert report["configuration_id"] == "DUAL_7DOF_LIFTING_WORKBENCH_REV_B"
+    assert report["configuration_id"] == "DUAL_7DOF_LIFTING_WORKBENCH_REV_C"
     assert report["schema_version"] == 2
-    assert report["mass_case"]["mass_kg"] == 338.0
-    assert report["mass_case"]["center_of_gravity_mm"] == [0.0, -31.4, 801.6]
+    assert report["mass_case"]["mass_kg"] == 368.0
+    assert report["mass_case"]["center_of_gravity_mm"] == [0.0, -28.8, 751.0]
     assert report["support_polygon_mm"] == [1200, 960]
     assert min(report["static_tip_angles_deg"].values()) >= 25
     assert report["stability_case"] == "MAXIMUM_LIFT_ESTIMATED_MASS_AND_CG_NOT_MEASURED"
@@ -32,6 +33,10 @@ def test_full_system_analysis_is_consistent_and_fail_closed() -> None:
     assert report["checks"]["seven_axis_arms_declared"] is True
     assert report["checks"]["lift_and_arm_motion_are_interlocked"] is True
     assert report["checks"]["lift_has_redundant_limits_feedback_and_locks"] is True
+    assert report["checks"]["full_system_drive_is_not_controller_j2_childboard"] is True
+    assert report["checks"]["drive_torque_allocation_met"] is True
+    assert report["checks"]["drive_brake_allocation_met"] is True
+    assert report["checks"]["transport_and_arm_motion_are_interlocked"] is True
     assert report["lift"]["deck_top_range_mm"] == [750, 1100]
     assert report["lift"]["stroke_mm"] == 350
     assert report["load_allocations"]["specified_caster_rating_kg_each"] == 300
@@ -55,7 +60,7 @@ def test_full_system_cad_package_contains_structures_and_supplier_envelopes() ->
     assert "'2026-08-06T00:00:00'" in exploded.read_text(encoding="ascii")
     assert "'2026-08-06T00:00:00'" in max_lift.read_text(encoding="ascii")
     assert len(list((generated / "parts").glob("*.step"))) == 11
-    assert len(list((generated / "envelopes").glob("*.step"))) == 5
+    assert len(list((generated / "envelopes").glob("*.step"))) == 7
     for required in (
         "fixed_chassis_frame.step",
         "moving_upper_frame.step",
@@ -67,6 +72,8 @@ def test_full_system_cad_package_contains_structures_and_supplier_envelopes() ->
     ):
         assert (generated / "parts" / required).stat().st_size > 10_000
     for required in ("left_arm.step", "right_arm.step", "left_arm_controller.step", "right_arm_controller.step"):
+        assert (generated / "envelopes" / required).stat().st_size > 10_000
+    for required in ("full_system_drive_left.step", "full_system_drive_right.step"):
         assert (generated / "envelopes" / required).stat().st_size > 10_000
 
 
@@ -81,3 +88,35 @@ def test_full_system_outputs_do_not_claim_physical_validation() -> None:
     assert spec["cable_management"]["physical_sweep_validation"] == "NOT_EXECUTED"
     assert report["mass_case"]["all_rows_are_unmeasured_or_supplier_values"] is True
     assert report["release_blockers"] == spec["release_blockers"]
+
+
+def test_prephysical_power_and_component_decisions_fail_closed() -> None:
+    root = ROOT / "hardware"
+    power = json.loads((root / "release/full-system-power-architecture.json").read_text(encoding="utf-8"))
+    assert power["status"].endswith("VALIDATION_REQUIRED")
+    assert power["battery_bus"]["minimum_energy_wh"] >= 2000
+    assert power["battery_bus"]["minimum_continuous_discharge_a"] >= 80
+    assert power["controller_u2_scope"] == "JETSON_LOGIC_AND_LOW_POWER_AUXILIARIES_ONLY"
+    assert set(power["controller_u2_prohibited_loads"]) == {
+        "seven_axis_arms",
+        "full_system_drive",
+        "four_column_lift",
+    }
+    modes = power["operating_modes"]
+    assert set(modes) == {"ARM_OPERATION", "TRANSPORT", "LIFT"}
+    assert all(len(mode["allowed_high_power_loads"]) == 1 for mode in modes.values())
+    assert power["battery_bus"]["selected_pack_mpn"] is None
+    assert power["release_blockers"]
+
+    with (root / "release/prephysical-component-decisions.csv").open(newline="", encoding="utf-8") as handle:
+        decisions = list(csv.DictReader(handle))
+    assert len(decisions) >= 16
+    assert len({row["decision_id"] for row in decisions}) == len(decisions)
+    assert all(
+        row["preferred_candidate"].strip()
+        and row["controlled_requirement"].strip()
+        and row["source_or_evidence"].strip()
+        and row["required_closure"].strip()
+        for row in decisions
+    )
+    assert not any(row["decision_status"] == "APPROVED" for row in decisions)

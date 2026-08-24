@@ -22,6 +22,8 @@ Generated controlled records and drawings include:
 - `generated/fixture-drawings.svg`: datum nest and guarded electrical fixture dimensions.
 - `generated/packaging-drawing.svg`: transit-pack section and protection requirements.
 - `harness-spec.csv`: controlled battery, rail, data, CAN and safety harness envelope.
+- `harness-component-selection.csv`: connector housing, contact, cable candidate,
+  gauge compatibility, shield termination, and remaining approval per harness.
 - `generated/harness_report.json`: calculated voltage drop, current density, bend-radius and release gates.
 
 The harness specification retains the H01-H08 controller baseline and adds the
@@ -39,10 +41,15 @@ leads H11/H12 require 20 mm, and the validator rejects an under-declared radius
 instead of treating a small number as a pass. The same report reads the
 candidate motor package and records the 11 A dual-stall demand versus the J2
 10 A aggregate ceiling as `BLOCKED_CANDIDATE_EXCEEDS_J2_LIMIT`.
-CAN harnesses use three signal conductors plus a separate shield drain; encoder
+H01-H03 use parallel 18 AWG conductors so the controlled current envelope and
+the candidate Micro-Fit 18-20 AWG contact family remain compatible. H11/H12 use
+16 AWG motor leads with a Mini-Fit Jr candidate instead of the earlier 14 AWG
+space claim. These are candidate compatibility decisions, not supplier crimp
+approval. CAN harnesses use three signal conductors plus a separate shield drain; encoder
 harnesses use four signal conductors plus a separate shield drain. Neither drain
-is assigned to the reserved NC connector pin; its chassis termination remains a
-deliberate TBD until the EMC/supplier review closes.
+is assigned to the reserved NC connector pin. Cable shields terminate once at
+the source enclosure entry: controller entry for H04-H10 and childboard entry
+for H13/H14. The far end is insulated from chassis and signal return.
 
 `J_SAFE` is an ECO-only controller endpoint for two independent hardwired safety
 channels. It is not the current four-pin J11, whose H08 harness remains a

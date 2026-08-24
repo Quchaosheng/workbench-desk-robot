@@ -5,7 +5,7 @@ This document controls the issue 21 design case without replacing the existing
 operations-readiness planning contract, but it is not credible for structural
 sizing once two seven-axis arm allowances, both rated payload cases and both
 controller cabinets are included. `full-system-mass-ledger.csv` is the current
-maximum-lift mechanical design case: 338 kg estimated total mass and 801.6 mm
+maximum-lift mechanical design case: 368 kg estimated total mass and 751.0 mm
 estimated CG height. It
 remains unmeasured until a serialized prototype is weighed and its centre of
 gravity is measured.
@@ -59,7 +59,7 @@ The supplier DFM review must close sharp-edge, pinch-point, tolerance-stack,
 service-clearance, coating-mask, weld distortion, and packaging restraints.
 
 Status: `PHYSICAL_VALIDATION_REQUIRED`. Neither the historical 55 kg planning
-target nor the current 338 kg maximum-height structural design case is a measured result;
+target nor the current 368 kg maximum-height structural design case is a measured result;
 each planning value is not a measured result and cannot close a physical gate.
 release needs the signed mass ledger, CG/stability report, dual-arm sweep log,
 assembly trial, and resolved DFM actions for the production revision.
@@ -70,8 +70,18 @@ enumerates the CAD and guarded-test evidence still required.
 
 ## Chassis traction integration
 
-The mobile chassis reserves two symmetric traction motor volumes, four wheel
-volumes at the controlled wheelbase/track, and a separate field-replaceable
+The full-size chassis uses a separate protected 48 V drive branch and two
+400 W-class geared wheel modules with fail-safe brakes. The analytical screen
+requires at least 33.5 Nm per wheel after the 2.0 design factor and 18.9 Nm brake
+torque; controlled candidate minima are 40 Nm continuous, 80 Nm peak and 30 Nm
+brake torque. Full-system travel is capped at 0.3 m/s and 0.2 m/s2 with the deck
+at its lower limit, arms stowed and disabled, and outriggers retracted. Arm
+motion requires both drive brakes proved applied. Motor, gearbox, brake,
+controller, wheel, suspension/load equalizer and 48 V protection MPNs remain
+supplier-gated and physically unverified.
+
+The separate compact electronics chassis reserves two symmetric traction motor
+volumes, four wheel volumes at the controlled wheelbase/track, and a separate field-replaceable
 motor-driver childboard volume. These are maximum space claims
 for integration studies, not selected component geometry. Both motor MPNs,
 technology, gear ratio, shaft and mounting interface, mass, torque reaction, and

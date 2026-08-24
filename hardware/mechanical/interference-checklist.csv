@@ -30,3 +30,6 @@ INT-028,lift_columns-operator,0,pinch_shear_review_plus_guarded_full_stroke_test
 INT-029,lift_energy_chain-frame,25,full_stroke_harness_sweep,bend radius strain relief and protective bond remain valid at both limits,NOT_EXECUTED
 INT-030,deployable_outriggers-casters_and_operator,20,deployment_sweep_plus_setup_trial,no wheel obstruction foot pinch or unguarded shear point,NOT_EXECUTED
 INT-031,seven_axis_elbow_sweep-opposite_arm_and_lift_columns,50,fourteen_joint_CAD_sweep_plus_guarded_test,no collision including redundant-joint poses stop distance payload and tolerance,NOT_EXECUTED
+INT-032,full_system_drive_wheels-fixed_frame,20,CAD_envelope_plus_suspension_sweep,no tyre motor gearbox brake or harness contact across wheel-load equalization travel,NOT_EXECUTED
+INT-033,full_system_drive_wheels-outriggers,30,CAD_deployment_and_steering_sweep,outriggers cannot deploy into wheel or drive harness and drive cannot enable while deployed,NOT_EXECUTED
+INT-034,full_system_drive_harness-moving_mechanisms,25,full_transport_and_lift_service_sweep,48V brake encoder and motor cables retain bend radius and cannot chafe or enter lift columns,NOT_EXECUTED

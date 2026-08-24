@@ -15,6 +15,15 @@
     "operation_boundary": "light indoor tasks only; no stairs, liquids, hot objects, or person lifting"
   },
   "interaction": {"display": "expressive face", "states": ["idle", "happy", "thinking", "help_needed", "task_complete"], "audio": true},
+  "cmf": {
+    "primary_shell": "warm ceramic-white fine-texture PC-ABS, 8-12 GU at 60 degrees",
+    "structural_spine": "bead-blasted recycled aluminium, dark natural anodized, 12-18 micrometre coating",
+    "face_lens": "smoked chemically strengthened glass, AF/AR coating, black mask printed on rear surface",
+    "acoustic_and_bay_panel": "graphite 3D-knit recycled PET textile over removable carrier",
+    "touch_surfaces": "charcoal silicone, Shore A 60, low-dust matte finish",
+    "accent": "desaturated jade status light only; no painted decorative color blocks",
+    "parting_strategy": "hide primary splits under the waist band, face lens, and rear service panel"
+  },
   "service_panel": {"width": 170, "height": 120, "rear_clearance_mm": 20, "fastener": "4x captive M3"},
   "electronics_tray": {"width": 220, "depth": 170, "clearance_above": 32, "pcb_envelope": [160, 130, 1.6], "pcb_mount_pattern": [152, 122], "pcb_mount_hole_mm": 3.2, "minimum_edge_service_margin": 20},
   "ventilation": {"inlet_area_mm2": 1800, "outlet_area_mm2": 2200, "fan_mm": 60, "direction": "lower-front to upper-rear"},

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Workbench Home Robot</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#dfe2df;font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif;color:#18201f;letter-spacing:0}
+#scene{position:fixed;inset:0}.copy{position:fixed;left:7vw;top:7vh;z-index:2;pointer-events:none}.eyebrow{font-size:13px;font-weight:700;letter-spacing:4px;color:#5f6d69}.copy h1{margin:17px 0 10px;font-size:clamp(42px,5.3vw,84px);line-height:1.02;font-weight:650}.copy p{margin:0;font-size:clamp(16px,1.5vw,23px);color:#65716e}.capabilities{position:fixed;left:7vw;bottom:7vh;z-index:2;display:flex;gap:11px}.chip{padding:11px 15px;border:1px solid rgba(38,51,48,.18);background:rgba(244,246,243,.62);backdrop-filter:blur(18px);border-radius:6px;font-size:13px;color:#46534f}.note{position:fixed;right:4vw;bottom:4vh;color:#78837f;font-size:11px;letter-spacing:1px}
+@media(max-width:700px){.copy{top:5vh}.copy h1{font-size:42px}.capabilities{bottom:4vh;flex-wrap:wrap;width:84vw}.note{display:none}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
+</head>
+<body><div id="scene"></div><div class="copy"><div class="eyebrow">WORKBENCH HOME ROBOT</div><h1>替你跑一趟，<br>也懂你的心情。</h1><p>取快递 · 轻家务 · 情绪回应</p></div><div class="capabilities"><span class="chip">3 kg 取物载荷</span><span class="chip">隐藏式清洁模块</span><span class="chip">五种情绪状态</span></div><div class="note">CONCEPT DESIGN · REV C</div>
+<script type="module">
+import * as THREE from 'three';
+import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+const mount=document.querySelector('#scene'),scene=new THREE.Scene();scene.background=new THREE.Color(0xdfe2df);scene.fog=new THREE.Fog(0xdfe2df,12,25);
+const camera=new THREE.PerspectiveCamera(31,innerWidth/innerHeight,.1,100);camera.position.set(7.6,4.8,13.4);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,preserveDrawingBuffer:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;renderer.outputColorSpace=THREE.SRGBColorSpace;mount.appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(-.35,2.35,0);controls.enableDamping=true;controls.enablePan=false;controls.minDistance=9;controls.maxDistance=16;controls.autoRotate=false;
+const mat=(color,rough=.45,metal=0)=>new THREE.MeshPhysicalMaterial({color,roughness:rough,metalness:metal,clearcoat:.18,clearcoatRoughness:.35});
+const ceramic=mat(0xf4f2ed,.26,.03),aluminum=mat(0x59615f,.23,.72),dark=mat(0x151b1b,.31,.42),rubber=mat(0x111515,.72,.05),accent=mat(0x70d8c0,.25,.16),fabric=new THREE.MeshStandardMaterial({color:0x7e8580,roughness:.96,metalness:0});
+const glass=new THREE.MeshPhysicalMaterial({color:0x071011,roughness:.08,metalness:.22,clearcoat:1,clearcoatRoughness:.05,transmission:.04});
+function mesh(geo,material,pos,rot=[0,0,0]){const m=new THREE.Mesh(geo,material);m.position.set(...pos);m.rotation.set(...rot);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m}
+function rounded(w,h,d,r,material,pos,rot){return mesh(new RoundedBoxGeometry(w,h,d,8,r),material,pos,rot)}
+// Grounded mobility platform: visually slim, mechanisms hidden.
+rounded(4.15,.48,3.18,.34,dark,[.75,.48,0]);rounded(3.78,.12,2.8,.14,aluminum,[.75,.76,0]);
+for(const x of[-1.48,2.98])for(const z of[-1.05,1.05]){const wheel=mesh(new THREE.CylinderGeometry(.36,.36,.22,48),rubber,[x,.42,z],[Math.PI/2,0,0]);wheel.castShadow=true}
+// Quiet continuous shell, shaped as one soft ceramic volume.
+const body=mesh(new THREE.SphereGeometry(1,72,48),ceramic,[.55,2.34,.02]);body.scale.set(1.62,1.7,1.17);
+rounded(2.62,.12,1.94,.06,aluminum,[.55,1.14,.02]);
+rounded(1.72,.74,.045,.18,aluminum,[.54,1.67,1.14],[-.03,0,0]);rounded(1.54,.57,.026,.14,new THREE.MeshStandardMaterial({color:0x252c2a,roughness:.94}),[.54,1.67,1.173],[-.03,0,0]);
+// Head: a single black-glass face framed by ceramic, slightly tilted toward user.
+rounded(1.8,.38,.66,.2,aluminum,[.55,4.0,.02]);
+const head=rounded(3.08,1.34,1.14,.42,ceramic,[.55,4.58,.04],[-.06,0,0]);
+rounded(2.58,.98,.08,.3,glass,[.55,4.56,.615],[-.06,0,0]);
+// Soft expressive eyes and a subtle status halo.
+for(const x of[-.02,1.12]) rounded(.46,.16,.025,.08,accent,[x,4.62,.668],[-.06,0,0]);
+const halo=mesh(new THREE.TorusGeometry(.13,.024,14,40),new THREE.MeshBasicMaterial({color:0xf0a183}),[1.58,4.25,.672],[-.06,0,0]);
+// Folded arm becomes a flush shoulder ribbon; deployed forearm reaches parcel.
+rounded(.42,1.72,.58,.2,aluminum,[2.21,2.82,.02],[0,0,-.14]);rounded(.38,1.46,.48,.18,aluminum,[2.67,2.26,.12],[0,0,-.62]);
+mesh(new THREE.SphereGeometry(.28,40,24),dark,[2.25,2.07,.08]);mesh(new THREE.SphereGeometry(.25,40,24),dark,[3.12,1.76,.12]);
+rounded(.76,.31,.4,.14,dark,[3.31,1.68,.13],[0,0,-.18]);rounded(.15,.55,.15,.07,accent,[3.58,1.53,.03],[0,0,-.35]);rounded(.15,.55,.15,.07,accent,[3.58,1.53,.28],[0,0,.35]);
+// Premium parcel prop gives scale and communicates the task without infographic clutter.
+const parcel=rounded(1.35,.92,1.05,.09,mat(0xb99d78,.68,.02),[4.35,.58,.12],[0,-.18,0]);
+mesh(new THREE.BoxGeometry(.1,.94,1.07),mat(0x242b29,.55,.08),[4.35,.59,.12],[0,-.18,0]);
+// Cleaning cassette peeks out as an intentional accent under the rear edge.
+rounded(2.05,.13,.45,.08,accent,[.65,.21,-1.48]);rounded(1.75,.08,.18,.06,fabric,[.65,.12,-1.58]);
+// Studio floor and curved cyclorama.
+const floor=mesh(new THREE.PlaneGeometry(40,40),new THREE.MeshStandardMaterial({color:0xd9dcd8,roughness:.77}),[0,0,0],[-Math.PI/2,0,0]);floor.receiveShadow=true;
+const hemi=new THREE.HemisphereLight(0xf8faf7,0x69736f,2.2);scene.add(hemi);
+const a=new THREE.DirectionalLight(0xffffff,4.1);a.position.set(-4,9,7);a.castShadow=true;a.shadow.mapSize.set(2048,2048);a.shadow.camera.left=-7;a.shadow.camera.right=7;a.shadow.camera.top=8;a.shadow.camera.bottom=-4;scene.add(a);
+const rim=new THREE.DirectionalLight(0x9fd9cd,2.4);rim.position.set(7,5,-5);scene.add(rim);const warm=new THREE.PointLight(0xffd8bd,18,10);warm.position.set(-4,3,4);scene.add(warm);
+function draw(){controls.update();renderer.render(scene,camera);requestAnimationFrame(draw)}draw();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+</script></body></html>

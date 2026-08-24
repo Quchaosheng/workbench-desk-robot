@@ -7,6 +7,15 @@ desktop mobile robot: a low chassis, a drafted shoulder shell, a separate 8 deg
 head module, recessed display bezel, hidden wheel pods, four corner bumpers, a
 rear service panel, and a protected neck cable channel.
 
+## Industrial design and CMF
+
+The consumer-facing surface is a continuous warm-white shell with hidden primary
+parting lines. The structural waist and arm links use bead-blasted dark natural
+anodized aluminium; the face is a single smoked strengthened-glass lens; the
+parcel-bay/acoustic insert is graphite 3D-knit recycled PET. Jade is reserved for
+status light and gripper touch points. Visible glossy plastic, exposed fasteners,
+painted faux-metal finishes, and decorative color blocking are out of scope.
+
 ## Reproduce
 
 ```bash

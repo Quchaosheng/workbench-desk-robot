@@ -9,13 +9,17 @@ ROOT = Path(__file__).resolve().parents[2]
 TOOLS = ROOT / "hardware/mechanical/tools"
 
 
-def load_generator():
-    path = TOOLS / "generate_full_system.py"
-    spec = importlib.util.spec_from_file_location("full_system_mechanics", path)
+def load_generator_from_name(filename: str, module_name: str):
+    path = TOOLS / filename
+    spec = importlib.util.spec_from_file_location(module_name, path)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def load_generator():
+    return load_generator_from_name("generate_full_system.py", "full_system_mechanics")
 
 
 def test_full_system_analysis_is_consistent_and_fail_closed() -> None:
@@ -120,3 +124,18 @@ def test_prephysical_power_and_component_decisions_fail_closed() -> None:
         for row in decisions
     )
     assert not any(row["decision_status"] == "APPROVED" for row in decisions)
+
+
+def test_cost_optimized_service_robot_target_is_bounded_and_unmeasured() -> None:
+    generator = load_generator_from_name("analyse_service_robot.py", "service_robot_analysis")
+    report = generator.analyse()
+    assert report["engineering_target_pass"] is True
+    assert report["mass_kg"] == 77.4
+    assert report["mass_kg"] <= 80
+    assert min(report["stabilized_tip_angles_deg"].values()) >= 20
+    assert report["cost_targets_usd"] == {"evt": 30000, "production_100": 16000}
+    assert report["required_drive_torque_nm_each_before_margin"] == 7.8
+    assert report["checks"]["drive_torque_screen_met"] is True
+    assert report["costs_are_quotes"] is False
+    assert report["mass_is_measured"] is False
+    assert report["release_blockers"]

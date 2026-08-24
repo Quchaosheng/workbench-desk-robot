@@ -69,6 +69,7 @@ EXPECTED_CLOSURE_BINDINGS = {
     "HWC-LIFT-001": "FILE",
     "HWC-DRIVE-001": "FILE",
     "HWC-WIRE-001": "FILE",
+    "HWC-COST-001": "FILE",
 }
 CONTROLLED_PRIORITIES = {"P0", "P1", "P2"}
 CONTROLLED_DEPENDENCIES = {"REPOSITORY", "OWNER", "SUPPLIER", "PHYSICAL"}
@@ -91,6 +92,7 @@ REQUIRED_CLOSURE_DOMAINS = {
     "system",
     "validation",
     "compliance",
+    "cost",
 }
 
 

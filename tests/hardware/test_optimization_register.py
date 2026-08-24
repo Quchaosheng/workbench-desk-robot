@@ -27,6 +27,7 @@ def test_optimization_register_is_complete_and_fail_closed() -> None:
     assert report["pass"] is True
     assert report["row_count"] >= 20
     assert report["open_p0"]
+    assert "OPT-COST-001" in report["open_p0"]
 
 
 def test_optimization_register_rejects_missing_acceptance_contract() -> None:

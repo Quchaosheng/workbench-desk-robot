@@ -28,6 +28,7 @@ DOMAINS = {
     "mobility",
     "manufacturing",
     "procurement",
+    "cost",
     "release",
 }
 PRIORITIES = {"P0", "P1", "P2"}

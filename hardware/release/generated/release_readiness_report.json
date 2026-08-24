@@ -52,6 +52,7 @@
     "domains": [
       "axes",
       "compliance",
+      "cost",
       "harness",
       "mechanical",
       "mobility",
@@ -71,6 +72,7 @@
     "evt_blockers": [
       "HWC-ARM-001",
       "HWC-AXIS-001",
+      "HWC-COST-001",
       "HWC-DRIVE-001",
       "HWC-HAR-001",
       "HWC-LIFT-001",
@@ -88,6 +90,7 @@
       "HWC-AXIS-001",
       "HWC-AXIS-002",
       "HWC-CMP-001",
+      "HWC-COST-001",
       "HWC-DRIVE-001",
       "HWC-HAR-001",
       "HWC-HAR-002",
@@ -105,7 +108,7 @@
       "HWC-VAL-002",
       "HWC-WIRE-001"
     ],
-    "row_count": 21
+    "row_count": 22
   },
   "evidence_bindings": {
     "binding_contract_mismatches": [],

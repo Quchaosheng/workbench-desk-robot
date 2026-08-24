@@ -63,7 +63,7 @@ def test_kernel_fault_suite_publishes_and_validates_structured_report() -> None:
     assert "wbcan-driver-test-report" in artifact_step
     assert "if-no-files-found: error" in artifact_step
     assert "REPORT_VALIDATION_OUTCOME" in kernel_job
-    assert 'success:success) status=PASS' in kernel_job
+    assert "success:success) status=PASS" in kernel_job
 
 
 def test_kernel_module_builds_against_lts_and_runner_headers() -> None:

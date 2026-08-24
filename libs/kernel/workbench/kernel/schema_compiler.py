@@ -111,14 +111,19 @@ def _validate_schema_structure(
             raise _MalformedSchema(f"schema pattern at {location} must be a string")
         try:
             re.compile(pattern)
-        except re.error as exc:
+        except (re.error, OverflowError) as exc:
             raise _MalformedSchema(f"schema pattern at {location} is invalid") from exc
     if "minItems" in schema and (type(schema["minItems"]) is not int or schema["minItems"] < 0):
         raise _MalformedSchema(f"schema minItems at {location} must be a non-negative integer")
 
     items = schema.get("items")
     if items is not None:
-        _validate_schema_structure(items, references=references, location=f"{location}.items")
+        _validate_schema_structure(
+            items,
+            references=references,
+            location=f"{location}.items",
+            reference_stack=reference_stack,
+        )
     properties = schema.get("properties")
     if properties is not None:
         if not isinstance(properties, dict):
@@ -130,6 +135,7 @@ def _validate_schema_structure(
                 definition,
                 references=references,
                 location=f"{location}.{field_name}",
+                reference_stack=reference_stack,
             )
     required = schema.get("required")
     if required is not None and (
@@ -146,6 +152,7 @@ def _validate_schema_structure(
                 branch,
                 references=references,
                 location=f"{location}.allOf[{index}]",
+                reference_stack=reference_stack,
             )
     any_of = schema.get("anyOf")
     if any_of is not None:
@@ -156,11 +163,17 @@ def _validate_schema_structure(
                 branch,
                 references=references,
                 location=f"{location}.anyOf[{index}]",
+                reference_stack=reference_stack,
             )
     for branch_name in ("if", "then", "else", "not"):
         branch = schema.get(branch_name)
         if branch is not None:
-            _validate_schema_structure(branch, references=references, location=f"{location}.{branch_name}")
+            _validate_schema_structure(
+                branch,
+                references=references,
+                location=f"{location}.{branch_name}",
+                reference_stack=reference_stack,
+            )
 
 
 def _matches_json_type(value: Any, schema_type: str) -> bool:
@@ -191,9 +204,16 @@ def _schema_matches(
     *,
     references: dict[str, dict[str, Any]] | None,
     location: str,
+    reference_stack: frozenset[str],
 ) -> bool:
     try:
-        validate_schema_instance(value, schema, references=references, location=location)
+        validate_schema_instance(
+            value,
+            schema,
+            references=references,
+            location=location,
+            _reference_stack=reference_stack,
+        )
     except _SchemaMismatch:
         return False
     return True
@@ -205,6 +225,7 @@ def validate_schema_instance(
     *,
     references: dict[str, dict[str, Any]] | None = None,
     location: str = "$",
+    _reference_stack: frozenset[str] = frozenset(),
 ) -> None:
     """Validate one value against the JSON Schema subset the compiler supports."""
     _validate_schema_structure(schema, references=references, location=location)
@@ -219,7 +240,15 @@ def validate_schema_instance(
         referenced = (references or {}).get(reference)
         if referenced is None:
             raise _MalformedSchema(f"unresolved schema reference {reference!r} at {location}")
-        validate_schema_instance(value, referenced, references=references, location=location)
+        if reference in _reference_stack:
+            raise _MalformedSchema(f"schema reference cycle at {location} does not advance the instance")
+        validate_schema_instance(
+            value,
+            referenced,
+            references=references,
+            location=location,
+            _reference_stack=_reference_stack | {reference},
+        )
         return
 
     if "const" in schema and (type(value) is not type(schema["const"]) or value != schema["const"]):
@@ -262,7 +291,7 @@ def validate_schema_instance(
             raise _MalformedSchema(f"schema pattern at {location} must be a string")
         try:
             matcher = re.compile(pattern)
-        except re.error as exc:
+        except (re.error, OverflowError) as exc:
             raise _MalformedSchema(f"schema pattern at {location} is invalid") from exc
         if not isinstance(value, str) or matcher.search(value) is None:
             raise _SchemaMismatch(f"value at {location} does not match pattern {pattern!r}")
@@ -307,31 +336,68 @@ def validate_schema_instance(
     if any_of is not None:
         if not isinstance(any_of, list) or not any_of or any(not isinstance(candidate, dict) for candidate in any_of):
             raise _MalformedSchema(f"schema anyOf at {location} must be a non-empty object list")
-        if not any(_schema_matches(value, candidate, references=references, location=location) for candidate in any_of):
+        if not any(
+            _schema_matches(
+                value,
+                candidate,
+                references=references,
+                location=location,
+                reference_stack=_reference_stack,
+            )
+            for candidate in any_of
+        ):
             raise _SchemaMismatch(f"value at {location} does not match any allowed schema")
 
     excluded = schema.get("not")
     if excluded is not None:
         if not isinstance(excluded, dict):
             raise _MalformedSchema(f"schema not at {location} must be an object")
-        if _schema_matches(value, excluded, references=references, location=location):
+        if _schema_matches(
+            value,
+            excluded,
+            references=references,
+            location=location,
+            reference_stack=_reference_stack,
+        ):
             raise _SchemaMismatch(f"value at {location} matches a forbidden schema")
 
     all_of = schema.get("allOf", [])
     if not isinstance(all_of, list) or any(not isinstance(constraint, dict) for constraint in all_of):
         raise _MalformedSchema(f"schema allOf at {location} must be an object list")
     for constraint in all_of:
-        validate_schema_instance(value, constraint, references=references, location=location)
+        validate_schema_instance(
+            value,
+            constraint,
+            references=references,
+            location=location,
+            _reference_stack=_reference_stack,
+        )
 
     condition = schema.get("if")
     if condition is not None:
         if not isinstance(condition, dict):
             raise _MalformedSchema(f"schema if at {location} must be an object")
-        branch = "then" if _schema_matches(value, condition, references=references, location=location) else "else"
+        branch = (
+            "then"
+            if _schema_matches(
+                value,
+                condition,
+                references=references,
+                location=location,
+                reference_stack=_reference_stack,
+            )
+            else "else"
+        )
         if branch in schema:
             if not isinstance(schema[branch], dict):
                 raise _MalformedSchema(f"schema {branch} at {location} must be an object")
-            validate_schema_instance(value, schema[branch], references=references, location=location)
+            validate_schema_instance(
+                value,
+                schema[branch],
+                references=references,
+                location=location,
+                _reference_stack=_reference_stack,
+            )
 
 
 def _model_name(value: str) -> str:

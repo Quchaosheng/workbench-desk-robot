@@ -115,6 +115,23 @@ def test_broker_converts_malformed_schema_constraints_to_rejection(
     assert boundary.message_log == []
 
 
+def test_broker_normalizes_oversized_regex_without_partial_log(tmp_path: Path) -> None:
+    registry = VersionRegistry(tmp_path / "versions.json")
+    registry.register_schema(
+        "action",
+        "1.0.0",
+        {
+            "type": "object",
+            "properties": {"target": {"type": "string", "pattern": "a{999999999999999999999}"}},
+        },
+    )
+    boundary = CommunicationBroker(registry)
+
+    with pytest.raises(BrokerValidationError, match="pattern"):
+        boundary.publish({"target": "a"}, "action", "1.0.0", "planner")
+    assert boundary.message_log == []
+
+
 @pytest.mark.parametrize(
     "schema, payload, error",
     [

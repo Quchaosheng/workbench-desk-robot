@@ -39,6 +39,30 @@ def test_runtime_validation_normalizes_malformed_constraints(schema: dict) -> No
         validate_schema_instance(value, schema)
 
 
+def test_runtime_validation_normalizes_oversized_regex_repetition() -> None:
+    with pytest.raises(SchemaValidationError, match="pattern"):
+        validate_schema_instance("a", {"type": "string", "pattern": "a{999999999999999999999}"})
+
+
+def test_runtime_validation_supports_finite_recursive_instances() -> None:
+    references = {
+        "node": {
+            "type": "object",
+            "properties": {"next": {"$ref": "node"}},
+            "additionalProperties": False,
+        }
+    }
+
+    validate_schema_instance({"next": {"next": {}}}, {"$ref": "node"}, references=references)
+
+
+def test_runtime_validation_rejects_reference_cycles_that_do_not_advance_the_instance() -> None:
+    references = {"first": {"$ref": "second"}, "second": {"$ref": "first"}}
+
+    with pytest.raises(SchemaValidationError, match="reference cycle"):
+        validate_schema_instance({}, {"$ref": "first"}, references=references)
+
+
 @pytest.mark.parametrize(
     "schema, value, error",
     [

@@ -133,9 +133,12 @@ def export_solid_step(path: Path) -> bool:
     )
     shell = outer.cut(inner)
     display_width, display_height = SPEC["head"]["display_cutout"]
+    display_radius = SPEC["head"]["display_corner_radius_mm"]
     display = (
         cq.Workplane("XY")
         .box(display_width, wall * 4, display_height)
+        .edges("|Y")
+        .fillet(display_radius)
         .translate((0, -depth / 2, height - SPEC["head"]["height"] / 2))
     )
     shell = shell.cut(display)
@@ -185,7 +188,13 @@ def export_cad_package() -> bool:
         .rotate((0, 0, 0), (1, 0, 0), head_spec["tilt_deg"])
         .translate((0, -12, 900))
     )
-    face_lens = cq.Workplane("XZ").circle(head_spec["display_cutout"][0] / 2).extrude(5).translate((0, -67, 900))
+    face_lens = (
+        cq.Workplane("XY")
+        .box(head_spec["display_cutout"][0], 5, head_spec["display_cutout"][1])
+        .edges("|Y")
+        .fillet(head_spec["display_corner_radius_mm"])
+        .translate((0, -67, 900))
+    )
     tray_spec = SPEC["electronics_tray"]
     tray = (
         cq.Workplane("XY")
@@ -215,7 +224,25 @@ def export_cad_package() -> bool:
         (225, -318, 528),
         (182, -335, 520),
     ]
-    joint_radii = [41, 38, 34, 29, 24, 20, 17]
+    joint_radii = [41, 34, 29, 27, 21, 17, 15]
+    link_sections = [
+        (72, 66, 12),
+        (66, 60, 12),
+        (78, 68, 24),
+        (66, 58, 22),
+        (44, 42, 16),
+        (38, 34, 13),
+        (30, 28, 11),
+    ]
+    joint_axes = [
+        cq.Vector(0, 0, 1),
+        cq.Vector(0, 1, 0),
+        cq.Vector(1, 0, 0),
+        cq.Vector(0, 1, 0),
+        cq.Vector(1, 0, 0),
+        cq.Vector(0, 1, 0),
+        cq.Vector(1, 0, 0),
+    ]
     left_arm_points = [(-x, y, z) for x, y, z in right_arm_points]
 
     def make_arm(points: list[tuple[float, float, float]]) -> object:
@@ -224,10 +251,31 @@ def export_cad_package() -> bool:
             start_vector = cq.Vector(*start)
             end_vector = cq.Vector(*end)
             direction = end_vector - start_vector
-            radius = max(joint_radii[index] * 0.52, 10)
-            arm_solids.append(cq.Solid.makeCylinder(radius, direction.Length, start_vector, direction.normalized()))
-            arm_solids.append(cq.Solid.makeSphere(joint_radii[index], start_vector))
-        arm_solids.append(cq.Solid.makeSphere(14, cq.Vector(*points[-1])))
+            unit = direction.normalized()
+            width, depth, gap = link_sections[index]
+            fairing_length = direction.Length - 2 * gap
+            fairing_plane = cq.Plane(origin=start_vector + unit.multiply(gap), normal=unit)
+            fairing = (
+                cq.Workplane(fairing_plane)
+                .box(width, depth, fairing_length, centered=(True, True, False))
+                .edges()
+                .fillet(min(width, depth) * 0.16)
+                .val()
+            )
+            arm_solids.append(fairing)
+
+        for point, radius, axis in zip(points[:-1], joint_radii, joint_axes, strict=True):
+            center = cq.Vector(*point)
+            thickness = radius * 1.05
+            arm_solids.append(
+                cq.Solid.makeCylinder(radius * 0.84, thickness, center - axis.multiply(thickness / 2), axis)
+            )
+            for offset in (-thickness / 2 - 3, thickness / 2):
+                arm_solids.append(cq.Solid.makeCylinder(radius, 3, center + axis.multiply(offset), axis))
+
+        tool_center = cq.Vector(*points[-1])
+        tool_axis = cq.Vector(1, 0, 0)
+        arm_solids.append(cq.Solid.makeCylinder(14, 24, tool_center - tool_axis.multiply(12), tool_axis))
         return cq.Compound.makeCompound(arm_solids)
 
     left_seven_axis_arm = make_arm(left_arm_points)
@@ -292,18 +340,18 @@ def write_engineering_drawings(report: dict[str, object]) -> None:
     width = SPEC["enclosure"]["width"]
     height = SPEC["enclosure"]["height"]
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760">
-<style>text{{font-family:Arial,sans-serif;fill:#17201f}} .shell{{fill:#ecece7;stroke:#17201f;stroke-width:3}} .frame{{fill:#404745;stroke:#17201f;stroke-width:3}} .joint{{fill:#202625;stroke:#7a807d;stroke-width:5}} .dim{{stroke:#287b70;stroke-width:2;marker-start:url(#a);marker-end:url(#a)}} .note{{font-size:17px}}</style>
+<style>text{{font-family:Arial,sans-serif;fill:#17201f}} .shell{{fill:#ecece7;stroke:#17201f;stroke-width:3}} .frame{{fill:#404745;stroke:#17201f;stroke-width:3}} .link-outline{{fill:none;stroke:#17201f;stroke-width:34;stroke-linecap:round;stroke-linejoin:round}} .link-shell{{fill:none;stroke:#ecece7;stroke-width:26;stroke-linecap:round;stroke-linejoin:round}} .joint{{fill:#202625;stroke:#7a807d;stroke-width:5}} .dim{{stroke:#287b70;stroke-width:2;marker-start:url(#a);marker-end:url(#a)}} .note{{font-size:17px}}</style>
 <defs><marker id="a" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M8,0 L0,4 L8,8" fill="none" stroke="#287b70"/></marker></defs>
 <text x="36" y="44" font-size="28" font-weight="bold">Workbench Home Robot - General Arrangement - REV D</text>
 <text x="36" y="72" class="note">Dual seven-axis arms + 350 mm braked lift; concept geometry; mm</text>
 <rect class="frame" x="115" y="590" width="270" height="72" rx="24"/><rect class="frame" x="188" y="452" width="124" height="150" rx="16"/>
 <path class="shell" d="M160 218 Q160 190 190 188 L315 188 Q342 190 342 220 L328 456 L174 456 Z"/>
-<rect class="frame" x="230" y="167" width="44" height="34" rx="12"/><rect class="shell" x="185" y="100" width="135" height="70" rx="28"/><circle cx="252" cy="135" r="25" fill="#101716"/><circle cx="243" cy="132" r="4" fill="#72c9b4"/><circle cx="261" cy="132" r="4" fill="#72c9b4"/>
-<polyline points="342,318 382,306 420,350 458,405 493,444 525,466 553,480" fill="none" stroke="#404745" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+<rect class="frame" x="230" y="167" width="44" height="34" rx="12"/><rect class="shell" x="185" y="100" width="135" height="70" rx="28"/><rect x="195" y="110" width="115" height="50" rx="14" fill="#101716"/><circle cx="237" cy="132" r="4" fill="#72c9b4"/><circle cx="267" cy="132" r="4" fill="#72c9b4"/>
+<polyline class="link-outline" points="342,318 382,306 420,350 458,405 493,444 525,466 553,480"/><polyline class="link-shell" points="342,318 382,306 420,350 458,405 493,444 525,466 553,480"/>
 <g>{"".join(f'<circle class="joint" cx="{x}" cy="{y}" r="{r}"/>' for x, y, r in [(342, 318, 22), (382, 306, 20), (420, 350, 18), (458, 405, 16), (493, 444, 14), (525, 466, 12), (553, 480, 10)])}</g>
-<polyline points="163,318 126,306 94,350 72,405 58,444 48,466 40,480" fill="none" stroke="#404745" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline class="link-outline" points="163,318 126,306 94,350 72,405 58,444 48,466 40,480"/><polyline class="link-shell" points="163,318 126,306 94,350 72,405 58,444 48,466 40,480"/>
 <g>{"".join(f'<circle class="joint" cx="{x}" cy="{y}" r="{r}"/>' for x, y, r in [(163, 318, 22), (126, 306, 20), (94, 350, 18), (72, 405, 16), (58, 444, 14), (48, 466, 12), (40, 480, 10)])}</g>
-<text x="195" y="224" class="note">independent neck</text><text x="183" y="294" class="note">torso-side shoulders</text>
+<text x="187" y="224" class="note">full-width rounded face</text><text x="195" y="246" class="note">independent neck</text><text x="167" y="276" class="note">recessed 3-axis shoulders</text><text x="352" y="522" class="note">faired links</text><text x="352" y="544" class="note">readable joint cartridges</text>
 <line class="dim" x1="90" y1="112" x2="90" y2="662"/><text x="50" y="410" class="note" transform="rotate(-90 50 410)">max {height}</text>
 <line class="dim" x1="115" y1="700" x2="385" y2="700"/><text x="222" y="725" class="note">base {width}</text>
 <text x="630" y="130" font-size="21" font-weight="bold">LIFT STATES</text>

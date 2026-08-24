@@ -18,3 +18,15 @@ INT-016,battery-restraint-lower-chassis,0,impact_fixture_and_drop_test,pack cann
 INT-017,childboard-support-traction-childboard,0,CAD_mount_stack_plus_shock_test,lower posts contact tray datum and upper standoffs retain board without floating or shorting,NOT_EXECUTED
 INT-018,motor-bracket-lower-chassis,0,CAD_mount_datum_plus_torque_trial,each bracket base contacts chassis top and reaction fasteners remain accessible,NOT_EXECUTED
 INT-019,traction-motor-childboard,3,CAD_tolerance_stack_plus_harness_mockup,motor envelope and childboard remain separated across tolerance and service routing,NOT_EXECUTED
+INT-020,left_arm_base-right_arm_base,100,CAD_datum_and_supplier_envelope,base covers plates and installation tools remain separated,NOT_EXECUTED
+INT-021,left_arm_sweep-right_arm_sweep,50,CAD_sweep_plus_guarded_low_speed_test,no collision including tools payload calibration error and stop distance,NOT_EXECUTED
+INT-022,battery_ballast-two_arm_controllers,50,CAD_clearance_plus_service_trial,thermal separation and independent removal are maintained,NOT_EXECUTED
+INT-023,arm_cables-rear_and_riser_trays,120,full_joint_sweep_with_representative_harness,moving bend radius strain relief and no snag are maintained,NOT_EXECUTED
+INT-024,casters-toe_guard,20,CAD_envelope_plus_transport_sweep,no foot pinch or wheel obstruction through full swivel range,NOT_EXECUTED
+INT-025,leveling_feet-perimeter_bumper,0,CAD_support_polygon_plus_setup_trial,all pads deploy inside guarded outline and carry load before arm enable,NOT_EXECUTED
+INT-026,arm_mount_fasteners-upper_crossmembers,0,CAD_section_plus_torque_access_trial,all fasteners have tool access and reactions enter both local crossmembers,NOT_EXECUTED
+INT-027,moving_upper_frame-fixed_chassis,20,full_lift_stroke_CAD_plus_guarded_test,no contact outside guided column interfaces across skew and tolerance,NOT_EXECUTED
+INT-028,lift_columns-operator,0,pinch_shear_review_plus_guarded_full_stroke_test,bellows and fixed guards prevent access to hazardous motion,NOT_EXECUTED
+INT-029,lift_energy_chain-frame,25,full_stroke_harness_sweep,bend radius strain relief and protective bond remain valid at both limits,NOT_EXECUTED
+INT-030,deployable_outriggers-casters_and_operator,20,deployment_sweep_plus_setup_trial,no wheel obstruction foot pinch or unguarded shear point,NOT_EXECUTED
+INT-031,seven_axis_elbow_sweep-opposite_arm_and_lift_columns,50,fourteen_joint_CAD_sweep_plus_guarded_test,no collision including redundant-joint poses stop distance payload and tolerance,NOT_EXECUTED

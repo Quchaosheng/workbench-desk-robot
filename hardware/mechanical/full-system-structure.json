@@ -1,0 +1,131 @@
+{
+  "schema_version": 2,
+  "units": "mm",
+  "configuration_id": "DUAL_7DOF_LIFTING_WORKBENCH_REV_B",
+  "status": "ENGINEERING_BASELINE_PHYSICAL_AND_SUPPLIER_VALIDATION_REQUIRED",
+  "frame": {
+    "transport_envelope_mm": [1240, 840, 750],
+    "deployed_support_envelope_mm": [1320, 1040, 1100],
+    "parked_arm_envelope_at_max_lift_mm": [1320, 1200, 2450],
+    "deck_mm": [1200, 800, 20],
+    "deck_top_z_mm": 750,
+    "rail_profile_mm": [80, 40, 4],
+    "fixed_column_profile_mm": [100, 100, 6],
+    "moving_column_profile_mm": [80, 80, 5],
+    "lower_frame_center_z_mm": 180,
+    "upper_frame_center_z_mm": 700,
+    "column_centres_xy_mm": [[-520, -320], [-520, 320], [520, -320], [520, 320]],
+    "crossmember_y_mm": [-150, 150],
+    "material": "S355 rectangular hollow section; final weld procedure and section approval required",
+    "finish": "powder coat over zinc-rich primer; bonding lands masked",
+    "design_payload_kg": 250,
+    "physical_validation": "NOT_EXECUTED"
+  },
+  "lift": {
+    "architecture": "FOUR_GUIDED_COLUMNS_WITH_SYNCHRONIZED_SELF_LOCKING_SCREW_ACTUATORS",
+    "deck_top_min_z_mm": 750,
+    "deck_top_max_z_mm": 1100,
+    "stroke_mm": 350,
+    "model_position": "LOWER_LIMIT",
+    "minimum_actuator_static_rating_kg_each": 300,
+    "maximum_platform_speed_mm_s": 20,
+    "maximum_column_skew_mm": 2,
+    "mechanical_lock_positions_mm": [750, 850, 950, 1100],
+    "redundant_upper_and_lower_limit_switches": true,
+    "absolute_position_feedback_each_column": true,
+    "anti_drop_mechanical_locks_required": true,
+    "arms_stowed_and_disabled_during_lift": true,
+    "lift_enable_requires_feet_loaded": true,
+    "motion_enable_requires_locks_engaged": true,
+    "pinch_bellows_and_fixed_guards_required": true,
+    "dynamic_and_physical_validation": "NOT_EXECUTED"
+  },
+  "mobility": {
+    "transport_only_on_casters": true,
+    "caster_centres_xy_mm": [[-500, -300], [-500, 300], [500, -300], [500, 300]],
+    "caster_wheel_diameter_mm": 125,
+    "caster_overall_height_mm": 155,
+    "minimum_caster_rating_kg_each": 300,
+    "operating_support": "FOUR_DEPLOYABLE_LEVELING_OUTRIGGERS_REQUIRED_BEFORE_LIFT_OR_ARM_ENABLE",
+    "leveling_foot_centres_xy_mm": [[-600, -480], [-600, 480], [600, -480], [600, 480]],
+    "leveling_foot_pad_diameter_mm": 100,
+    "minimum_leveling_foot_rating_kg_each": 300,
+    "minimum_static_tip_angle_deg": 25,
+    "maximum_operating_floor_slope_deg": 3,
+    "transport_state": "PLATFORM_AT_LOWER_LIMIT_ARMS_STOWED_NO_PAYLOAD_POWER_DISABLED_OUTRIGGERS_RETRACTED"
+  },
+  "arm_mounts": {
+    "vendor_model": "7DOF_MEDIUM_COLLABORATIVE_ARM_TBD",
+    "joint_count": 7,
+    "quantity": 2,
+    "mounts": [
+      {"id": "left_arm", "base_xyz_mm": [-300, -150, 750], "yaw_deg": 20.6},
+      {"id": "right_arm", "base_xyz_mm": [300, -150, 750], "yaw_deg": 159.4}
+    ],
+    "plate_mm": [300, 300, 25],
+    "reserved_max_hole_pattern_span_mm": [180, 180],
+    "reserved_max_hole_diameter_mm": 14,
+    "minimum_reserved_edge_ligament_mm": 46,
+    "plate_material": "S355 steel; aluminium substitution requires joint and fatigue review",
+    "supplier_drawing_gate": "PLATES_REMAIN_UNDRILLED_UNTIL_PURCHASED_7DOF_ARM_DRAWING_IS_APPROVED",
+    "base_envelope_mm": [220, 220, 250],
+    "maximum_reach_mm": 1000,
+    "reserved_arm_mass_kg_each": 30,
+    "rated_payload_design_case_kg_each": 7,
+    "tool_envelope_mm": [200, 200, 300],
+    "mount_load_validation": "SUPPLIER_REACTION_LOADS_FEA_AND_PHYSICAL_PROOF_LOAD_NOT_EXECUTED"
+  },
+  "lower_bay": {
+    "battery_ballast_tray_mm": [520, 320, 40],
+    "battery_ballast_tray_xyz_mm": [0, 220, 205],
+    "battery_reserved_envelope_mm": [480, 280, 190],
+    "battery_reserved_xyz_mm": [0, 220, 320],
+    "controller_cabinets": [
+      {"id": "left_arm_controller", "envelope_mm": [400, 300, 500], "xyz_mm": [-315, -180, 430]},
+      {"id": "right_arm_controller", "envelope_mm": [400, 300, 500], "xyz_mm": [315, -180, 430]}
+    ],
+    "minimum_battery_to_controller_clearance_mm": 50,
+    "service_access_direction": "+Y",
+    "retention": "BOLTED_TRAY_PLUS_TWO_INDEPENDENT_PACK_STRAPS_TBD_AFTER_PACK_SELECTION"
+  },
+  "cable_management": {
+    "rear_tray_mm": [1040, 100, 80],
+    "rear_tray_xyz_mm": [0, 330, 660],
+    "arm_riser_tray_mm": [80, 100, 500],
+    "lift_energy_chain_reserved_envelope_mm": [120, 120, 500],
+    "minimum_power_signal_separation_mm": 50,
+    "minimum_fixed_bend_radius_mm": 75,
+    "minimum_moving_bend_radius_mm": 120,
+    "protective_bond_braid_slack_mm": 450,
+    "protective_bond_studs": [[-520, 320, 220], [520, 320, 220]],
+    "physical_sweep_validation": "NOT_EXECUTED"
+  },
+  "guards": {
+    "perimeter_bumper_mm": [1240, 840, 100],
+    "perimeter_bumper_center_z_mm": 125,
+    "toe_guard_height_mm": 120,
+    "pinch_guard_required_at_casters_and_outriggers": true,
+    "lift_column_bellows_required": true,
+    "arm_shared_volume_guarding": "SITE_RISK_ASSESSMENT_AND_SCANNER_LAYOUT_REQUIRED"
+  },
+  "service": {
+    "minimum_front_access_mm": 600,
+    "minimum_rear_access_mm": 700,
+    "minimum_side_access_mm": 600,
+    "arm_lift_points": 4,
+    "frame_lift_points": 4,
+    "deck_removal_direction": "+Z",
+    "controller_removal_direction": "+Y",
+    "battery_removal_direction": "+Y"
+  },
+  "release_blockers": [
+    "purchased 7-DOF arm base drawing mass reaction loads controller and mounting torque not approved",
+    "lifting-column actuator brake feedback limit switch lock and safety-controller MPNs not approved",
+    "frame lift structure weldment FEA fatigue buckling skew jam and proof-load tests not executed",
+    "caster leveling-foot and deployable-outrigger MPN load ratings not approved",
+    "battery pack restraint BMS and service disconnect not selected",
+    "arm controller cabinet dimensions ventilation and connector access not physically verified",
+    "dual-arm seven-joint swept-volume collision and stop-distance validation not executed",
+    "protective bonding continuity measured mass CG maximum-height stability and pull tests not executed"
+  ]
+}

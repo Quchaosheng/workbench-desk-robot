@@ -240,7 +240,7 @@
   "traction_integration": {
     "status": "TBD_ENVELOPES_ONLY_MOTOR_SELECTION_AND_PHYSICAL_VALIDATION_REQUIRED",
     "architecture_scope": "two_chassis_traction_motors_and_one_independent_driver_childboard",
-    "excluded_scope": "UR5e_joint_motors_remain_inside_vendor_controller_system",
+    "excluded_scope": "seven_axis_arm_joint_motors_remain_inside_vendor_controller_system",
     "motor_selection_status": "TBD_NOT_SELECTED_DO_NOT_ORDER",
     "reserved_motor_envelope_mm": [
       48,

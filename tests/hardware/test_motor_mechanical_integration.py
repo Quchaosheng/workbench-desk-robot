@@ -25,7 +25,7 @@ def test_traction_envelopes_are_symmetric_and_fail_closed() -> None:
     motors = traction["motor_envelopes"]
 
     assert traction["motor_selection_status"] == "TBD_NOT_SELECTED_DO_NOT_ORDER"
-    assert "UR5e" in traction["excluded_scope"]
+    assert "seven_axis_arm" in traction["excluded_scope"]
     assert {motor["side"] for motor in motors} == {"left", "right"}
     assert motors[0]["xyz"][0] == -motors[1]["xyz"][0]
     assert motors[0]["xyz"][1:] == motors[1]["xyz"][1:]
@@ -208,7 +208,7 @@ def test_generated_motor_and_childboard_envelopes_are_explicit_tbd_artifacts() -
 def test_mechanical_docs_keep_vendor_arm_and_physical_gates_explicit() -> None:
     readme = (ROOT / "hardware/mechanical/README.md").read_text(encoding="utf-8")
     integration = (ROOT / "hardware/mechanical/system-integration.md").read_text(encoding="utf-8")
-    assert "six UR5e joint motors" in readme
+    assert "fourteen joints" in readme
     assert "must not be ordered" in readme
     assert "vendor controller cabinet" in integration
     assert "not measured results" in integration

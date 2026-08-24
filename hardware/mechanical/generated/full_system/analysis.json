@@ -1,0 +1,93 @@
+{
+  "schema_version": 2,
+  "configuration_id": "DUAL_7DOF_LIFTING_WORKBENCH_REV_B",
+  "status": "ENGINEERING_BASELINE_PHYSICAL_AND_SUPPLIER_VALIDATION_REQUIRED",
+  "engineering_package_pass": true,
+  "checks": {
+    "two_arm_mounts_declared": true,
+    "arm_mounts_are_symmetric": true,
+    "arm_mounts_land_on_deck": true,
+    "seven_axis_arms_declared": true,
+    "arm_mount_reserved_edge_ligament_met": true,
+    "arm_bases_have_install_clearance": true,
+    "operating_support_is_not_casters": true,
+    "static_tip_angle_target_met_analytically": true,
+    "caster_rating_allocation_met": true,
+    "leveling_foot_rating_allocation_met": true,
+    "lift_stroke_is_consistent": true,
+    "lift_has_redundant_limits_feedback_and_locks": true,
+    "lift_and_arm_motion_are_interlocked": true,
+    "lift_actuator_static_allocation_met": true,
+    "battery_controller_clearance_met": true,
+    "power_signal_separation_is_defined": true,
+    "service_access_is_defined": true,
+    "mass_case_is_explicitly_unmeasured": true,
+    "supplier_and_physical_gates_remain_open": true
+  },
+  "mass_case": {
+    "mass_kg": 338.0,
+    "center_of_gravity_mm": [
+      0.0,
+      -31.4,
+      801.6
+    ],
+    "row_count": 13,
+    "all_rows_are_unmeasured_or_supplier_values": true
+  },
+  "support_polygon_mm": [
+    1200,
+    960
+  ],
+  "static_tip_angles_deg": {
+    "roll": 36.8,
+    "pitch": 29.2
+  },
+  "stability_case": "MAXIMUM_LIFT_ESTIMATED_MASS_AND_CG_NOT_MEASURED",
+  "arm_mount": {
+    "base_separation_mm": 600.0,
+    "hole_edge_ligaments_mm": [
+      53.0,
+      53.0
+    ],
+    "supplier_pattern_status": "PLATES_REMAIN_UNDRILLED_UNTIL_PURCHASED_7DOF_ARM_DRAWING_IS_APPROVED"
+  },
+  "load_allocations": {
+    "design_factor": 1.5,
+    "required_caster_rating_kg_each_two_caster_case": 253.5,
+    "specified_caster_rating_kg_each": 300,
+    "required_leveling_foot_rating_kg_each_three_foot_case": 169.0,
+    "specified_leveling_foot_rating_kg_each": 300,
+    "required_lift_actuator_rating_kg_each_three_actuator_case": 169.0,
+    "specified_lift_actuator_rating_kg_each": 300
+  },
+  "lift": {
+    "deck_top_range_mm": [
+      750,
+      1100
+    ],
+    "stroke_mm": 350,
+    "maximum_column_skew_mm": 2,
+    "mechanical_lock_positions_mm": [
+      750,
+      850,
+      950,
+      1100
+    ]
+  },
+  "battery_to_controller_clearances_mm": [
+    110.0,
+    110.0
+  ],
+  "release_blockers": [
+    "purchased 7-DOF arm base drawing mass reaction loads controller and mounting torque not approved",
+    "lifting-column actuator brake feedback limit switch lock and safety-controller MPNs not approved",
+    "frame lift structure weldment FEA fatigue buckling skew jam and proof-load tests not executed",
+    "caster leveling-foot and deployable-outrigger MPN load ratings not approved",
+    "battery pack restraint BMS and service disconnect not selected",
+    "arm controller cabinet dimensions ventilation and connector access not physically verified",
+    "dual-arm seven-joint swept-volume collision and stop-distance validation not executed",
+    "protective bonding continuity measured mass CG maximum-height stability and pull tests not executed"
+  ],
+  "note": "Digital geometry and load allocation are engineering screens only. The mass and CG use the maximum-lift design case. Vendor drawings, lift safety validation, FEA, proof load, stability, collision sweep, bonding, and physical fit remain release gates.",
+  "cad_exported": true
+}

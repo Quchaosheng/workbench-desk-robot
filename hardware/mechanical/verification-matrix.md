@@ -21,6 +21,13 @@
 | MECH17 | independent driver-childboard envelope, fixed support datums, removal and connector corridors | DIGITAL ENVELOPE/FIXED-DATUM PASS; FINAL OUTLINE/THERMAL/PHYSICAL FIT OPEN |
 | MECH18 | four wheel envelopes at controlled X-axis track, Y-axis wheelbase, lateral X axles, local chassis wheel-well cuts, shell/well clearance and ground contact | DIGITAL ENVELOPE/TOLERANCE ALLOCATION PASS; HUB/TYRE/BEARING/LOAD/SWEEP VALIDATION OPEN |
 | MECH19 | battery envelope, thermal clearances, support and impact-restraint reservation | DIGITAL CLEARANCE PASS; PACK/RESTRAINT/IMPACT VALIDATION OPEN |
+| MECH20 | 1200 x 800 dual-arm RHS chassis, fixed lower frame, four guided telescoping columns, moving upper frame, local crossmembers and deck | DIGITAL STRUCTURE COMPLETE; FEA/BUCKLING/WELD/PROOF-LOAD OPEN |
+| MECH21 | two undrilled 300 x 300 x 25 S355 arm plates at controlled +/-300 mm bases for purchased seven-axis arms | DIGITAL RESERVED-ZONE PASS; PURCHASED-REVISION PATTERN/LOAD/TORQUE OPEN |
+| MECH22 | four 300 kg transport casters and four deployable 300 kg leveling outriggers with independent ratings and support polygon | ANALYTICAL LOAD ALLOCATION PASS; MPN/LOCK/SETUP/STABILITY TEST OPEN |
+| MECH23 | separate controller bays, battery/ballast tray, rear/riser cable trays, bond studs and service directions | DIGITAL CLEARANCE PASS; PACK/CABINET/HARNESS/BOND VALIDATION OPEN |
+| MECH24 | full-system assembly STEP, structural/lift part STEP files, five supplier envelopes, BOM and assembly sequence | REPRODUCIBLE ENGINEERING PACKAGE; SUPPLIER AND PHYSICAL GATES OPEN |
+| MECH25 | conservative 338 kg maximum-lift case, 1200 x 960 support polygon and 36.8/29.2 degree static tip screen | ANALYTICAL PASS; MEASURED MASS/CG/MAX-HEIGHT PULL TEST OPEN |
+| MECH26 | 750-1100 mm four-column synchronized lift, redundant limits, per-column feedback, 2 mm skew limit, positive locks and arm/lift interlock contract | DIGITAL CONTROL/INTERFACE BASELINE; ACTUATOR SELECTION, FUNCTIONAL SAFETY, PROOF/JAM/ENDURANCE TESTS OPEN |
 | MECH20 | drivetrain concept pair map, explicit XYZ axes, lateral rolling-vector check, motor-to-rear-hub interface deltas and reaction-load path | INTERFACE/KINEMATIC BASELINE COMPLETE; SHAFT/HUB/TRANSMISSION/LOAD/PHYSICAL VALIDATION OPEN |
 
 ## Assembly and tolerance datums

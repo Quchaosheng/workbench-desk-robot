@@ -10,18 +10,41 @@ The traction addition is a controlled space reservation, not a selected motor
 design. It models two chassis traction motor envelopes, four wheel envelopes,
 and one independently replaceable driver-childboard envelope. Motor technology,
 MPN, shaft, mount, wheel/hub/tyre hardware, mass, loads, connector locations, board outline, and thermal solution remain
-`TBD` and must not be ordered from this package. The six UR5e joint motors remain
-inside the vendor arm/controller system and are outside this traction design.
+`TBD` and must not be ordered from this package. The fourteen joints in the two
+seven-axis arms remain inside their vendor arm/controller systems and are
+outside this traction design.
 
 ## Reproduce
 
 ```bash
 python hardware/mechanical/tools/generate_artifacts.py
+python hardware/mechanical/tools/generate_full_system.py
 ```
 
 The command validates clearances and writes the reports. When CadQuery 2.5 or
 newer is installed it also regenerates the solid STEP file; otherwise the checked-in
 STEP remains unchanged.
+
+The second command generates the load-bearing, height-adjustable full-size
+dual-seven-axis workbench.
+Its source is `full-system-structure.json`, with a separate conservative mass
+ledger in `full-system-mass-ledger.csv` and controlled datums in
+`full-system-interface-control.md`. This resolves the previous scale mismatch:
+the compact enclosure remains a subsystem, while the dual arms mount to a
+1200 x 800 mm structural frame at a 750 mm deck height.
+
+- `generated/full_system/full_system_assembly.step`: complete structural and
+  supplier-envelope assembly.
+- `generated/full_system/full_system_exploded.step`: separated service and
+  installation view.
+- `generated/full_system/parts/*.step`: welded frame, deck, two arm plates,
+  battery tray, cable management, casters, leveling feet, and bumper.
+- `generated/full_system/envelopes/*.step`: two vendor arm, two controller,
+  and battery/ballast reserved envelopes.
+- `generated/full_system/analysis.json`: mass/CG, support polygon, tip angles,
+  mount geometry, component separation, and load allocations.
+- `generated/full_system/drawings/general-arrangement.svg`: top/side interface
+  drawing; supplier envelopes remain visibly marked as TBD.
 
 - `generated/enclosure.step`: AP203 STEP envelope for supplier exchange.
 - `generated/desk_robot_assembly.step`: reproducible seventeen-solid assembly including eight named TBD envelopes and the childboard support.
@@ -106,3 +129,13 @@ evidence; the guarded wheel sweep and physical tolerance stack remain open.
 The 6.42 kg compact enclosure analysis is intentionally separate from the
 55 kg dual-arm workbench design case in `mass-ledger.csv`. Neither mass, CG,
 or stability result is a measured release result.
+
+The new full-system structural baseline supersedes the 55 kg planning case for
+mechanical sizing. Its conservative maximum-height ledger is 338 kg, including
+two 30 kg seven-axis arm allowances, two 7 kg payload cases, controllers,
+battery/ballast, fixed chassis, four-column lifting structure, deck, guards and
+harness allowance. The deck operates from 750 to 1100 mm only on four deployed
+leveling outriggers; lift motion disables both arms, and arm motion requires the
+platform mechanical locks to be proved engaged. The 55 kg ledger is retained only because
+the existing operations-readiness contract references that historical planning
+case; it must not be used to size the new frame, casters, feet or stability test.

@@ -1,14 +1,18 @@
-# 55 kg system mechanical integration
+# Full-system mechanical integration
 
 This document controls the issue 21 design case without replacing the existing
-6.42 kg enclosure model. The 55 kg value is the maximum configured system mass
-for the dual-arm workbench including base, arms, payload, battery, electronics,
-covers, and service accessories. It remains a planning case until a serialized
-prototype is weighed and its centre of gravity is measured.
+6.42 kg enclosure model. The original 55 kg ledger is retained as a historical
+operations-readiness planning contract, but it is not credible for structural
+sizing once two seven-axis arm allowances, both rated payload cases and both
+controller cabinets are included. `full-system-mass-ledger.csv` is the current
+maximum-lift mechanical design case: 338 kg estimated total mass and 801.6 mm
+estimated CG height. It
+remains unmeasured until a serialized prototype is weighed and its centre of
+gravity is measured.
 
 ## Mass and centre of gravity
 
-The mass ledger must sum to 55 kg or less and identify each item's measured or
+The current structural mass ledger must identify each item's measured or
 estimated mass and XYZ location in the common base frame. Calculate centre of
 gravity as `sum(mass * position) / sum(mass)` for each axis. Evaluate the worst
 combination of both arms, rated payloads, moving cables, open service panels,
@@ -40,13 +44,13 @@ volume. Collision-model edits require repeat review and regression evidence.
 1. Receive the base frame and verify datums, flatness, brake function, and labels.
 2. Install ballast/battery low in the base and record mass and mounting torque.
 3. Fit power distribution and protective bonding before covers restrict access.
-4. Mount left and right arm pedestals to controlled datums and record torque.
-5. Install arms with a rated lift aid; manual handling of the full arm is prohibited.
-6. Route energy chains with full-joint sweeps and strain-relief witness marks.
-7. Install compute, display, sensors, guards, and E-stop devices.
-8. Load configuration/calibration under the approved commissioning procedure.
-9. Execute bond, power-off motion, interference, stability, and guarded motion tests.
-10. Close covers, apply tamper marks, weigh the serialized unit, and sign traveller.
+4. Install four guided lift columns, actuators, brakes, redundant limits, position feedback, locks, bellows, and the moving upper frame.
+5. Prove synchronization, skew/jam detection, anti-drop locks, and emergency lowering before fitting arms.
+6. Mount the undrilled arm plates only after the purchased-arm interface drawing is approved.
+7. Install arms with a rated lift aid; manual handling of the full arm is prohibited.
+8. Route lift and arm energy chains with full-stroke/joint sweeps and strain-relief witness marks.
+9. Install compute, display, sensors, guards, and E-stop devices.
+10. Execute lift proof-load/single-fault tests, bond, maximum-height stability, and guarded 14-joint motion tests before signing the traveller.
 
 Assembly feasibility gates include tool access, captive hardware, connector
 keying, lift points, two-person operations, rework access, torque visibility,
@@ -54,11 +58,14 @@ and replacement of the battery and controllers without removing either arm.
 The supplier DFM review must close sharp-edge, pinch-point, tolerance-stack,
 service-clearance, coating-mask, weld distortion, and packaging restraints.
 
-Status: `PHYSICAL_VALIDATION_REQUIRED`. A 55 kg target is not a measured result;
+Status: `PHYSICAL_VALIDATION_REQUIRED`. Neither the historical 55 kg planning
+target nor the current 338 kg maximum-height structural design case is a measured result;
+each planning value is not a measured result and cannot close a physical gate.
 release needs the signed mass ledger, CG/stability report, dual-arm sweep log,
 assembly trial, and resolved DFM actions for the production revision.
 
-The estimate is recorded in `mass-ledger.csv`; `interference-checklist.csv`
+The current estimate is recorded in `full-system-mass-ledger.csv`; the legacy
+operations contract remains in `mass-ledger.csv`. `interference-checklist.csv`
 enumerates the CAD and guarded-test evidence still required.
 
 ## Chassis traction integration
@@ -72,8 +79,9 @@ thermal boundary remain `TBD_NOT_SELECTED`. The childboard final outline,
 connector faces, component height, retention hardware, mass, and cooling path
 also remain TBD.
 
-The two traction motors are distinct from the six UR5e joint motors. UR5e joints
-remain connected to and controlled by the vendor controller cabinet; this
+The two traction motors are distinct from the fourteen joints in the two
+seven-axis arms. Arm joints remain connected to and controlled by each vendor controller cabinet;
+this
 mechanical package does not create substitute motor, brake, gearbox, or arm-drive
 mounting provisions.
 

@@ -1,0 +1,4248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<export version="E">
+  <design>
+    <source>C:\Users\qucha\Documents\Codex\2026-08-18\pcb-48v-12v-jetson-12v-5a\work\workbench-desk-robot\hardware\pcb\kicad\controller.kicad_sch</source>
+    <date>2026-08-21T23:45:37</date>
+    <tool>Eeschema 10.0.5</tool>
+    <sheet number="1" name="/" tstamps="/">
+      <title_block>
+        <title>Workbench-1 controller EVT detailed schematic</title>
+        <company>Workbench-1</company>
+        <rev>EVT1-DESIGN-REVIEW</rev>
+        <date>2026-08-21</date>
+        <source>controller.kicad_sch</source>
+        <comment number="1" value="Component-level design candidate; do not order before signed AVL and safety review"/>
+        <comment number="2" value="Physical bring-up, thermal, EMC, DFM and safety validation remain external gates"/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+        <comment number="5" value=""/>
+        <comment number="6" value=""/>
+        <comment number="7" value=""/>
+        <comment number="8" value=""/>
+        <comment number="9" value=""/>
+      </title_block>
+    </sheet>
+  </design>
+  <components>
+    <comp ref="C1">
+      <value>1uF 100V</value>
+      <footprint>Capacitor_SMD:C_1210_3225Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_1210_3225Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>085d35c9-f86e-4f19-9df8-bfecac228421</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C2">
+      <value>10uF 100V</value>
+      <footprint>Capacitor_SMD:C_2220_5750Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_2220_5750Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>1696801d-a13c-4e66-86db-224aa359f123</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C3">
+      <value>470uF 25V</value>
+      <footprint>Capacitor_THT:CP_Radial_D12.5mm_P5.00mm</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_THT:CP_Radial_D12.5mm_P5.00mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>577a9443-1f06-46fd-ac54-fdd18140ac54</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C4">
+      <value>1uF 25V</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>d6d4659b-ffad-4348-8e28-e50742c76ebe</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C5">
+      <value>220uF 25V</value>
+      <footprint>Capacitor_THT:CP_Radial_D10.0mm_P5.00mm</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_THT:CP_Radial_D10.0mm_P5.00mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>1e1737c0-a9d4-4acb-a681-c45e4bca78ef</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C6">
+      <value>22uF 25V</value>
+      <footprint>Capacitor_SMD:C_1210_3225Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_1210_3225Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>1db1dd08-f97e-41b9-b511-47a324c850f1</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C7">
+      <value>47uF 10V</value>
+      <footprint>Capacitor_SMD:C_1210_3225Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_1210_3225Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0ce32c41-6714-45aa-848b-a97894cd4092</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C8">
+      <value>47uF 10V</value>
+      <footprint>Capacitor_SMD:C_1210_3225Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_1210_3225Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>3d6ade12-9f5f-4713-a4fb-f610f724568e</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C9">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>fa229f8d-5e08-477d-910b-4ab09c78b699</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C10">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0cc2e05d-b5cb-4357-9c78-1a76f145991a</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C11">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>c0538df4-b161-445f-8d4c-79d6f01669f1</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C12">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>43c0cdcc-80a6-4622-8ab3-a6081dc4165e</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C13">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>b845cf34-d832-456c-9eb6-71e3203c041a</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C14">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>022aa9f8-07e2-43e6-87b9-6a1f0810f186</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C15">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>f677992a-ef83-49ff-b025-8522a36f250f</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C16">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>2448a3fe-e067-4768-b124-9c38bb6dcec0</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C17">
+      <value>4.7uF</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>cf438748-6f7b-4446-95bb-bf9a09a7104a</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C18">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>1234662c-ebea-4565-91d5-964b4dc3b67d</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C19">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0ece341e-f43e-4ac3-af27-787dbd201ed3</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C20">
+      <value>1uF 10V</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>233eaefa-5e33-4c0d-810d-c8d8e31df864</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C40">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>d3b31d18-ad35-4f7d-b86b-90f17503bebe</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C41">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>50738a3e-e955-467e-9c9f-3b82d61b44f2</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C42">
+      <value>4.7uF</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>b1bf76fe-7514-43f6-ac8e-c749c10355b6</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C43">
+      <value>4.7uF</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>8fbc8825-4626-43c4-a11b-0e0a6ff9cb24</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C44">
+      <value>100nF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>29a991df-2a75-474c-9b14-1d2cebfc5ec7</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="CG1">
+      <value>4.7nF 100V</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>ec2a1216-a11c-4651-95b8-0a531dae2559</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="CSS4">
+      <value>22nF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>14daa13f-d006-4e7f-aa79-79838443cca6</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="CY1">
+      <value>18pF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>622d64db-1b8b-4c33-8fee-75ddf5d8064f</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="CY2">
+      <value>18pF</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAPACITOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>df4ad664-f117-4c52-8b8b-853770d77b95</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="D1">
+      <value>SMCJ58A</value>
+      <footprint>Diode_SMD:D_SMC</footprint>
+      <fields>
+        <field name="MPN">Littelfuse SMCJ58A</field>
+        <field name="Footprint">Diode_SMD:D_SMC</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="DIODE" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Littelfuse SMCJ58A"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>ea43a98d-aa2f-43d3-a1a2-bd497603cc3a</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="D2">
+      <value>CAN FD TVS</value>
+      <footprint>WB:CAN_TVS</footprint>
+      <fields>
+        <field name="MPN">Nexperia PESD2CANFD24V-T</field>
+        <field name="Footprint">WB:CAN_TVS</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAN_TVS" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Nexperia PESD2CANFD24V-T"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>fcadeda7-44b3-4310-9514-3646f37644cb</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="D3">
+      <value>FLYBACK</value>
+      <footprint>Diode_SMD:D_SOD-123</footprint>
+      <fields>
+        <field name="MPN">Diodes Inc. 1N4148W-7-F</field>
+        <field name="Footprint">Diode_SMD:D_SOD-123</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="DIODE" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Diodes Inc. 1N4148W-7-F"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>86cbe047-afc7-47d5-856b-f1949e92ba8e</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="D4">
+      <value>FLYBACK</value>
+      <footprint>Diode_SMD:D_SOD-123</footprint>
+      <fields>
+        <field name="MPN">Diodes Inc. 1N4148W-7-F</field>
+        <field name="Footprint">Diode_SMD:D_SOD-123</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="DIODE" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Diodes Inc. 1N4148W-7-F"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>d8ac2978-0a90-4de9-b55b-92141c90d395</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="F1">
+      <value>10A 125V</value>
+      <footprint>WB:Fuse_4510</footprint>
+      <fields>
+        <field name="MPN">Littelfuse 0451010.MRL</field>
+        <field name="Footprint">WB:Fuse_4510</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="FUSE" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Littelfuse 0451010.MRL"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>389b9d70-7fcb-49d3-8115-553c1e49d1ed</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="F2">
+      <value>PTC 0.25A</value>
+      <footprint>Fuse:Fuse_1206_3216Metric</footprint>
+      <fields>
+        <field name="MPN">Littelfuse 1206L025YR</field>
+        <field name="Footprint">Fuse:Fuse_1206_3216Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="FUSE" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Littelfuse 1206L025YR"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>e49a6a93-1a0d-4007-9e47-19a78ddc5e95</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J1">
+      <value>48V INPUT</value>
+      <footprint>WB:MicroFit_2x2</footprint>
+      <fields>
+        <field name="MPN">Molex 43045-0412</field>
+        <field name="Footprint">WB:MicroFit_2x2</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CONN_4" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Molex 43045-0412"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>42a7fe12-cc98-47b9-958e-27cf4a72778d</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J2">
+      <value>12V MOTOR AUX</value>
+      <footprint>WB:MicroFit_2x2</footprint>
+      <fields>
+        <field name="MPN">Molex 43045-0412</field>
+        <field name="Footprint">WB:MicroFit_2x2</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CONN_4" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Molex 43045-0412"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>a0cf133f-5eab-4dac-8ae3-b7604f759bce</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J3">
+      <value>JETSON DEVKIT 12V</value>
+      <footprint>WB:MicroFit_2x2</footprint>
+      <fields>
+        <field name="MPN">Molex 43045-0412</field>
+        <field name="Footprint">WB:MicroFit_2x2</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CONN_4" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Molex 43045-0412"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>c157845d-2f43-4c6c-8ac7-fc382036755c</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J4">
+      <value>JETSON MCU BACKPLANE</value>
+      <footprint>Connector_PinHeader_2.54mm:PinHeader_2x10_P2.54mm_Vertical</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Connector_PinHeader_2.54mm:PinHeader_2x10_P2.54mm_Vertical</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CONN_20" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>833e0b25-4a9e-4205-823a-4746bd535e92</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+            <pin num="5"/>
+            <pin num="6"/>
+            <pin num="7"/>
+            <pin num="8"/>
+            <pin num="9"/>
+            <pin num="10"/>
+            <pin num="11"/>
+            <pin num="12"/>
+            <pin num="13"/>
+            <pin num="14"/>
+            <pin num="15"/>
+            <pin num="16"/>
+            <pin num="17"/>
+            <pin num="18"/>
+            <pin num="19"/>
+            <pin num="20"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J5">
+      <value>CAN A</value>
+      <footprint>WB:MicroFit_2x2</footprint>
+      <fields>
+        <field name="MPN">Molex 43045-0412</field>
+        <field name="Footprint">WB:MicroFit_2x2</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CONN_4" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Molex 43045-0412"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>faf3610b-0cb4-4749-a06d-453649fa8eb5</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J6">
+      <value>CAN B</value>
+      <footprint>WB:MicroFit_2x2</footprint>
+      <fields>
+        <field name="MPN">Molex 43045-0412</field>
+        <field name="Footprint">WB:MicroFit_2x2</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CONN_4" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Molex 43045-0412"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>4085968c-c6fd-4102-b9b7-ac290d98d2ce</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J10">
+      <value>DUAL ESTOP LOOP</value>
+      <footprint>WB:MicroFit_2x2</footprint>
+      <fields>
+        <field name="MPN">Molex 43045-0412</field>
+        <field name="Footprint">WB:MicroFit_2x2</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CONN_4" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Molex 43045-0412"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>502dc658-9c34-42b4-928a-fb4b50976947</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J11">
+      <value>SAFETY OUTPUT</value>
+      <footprint>WB:MicroFit_2x2</footprint>
+      <fields>
+        <field name="MPN">Molex 43045-0412</field>
+        <field name="Footprint">WB:MicroFit_2x2</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CONN_4" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Molex 43045-0412"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>c119590f-4a41-46fc-92da-87acc7b723b0</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J12">
+      <value>DUAL MANUAL RESET</value>
+      <footprint>WB:MicroFit_2x2</footprint>
+      <fields>
+        <field name="MPN">Molex 43045-0412</field>
+        <field name="Footprint">WB:MicroFit_2x2</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CONN_4" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Molex 43045-0412"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>1d8258d4-c5c7-4c4d-88a9-d0b9265750dd</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J13">
+      <value>WCH DEBUG</value>
+      <footprint>Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CONN_4" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>e11139ed-25bd-4216-a8d2-d698c35146f3</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="JP1">
+      <value>CAN TERM</value>
+      <footprint>Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CONN_2" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>81cf5583-e74c-48d5-963d-31e04aae4490</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="K1">
+      <value>FORCE-GUIDED 12V A</value>
+      <footprint>WB:Panasonic_SFM4</footprint>
+      <description>Safety review and relay contact mapping confirmation required</description>
+      <fields>
+        <field name="MPN">Panasonic SFM4-DC12V</field>
+        <field name="Footprint">WB:Panasonic_SFM4</field>
+        <field name="Datasheet"/>
+        <field name="Description">Safety review and relay contact mapping confirmation required</field>
+      </fields>
+      <libsource lib="controller" part="SFM4_RELAY" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Panasonic SFM4-DC12V"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>419d8150-ccc5-44d8-bb69-dfd9a82e3955</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+            <pin num="5"/>
+            <pin num="6"/>
+            <pin num="7"/>
+            <pin num="8"/>
+            <pin num="9"/>
+            <pin num="10"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="K2">
+      <value>FORCE-GUIDED 12V B</value>
+      <footprint>WB:Panasonic_SFM4</footprint>
+      <description>Safety review and relay contact mapping confirmation required</description>
+      <fields>
+        <field name="MPN">Panasonic SFM4-DC12V</field>
+        <field name="Footprint">WB:Panasonic_SFM4</field>
+        <field name="Datasheet"/>
+        <field name="Description">Safety review and relay contact mapping confirmation required</field>
+      </fields>
+      <libsource lib="controller" part="SFM4_RELAY" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Panasonic SFM4-DC12V"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>e7ca7025-70e3-44bf-b799-db23a4850519</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+            <pin num="5"/>
+            <pin num="6"/>
+            <pin num="7"/>
+            <pin num="8"/>
+            <pin num="9"/>
+            <pin num="10"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="L1">
+      <value>100R@100MHz</value>
+      <footprint>WB:ACT45B</footprint>
+      <fields>
+        <field name="MPN">TDK ACT45B-101-2P-TL003</field>
+        <field name="Footprint">WB:ACT45B</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CAN_CMC" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="TDK ACT45B-101-2P-TL003"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>fc6a70b4-3489-49ad-bb78-f40f7a579075</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="4"/>
+            <pin num="3"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="Q1">
+      <value>150V N-MOS</value>
+      <footprint>Package_SON:Infineon_PG-TDSON-8_6.15x5.15mm</footprint>
+      <fields>
+        <field name="MPN">Infineon BSC093N15NS5ATMA1</field>
+        <field name="Footprint">Package_SON:Infineon_PG-TDSON-8_6.15x5.15mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="NMOS" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Infineon BSC093N15NS5ATMA1"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0a6300b8-58a5-41a2-b306-1a53ef823934</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="Q2">
+      <value>150V N-MOS</value>
+      <footprint>Package_SON:Infineon_PG-TDSON-8_6.15x5.15mm</footprint>
+      <fields>
+        <field name="MPN">Infineon BSC093N15NS5ATMA1</field>
+        <field name="Footprint">Package_SON:Infineon_PG-TDSON-8_6.15x5.15mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="NMOS" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Infineon BSC093N15NS5ATMA1"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>98302940-9aa3-485f-b12b-060152d8a515</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R30">
+      <value>33R</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>6c443038-944b-491b-97c8-0f8d2d8f0a2c</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R31">
+      <value>33R</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>d4d33f8a-a0ec-4456-ba5a-2b4d3ca10ac2</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R32">
+      <value>33R</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>ce789d6e-8298-4711-a630-68962b1819a6</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R33">
+      <value>33R</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>fea12736-ebfd-4304-8162-95d18d3a29e6</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R34">
+      <value>33R</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>725f4578-663c-4604-b273-a31fe6c97b53</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R35">
+      <value>33R</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>8a73f483-7ac7-450a-af70-150dbaa4abb7</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R36">
+      <value>33R</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>06670cc5-a586-4702-a353-f78ae8e48872</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R37">
+      <value>33R</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>1e4cf803-7310-4e84-bc82-bf50fcbadd36</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R38">
+      <value>33R</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>61f69968-1c7d-46b1-be88-91b6bd5b733d</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R39">
+      <value>33R</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>07b9827f-db5a-4899-b463-7ed4b9e49870</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R40">
+      <value>33R</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>093e1b79-c3d9-44cc-a272-87e49c5bbc0c</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R41">
+      <value>33R</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>15419ce3-1ec0-4977-89f2-bb8adf6e8769</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R42">
+      <value>33R</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>59b6703b-58ca-4257-a727-d6807d534848</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R43">
+      <value>100k</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>dded6cbc-b716-4631-8016-41543a0d9209</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R44">
+      <value>100k</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>54d76ac6-d16a-48de-9d9f-4c82777ce39b</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R45">
+      <value>100k</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>e58cf203-d39c-41f5-8758-772aba6b746d</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R46">
+      <value>100k</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>87e88cb7-8925-4d3a-aa11-083d4e73342c</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R47">
+      <value>10k</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>8eec9489-9fe9-4bda-95a4-f37bbb6682b2</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R48">
+      <value>3.00k 1%</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>740b74ba-08ba-4544-9b1e-45c6d8806d63</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R49">
+      <value>10k</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>674e9e59-b75c-4538-b8c5-e2d1c20d2286</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R50">
+      <value>10k</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>9987ff8e-9f85-44bc-b11c-5929276a4150</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R51">
+      <value>10k</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>69348d20-d84b-4397-95ab-58c978181463</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R52">
+      <value>4.7k</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>d23557bc-f19d-4078-ac6f-ae43cf74bd37</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R53">
+      <value>4.7k</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>dd9f2f76-bb53-474d-8173-f803b5474f2d</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R54">
+      <value>10k</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>1a30d262-edc5-40d4-9eab-be5be1d6ab3d</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R55">
+      <value>4.7k</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>107a7f87-3e02-426c-8278-dd07cb3f63a3</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R56">
+      <value>4.7k</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>831db07f-c0dc-472f-be18-5ef5459286d3</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R57">
+      <value>100k</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>c00eff4b-7d10-40e3-af28-438c3d7b1e2e</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R58">
+      <value>120R 1%</value>
+      <footprint>Resistor_SMD:R_1206_3216Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_1206_3216Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>43de8aec-d44f-408d-91fc-c3224c579094</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R59">
+      <value>73.2k 1%</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0ba926a2-c6ca-491f-b8d7-791bfa86932d</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R60">
+      <value>10.0k 1%</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>19a29456-4a6a-4b06-81ad-fe1dc187f00b</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="RFB1">
+      <value>45.0k 1%</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>ef097d88-ce2b-428a-ae6f-8161e4f9d161</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="RFB2">
+      <value>10.0k 1%</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>96fe8c4c-dd3d-4cac-81a1-311e40e905f1</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="RG1">
+      <value>22k</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>1d6af74f-287a-48be-acb0-422c9b46099e</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="RPG1">
+      <value>453k 1%</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>f7f9ce4b-0143-4b08-93c4-fc847c4c5c4d</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="RPG2">
+      <value>56.0k 1%</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>f1accffd-bb16-493c-bd61-276074a14a2d</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="RPG3">
+      <value>10k</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>cfd7c748-2192-4654-8556-00625df46d34</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="RS1">
+      <value>6mR 3W 1%</value>
+      <footprint>WB:Sense_3637</footprint>
+      <fields>
+        <field name="MPN">Vishay WSL3637R0060FEA</field>
+        <field name="Footprint">WB:Sense_3637</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Vishay WSL3637R0060FEA"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0648341f-6bbe-47c9-9646-054434db8bd1</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="RSH1">
+      <value>510k</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>22e3c212-808d-4b4b-bf32-2eb79e265760</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="RUV1">
+      <value>19.6M 1%</value>
+      <footprint>Resistor_SMD:R_1206_3216Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_1206_3216Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>5a715f56-1f00-4614-a3b5-5f2c6a037891</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="RUV2">
+      <value>133k 1%</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0dd7c1a6-36ff-4420-999e-efe93d6a0e24</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="RUV3">
+      <value>162k 1%</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RESISTOR" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>cbf98880-79f7-47f2-a1ca-dcb58baa5108</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP1">
+      <value>VBAT_PROTECTED</value>
+      <footprint>TestPoint:TestPoint_Pad_D1.5mm</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">TestPoint:TestPoint_Pad_D1.5mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="TESTPOINT" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>4005dd93-3605-4ca3-b739-0370cac04632</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP2">
+      <value>12V_ISO</value>
+      <footprint>TestPoint:TestPoint_Pad_D1.5mm</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">TestPoint:TestPoint_Pad_D1.5mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="TESTPOINT" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>6cd1faf4-6227-4c01-a99d-341fe23cf543</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP3">
+      <value>JETSON_12V</value>
+      <footprint>TestPoint:TestPoint_Pad_D1.5mm</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">TestPoint:TestPoint_Pad_D1.5mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="TESTPOINT" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>f4e0e390-2329-4203-b37b-843a813b8259</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP4">
+      <value>3V3_LOGIC</value>
+      <footprint>TestPoint:TestPoint_Pad_D1.5mm</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">TestPoint:TestPoint_Pad_D1.5mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="TESTPOINT" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>601fe23d-ca79-4fd0-b464-cd1f1f239011</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP5">
+      <value>GND</value>
+      <footprint>TestPoint:TestPoint_Pad_D1.5mm</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">TestPoint:TestPoint_Pad_D1.5mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="TESTPOINT" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>74d4eafc-1e1d-4a46-b9db-b4189adf2a49</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP6">
+      <value>CANH</value>
+      <footprint>TestPoint:TestPoint_Pad_D1.5mm</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">TestPoint:TestPoint_Pad_D1.5mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="TESTPOINT" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>90f83f35-7313-44e3-b956-a09991c1afd0</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP7">
+      <value>CANL</value>
+      <footprint>TestPoint:TestPoint_Pad_D1.5mm</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">TestPoint:TestPoint_Pad_D1.5mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="TESTPOINT" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>e2a3b850-1ac0-4569-a20e-62add56383ac</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP8">
+      <value>MCU_RESET</value>
+      <footprint>TestPoint:TestPoint_Pad_D1.5mm</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="Footprint">TestPoint:TestPoint_Pad_D1.5mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="TESTPOINT" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value=""/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>2969636c-d313-4979-8902-3eae1f73b099</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="U1">
+      <value>LTC4368HMS-2</value>
+      <footprint>Package_SO:MSOP-10_3x3mm_P0.5mm</footprint>
+      <datasheet>LTC4368 Rev C</datasheet>
+      <fields>
+        <field name="MPN">LTC4368HMS-2#PBF</field>
+        <field name="Footprint">Package_SO:MSOP-10_3x3mm_P0.5mm</field>
+        <field name="Datasheet">LTC4368 Rev C</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="LTC4368" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="LTC4368HMS-2#PBF"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>04585795-0324-4419-8c4b-e54effacb288</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+            <pin num="5"/>
+            <pin num="10"/>
+            <pin num="9"/>
+            <pin num="8"/>
+            <pin num="7"/>
+            <pin num="6"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="U2">
+      <value>ISOLATED 48V-12V 240W (TBD)</value>
+      <footprint>WB:Isolated_48V_12V_240W_TBD</footprint>
+      <description>No compatible orderable MPN is frozen; generic 9-pin through-hole land pattern is a layout placeholder only</description>
+      <fields>
+        <field name="MPN">TBD_36_60V_TO_12V_240W_ISOLATED</field>
+        <field name="Footprint">WB:Isolated_48V_12V_240W_TBD</field>
+        <field name="Datasheet"/>
+        <field name="Description">No compatible orderable MPN is frozen; generic 9-pin through-hole land pattern is a layout placeholder only</field>
+      </fields>
+      <libsource lib="controller" part="ISOLATED_DC_DC_TBD" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="TBD_36_60V_TO_12V_240W_ISOLATED"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>126407d8-5915-4bef-8101-096e78d5ebd2</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="7"/>
+            <pin num="8"/>
+            <pin num="4"/>
+            <pin num="5"/>
+            <pin num="6"/>
+            <pin num="9"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="U3">
+      <value>TPS26633RGE</value>
+      <footprint>WB:TPS26633_RGE24</footprint>
+      <datasheet>SLVSE94G</datasheet>
+      <fields>
+        <field name="MPN">Texas Instruments TPS26633RGER</field>
+        <field name="Footprint">WB:TPS26633_RGE24</field>
+        <field name="Datasheet">SLVSE94G</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="TPS26633RGE" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Texas Instruments TPS26633RGER"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>40ef25df-8346-4902-98e9-f880da2f76e5</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+            <pin num="5"/>
+            <pin num="6"/>
+            <pin num="7"/>
+            <pin num="8"/>
+            <pin num="9"/>
+            <pin num="10"/>
+            <pin num="11"/>
+            <pin num="12"/>
+            <pin num="13"/>
+            <pin num="14"/>
+            <pin num="15"/>
+            <pin num="16"/>
+            <pin num="17"/>
+            <pin num="18"/>
+            <pin num="19"/>
+            <pin num="20"/>
+            <pin num="21"/>
+            <pin num="22"/>
+            <pin num="23"/>
+            <pin num="24"/>
+            <pin num="25"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="U4">
+      <value>RPL-5.0 3V3/5A</value>
+      <footprint>WB:RPL-5.0_QFN24</footprint>
+      <datasheet>RPL-5.0 Rev 2-2025</datasheet>
+      <fields>
+        <field name="MPN">RECOM RPL-5.0-R</field>
+        <field name="Footprint">WB:RPL-5.0_QFN24</field>
+        <field name="Datasheet">RPL-5.0 Rev 2-2025</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="RPL_5_0" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="RECOM RPL-5.0-R"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>09697997-775b-466c-9d90-3f1b77a5bd12</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+            <pin num="5"/>
+            <pin num="6"/>
+            <pin num="7"/>
+            <pin num="8"/>
+            <pin num="9"/>
+            <pin num="10"/>
+            <pin num="11"/>
+            <pin num="12"/>
+            <pin num="13"/>
+            <pin num="14"/>
+            <pin num="15"/>
+            <pin num="16"/>
+            <pin num="17"/>
+            <pin num="18"/>
+            <pin num="19"/>
+            <pin num="20"/>
+            <pin num="21"/>
+            <pin num="22"/>
+            <pin num="23"/>
+            <pin num="24"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="U5">
+      <value>CH32V307VCT6</value>
+      <footprint>Package_QFP:LQFP-100_14x14mm_P0.5mm</footprint>
+      <fields>
+        <field name="MPN">WCH CH32V307VCT6</field>
+        <field name="Footprint">Package_QFP:LQFP-100_14x14mm_P0.5mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CH32V307VCT6" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="WCH CH32V307VCT6"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>07afb886-c4a5-4369-90f1-50694d05dfc3</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+            <pin num="5"/>
+            <pin num="6"/>
+            <pin num="7"/>
+            <pin num="8"/>
+            <pin num="9"/>
+            <pin num="10"/>
+            <pin num="11"/>
+            <pin num="12"/>
+            <pin num="13"/>
+            <pin num="14"/>
+            <pin num="15"/>
+            <pin num="16"/>
+            <pin num="17"/>
+            <pin num="18"/>
+            <pin num="19"/>
+            <pin num="20"/>
+            <pin num="21"/>
+            <pin num="22"/>
+            <pin num="23"/>
+            <pin num="24"/>
+            <pin num="25"/>
+            <pin num="26"/>
+            <pin num="27"/>
+            <pin num="28"/>
+            <pin num="29"/>
+            <pin num="30"/>
+            <pin num="31"/>
+            <pin num="32"/>
+            <pin num="33"/>
+            <pin num="34"/>
+            <pin num="35"/>
+            <pin num="36"/>
+            <pin num="37"/>
+            <pin num="38"/>
+            <pin num="39"/>
+            <pin num="40"/>
+            <pin num="41"/>
+            <pin num="42"/>
+            <pin num="43"/>
+            <pin num="44"/>
+            <pin num="45"/>
+            <pin num="46"/>
+            <pin num="47"/>
+            <pin num="48"/>
+            <pin num="49"/>
+            <pin num="50"/>
+            <pin num="51"/>
+            <pin num="52"/>
+            <pin num="53"/>
+            <pin num="54"/>
+            <pin num="55"/>
+            <pin num="56"/>
+            <pin num="57"/>
+            <pin num="58"/>
+            <pin num="59"/>
+            <pin num="60"/>
+            <pin num="61"/>
+            <pin num="62"/>
+            <pin num="63"/>
+            <pin num="64"/>
+            <pin num="65"/>
+            <pin num="66"/>
+            <pin num="67"/>
+            <pin num="68"/>
+            <pin num="69"/>
+            <pin num="70"/>
+            <pin num="71"/>
+            <pin num="72"/>
+            <pin num="73"/>
+            <pin num="74"/>
+            <pin num="75"/>
+            <pin num="76"/>
+            <pin num="77"/>
+            <pin num="78"/>
+            <pin num="79"/>
+            <pin num="80"/>
+            <pin num="81"/>
+            <pin num="82"/>
+            <pin num="83"/>
+            <pin num="84"/>
+            <pin num="85"/>
+            <pin num="86"/>
+            <pin num="87"/>
+            <pin num="88"/>
+            <pin num="89"/>
+            <pin num="90"/>
+            <pin num="91"/>
+            <pin num="92"/>
+            <pin num="93"/>
+            <pin num="94"/>
+            <pin num="95"/>
+            <pin num="96"/>
+            <pin num="97"/>
+            <pin num="98"/>
+            <pin num="99"/>
+            <pin num="100"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="U6">
+      <value>ISO1042DW</value>
+      <footprint>WB:ISO1042_DW16_HV</footprint>
+      <datasheet>SLLSF09F</datasheet>
+      <fields>
+        <field name="MPN">Texas Instruments ISO1042DWR</field>
+        <field name="Footprint">WB:ISO1042_DW16_HV</field>
+        <field name="Datasheet">SLLSF09F</field>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="ISO1042DW" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Texas Instruments ISO1042DWR"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>71763854-7336-4266-b403-52b0f6f19b69</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+            <pin num="5"/>
+            <pin num="6"/>
+            <pin num="7"/>
+            <pin num="8"/>
+            <pin num="16"/>
+            <pin num="15"/>
+            <pin num="14"/>
+            <pin num="13"/>
+            <pin num="12"/>
+            <pin num="11"/>
+            <pin num="10"/>
+            <pin num="9"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="U7">
+      <value>3V3-5V ISO 1W</value>
+      <footprint>Converter_DCDC:Converter_DCDC_muRata_MEJ1SxxxxSC_THT</footprint>
+      <fields>
+        <field name="MPN">Murata MEJ1S0305SC</field>
+        <field name="Footprint">Converter_DCDC:Converter_DCDC_muRata_MEJ1SxxxxSC_THT</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="MEJ1S0305SC" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Murata MEJ1S0305SC"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>1c45882d-0efb-4104-ae8c-685e414245a7</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="7"/>
+            <pin num="5"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="U8">
+      <value>ESTOP DIAGNOSTIC OPTO</value>
+      <footprint>Package_SO:SOIC-16W_7.5x10.3mm_P1.27mm</footprint>
+      <fields>
+        <field name="MPN">Toshiba TLP293-4(GB,E)</field>
+        <field name="Footprint">Package_SO:SOIC-16W_7.5x10.3mm_P1.27mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="TLP293_4" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Toshiba TLP293-4(GB,E)"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>7f35cb8b-b003-46c6-aa82-61a4fcd81418</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+            <pin num="5"/>
+            <pin num="6"/>
+            <pin num="7"/>
+            <pin num="8"/>
+            <pin num="16"/>
+            <pin num="15"/>
+            <pin num="14"/>
+            <pin num="13"/>
+            <pin num="12"/>
+            <pin num="11"/>
+            <pin num="10"/>
+            <pin num="9"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="Y1">
+      <value>8MHz</value>
+      <footprint>Crystal:Crystal_SMD_3225-4Pin_3.2x2.5mm</footprint>
+      <fields>
+        <field name="MPN">Abracon ABM8-8.000MHZ-B2-T</field>
+        <field name="Footprint">Crystal:Crystal_SMD_3225-4Pin_3.2x2.5mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="controller" part="CRYSTAL" description="Workbench-1 controlled symbol"/>
+      <property name="MPN" value="Abracon ABM8-8.000MHZ-B2-T"/>
+      <property name="Sheetname" value="controller"/>
+      <property name="Sheetfile" value="controller.kicad_sch"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>e84f93be-efab-4cba-a919-600f6560f7a7</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+  </components>
+  <libparts>
+    <libpart lib="controller" part="CAN_CMC">
+      <description>Workbench-1 controlled symbol</description>
+      <fields>
+        <field name="Reference">L</field>
+        <field name="Value">CAN_CMC</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Workbench-1 controlled symbol</field>
+      </fields>
+      <pins>
+        <pin num="1" name="CANH_IN" type="passive"/>
+        <pin num="2" name="CANL_IN" type="passive"/>
+        <pin num="3" name="CANL_OUT" type="passive"/>
+        <pin num="4" name="CANH_OUT" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="controller" part="CAN_TVS">
+      <description>Workbench-1 controlled symbol</description>
+      <fields>
+        <field name="Reference">D</field>
+        <field name="Value">CAN_TVS</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Workbench-1 controlled symbol</field>
+      </fields>
+      <pins>
+        <pin num="1" name="CANH" type="passive"/>
+        <pin num="2" name="CANL" type="passive"/>
+        <pin num="3" name="GND" type="passive"/>
+        <pin num="4" name="GND" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="controller" part="CAPACITOR">
+      <description>Workbench-1 controlled symbol</description>
+      <fields>
+        <field name="Reference">C</field>
+        <field name="Value">CAPACITOR</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Workbench-1 controlled symbol</field>
+      </fields>
+      <pins>
+        <pin num="1" name="+" type="passive"/>
+        <pin num="2" name="-" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="controller" part="CH32V307VCT6">
+      <description>Workbench-1 controlled symbol</description>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">CH32V307VCT6</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Workbench-1 controlled symbol</field>
+      </fields>
+      <pins>
+        <pin num="1" name="PE2" type="passive"/>
+        <pin num="2" name="PE3" type="passive"/>
+        <pin num="3" name="PE4" type="passive"/>
+        <pin num="4" name="PE5" type="passive"/>
+        <pin num="5" name="PE6" type="passive"/>
+        <pin num="6" name="VBAT" type="passive"/>
+        <pin num="7" name="PC13" type="passive"/>
+        <pin num="8" name="PC14" type="passive"/>
+        <pin num="9" name="PC15" type="passive"/>
+        <pin num="10" name="VSS" type="passive"/>
+        <pin num="11" name="VDD" type="passive"/>
+        <pin num="12" name="OSC_IN" type="passive"/>
+        <pin num="13" name="OSC_OUT" type="passive"/>
+        <pin num="14" name="NRST" type="passive"/>
+        <pin num="15" name="PC0" type="passive"/>
+        <pin num="16" name="PC1" type="passive"/>
+        <pin num="17" name="PC2" type="passive"/>
+        <pin num="18" name="PC3" type="passive"/>
+        <pin num="19" name="VSSA" type="passive"/>
+        <pin num="20" name="VREF-" type="passive"/>
+        <pin num="21" name="VREF+" type="passive"/>
+        <pin num="22" name="VDDA" type="passive"/>
+        <pin num="23" name="PA0" type="passive"/>
+        <pin num="24" name="PA1" type="passive"/>
+        <pin num="25" name="PA2" type="passive"/>
+        <pin num="26" name="PA3" type="passive"/>
+        <pin num="27" name="VSS" type="passive"/>
+        <pin num="28" name="VDD" type="passive"/>
+        <pin num="29" name="PA4" type="passive"/>
+        <pin num="30" name="PA5/SPI1_SCK" type="passive"/>
+        <pin num="31" name="PA6/SPI1_MISO" type="passive"/>
+        <pin num="32" name="PA7/SPI1_MOSI" type="passive"/>
+        <pin num="33" name="PC4" type="passive"/>
+        <pin num="34" name="PC5" type="passive"/>
+        <pin num="35" name="PB0" type="passive"/>
+        <pin num="36" name="PB1" type="passive"/>
+        <pin num="37" name="PB2" type="passive"/>
+        <pin num="38" name="PE7" type="passive"/>
+        <pin num="39" name="PE8" type="passive"/>
+        <pin num="40" name="PE9" type="passive"/>
+        <pin num="41" name="PE10" type="passive"/>
+        <pin num="42" name="PE11" type="passive"/>
+        <pin num="43" name="PE12" type="passive"/>
+        <pin num="44" name="PE13" type="passive"/>
+        <pin num="45" name="PE14" type="passive"/>
+        <pin num="46" name="PE15" type="passive"/>
+        <pin num="47" name="PB10" type="passive"/>
+        <pin num="48" name="PB11" type="passive"/>
+        <pin num="49" name="VSS" type="passive"/>
+        <pin num="50" name="VIO" type="passive"/>
+        <pin num="51" name="PB12" type="passive"/>
+        <pin num="52" name="PB13" type="passive"/>
+        <pin num="53" name="PB14" type="passive"/>
+        <pin num="54" name="PB15" type="passive"/>
+        <pin num="55" name="PD8" type="passive"/>
+        <pin num="56" name="PD9" type="passive"/>
+        <pin num="57" name="PD10" type="passive"/>
+        <pin num="58" name="PD11" type="passive"/>
+        <pin num="59" name="PD12" type="passive"/>
+        <pin num="60" name="PD13" type="passive"/>
+        <pin num="61" name="PD14" type="passive"/>
+        <pin num="62" name="PD15" type="passive"/>
+        <pin num="63" name="PC6" type="passive"/>
+        <pin num="64" name="PC7" type="passive"/>
+        <pin num="65" name="PC8" type="passive"/>
+        <pin num="66" name="PC9" type="passive"/>
+        <pin num="67" name="PA8" type="passive"/>
+        <pin num="68" name="PA9/USART1_TX" type="passive"/>
+        <pin num="69" name="PA10/USART1_RX" type="passive"/>
+        <pin num="70" name="PA11" type="passive"/>
+        <pin num="71" name="PA12" type="passive"/>
+        <pin num="72" name="SWDIO" type="passive"/>
+        <pin num="73" name="NC" type="passive"/>
+        <pin num="74" name="VSS" type="passive"/>
+        <pin num="75" name="VDD" type="passive"/>
+        <pin num="76" name="SWCLK" type="passive"/>
+        <pin num="77" name="PA15" type="passive"/>
+        <pin num="78" name="PC10" type="passive"/>
+        <pin num="79" name="PC11" type="passive"/>
+        <pin num="80" name="PC12" type="passive"/>
+        <pin num="81" name="PD0/CAN1_RX" type="passive"/>
+        <pin num="82" name="PD1/CAN1_TX" type="passive"/>
+        <pin num="83" name="PD2" type="passive"/>
+        <pin num="84" name="PD3" type="passive"/>
+        <pin num="85" name="PD4" type="passive"/>
+        <pin num="86" name="PD5" type="passive"/>
+        <pin num="87" name="PD6" type="passive"/>
+        <pin num="88" name="PD7" type="passive"/>
+        <pin num="89" name="PB3" type="passive"/>
+        <pin num="90" name="PB4" type="passive"/>
+        <pin num="91" name="PB5" type="passive"/>
+        <pin num="92" name="PB6/I2C1_SCL" type="passive"/>
+        <pin num="93" name="PB7/I2C1_SDA" type="passive"/>
+        <pin num="94" name="BOOT0" type="passive"/>
+        <pin num="95" name="PB8" type="passive"/>
+        <pin num="96" name="PB9" type="passive"/>
+        <pin num="97" name="PE0" type="passive"/>
+        <pin num="98" name="PE1" type="passive"/>
+        <pin num="99" name="VSS" type="passive"/>
+        <pin num="100" name="VIO" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="controller" part="CONN_2">
+      <description>Workbench-1 controlled symbol</description>
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">CONN_2</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Workbench-1 controlled symbol</field>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="controller" part="CONN_20">
+      <description>Workbench-1 controlled symbol</description>
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">CONN_20</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Workbench-1 controlled symbol</field>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+        <pin num="3" name="3" type="passive"/>
+        <pin num="4" name="4" type="passive"/>
+        <pin num="5" name="5" type="passive"/>
+        <pin num="6" name="6" type="passive"/>
+        <pin num="7" name="7" type="passive"/>
+        <pin num="8" name="8" type="passive"/>
+        <pin num="9" name="9" type="passive"/>
+        <pin num="10" name="10" type="passive"/>
+        <pin num="11" name="11" type="passive"/>
+        <pin num="12" name="12" type="passive"/>
+        <pin num="13" name="13" type="passive"/>
+        <pin num="14" name="14" type="passive"/>
+        <pin num="15" name="15" type="passive"/>
+        <pin num="16" name="16" type="passive"/>
+        <pin num="17" name="17" type="passive"/>
+        <pin num="18" name="18" type="passive"/>
+        <pin num="19" name="19" type="passive"/>
+        <pin num="20" name="20" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="controller" part="CONN_4">
+      <description>Workbench-1 controlled symbol</description>
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">CONN_4</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Workbench-1 controlled symbol</field>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+        <pin num="3" name="3" type="passive"/>
+        <pin num="4" name="4" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="controller" part="CRYSTAL">
+      <description>Workbench-1 controlled symbol</description>
+      <fields>
+        <field name="Reference">Y</field>
+        <field name="Value">CRYSTAL</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Workbench-1 controlled symbol</field>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="controller" part="DIODE">
+      <description>Workbench-1 controlled symbol</description>
+      <fields>
+        <field name="Reference">D</field>
+        <field name="Value">DIODE</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Workbench-1 controlled symbol</field>
+      </fields>
+      <pins>
+        <pin num="1" name="K" type="passive"/>
+        <pin num="2" name="A" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="controller" part="FUSE">
+      <description>Workbench-1 controlled symbol</description>
+      <fields>
+        <field name="Reference">F</field>
+        <field name="Value">FUSE</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Workbench-1 controlled symbol</field>
+      </fields>
+      <pins>
+        <pin num="1" name="IN" type="passive"/>
+        <pin num="2" name="OUT" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="controller" part="ISO1042DW">
+      <description>Workbench-1 controlled symbol</description>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">ISO1042DW</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Workbench-1 controlled symbol</field>
+      </fields>
+      <pins>
+        <pin num="1" name="VCC1" type="passive"/>
+        <pin num="2" name="GND1" type="passive"/>
+        <pin num="3" name="TXD" type="passive"/>
+        <pin num="4" name="NC" type="passive"/>
+        <pin num="5" name="RXD" type="passive"/>
+        <pin num="6" name="NC" type="passive"/>
+        <pin num="7" name="NC" type="passive"/>
+        <pin num="8" name="GND1" type="passive"/>
+        <pin num="9" name="GND2" type="passive"/>
+        <pin num="10" name="GND2" type="passive"/>
+        <pin num="11" name="VCC2" type="passive"/>
+        <pin num="12" name="CANL" type="passive"/>
+        <pin num="13" name="CANH" type="passive"/>
+        <pin num="14" name="NC" type="passive"/>
+        <pin num="15" name="GND2" type="passive"/>
+        <pin num="16" name="VCC2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="controller" part="ISOLATED_DC_DC_TBD">
+      <description>Workbench-1 controlled symbol</description>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">ISOLATED_DC_DC_TBD</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Workbench-1 controlled symbol</field>
+      </fields>
+      <pins>
+        <pin num="1" name="+IN" type="passive"/>
+        <pin num="2" name="-IN" type="passive"/>
+        <pin num="3" name="ENABLE" type="passive"/>
+        <pin num="4" name="+OUT" type="passive"/>
+        <pin num="5" name="-OUT" type="passive"/>
+        <pin num="6" name="TRIM" type="passive"/>
+        <pin num="7" name="AUX1" type="passive"/>
+        <pin num="8" name="AUX2" type="passive"/>
+        <pin num="9" name="AUX3" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="controller" part="LTC4368">
+      <description>Workbench-1 controlled symbol</description>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">LTC4368</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Workbench-1 controlled symbol</field>
+      </fields>
+      <pins>
+        <pin num="1" name="GND" type="passive"/>
+        <pin num="2" name="RETRY" type="passive"/>
+        <pin num="3" name="OV" type="passive"/>
+        <pin num="4" name="UV" type="passive"/>
+        <pin num="5" name="VIN" type="passive"/>
+        <pin num="6" name="SHDN" type="passive"/>
+        <pin num="7" name="FAULT" type="passive"/>
+        <pin num="8" name="VOUT" type="passive"/>
+        <pin num="9" name="SENSE" type="passive"/>
+        <pin num="10" name="GATE" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="controller" part="MEJ1S0305SC">
+      <description>Workbench-1 controlled symbol</description>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">MEJ1S0305SC</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Workbench-1 controlled symbol</field>
+      </fields>
+      <pins>
+        <pin num="1" name="+VIN" type="passive"/>
+        <pin num="2" name="-VIN" type="passive"/>
+        <pin num="5" name="-VOUT" type="passive"/>
+        <pin num="7" name="+VOUT" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="controller" part="NMOS">
+      <description>Workbench-1 controlled symbol</description>
+      <fields>
+        <field name="Reference">Q</field>
+        <field name="Value">NMOS</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Workbench-1 controlled symbol</field>
+      </fields>
+      <pins>
+        <pin num="1" name="G" type="passive"/>
+        <pin num="2" name="S" type="passive"/>
+        <pin num="3" name="D" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="controller" part="RESISTOR">
+      <description>Workbench-1 controlled symbol</description>
+      <fields>
+        <field name="Reference">R</field>
+        <field name="Value">RESISTOR</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Workbench-1 controlled symbol</field>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="controller" part="RPL_5_0">
+      <description>Workbench-1 controlled symbol</description>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">RPL_5_0</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Workbench-1 controlled symbol</field>
+      </fields>
+      <pins>
+        <pin num="1" name="PGND" type="passive"/>
+        <pin num="2" name="PGND" type="passive"/>
+        <pin num="3" name="PGND" type="passive"/>
+        <pin num="4" name="PGND" type="passive"/>
+        <pin num="5" name="PGND" type="passive"/>
+        <pin num="6" name="VCC" type="passive"/>
+        <pin num="7" name="SW" type="passive"/>
+        <pin num="8" name="SW" type="passive"/>
+        <pin num="9" name="VOUT" type="passive"/>
+        <pin num="10" name="VOUT" type="passive"/>
+        <pin num="11" name="VOUT" type="passive"/>
+        <pin num="12" name="VOUT" type="passive"/>
+        <pin num="13" name="SW" type="passive"/>
+        <pin num="14" name="SW" type="passive"/>
+        <pin num="15" name="BST" type="passive"/>
+        <pin num="16" name="CTRL" type="passive"/>
+        <pin num="17" name="FB" type="passive"/>
+        <pin num="18" name="AGND" type="passive"/>
+        <pin num="19" name="SS" type="passive"/>
+        <pin num="20" name="PG" type="passive"/>
+        <pin num="21" name="PG" type="passive"/>
+        <pin num="22" name="VIN" type="passive"/>
+        <pin num="23" name="SW" type="passive"/>
+        <pin num="24" name="PGND" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="controller" part="SFM4_RELAY">
+      <description>Workbench-1 controlled symbol</description>
+      <fields>
+        <field name="Reference">K</field>
+        <field name="Value">SFM4_RELAY</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Workbench-1 controlled symbol</field>
+      </fields>
+      <pins>
+        <pin num="1" name="COIL+" type="passive"/>
+        <pin num="2" name="COIL-" type="passive"/>
+        <pin num="3" name="SAFE_COM" type="passive"/>
+        <pin num="4" name="SAFE_NO" type="passive"/>
+        <pin num="5" name="SENSE_COM" type="passive"/>
+        <pin num="6" name="SENSE_NO" type="passive"/>
+        <pin num="7" name="HOLD_COM" type="passive"/>
+        <pin num="8" name="HOLD_NO" type="passive"/>
+        <pin num="9" name="EDM_COM" type="passive"/>
+        <pin num="10" name="EDM_NC" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="controller" part="TESTPOINT">
+      <description>Workbench-1 controlled symbol</description>
+      <fields>
+        <field name="Reference">TP</field>
+        <field name="Value">TESTPOINT</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Workbench-1 controlled symbol</field>
+      </fields>
+      <pins>
+        <pin num="1" name="TP" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="controller" part="TLP293_4">
+      <description>Workbench-1 controlled symbol</description>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">TLP293_4</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Workbench-1 controlled symbol</field>
+      </fields>
+      <pins>
+        <pin num="1" name="A1" type="passive"/>
+        <pin num="2" name="K1" type="passive"/>
+        <pin num="3" name="A2" type="passive"/>
+        <pin num="4" name="K2" type="passive"/>
+        <pin num="5" name="A3" type="passive"/>
+        <pin num="6" name="K3" type="passive"/>
+        <pin num="7" name="A4" type="passive"/>
+        <pin num="8" name="K4" type="passive"/>
+        <pin num="9" name="E4" type="passive"/>
+        <pin num="10" name="C4" type="passive"/>
+        <pin num="11" name="E3" type="passive"/>
+        <pin num="12" name="C3" type="passive"/>
+        <pin num="13" name="E2" type="passive"/>
+        <pin num="14" name="C2" type="passive"/>
+        <pin num="15" name="E1" type="passive"/>
+        <pin num="16" name="C1" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="controller" part="TPS26633RGE">
+      <description>Workbench-1 controlled symbol</description>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">TPS26633RGE</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Workbench-1 controlled symbol</field>
+      </fields>
+      <pins>
+        <pin num="1" name="IN" type="passive"/>
+        <pin num="2" name="IN" type="passive"/>
+        <pin num="3" name="B_GATE" type="passive"/>
+        <pin num="4" name="DRV" type="passive"/>
+        <pin num="5" name="IN_SYS" type="passive"/>
+        <pin num="6" name="UVLO" type="passive"/>
+        <pin num="7" name="PLIM" type="passive"/>
+        <pin num="8" name="GND" type="passive"/>
+        <pin num="9" name="dVdT" type="passive"/>
+        <pin num="10" name="ILIM" type="passive"/>
+        <pin num="11" name="MODE" type="passive"/>
+        <pin num="12" name="SHDN" type="passive"/>
+        <pin num="13" name="IMON" type="passive"/>
+        <pin num="14" name="FLT" type="passive"/>
+        <pin num="15" name="PGTH" type="passive"/>
+        <pin num="16" name="PGOOD" type="passive"/>
+        <pin num="17" name="OUT" type="passive"/>
+        <pin num="18" name="OUT" type="passive"/>
+        <pin num="19" name="NC" type="passive"/>
+        <pin num="20" name="NC" type="passive"/>
+        <pin num="21" name="NC" type="passive"/>
+        <pin num="22" name="NC" type="passive"/>
+        <pin num="23" name="NC" type="passive"/>
+        <pin num="24" name="NC" type="passive"/>
+        <pin num="25" name="PowerPAD" type="passive"/>
+      </pins>
+    </libpart>
+  </libparts>
+  <libraries>
+    <library logical="controller">
+      <uri>${KIPRJMOD}/controller.kicad_sym</uri>
+    </library>
+  </libraries>
+  <nets>
+    <net code="1" name="/3V3_LOGIC" class="Default">
+      <node ref="C10" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="C11" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="C12" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="C13" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="C14" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="C15" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="C16" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="C17" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="C40" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="C42" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="C7" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="C8" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="C9" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="J11" pin="4" pinfunction="4_4" pintype="passive"/>
+      <node ref="J13" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="J4" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="J4" pin="3" pinfunction="3_3" pintype="passive"/>
+      <node ref="K1" pin="5" pinfunction="SENSE_COM_5" pintype="passive"/>
+      <node ref="K1" pin="9" pinfunction="EDM_COM_9" pintype="passive"/>
+      <node ref="K2" pin="9" pinfunction="EDM_COM_9" pintype="passive"/>
+      <node ref="R47" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="R49" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="R50" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="R54" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="R55" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="R56" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="RFB1" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="RPG3" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="TP4" pin="1" pinfunction="TP_1" pintype="passive"/>
+      <node ref="U3" pin="12" pinfunction="SHDN_12" pintype="passive"/>
+      <node ref="U4" pin="10" pinfunction="VOUT_10" pintype="passive"/>
+      <node ref="U4" pin="11" pinfunction="VOUT_11" pintype="passive"/>
+      <node ref="U4" pin="12" pinfunction="VOUT_12" pintype="passive"/>
+      <node ref="U4" pin="9" pinfunction="VOUT_9" pintype="passive"/>
+      <node ref="U5" pin="100" pinfunction="VIO_100" pintype="passive"/>
+      <node ref="U5" pin="11" pinfunction="VDD_11" pintype="passive"/>
+      <node ref="U5" pin="21" pinfunction="VREF+_21" pintype="passive"/>
+      <node ref="U5" pin="22" pinfunction="VDDA_22" pintype="passive"/>
+      <node ref="U5" pin="28" pinfunction="VDD_28" pintype="passive"/>
+      <node ref="U5" pin="50" pinfunction="VIO_50" pintype="passive"/>
+      <node ref="U5" pin="6" pinfunction="VBAT_6" pintype="passive"/>
+      <node ref="U5" pin="75" pinfunction="VDD_75" pintype="passive"/>
+      <node ref="U6" pin="1" pinfunction="VCC1_1" pintype="passive"/>
+      <node ref="U7" pin="1" pinfunction="+VIN_1" pintype="passive"/>
+    </net>
+    <net code="2" name="/3V3_PGOOD" class="Default">
+      <node ref="U4" pin="20" pinfunction="PG_20" pintype="passive"/>
+      <node ref="U4" pin="21" pinfunction="PG_21" pintype="passive"/>
+    </net>
+    <net code="3" name="/5V_CAN_ISO" class="Default">
+      <node ref="C41" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="C43" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="C44" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="U6" pin="11" pinfunction="VCC2_11" pintype="passive"/>
+      <node ref="U6" pin="16" pinfunction="VCC2_16" pintype="passive"/>
+      <node ref="U7" pin="7" pinfunction="+VOUT_7" pintype="passive"/>
+    </net>
+    <net code="4" name="/12V_ISO" class="Default">
+      <node ref="C3" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="C4" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="C6" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="F2" pin="1" pinfunction="IN_1" pintype="passive"/>
+      <node ref="J2" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="J2" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R46" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="R59" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="TP2" pin="1" pinfunction="TP_1" pintype="passive"/>
+      <node ref="U2" pin="4" pinfunction="+OUT_4" pintype="passive"/>
+      <node ref="U3" pin="1" pinfunction="IN_1" pintype="passive"/>
+      <node ref="U3" pin="2" pinfunction="IN_2" pintype="passive"/>
+      <node ref="U3" pin="5" pinfunction="IN_SYS_5" pintype="passive"/>
+      <node ref="U4" pin="22" pinfunction="VIN_22" pintype="passive"/>
+    </net>
+    <net code="5" name="/BOOT0" class="Default">
+      <node ref="R43" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U5" pin="94" pinfunction="BOOT0_94" pintype="passive"/>
+    </net>
+    <net code="6" name="/CANH" class="Default">
+      <node ref="D2" pin="1" pinfunction="CANH_1" pintype="passive"/>
+      <node ref="J5" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="J6" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="L1" pin="4" pinfunction="CANH_OUT_4" pintype="passive"/>
+      <node ref="R58" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="TP6" pin="1" pinfunction="TP_1" pintype="passive"/>
+    </net>
+    <net code="7" name="/CANH_RAW" class="Default">
+      <node ref="L1" pin="1" pinfunction="CANH_IN_1" pintype="passive"/>
+      <node ref="U6" pin="13" pinfunction="CANH_13" pintype="passive"/>
+    </net>
+    <net code="8" name="/CANL" class="Default">
+      <node ref="D2" pin="2" pinfunction="CANL_2" pintype="passive"/>
+      <node ref="J5" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="J6" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="JP1" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="L1" pin="3" pinfunction="CANL_OUT_3" pintype="passive"/>
+      <node ref="TP7" pin="1" pinfunction="TP_1" pintype="passive"/>
+    </net>
+    <net code="9" name="/CANL_RAW" class="Default">
+      <node ref="L1" pin="2" pinfunction="CANL_IN_2" pintype="passive"/>
+      <node ref="U6" pin="12" pinfunction="CANL_12" pintype="passive"/>
+    </net>
+    <net code="10" name="/CAN_RX" class="Default">
+      <node ref="U5" pin="81" pinfunction="PD0/CAN1_RX_81" pintype="passive"/>
+      <node ref="U6" pin="5" pinfunction="RXD_5" pintype="passive"/>
+    </net>
+    <net code="11" name="/CAN_TERM" class="Default">
+      <node ref="JP1" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="R58" pin="2" pinfunction="2_2" pintype="passive"/>
+    </net>
+    <net code="12" name="/CAN_TX" class="Default">
+      <node ref="U5" pin="82" pinfunction="PD1/CAN1_TX_82" pintype="passive"/>
+      <node ref="U6" pin="3" pinfunction="TXD_3" pintype="passive"/>
+    </net>
+    <net code="13" name="/ESTOP_12V" class="Default">
+      <node ref="F2" pin="2" pinfunction="OUT_2" pintype="passive"/>
+      <node ref="J10" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="J10" pin="3" pinfunction="3_3" pintype="passive"/>
+    </net>
+    <net code="14" name="/ESTOP_A_MON" class="Default">
+      <node ref="R49" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="U5" pin="57" pinfunction="PD10_57" pintype="passive"/>
+      <node ref="U8" pin="16" pinfunction="C1_16" pintype="passive"/>
+    </net>
+    <net code="15" name="/ESTOP_B_MON" class="Default">
+      <node ref="R50" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="U5" pin="58" pinfunction="PD11_58" pintype="passive"/>
+      <node ref="U8" pin="14" pinfunction="C2_14" pintype="passive"/>
+    </net>
+    <net code="16" name="/ESTOP_CH_A_RETURN" class="Default">
+      <node ref="J10" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="J12" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="K1" pin="7" pinfunction="HOLD_COM_7" pintype="passive"/>
+      <node ref="U8" pin="1" pinfunction="A1_1" pintype="passive"/>
+    </net>
+    <net code="17" name="/ESTOP_CH_B_RETURN" class="Default">
+      <node ref="J10" pin="4" pinfunction="4_4" pintype="passive"/>
+      <node ref="J12" pin="3" pinfunction="3_3" pintype="passive"/>
+      <node ref="K2" pin="7" pinfunction="HOLD_COM_7" pintype="passive"/>
+      <node ref="U8" pin="3" pinfunction="A2_3" pintype="passive"/>
+    </net>
+    <net code="18" name="/ESTOP_SENSE" class="Default">
+      <node ref="J11" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="J4" pin="17" pinfunction="17_17" pintype="passive"/>
+      <node ref="K2" pin="6" pinfunction="SENSE_NO_6" pintype="passive"/>
+      <node ref="R57" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U5" pin="54" pinfunction="PB15_54" pintype="passive"/>
+    </net>
+    <net code="19" name="/FET_COMMON" class="Default">
+      <node ref="CG1" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="Q1" pin="2" pinfunction="S_2" pintype="passive"/>
+      <node ref="Q2" pin="2" pinfunction="S_2" pintype="passive"/>
+    </net>
+    <net code="20" name="/FET_GATE" class="Default">
+      <node ref="CG1" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="Q1" pin="1" pinfunction="G_1" pintype="passive"/>
+      <node ref="Q2" pin="1" pinfunction="G_1" pintype="passive"/>
+      <node ref="RG1" pin="2" pinfunction="2_2" pintype="passive"/>
+    </net>
+    <net code="21" name="/GND" class="Default">
+      <node ref="C10" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="C11" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="C12" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="C13" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="C14" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="C15" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="C16" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="C17" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="C18" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="C19" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="C20" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="C3" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="C4" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="C40" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="C42" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="C5" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="C6" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="C7" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="C8" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="C9" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="CSS4" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="CY1" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="CY2" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="D3" pin="2" pinfunction="A_2" pintype="passive"/>
+      <node ref="D4" pin="2" pinfunction="A_2" pintype="passive"/>
+      <node ref="J11" pin="3" pinfunction="3_3" pintype="passive"/>
+      <node ref="J13" pin="4" pinfunction="4_4" pintype="passive"/>
+      <node ref="J2" pin="3" pinfunction="3_3" pintype="passive"/>
+      <node ref="J2" pin="4" pinfunction="4_4" pintype="passive"/>
+      <node ref="J3" pin="3" pinfunction="3_3" pintype="passive"/>
+      <node ref="J3" pin="4" pinfunction="4_4" pintype="passive"/>
+      <node ref="J4" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="J4" pin="4" pinfunction="4_4" pintype="passive"/>
+      <node ref="K1" pin="2" pinfunction="COIL-_2" pintype="passive"/>
+      <node ref="K2" pin="2" pinfunction="COIL-_2" pintype="passive"/>
+      <node ref="R43" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R44" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R45" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R48" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R51" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R52" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R53" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R57" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R60" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="RFB2" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="RPG2" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="TP5" pin="1" pinfunction="TP_1" pintype="passive"/>
+      <node ref="U2" pin="5" pinfunction="-OUT_5" pintype="passive"/>
+      <node ref="U3" pin="25" pinfunction="PowerPAD_25" pintype="passive"/>
+      <node ref="U3" pin="7" pinfunction="PLIM_7" pintype="passive"/>
+      <node ref="U3" pin="8" pinfunction="GND_8" pintype="passive"/>
+      <node ref="U4" pin="1" pinfunction="PGND_1" pintype="passive"/>
+      <node ref="U4" pin="18" pinfunction="AGND_18" pintype="passive"/>
+      <node ref="U4" pin="2" pinfunction="PGND_2" pintype="passive"/>
+      <node ref="U4" pin="24" pinfunction="PGND_24" pintype="passive"/>
+      <node ref="U4" pin="3" pinfunction="PGND_3" pintype="passive"/>
+      <node ref="U4" pin="4" pinfunction="PGND_4" pintype="passive"/>
+      <node ref="U4" pin="5" pinfunction="PGND_5" pintype="passive"/>
+      <node ref="U5" pin="10" pinfunction="VSS_10" pintype="passive"/>
+      <node ref="U5" pin="19" pinfunction="VSSA_19" pintype="passive"/>
+      <node ref="U5" pin="20" pinfunction="VREF-_20" pintype="passive"/>
+      <node ref="U5" pin="27" pinfunction="VSS_27" pintype="passive"/>
+      <node ref="U5" pin="49" pinfunction="VSS_49" pintype="passive"/>
+      <node ref="U5" pin="74" pinfunction="VSS_74" pintype="passive"/>
+      <node ref="U5" pin="99" pinfunction="VSS_99" pintype="passive"/>
+      <node ref="U6" pin="2" pinfunction="GND1_2" pintype="passive"/>
+      <node ref="U6" pin="8" pinfunction="GND1_8" pintype="passive"/>
+      <node ref="U7" pin="2" pinfunction="-VIN_2" pintype="passive"/>
+      <node ref="U8" pin="13" pinfunction="E2_13" pintype="passive"/>
+      <node ref="U8" pin="15" pinfunction="E1_15" pintype="passive"/>
+    </net>
+    <net code="22" name="/GND_CAN_ISO" class="Default">
+      <node ref="C41" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="C43" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="C44" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="D2" pin="3" pinfunction="GND_3" pintype="passive"/>
+      <node ref="D2" pin="4" pinfunction="GND_4" pintype="passive"/>
+      <node ref="J5" pin="3" pinfunction="3_3" pintype="passive"/>
+      <node ref="J6" pin="3" pinfunction="3_3" pintype="passive"/>
+      <node ref="U6" pin="10" pinfunction="GND2_10" pintype="passive"/>
+      <node ref="U6" pin="15" pinfunction="GND2_15" pintype="passive"/>
+      <node ref="U6" pin="9" pinfunction="GND2_9" pintype="passive"/>
+      <node ref="U7" pin="5" pinfunction="-VOUT_5" pintype="passive"/>
+    </net>
+    <net code="23" name="/GND_PWR" class="Default">
+      <node ref="C1" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="C2" pin="2" pinfunction="-_2" pintype="passive"/>
+      <node ref="D1" pin="2" pinfunction="A_2" pintype="passive"/>
+      <node ref="J1" pin="3" pinfunction="3_3" pintype="passive"/>
+      <node ref="J1" pin="4" pinfunction="4_4" pintype="passive"/>
+      <node ref="RUV3" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="U1" pin="1" pinfunction="GND_1" pintype="passive"/>
+      <node ref="U1" pin="2" pinfunction="RETRY_2" pintype="passive"/>
+      <node ref="U2" pin="2" pinfunction="-IN_2" pintype="passive"/>
+    </net>
+    <net code="24" name="/I2C_SCL" class="Default">
+      <node ref="J4" pin="16" pinfunction="16_16" pintype="passive"/>
+      <node ref="R39" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R55" pin="2" pinfunction="2_2" pintype="passive"/>
+    </net>
+    <net code="25" name="/I2C_SCL_MCU" class="Default">
+      <node ref="R39" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U5" pin="92" pinfunction="PB6/I2C1_SCL_92" pintype="passive"/>
+    </net>
+    <net code="26" name="/I2C_SDA" class="Default">
+      <node ref="J4" pin="15" pinfunction="15_15" pintype="passive"/>
+      <node ref="R40" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R56" pin="2" pinfunction="2_2" pintype="passive"/>
+    </net>
+    <net code="27" name="/I2C_SDA_MCU" class="Default">
+      <node ref="R40" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U5" pin="93" pinfunction="PB7/I2C1_SDA_93" pintype="passive"/>
+    </net>
+    <net code="28" name="/INPUT_SENSE" class="Default">
+      <node ref="Q2" pin="3" pinfunction="D_3" pintype="passive"/>
+      <node ref="RS1" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U1" pin="9" pinfunction="SENSE_9" pintype="passive"/>
+    </net>
+    <net code="29" name="/JETSON_12V" class="Default">
+      <node ref="C5" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="J3" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="J3" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="RPG1" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="TP3" pin="1" pinfunction="TP_1" pintype="passive"/>
+      <node ref="U3" pin="17" pinfunction="OUT_17" pintype="passive"/>
+      <node ref="U3" pin="18" pinfunction="OUT_18" pintype="passive"/>
+    </net>
+    <net code="30" name="/JETSON_ENABLE_REQ" class="Default">
+      <node ref="J4" pin="8" pinfunction="8_8" pintype="passive"/>
+      <node ref="U5" pin="91" pinfunction="PB5_91" pintype="passive"/>
+    </net>
+    <net code="31" name="/JETSON_FAULT_N" class="Default">
+      <node ref="R47" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="U3" pin="14" pinfunction="FLT_14" pintype="passive"/>
+    </net>
+    <net code="32" name="/JETSON_PGOOD" class="Default">
+      <node ref="RPG3" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="U3" pin="16" pinfunction="PGOOD_16" pintype="passive"/>
+    </net>
+    <net code="33" name="/MCU_RESET" class="Default">
+      <node ref="C19" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="J4" pin="20" pinfunction="20_20" pintype="passive"/>
+      <node ref="R54" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="TP8" pin="1" pinfunction="TP_1" pintype="passive"/>
+      <node ref="U5" pin="14" pinfunction="NRST_14" pintype="passive"/>
+    </net>
+    <net code="34" name="/MOTOR_CS0" class="Default">
+      <node ref="J4" pin="9" pinfunction="9_9" pintype="passive"/>
+      <node ref="R33" pin="2" pinfunction="2_2" pintype="passive"/>
+    </net>
+    <net code="35" name="/MOTOR_CS0_MCU" class="Default">
+      <node ref="R33" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U5" pin="35" pinfunction="PB0_35" pintype="passive"/>
+    </net>
+    <net code="36" name="/MOTOR_CS1" class="Default">
+      <node ref="J4" pin="10" pinfunction="10_10" pintype="passive"/>
+      <node ref="R34" pin="2" pinfunction="2_2" pintype="passive"/>
+    </net>
+    <net code="37" name="/MOTOR_CS1_MCU" class="Default">
+      <node ref="R34" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U5" pin="36" pinfunction="PB1_36" pintype="passive"/>
+    </net>
+    <net code="38" name="/MOTOR_CS2" class="Default">
+      <node ref="J4" pin="11" pinfunction="11_11" pintype="passive"/>
+      <node ref="R35" pin="2" pinfunction="2_2" pintype="passive"/>
+    </net>
+    <net code="39" name="/MOTOR_CS2_MCU" class="Default">
+      <node ref="R35" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U5" pin="47" pinfunction="PB10_47" pintype="passive"/>
+    </net>
+    <net code="40" name="/MOTOR_CS3" class="Default">
+      <node ref="J4" pin="12" pinfunction="12_12" pintype="passive"/>
+      <node ref="R36" pin="2" pinfunction="2_2" pintype="passive"/>
+    </net>
+    <net code="41" name="/MOTOR_CS3_MCU" class="Default">
+      <node ref="R36" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U5" pin="48" pinfunction="PB11_48" pintype="passive"/>
+    </net>
+    <net code="42" name="/MOTOR_CS4" class="Default">
+      <node ref="J4" pin="13" pinfunction="13_13" pintype="passive"/>
+      <node ref="R37" pin="2" pinfunction="2_2" pintype="passive"/>
+    </net>
+    <net code="43" name="/MOTOR_CS4_MCU" class="Default">
+      <node ref="R37" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U5" pin="51" pinfunction="PB12_51" pintype="passive"/>
+    </net>
+    <net code="44" name="/MOTOR_CS5" class="Default">
+      <node ref="J4" pin="14" pinfunction="14_14" pintype="passive"/>
+      <node ref="R38" pin="2" pinfunction="2_2" pintype="passive"/>
+    </net>
+    <net code="45" name="/MOTOR_CS5_MCU" class="Default">
+      <node ref="R38" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U5" pin="52" pinfunction="PB13_52" pintype="passive"/>
+    </net>
+    <net code="46" name="/MOTOR_ENABLE_REQ" class="Default">
+      <node ref="K1" pin="3" pinfunction="SAFE_COM_3" pintype="passive"/>
+      <node ref="U5" pin="53" pinfunction="PB14_53" pintype="passive"/>
+    </net>
+    <net code="47" name="/MOTOR_ENABLE_SAFE" class="Default">
+      <node ref="J11" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="K2" pin="4" pinfunction="SAFE_NO_4" pintype="passive"/>
+    </net>
+    <net code="48" name="/OSC_IN" class="Default">
+      <node ref="CY1" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="U5" pin="12" pinfunction="OSC_IN_12" pintype="passive"/>
+      <node ref="Y1" pin="1" pinfunction="1_1" pintype="passive"/>
+    </net>
+    <net code="49" name="/OSC_OUT" class="Default">
+      <node ref="CY2" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="U5" pin="13" pinfunction="OSC_OUT_13" pintype="passive"/>
+      <node ref="Y1" pin="2" pinfunction="2_2" pintype="passive"/>
+    </net>
+    <net code="50" name="/OV_SET" class="Default">
+      <node ref="RUV2" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="RUV3" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U1" pin="3" pinfunction="OV_3" pintype="passive"/>
+    </net>
+    <net code="51" name="/RELAY_A_NC" class="Default">
+      <node ref="K1" pin="10" pinfunction="EDM_NC_10" pintype="passive"/>
+      <node ref="R44" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U5" pin="55" pinfunction="PD8_55" pintype="passive"/>
+    </net>
+    <net code="52" name="/RELAY_B_NC" class="Default">
+      <node ref="K2" pin="10" pinfunction="EDM_NC_10" pintype="passive"/>
+      <node ref="R45" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U5" pin="56" pinfunction="PD9_56" pintype="passive"/>
+    </net>
+    <net code="53" name="/RESET_CH_A_RETURN" class="Default">
+      <node ref="D3" pin="1" pinfunction="K_1" pintype="passive"/>
+      <node ref="J12" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="K1" pin="1" pinfunction="COIL+_1" pintype="passive"/>
+      <node ref="K1" pin="8" pinfunction="HOLD_NO_8" pintype="passive"/>
+    </net>
+    <net code="54" name="/RESET_CH_B_RETURN" class="Default">
+      <node ref="D4" pin="1" pinfunction="K_1" pintype="passive"/>
+      <node ref="J12" pin="4" pinfunction="4_4" pintype="passive"/>
+      <node ref="K2" pin="1" pinfunction="COIL+_1" pintype="passive"/>
+      <node ref="K2" pin="8" pinfunction="HOLD_NO_8" pintype="passive"/>
+    </net>
+    <net code="55" name="/SAFE_STAGE_A" class="Default">
+      <node ref="K1" pin="4" pinfunction="SAFE_NO_4" pintype="passive"/>
+      <node ref="K2" pin="3" pinfunction="SAFE_COM_3" pintype="passive"/>
+    </net>
+    <net code="56" name="/SENSE_STAGE_A" class="Default">
+      <node ref="K1" pin="6" pinfunction="SENSE_NO_6" pintype="passive"/>
+      <node ref="K2" pin="5" pinfunction="SENSE_COM_5" pintype="passive"/>
+    </net>
+    <net code="57" name="/SPI_MISO" class="Default">
+      <node ref="J4" pin="7" pinfunction="7_7" pintype="passive"/>
+      <node ref="R32" pin="2" pinfunction="2_2" pintype="passive"/>
+    </net>
+    <net code="58" name="/SPI_MISO_MCU" class="Default">
+      <node ref="R32" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U5" pin="31" pinfunction="PA6/SPI1_MISO_31" pintype="passive"/>
+    </net>
+    <net code="59" name="/SPI_MOSI" class="Default">
+      <node ref="J4" pin="6" pinfunction="6_6" pintype="passive"/>
+      <node ref="R31" pin="2" pinfunction="2_2" pintype="passive"/>
+    </net>
+    <net code="60" name="/SPI_MOSI_MCU" class="Default">
+      <node ref="R31" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U5" pin="32" pinfunction="PA7/SPI1_MOSI_32" pintype="passive"/>
+    </net>
+    <net code="61" name="/SPI_SCLK" class="Default">
+      <node ref="J4" pin="5" pinfunction="5_5" pintype="passive"/>
+      <node ref="R30" pin="2" pinfunction="2_2" pintype="passive"/>
+    </net>
+    <net code="62" name="/SPI_SCLK_MCU" class="Default">
+      <node ref="R30" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U5" pin="30" pinfunction="PA5/SPI1_SCK_30" pintype="passive"/>
+    </net>
+    <net code="63" name="/SWCLK" class="Default">
+      <node ref="J13" pin="3" pinfunction="3_3" pintype="passive"/>
+      <node ref="U5" pin="76" pinfunction="SWCLK_76" pintype="passive"/>
+    </net>
+    <net code="64" name="/SWDIO" class="Default">
+      <node ref="J13" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="U5" pin="72" pinfunction="SWDIO_72" pintype="passive"/>
+    </net>
+    <net code="65" name="/U1_GATE" class="Default">
+      <node ref="RG1" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U1" pin="10" pinfunction="GATE_10" pintype="passive"/>
+    </net>
+    <net code="66" name="/U1_SHDN" class="Default">
+      <node ref="RSH1" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="U1" pin="6" pinfunction="SHDN_6" pintype="passive"/>
+    </net>
+    <net code="67" name="/U3_DVDT" class="Default">
+      <node ref="C18" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="U3" pin="9" pinfunction="dVdT_9" pintype="passive"/>
+    </net>
+    <net code="68" name="/U3_ILIM" class="Default">
+      <node ref="R48" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U3" pin="10" pinfunction="ILIM_10" pintype="passive"/>
+    </net>
+    <net code="69" name="/U3_IMON" class="Default">
+      <node ref="R51" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U3" pin="13" pinfunction="IMON_13" pintype="passive"/>
+    </net>
+    <net code="70" name="/U3_PGTH" class="Default">
+      <node ref="RPG1" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="RPG2" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U3" pin="15" pinfunction="PGTH_15" pintype="passive"/>
+    </net>
+    <net code="71" name="/U3_UVLO" class="Default">
+      <node ref="R59" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R60" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U3" pin="6" pinfunction="UVLO_6" pintype="passive"/>
+    </net>
+    <net code="72" name="/U4_CTRL" class="Default">
+      <node ref="R46" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="U4" pin="16" pinfunction="CTRL_16" pintype="passive"/>
+    </net>
+    <net code="73" name="/U4_FB" class="Default">
+      <node ref="RFB1" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="RFB2" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U4" pin="17" pinfunction="FB_17" pintype="passive"/>
+    </net>
+    <net code="74" name="/U4_SS" class="Default">
+      <node ref="CSS4" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="U4" pin="19" pinfunction="SS_19" pintype="passive"/>
+    </net>
+    <net code="75" name="/U4_VCC" class="Default">
+      <node ref="C20" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="U4" pin="6" pinfunction="VCC_6" pintype="passive"/>
+    </net>
+    <net code="76" name="/U8_LED_A_K" class="Default">
+      <node ref="R52" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U8" pin="2" pinfunction="K1_2" pintype="passive"/>
+    </net>
+    <net code="77" name="/U8_LED_B_K" class="Default">
+      <node ref="R53" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U8" pin="4" pinfunction="K2_4" pintype="passive"/>
+    </net>
+    <net code="78" name="/UART_RX" class="Default">
+      <node ref="J4" pin="19" pinfunction="19_19" pintype="passive"/>
+      <node ref="R42" pin="2" pinfunction="2_2" pintype="passive"/>
+    </net>
+    <net code="79" name="/UART_RX_MCU" class="Default">
+      <node ref="R42" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U5" pin="69" pinfunction="PA10/USART1_RX_69" pintype="passive"/>
+    </net>
+    <net code="80" name="/UART_TX" class="Default">
+      <node ref="J4" pin="18" pinfunction="18_18" pintype="passive"/>
+      <node ref="R41" pin="2" pinfunction="2_2" pintype="passive"/>
+    </net>
+    <net code="81" name="/UART_TX_MCU" class="Default">
+      <node ref="R41" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U5" pin="68" pinfunction="PA9/USART1_TX_68" pintype="passive"/>
+    </net>
+    <net code="82" name="/UV_SET" class="Default">
+      <node ref="RUV1" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="RUV2" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U1" pin="4" pinfunction="UV_4" pintype="passive"/>
+    </net>
+    <net code="83" name="/VBAT_FUSED" class="Default">
+      <node ref="D1" pin="1" pinfunction="K_1" pintype="passive"/>
+      <node ref="F1" pin="2" pinfunction="OUT_2" pintype="passive"/>
+      <node ref="Q1" pin="3" pinfunction="D_3" pintype="passive"/>
+      <node ref="RSH1" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="RUV1" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U1" pin="5" pinfunction="VIN_5" pintype="passive"/>
+    </net>
+    <net code="84" name="/VBAT_PROTECTED" class="Default">
+      <node ref="C1" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="C2" pin="1" pinfunction="+_1" pintype="passive"/>
+      <node ref="RS1" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="TP1" pin="1" pinfunction="TP_1" pintype="passive"/>
+      <node ref="U1" pin="8" pinfunction="VOUT_8" pintype="passive"/>
+      <node ref="U2" pin="1" pinfunction="+IN_1" pintype="passive"/>
+    </net>
+    <net code="85" name="/VBAT_RAW" class="Default">
+      <node ref="F1" pin="1" pinfunction="IN_1" pintype="passive"/>
+      <node ref="J1" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="J1" pin="2" pinfunction="2_2" pintype="passive"/>
+    </net>
+    <net code="86" name="unconnected-(J5-Pad4)" class="Default">
+      <node ref="J5" pin="4" pinfunction="4_4" pintype="passive+no_connect"/>
+    </net>
+    <net code="87" name="unconnected-(J6-Pad4)" class="Default">
+      <node ref="J6" pin="4" pinfunction="4_4" pintype="passive+no_connect"/>
+    </net>
+    <net code="88" name="unconnected-(U1-FAULT-Pad7)" class="Default">
+      <node ref="U1" pin="7" pinfunction="FAULT_7" pintype="passive+no_connect"/>
+    </net>
+    <net code="89" name="unconnected-(U2-AUX1-Pad7)" class="Default">
+      <node ref="U2" pin="7" pinfunction="AUX1_7" pintype="passive+no_connect"/>
+    </net>
+    <net code="90" name="unconnected-(U2-AUX2-Pad8)" class="Default">
+      <node ref="U2" pin="8" pinfunction="AUX2_8" pintype="passive+no_connect"/>
+    </net>
+    <net code="91" name="unconnected-(U2-AUX3-Pad9)" class="Default">
+      <node ref="U2" pin="9" pinfunction="AUX3_9" pintype="passive+no_connect"/>
+    </net>
+    <net code="92" name="unconnected-(U2-ENABLE-Pad3)" class="Default">
+      <node ref="U2" pin="3" pinfunction="ENABLE_3" pintype="passive+no_connect"/>
+    </net>
+    <net code="93" name="unconnected-(U2-TRIM-Pad6)" class="Default">
+      <node ref="U2" pin="6" pinfunction="TRIM_6" pintype="passive+no_connect"/>
+    </net>
+    <net code="94" name="unconnected-(U3-B_GATE-Pad3)" class="Default">
+      <node ref="U3" pin="3" pinfunction="B_GATE_3" pintype="passive+no_connect"/>
+    </net>
+    <net code="95" name="unconnected-(U3-DRV-Pad4)" class="Default">
+      <node ref="U3" pin="4" pinfunction="DRV_4" pintype="passive+no_connect"/>
+    </net>
+    <net code="96" name="unconnected-(U3-MODE-Pad11)" class="Default">
+      <node ref="U3" pin="11" pinfunction="MODE_11" pintype="passive+no_connect"/>
+    </net>
+    <net code="97" name="unconnected-(U3-NC-Pad19)" class="Default">
+      <node ref="U3" pin="19" pinfunction="NC_19" pintype="passive+no_connect"/>
+    </net>
+    <net code="98" name="unconnected-(U3-NC-Pad20)" class="Default">
+      <node ref="U3" pin="20" pinfunction="NC_20" pintype="passive+no_connect"/>
+    </net>
+    <net code="99" name="unconnected-(U3-NC-Pad21)" class="Default">
+      <node ref="U3" pin="21" pinfunction="NC_21" pintype="passive+no_connect"/>
+    </net>
+    <net code="100" name="unconnected-(U3-NC-Pad22)" class="Default">
+      <node ref="U3" pin="22" pinfunction="NC_22" pintype="passive+no_connect"/>
+    </net>
+    <net code="101" name="unconnected-(U3-NC-Pad23)" class="Default">
+      <node ref="U3" pin="23" pinfunction="NC_23" pintype="passive+no_connect"/>
+    </net>
+    <net code="102" name="unconnected-(U3-NC-Pad24)" class="Default">
+      <node ref="U3" pin="24" pinfunction="NC_24" pintype="passive+no_connect"/>
+    </net>
+    <net code="103" name="unconnected-(U4-BST-Pad15)" class="Default">
+      <node ref="U4" pin="15" pinfunction="BST_15" pintype="passive+no_connect"/>
+    </net>
+    <net code="104" name="unconnected-(U4-SW-Pad7)" class="Default">
+      <node ref="U4" pin="7" pinfunction="SW_7" pintype="passive+no_connect"/>
+    </net>
+    <net code="105" name="unconnected-(U4-SW-Pad8)" class="Default">
+      <node ref="U4" pin="8" pinfunction="SW_8" pintype="passive+no_connect"/>
+    </net>
+    <net code="106" name="unconnected-(U4-SW-Pad13)" class="Default">
+      <node ref="U4" pin="13" pinfunction="SW_13" pintype="passive+no_connect"/>
+    </net>
+    <net code="107" name="unconnected-(U4-SW-Pad14)" class="Default">
+      <node ref="U4" pin="14" pinfunction="SW_14" pintype="passive+no_connect"/>
+    </net>
+    <net code="108" name="unconnected-(U4-SW-Pad23)" class="Default">
+      <node ref="U4" pin="23" pinfunction="SW_23" pintype="passive+no_connect"/>
+    </net>
+    <net code="109" name="unconnected-(U5-NC-Pad73)" class="Default">
+      <node ref="U5" pin="73" pinfunction="NC_73" pintype="passive+no_connect"/>
+    </net>
+    <net code="110" name="unconnected-(U5-PA0-Pad23)" class="Default">
+      <node ref="U5" pin="23" pinfunction="PA0_23" pintype="passive+no_connect"/>
+    </net>
+    <net code="111" name="unconnected-(U5-PA1-Pad24)" class="Default">
+      <node ref="U5" pin="24" pinfunction="PA1_24" pintype="passive+no_connect"/>
+    </net>
+    <net code="112" name="unconnected-(U5-PA2-Pad25)" class="Default">
+      <node ref="U5" pin="25" pinfunction="PA2_25" pintype="passive+no_connect"/>
+    </net>
+    <net code="113" name="unconnected-(U5-PA3-Pad26)" class="Default">
+      <node ref="U5" pin="26" pinfunction="PA3_26" pintype="passive+no_connect"/>
+    </net>
+    <net code="114" name="unconnected-(U5-PA4-Pad29)" class="Default">
+      <node ref="U5" pin="29" pinfunction="PA4_29" pintype="passive+no_connect"/>
+    </net>
+    <net code="115" name="unconnected-(U5-PA8-Pad67)" class="Default">
+      <node ref="U5" pin="67" pinfunction="PA8_67" pintype="passive+no_connect"/>
+    </net>
+    <net code="116" name="unconnected-(U5-PA11-Pad70)" class="Default">
+      <node ref="U5" pin="70" pinfunction="PA11_70" pintype="passive+no_connect"/>
+    </net>
+    <net code="117" name="unconnected-(U5-PA12-Pad71)" class="Default">
+      <node ref="U5" pin="71" pinfunction="PA12_71" pintype="passive+no_connect"/>
+    </net>
+    <net code="118" name="unconnected-(U5-PA15-Pad77)" class="Default">
+      <node ref="U5" pin="77" pinfunction="PA15_77" pintype="passive+no_connect"/>
+    </net>
+    <net code="119" name="unconnected-(U5-PB2-Pad37)" class="Default">
+      <node ref="U5" pin="37" pinfunction="PB2_37" pintype="passive+no_connect"/>
+    </net>
+    <net code="120" name="unconnected-(U5-PB3-Pad89)" class="Default">
+      <node ref="U5" pin="89" pinfunction="PB3_89" pintype="passive+no_connect"/>
+    </net>
+    <net code="121" name="unconnected-(U5-PB4-Pad90)" class="Default">
+      <node ref="U5" pin="90" pinfunction="PB4_90" pintype="passive+no_connect"/>
+    </net>
+    <net code="122" name="unconnected-(U5-PB8-Pad95)" class="Default">
+      <node ref="U5" pin="95" pinfunction="PB8_95" pintype="passive+no_connect"/>
+    </net>
+    <net code="123" name="unconnected-(U5-PB9-Pad96)" class="Default">
+      <node ref="U5" pin="96" pinfunction="PB9_96" pintype="passive+no_connect"/>
+    </net>
+    <net code="124" name="unconnected-(U5-PC0-Pad15)" class="Default">
+      <node ref="U5" pin="15" pinfunction="PC0_15" pintype="passive+no_connect"/>
+    </net>
+    <net code="125" name="unconnected-(U5-PC1-Pad16)" class="Default">
+      <node ref="U5" pin="16" pinfunction="PC1_16" pintype="passive+no_connect"/>
+    </net>
+    <net code="126" name="unconnected-(U5-PC2-Pad17)" class="Default">
+      <node ref="U5" pin="17" pinfunction="PC2_17" pintype="passive+no_connect"/>
+    </net>
+    <net code="127" name="unconnected-(U5-PC3-Pad18)" class="Default">
+      <node ref="U5" pin="18" pinfunction="PC3_18" pintype="passive+no_connect"/>
+    </net>
+    <net code="128" name="unconnected-(U5-PC4-Pad33)" class="Default">
+      <node ref="U5" pin="33" pinfunction="PC4_33" pintype="passive+no_connect"/>
+    </net>
+    <net code="129" name="unconnected-(U5-PC5-Pad34)" class="Default">
+      <node ref="U5" pin="34" pinfunction="PC5_34" pintype="passive+no_connect"/>
+    </net>
+    <net code="130" name="unconnected-(U5-PC6-Pad63)" class="Default">
+      <node ref="U5" pin="63" pinfunction="PC6_63" pintype="passive+no_connect"/>
+    </net>
+    <net code="131" name="unconnected-(U5-PC7-Pad64)" class="Default">
+      <node ref="U5" pin="64" pinfunction="PC7_64" pintype="passive+no_connect"/>
+    </net>
+    <net code="132" name="unconnected-(U5-PC8-Pad65)" class="Default">
+      <node ref="U5" pin="65" pinfunction="PC8_65" pintype="passive+no_connect"/>
+    </net>
+    <net code="133" name="unconnected-(U5-PC9-Pad66)" class="Default">
+      <node ref="U5" pin="66" pinfunction="PC9_66" pintype="passive+no_connect"/>
+    </net>
+    <net code="134" name="unconnected-(U5-PC10-Pad78)" class="Default">
+      <node ref="U5" pin="78" pinfunction="PC10_78" pintype="passive+no_connect"/>
+    </net>
+    <net code="135" name="unconnected-(U5-PC11-Pad79)" class="Default">
+      <node ref="U5" pin="79" pinfunction="PC11_79" pintype="passive+no_connect"/>
+    </net>
+    <net code="136" name="unconnected-(U5-PC12-Pad80)" class="Default">
+      <node ref="U5" pin="80" pinfunction="PC12_80" pintype="passive+no_connect"/>
+    </net>
+    <net code="137" name="unconnected-(U5-PC13-Pad7)" class="Default">
+      <node ref="U5" pin="7" pinfunction="PC13_7" pintype="passive+no_connect"/>
+    </net>
+    <net code="138" name="unconnected-(U5-PC14-Pad8)" class="Default">
+      <node ref="U5" pin="8" pinfunction="PC14_8" pintype="passive+no_connect"/>
+    </net>
+    <net code="139" name="unconnected-(U5-PC15-Pad9)" class="Default">
+      <node ref="U5" pin="9" pinfunction="PC15_9" pintype="passive+no_connect"/>
+    </net>
+    <net code="140" name="unconnected-(U5-PD2-Pad83)" class="Default">
+      <node ref="U5" pin="83" pinfunction="PD2_83" pintype="passive+no_connect"/>
+    </net>
+    <net code="141" name="unconnected-(U5-PD3-Pad84)" class="Default">
+      <node ref="U5" pin="84" pinfunction="PD3_84" pintype="passive+no_connect"/>
+    </net>
+    <net code="142" name="unconnected-(U5-PD4-Pad85)" class="Default">
+      <node ref="U5" pin="85" pinfunction="PD4_85" pintype="passive+no_connect"/>
+    </net>
+    <net code="143" name="unconnected-(U5-PD5-Pad86)" class="Default">
+      <node ref="U5" pin="86" pinfunction="PD5_86" pintype="passive+no_connect"/>
+    </net>
+    <net code="144" name="unconnected-(U5-PD6-Pad87)" class="Default">
+      <node ref="U5" pin="87" pinfunction="PD6_87" pintype="passive+no_connect"/>
+    </net>
+    <net code="145" name="unconnected-(U5-PD7-Pad88)" class="Default">
+      <node ref="U5" pin="88" pinfunction="PD7_88" pintype="passive+no_connect"/>
+    </net>
+    <net code="146" name="unconnected-(U5-PD12-Pad59)" class="Default">
+      <node ref="U5" pin="59" pinfunction="PD12_59" pintype="passive+no_connect"/>
+    </net>
+    <net code="147" name="unconnected-(U5-PD13-Pad60)" class="Default">
+      <node ref="U5" pin="60" pinfunction="PD13_60" pintype="passive+no_connect"/>
+    </net>
+    <net code="148" name="unconnected-(U5-PD14-Pad61)" class="Default">
+      <node ref="U5" pin="61" pinfunction="PD14_61" pintype="passive+no_connect"/>
+    </net>
+    <net code="149" name="unconnected-(U5-PD15-Pad62)" class="Default">
+      <node ref="U5" pin="62" pinfunction="PD15_62" pintype="passive+no_connect"/>
+    </net>
+    <net code="150" name="unconnected-(U5-PE0-Pad97)" class="Default">
+      <node ref="U5" pin="97" pinfunction="PE0_97" pintype="passive+no_connect"/>
+    </net>
+    <net code="151" name="unconnected-(U5-PE1-Pad98)" class="Default">
+      <node ref="U5" pin="98" pinfunction="PE1_98" pintype="passive+no_connect"/>
+    </net>
+    <net code="152" name="unconnected-(U5-PE2-Pad1)" class="Default">
+      <node ref="U5" pin="1" pinfunction="PE2_1" pintype="passive+no_connect"/>
+    </net>
+    <net code="153" name="unconnected-(U5-PE3-Pad2)" class="Default">
+      <node ref="U5" pin="2" pinfunction="PE3_2" pintype="passive+no_connect"/>
+    </net>
+    <net code="154" name="unconnected-(U5-PE4-Pad3)" class="Default">
+      <node ref="U5" pin="3" pinfunction="PE4_3" pintype="passive+no_connect"/>
+    </net>
+    <net code="155" name="unconnected-(U5-PE5-Pad4)" class="Default">
+      <node ref="U5" pin="4" pinfunction="PE5_4" pintype="passive+no_connect"/>
+    </net>
+    <net code="156" name="unconnected-(U5-PE6-Pad5)" class="Default">
+      <node ref="U5" pin="5" pinfunction="PE6_5" pintype="passive+no_connect"/>
+    </net>
+    <net code="157" name="unconnected-(U5-PE7-Pad38)" class="Default">
+      <node ref="U5" pin="38" pinfunction="PE7_38" pintype="passive+no_connect"/>
+    </net>
+    <net code="158" name="unconnected-(U5-PE8-Pad39)" class="Default">
+      <node ref="U5" pin="39" pinfunction="PE8_39" pintype="passive+no_connect"/>
+    </net>
+    <net code="159" name="unconnected-(U5-PE9-Pad40)" class="Default">
+      <node ref="U5" pin="40" pinfunction="PE9_40" pintype="passive+no_connect"/>
+    </net>
+    <net code="160" name="unconnected-(U5-PE10-Pad41)" class="Default">
+      <node ref="U5" pin="41" pinfunction="PE10_41" pintype="passive+no_connect"/>
+    </net>
+    <net code="161" name="unconnected-(U5-PE11-Pad42)" class="Default">
+      <node ref="U5" pin="42" pinfunction="PE11_42" pintype="passive+no_connect"/>
+    </net>
+    <net code="162" name="unconnected-(U5-PE12-Pad43)" class="Default">
+      <node ref="U5" pin="43" pinfunction="PE12_43" pintype="passive+no_connect"/>
+    </net>
+    <net code="163" name="unconnected-(U5-PE13-Pad44)" class="Default">
+      <node ref="U5" pin="44" pinfunction="PE13_44" pintype="passive+no_connect"/>
+    </net>
+    <net code="164" name="unconnected-(U5-PE14-Pad45)" class="Default">
+      <node ref="U5" pin="45" pinfunction="PE14_45" pintype="passive+no_connect"/>
+    </net>
+    <net code="165" name="unconnected-(U5-PE15-Pad46)" class="Default">
+      <node ref="U5" pin="46" pinfunction="PE15_46" pintype="passive+no_connect"/>
+    </net>
+    <net code="166" name="unconnected-(U6-NC-Pad4)" class="Default">
+      <node ref="U6" pin="4" pinfunction="NC_4" pintype="passive+no_connect"/>
+    </net>
+    <net code="167" name="unconnected-(U6-NC-Pad6)" class="Default">
+      <node ref="U6" pin="6" pinfunction="NC_6" pintype="passive+no_connect"/>
+    </net>
+    <net code="168" name="unconnected-(U6-NC-Pad7)" class="Default">
+      <node ref="U6" pin="7" pinfunction="NC_7" pintype="passive+no_connect"/>
+    </net>
+    <net code="169" name="unconnected-(U6-NC-Pad14)" class="Default">
+      <node ref="U6" pin="14" pinfunction="NC_14" pintype="passive+no_connect"/>
+    </net>
+    <net code="170" name="unconnected-(U8-A3-Pad5)" class="Default">
+      <node ref="U8" pin="5" pinfunction="A3_5" pintype="passive+no_connect"/>
+    </net>
+    <net code="171" name="unconnected-(U8-A4-Pad7)" class="Default">
+      <node ref="U8" pin="7" pinfunction="A4_7" pintype="passive+no_connect"/>
+    </net>
+    <net code="172" name="unconnected-(U8-C3-Pad12)" class="Default">
+      <node ref="U8" pin="12" pinfunction="C3_12" pintype="passive+no_connect"/>
+    </net>
+    <net code="173" name="unconnected-(U8-C4-Pad10)" class="Default">
+      <node ref="U8" pin="10" pinfunction="C4_10" pintype="passive+no_connect"/>
+    </net>
+    <net code="174" name="unconnected-(U8-E3-Pad11)" class="Default">
+      <node ref="U8" pin="11" pinfunction="E3_11" pintype="passive+no_connect"/>
+    </net>
+    <net code="175" name="unconnected-(U8-E4-Pad9)" class="Default">
+      <node ref="U8" pin="9" pinfunction="E4_9" pintype="passive+no_connect"/>
+    </net>
+    <net code="176" name="unconnected-(U8-K3-Pad6)" class="Default">
+      <node ref="U8" pin="6" pinfunction="K3_6" pintype="passive+no_connect"/>
+    </net>
+    <net code="177" name="unconnected-(U8-K4-Pad8)" class="Default">
+      <node ref="U8" pin="8" pinfunction="K4_8" pintype="passive+no_connect"/>
+    </net>
+  </nets>
+</export>

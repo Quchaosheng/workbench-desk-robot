@@ -116,6 +116,8 @@
     "48V": 3.69,
     "60V": 2.95
   },
+  "nominal_stackup_thickness_mm": 1.6,
+  "nominal_copper_thickness_per_oz_mm": 0.035,
   "checks": {
     "all_load_cases_have_20_percent_headroom": true,
     "input_current_below_fuse": true,
@@ -123,6 +125,8 @@
     "isolation_creepage_at_least_8mm": true,
     "can_has_120ohm_termination": true,
     "all_rails_derated_from_rating": true,
+    "eight_layer_build_matches_board_thickness": true,
+    "supplier_stackup_and_impedance_closure_is_required": true,
     "input_protection_domains_are_distinct": true
   },
   "pass": true

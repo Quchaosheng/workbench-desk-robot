@@ -1,0 +1,25 @@
+parameter_id,scope,parameter,unit,value,basis,method,owner,status,release_blocker
+PWR-001,J2,input nominal voltage,V,12,controller PCB interface control,controlled interface review,Electrical Owner,REVIEW_BASELINE,no
+PWR-002,J2,aggregate power ceiling,W,120,controller PCB interface control,controlled interface review,Electrical Owner,REVIEW_BASELINE,no
+PWR-003,J2,aggregate current ceiling,A,10,120 W divided by 12 V,deterministic calculation,Electrical Owner,REVIEW_BASELINE,no
+PWR-004,left motor,winding nominal voltage,V,,selected motor datasheet,datasheet and incoming inspection,Motion Owner,TBD_BLOCKING,yes
+PWR-005,right motor,winding nominal voltage,V,,selected motor datasheet,datasheet and incoming inspection,Motion Owner,TBD_BLOCKING,yes
+PWR-006,left motor,continuous current,A,,motor supplier plus dyno test,calibrated current waveform,Motion Owner,TBD_BLOCKING,yes
+PWR-007,right motor,continuous current,A,,motor supplier plus dyno test,calibrated current waveform,Motion Owner,TBD_BLOCKING,yes
+PWR-008,left motor,stall current,A,,motor supplier plus locked-rotor limit test,calibrated current waveform and winding temperature,Motion Owner,TBD_BLOCKING,yes
+PWR-009,right motor,stall current,A,,motor supplier plus locked-rotor limit test,calibrated current waveform and winding temperature,Motion Owner,TBD_BLOCKING,yes
+PWR-010,childboard,simultaneous two-axis duty cycle,percent,,motion profile and wheel load,dyno replay,Motion Owner,TBD_BLOCKING,yes
+PWR-011,input protection,branch fuse rating,A,,motor stall envelope and harness ampacity,coordination analysis and fault injection,Electrical Owner,TBD_BLOCKING,yes
+PWR-012,input harness,worst-case round-trip drop,V,,approved connector wire gauge and current,four-wire measurement,Harness Owner,TBD_BLOCKING,yes
+REG-001,local bus,maximum regenerative energy,J,,vehicle inertia speed slope and motor model,calculation plus captured deceleration waveform,System Owner,TBD_BLOCKING,yes
+REG-002,local bus,maximum allowed voltage,V,,driver margin capacitor and source limits,transient review and oscilloscope capture,Electrical Owner,TBD_BLOCKING,yes
+REG-003,local bus,bulk capacitance,F,,regenerative energy and allowed voltage rise,calculation ESR ripple and surge test,Electrical Owner,TBD_BLOCKING,yes
+REG-004,clamp,clamp threshold,V,,allowed local bus voltage and tolerances,worst-case tolerance analysis and pulse test,Electrical Owner,TBD_BLOCKING,yes
+REG-005,brake path,resistance,ohm,,energy voltage and pulse power,pulse-load calculation and thermal test,Electrical Owner,TBD_BLOCKING,yes
+REG-006,brake path,pulse energy,J,,worst-case regenerative event,pulse-load qualification,Electrical Owner,TBD_BLOCKING,yes
+THM-001,DRV8962,simultaneous conduction and switching loss,W,,motor currents PWM frequency and junction resistance,loss model correlated to calorimetry,Electrical Owner,TBD_BLOCKING,yes
+THM-002,heatsink,required thermal resistance,C_per_W,,loss ambient airflow and junction limit,thermal network plus chamber test,Mechanical Owner,TBD_BLOCKING,yes
+THM-003,system,maximum ambient,C,,robot environment requirement,requirements approval and chamber test,System Owner,TBD_BLOCKING,yes
+PWR-013,candidate comparison,Pololu 4753 nominal voltage,V,12,official candidate sources,source review and incoming verification,Motion Owner,CANDIDATE_ONLY,no
+PWR-014,candidate comparison,Pololu 4753 single-axis stall current,A,5.5,official candidate datasheet/product evidence,calibrated locked-rotor test,Motion Owner,CANDIDATE_ONLY,no
+PWR-015,candidate comparison,Pololu 4753 simultaneous two-axis stall current,A,11.0,2 x 5.5 A analytical comparison,dual-axis bounded stall test,Motion Owner,CANDIDATE_EXCEEDS_J2_LIMIT,yes

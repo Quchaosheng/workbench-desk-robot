@@ -1,17 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760">
-<style>text{font-family:Arial,sans-serif;fill:#111} .part{fill:#e8edf2;stroke:#111;stroke-width:2} .dim{stroke:#1769aa;stroke-width:2;marker-start:url(#a);marker-end:url(#a)} .note{font-size:18px}</style>
+<style>text{font-family:Arial,sans-serif;fill:#111} .part{fill:#e8edf2;stroke:#111;stroke-width:2} .dim{stroke:#1769aa;stroke-width:2;marker-start:url(#a);marker-end:url(#a)} .note{font-size:18px} .tbd-motor{fill:#f6b26b;fill-opacity:.55;stroke:#b45f06;stroke-width:2;stroke-dasharray:8 5} .tbd-board{fill:#93c47d;fill-opacity:.55;stroke:#38761d;stroke-width:2;stroke-dasharray:8 5}</style>
 <defs><marker id="a" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M8,0 L0,4 L8,8" fill="none" stroke="#1769aa"/></marker></defs>
-<text x="40" y="45" font-size="28" font-weight="bold">Workbench-1 General Arrangement - mm - REV A</text>
+<text x="40" y="45" font-size="28" font-weight="bold">Workbench-1 General Arrangement - mm - REV B</text>
 <rect class="part" x="90" y="120" width="420.0" height="495.0" rx="27"/>
 <rect x="187" y="450" width="225" height="108" fill="#20252b" stroke="#111" stroke-width="2"/>
 <line class="dim" x1="90" y1="90" x2="510" y2="90"/><text x="280" y="80" class="note">280</text>
 <line class="dim" x1="55" y1="120" x2="55" y2="615"/><text x="12" y="375" class="note" transform="rotate(-90 12 375)">330</text>
 <text x="120" y="650" class="note">Front: display cutout 150 x 72; nominal wall 2.5</text>
-<rect class="part" x="660" y="170" width="420.0" height="360.0" rx="27"/>
+<rect class="part" x="660" y="170" width="420.0" height="366.0" rx="27"/>
 <line class="dim" x1="660" y1="140" x2="1080" y2="140"/><text x="850" y="130" class="note">280</text>
-<line class="dim" x1="1120" y1="170" x2="1120" y2="530"/><text x="1140" y="370" class="note" transform="rotate(-90 1140 370)">240</text>
+<line class="dim" x1="1120" y1="170" x2="1120" y2="530"/><text x="1140" y="370" class="note" transform="rotate(-90 1140 370)">244</text>
 <rect x="675" y="185" width="390" height="330" fill="none" stroke="#e65c00" stroke-width="12" rx="24"/>
+<circle cx="712.5" cy="218.0" r="37.5" fill="#333" fill-opacity=".65" stroke="#111" stroke-width="2"/>
+<circle cx="1027.5" cy="218.0" r="37.5" fill="#333" fill-opacity=".65" stroke="#111" stroke-width="2"/>
+<circle cx="712.5" cy="488.0" r="37.5" fill="#333" fill-opacity=".65" stroke="#111" stroke-width="2"/>
+<circle cx="1027.5" cy="488.0" r="37.5" fill="#333" fill-opacity=".65" stroke="#111" stroke-width="2"/>
+<rect class="tbd-motor" x="702.0" y="299.0" width="72.0" height="108.0"/><text x="709.0" y="357.0" font-size="14">LEFT MOTOR TBD</text>
+<rect class="tbd-motor" x="966.0" y="299.0" width="72.0" height="108.0"/><text x="971.0" y="357.0" font-size="14">RIGHT MOTOR TBD</text>
+<rect class="tbd-board" x="781.5" y="372.5" width="177.0" height="123.0"/><text x="791.5" y="438.5" font-size="15">DRIVER CHILDBOARD TBD</text>
+<line x1="702.0" y1="353.0" x2="712.5" y2="488.0" stroke="#555" stroke-width="3" stroke-dasharray="7 5"/><circle cx="712.5" cy="488.0" r="6" fill="none" stroke="#555" stroke-width="2"/>
+<line x1="1038.0" y1="353.0" x2="1027.5" y2="488.0" stroke="#555" stroke-width="3" stroke-dasharray="7 5"/><circle cx="1027.5" cy="488.0" r="6" fill="none" stroke="#555" stroke-width="2"/>
 <text x="700" y="565" class="note">8 TPU skin over 24 effective compliant stroke</text>
-<text x="660" y="625" class="note">CG Z=101.9; static tip angle=45.9 deg</text>
-<text x="660" y="660" class="note">ISO 2768-m unless noted; prototype only until physical validation</text>
+<text x="660" y="605" class="note">4 wheels dia 50 x 12; 2x motor 48 x 72 x 46; childboard 118 x 82 x 20</text>
+<text x="660" y="640" class="note">CG Z=97.9; static tip angle=42.6 deg</text>
+<text x="660" y="675" class="note">Dashed geometry is TBD space claim; drive lines are concept datums only; physical fit and motor selection required</text>
 </svg>

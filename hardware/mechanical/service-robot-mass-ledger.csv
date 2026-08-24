@@ -1,0 +1,10 @@
+component,mass_kg,x_mm,y_mm,z_mm,source,status
+base_frame_covers_and_hidden_stabilizers,12,0,0,300,engineering_target,TARGET_NOT_MEASURED
+two_drive_modules_wheels_brakes_and_casters,8,0,0,150,engineering_target,TARGET_NOT_MEASURED
+48v_1200wh_battery_bms_and_distribution,12,0,30,220,engineering_target,TARGET_NOT_MEASURED
+two_column_lift_and_carriage,6,0,0,850,engineering_target,TARGET_NOT_MEASURED
+left_lightweight_7dof_arm,13.7,-150,0,1250,supplier_class_allowance,VERIFY_SELECTED_ARM
+right_lightweight_7dof_arm,13.7,150,0,1250,supplier_class_allowance,VERIFY_SELECTED_ARM
+compute_sensors_display_and_audio,6,0,-30,900,engineering_target,TARGET_NOT_MEASURED
+safety_controller_harnesses_and_pcbs,4,0,0,500,engineering_target,TARGET_NOT_MEASURED
+two_rated_payloads,2,0,-80,1450,design_case,DESIGN_CASE_NOT_MEASURED

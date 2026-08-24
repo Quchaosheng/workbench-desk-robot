@@ -1,18 +1,78 @@
 reference,quantity,function,design_candidate,package_or_module,procurement_gate
-J1,1,48V input,10A keyed 4-pin industrial header,THT 4-pin,AVL_OWNER_APPROVAL
-F1,1,input fuse,10A time-delay replaceable fuse,THT carrier,AVL_OWNER_APPROVAL
-U1,1,48V hot-swap and UV/OV,LM5069MM-2/NOPB,MSOP-10 carrier,AVL_OWNER_APPROVAL
-U2,1,isolated 48V to 12V 240W,Vicor DCM 36-60V input 12V-class output,DCM carrier,AVL_OWNER_APPROVAL
-U3,1,protected 12V Jetson developer-kit branch,6A minimum e-fuse/load switch,power switch carrier,AVL_OWNER_APPROVAL
-U4,1,12V to 3.3V 5A synchronous buck,6A minimum module,power module carrier,AVL_OWNER_APPROVAL
-U5,1,real-time controller,CH32V307VCT6 carrier,LQFP100 carrier,AVL_OWNER_APPROVAL
-U6,1,reinforced isolated CAN FD,ISO1042DW,SOIC-16W carrier,AVL_OWNER_APPROVAL
-U7,1,isolated CAN-side power,3.3V-to-5V reinforced isolated 1W module,isolation module carrier,AVL_OWNER_APPROVAL
-U8,1,dual-channel E-stop safety gate,diagnostic safety relay or safety-controller circuit,safety-gate carrier,SAFETY_OWNER_APPROVAL
-J2,1,12V output,16A keyed 4-pin header,THT 4-pin,AVL_OWNER_APPROVAL
-J3,1,Jetson developer-kit 12V output,5A keyed 4-pin header,THT 4-pin,AVL_OWNER_APPROVAL
-J5 J6,2,CAN connectors,shielded keyed 4-pin header,THT 4-pin,AVL_OWNER_APPROVAL
-J10,1,dual-channel hardwired E-stop loop,red keyed 4-pin header,THT 4-pin,SAFETY_OWNER_APPROVAL
-J11,1,safety-gated motor-enable output,keyed 4-pin header,THT 4-pin,SAFETY_OWNER_APPROVAL
-TP1-TP8,8,controlled electrical test access,1.5x1.0mm probe pad,SMT test pad,APPROVED
+C1,1,input_protection,1uF 100V; Capacitor_SMD:C_1210_3225Metric,Capacitor_SMD:C_1210_3225Metric,OWNER_APPROVAL_REQUIRED
+C2,1,isolated_power,10uF 100V; Capacitor_SMD:C_2220_5750Metric,Capacitor_SMD:C_2220_5750Metric,OWNER_APPROVAL_REQUIRED
+C3,1,isolated_power,470uF 25V; Capacitor_THT:CP_Radial_D12.5mm_P5.00mm,Capacitor_THT:CP_Radial_D12.5mm_P5.00mm,OWNER_APPROVAL_REQUIRED
+C4,1,jetson_efuse,1uF 25V; Capacitor_SMD:C_0805_2012Metric,Capacitor_SMD:C_0805_2012Metric,OWNER_APPROVAL_REQUIRED
+C5,1,jetson_efuse,220uF 25V; Capacitor_THT:CP_Radial_D10.0mm_P5.00mm,Capacitor_THT:CP_Radial_D10.0mm_P5.00mm,OWNER_APPROVAL_REQUIRED
+C6,1,3v3_power,22uF 25V; Capacitor_SMD:C_1210_3225Metric,Capacitor_SMD:C_1210_3225Metric,OWNER_APPROVAL_REQUIRED
+C7 C8,2,3v3_power,47uF 10V; Capacitor_SMD:C_1210_3225Metric,Capacitor_SMD:C_1210_3225Metric,OWNER_APPROVAL_REQUIRED
+C9 C10 C11 C12 C13 C14 C15 C16 C19,9,mcu_and_backplane,100nF; Capacitor_SMD:C_0603_1608Metric,Capacitor_SMD:C_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+C17,1,mcu_and_backplane,4.7uF; Capacitor_SMD:C_0805_2012Metric,Capacitor_SMD:C_0805_2012Metric,OWNER_APPROVAL_REQUIRED
+C18,1,jetson_efuse,100nF; Capacitor_SMD:C_0603_1608Metric,Capacitor_SMD:C_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+C20,1,3v3_power,1uF 10V; Capacitor_SMD:C_0603_1608Metric,Capacitor_SMD:C_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+C40 C41 C44,3,isolated_can_fd,100nF; Capacitor_SMD:C_0603_1608Metric,Capacitor_SMD:C_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+C42 C43,2,isolated_can_fd,4.7uF; Capacitor_SMD:C_0805_2012Metric,Capacitor_SMD:C_0805_2012Metric,OWNER_APPROVAL_REQUIRED
+CG1,1,input_protection,4.7nF 100V; Capacitor_SMD:C_0603_1608Metric,Capacitor_SMD:C_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+CSS4,1,3v3_power,22nF; Capacitor_SMD:C_0603_1608Metric,Capacitor_SMD:C_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+CY1 CY2,2,mcu_and_backplane,18pF; Capacitor_SMD:C_0603_1608Metric,Capacitor_SMD:C_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+D1,1,input_protection,Littelfuse SMCJ58A,Diode_SMD:D_SMC,OWNER_APPROVAL_REQUIRED
+D2,1,isolated_can_fd,Nexperia PESD2CANFD24V-T,WB:CAN_TVS,OWNER_APPROVAL_REQUIRED
+D3 D4,2,hardwired_estop,Diodes Inc. 1N4148W-7-F,Diode_SMD:D_SOD-123,OWNER_APPROVAL_REQUIRED
+F1,1,input_protection,Littelfuse 0451010.MRL,WB:Fuse_4510,OWNER_APPROVAL_REQUIRED
+F2,1,hardwired_estop,Littelfuse 1206L025YR,Fuse:Fuse_1206_3216Metric,OWNER_APPROVAL_REQUIRED
 H1 H2 H3 H4,4,mounting,M3 insulated standoff,3.2mm NPTH,APPROVED
+J1,1,input_protection,Molex 43045-0412,WB:MicroFit_2x2,OWNER_APPROVAL_REQUIRED
+J2,1,power_outputs,Molex 43045-0412,WB:MicroFit_2x2,OWNER_APPROVAL_REQUIRED
+J3,1,jetson_efuse,Molex 43045-0412,WB:MicroFit_2x2,OWNER_APPROVAL_REQUIRED
+J4,1,mcu_and_backplane,JETSON MCU BACKPLANE; Connector_PinHeader_2.54mm:PinHeader_2x10_P2.54mm_Vertical,Connector_PinHeader_2.54mm:PinHeader_2x10_P2.54mm_Vertical,OWNER_APPROVAL_REQUIRED
+J5,1,isolated_can_fd,Molex 43045-0412,WB:MicroFit_2x2,OWNER_APPROVAL_REQUIRED
+J6,1,isolated_can_fd,Molex 43045-0412,WB:MicroFit_2x2,OWNER_APPROVAL_REQUIRED
+J10,1,hardwired_estop,Molex 43045-0412,WB:MicroFit_2x2,OWNER_APPROVAL_REQUIRED
+J11,1,hardwired_estop,Molex 43045-0412,WB:MicroFit_2x2,OWNER_APPROVAL_REQUIRED
+J12,1,hardwired_estop,Molex 43045-0412,WB:MicroFit_2x2,OWNER_APPROVAL_REQUIRED
+J13,1,mcu_and_backplane,WCH DEBUG; Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical,Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical,OWNER_APPROVAL_REQUIRED
+JP1,1,isolated_can_fd,CAN TERM; Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,OWNER_APPROVAL_REQUIRED
+K1,1,hardwired_estop,Panasonic SFM4-DC12V,WB:Panasonic_SFM4,OWNER_APPROVAL_REQUIRED
+K2,1,hardwired_estop,Panasonic SFM4-DC12V,WB:Panasonic_SFM4,OWNER_APPROVAL_REQUIRED
+L1,1,isolated_can_fd,TDK ACT45B-101-2P-TL003,WB:ACT45B,OWNER_APPROVAL_REQUIRED
+Q1 Q2,2,input_protection,Infineon BSC093N15NS5ATMA1,Package_SON:Infineon_PG-TDSON-8_6.15x5.15mm,OWNER_APPROVAL_REQUIRED
+R30 R31 R32 R33 R34 R35 R36 R37 R38 R39 R40 R41 R42,13,mcu_and_backplane,33R; Resistor_SMD:R_0603_1608Metric,Resistor_SMD:R_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+R43,1,mcu_and_backplane,100k; Resistor_SMD:R_0603_1608Metric,Resistor_SMD:R_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+R44 R45 R57,3,hardwired_estop,100k; Resistor_SMD:R_0603_1608Metric,Resistor_SMD:R_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+R46,1,3v3_power,100k; Resistor_SMD:R_0603_1608Metric,Resistor_SMD:R_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+R47 R51 RPG3,3,jetson_efuse,10k; Resistor_SMD:R_0603_1608Metric,Resistor_SMD:R_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+R48,1,jetson_efuse,3.00k 1%; Resistor_SMD:R_0603_1608Metric,Resistor_SMD:R_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+R49 R50,2,hardwired_estop,10k; Resistor_SMD:R_0603_1608Metric,Resistor_SMD:R_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+R52 R53,2,hardwired_estop,4.7k; Resistor_SMD:R_0603_1608Metric,Resistor_SMD:R_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+R54,1,mcu_and_backplane,10k; Resistor_SMD:R_0603_1608Metric,Resistor_SMD:R_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+R55 R56,2,mcu_and_backplane,4.7k; Resistor_SMD:R_0603_1608Metric,Resistor_SMD:R_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+R58,1,isolated_can_fd,120R 1%; Resistor_SMD:R_1206_3216Metric,Resistor_SMD:R_1206_3216Metric,OWNER_APPROVAL_REQUIRED
+R59,1,jetson_efuse,73.2k 1%; Resistor_SMD:R_0603_1608Metric,Resistor_SMD:R_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+R60,1,jetson_efuse,10.0k 1%; Resistor_SMD:R_0603_1608Metric,Resistor_SMD:R_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+RFB1,1,3v3_power,45.0k 1%; Resistor_SMD:R_0603_1608Metric,Resistor_SMD:R_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+RFB2,1,3v3_power,10.0k 1%; Resistor_SMD:R_0603_1608Metric,Resistor_SMD:R_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+RG1,1,input_protection,22k; Resistor_SMD:R_0603_1608Metric,Resistor_SMD:R_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+RPG1,1,jetson_efuse,453k 1%; Resistor_SMD:R_0603_1608Metric,Resistor_SMD:R_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+RPG2,1,jetson_efuse,56.0k 1%; Resistor_SMD:R_0603_1608Metric,Resistor_SMD:R_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+RS1,1,input_protection,Vishay WSL3637R0060FEA,WB:Sense_3637,OWNER_APPROVAL_REQUIRED
+RSH1,1,input_protection,510k; Resistor_SMD:R_0603_1608Metric,Resistor_SMD:R_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+RUV1,1,input_protection,19.6M 1%; Resistor_SMD:R_1206_3216Metric,Resistor_SMD:R_1206_3216Metric,OWNER_APPROVAL_REQUIRED
+RUV2,1,input_protection,133k 1%; Resistor_SMD:R_0603_1608Metric,Resistor_SMD:R_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+RUV3,1,input_protection,162k 1%; Resistor_SMD:R_0603_1608Metric,Resistor_SMD:R_0603_1608Metric,OWNER_APPROVAL_REQUIRED
+TP1,1,test_access,VBAT_PROTECTED; TestPoint:TestPoint_Pad_D1.5mm,TestPoint:TestPoint_Pad_D1.5mm,APPROVED
+TP2,1,test_access,12V_ISO; TestPoint:TestPoint_Pad_D1.5mm,TestPoint:TestPoint_Pad_D1.5mm,APPROVED
+TP3,1,test_access,JETSON_12V; TestPoint:TestPoint_Pad_D1.5mm,TestPoint:TestPoint_Pad_D1.5mm,APPROVED
+TP4,1,test_access,3V3_LOGIC; TestPoint:TestPoint_Pad_D1.5mm,TestPoint:TestPoint_Pad_D1.5mm,APPROVED
+TP5,1,test_access,GND; TestPoint:TestPoint_Pad_D1.5mm,TestPoint:TestPoint_Pad_D1.5mm,APPROVED
+TP6,1,test_access,CANH; TestPoint:TestPoint_Pad_D1.5mm,TestPoint:TestPoint_Pad_D1.5mm,APPROVED
+TP7,1,test_access,CANL; TestPoint:TestPoint_Pad_D1.5mm,TestPoint:TestPoint_Pad_D1.5mm,APPROVED
+TP8,1,test_access,MCU_RESET; TestPoint:TestPoint_Pad_D1.5mm,TestPoint:TestPoint_Pad_D1.5mm,APPROVED
+U1,1,input_protection,LTC4368HMS-2#PBF,Package_SO:MSOP-10_3x3mm_P0.5mm,OWNER_APPROVAL_REQUIRED
+U2,1,isolated_power,TBD_36_60V_TO_12V_240W_ISOLATED,WB:Isolated_48V_12V_240W_TBD,OWNER_APPROVAL_REQUIRED
+U3,1,jetson_efuse,Texas Instruments TPS26633RGER,WB:TPS26633_RGE24,OWNER_APPROVAL_REQUIRED
+U4,1,3v3_power,RECOM RPL-5.0-R,WB:RPL-5.0_QFN24,OWNER_APPROVAL_REQUIRED
+U5,1,mcu_and_backplane,WCH CH32V307VCT6,Package_QFP:LQFP-100_14x14mm_P0.5mm,OWNER_APPROVAL_REQUIRED
+U6,1,isolated_can_fd,Texas Instruments ISO1042DWR,WB:ISO1042_DW16_HV,OWNER_APPROVAL_REQUIRED
+U7,1,isolated_can_fd,Murata MEJ1S0305SC,Converter_DCDC:Converter_DCDC_muRata_MEJ1SxxxxSC_THT,OWNER_APPROVAL_REQUIRED
+U8,1,hardwired_estop,"Toshiba TLP293-4(GB,E)",Package_SO:SOIC-16W_7.5x10.3mm_P1.27mm,OWNER_APPROVAL_REQUIRED
+Y1,1,mcu_and_backplane,Abracon ABM8-8.000MHZ-B2-T,Crystal:Crystal_SMD_3225-4Pin_3.2x2.5mm,OWNER_APPROVAL_REQUIRED

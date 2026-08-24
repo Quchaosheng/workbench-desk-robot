@@ -5,36 +5,40 @@
       "Application": "Pcbnew",
       "Version": "10.0.5"
     },
-    "CreationDate": "2026-08-07T18:21:46+08:00"
+    "CreationDate": "2026-08-21T23:31:12+08:00"
   },
   "GeneralSpecs": {
     "ProjectId": {
       "Name": "controller",
       "GUID": "636f6e74-726f-46c6-9c65-722e6b696361",
-      "Revision": "rev?"
+      "Revision": "EVT1"
     },
     "Size": {
       "X": 160.1,
       "Y": 130.1
     },
-    "LayerNumber": 6,
+    "LayerNumber": 8,
     "BoardThickness": 1.6,
-    "Finish": "None"
+    "Finish": "ENIG"
   },
   "DesignRules": [
     {
       "Layers": "Outer",
-      "PadToPad": 0.2,
-      "PadToTrack": 0.2,
-      "TrackToTrack": 0.2,
-      "MinLineWidth": 0.25
+      "PadToPad": 0.15,
+      "PadToTrack": 0.15,
+      "TrackToTrack": 0.15,
+      "MinLineWidth": 0.1874,
+      "TrackToRegion": 0.2,
+      "RegionToRegion": 0.2
     },
     {
       "Layers": "Inner",
-      "PadToPad": 0.2,
-      "PadToTrack": 0.2,
-      "TrackToTrack": 0.2,
-      "MinLineWidth": 0.25
+      "PadToPad": 0.0,
+      "PadToTrack": 0.0,
+      "TrackToTrack": 0.15,
+      "MinLineWidth": 0.2,
+      "TrackToRegion": 0.2,
+      "RegionToRegion": 0.2
     }
   ],
   "FilesAttributes": [
@@ -64,8 +68,28 @@
       "FilePolarity": "Positive"
     },
     {
+      "Path": "controller-In5_Cu.g5",
+      "FileFunction": "Copper,L6,Inr",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "controller-In6_Cu.g6",
+      "FileFunction": "Copper,L7,Inr",
+      "FilePolarity": "Positive"
+    },
+    {
       "Path": "controller-B_Cu.gbl",
-      "FileFunction": "Copper,L6,Bot",
+      "FileFunction": "Copper,L8,Bot",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "controller-F_Paste.gtp",
+      "FileFunction": "SolderPaste,Top",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "controller-B_Paste.gbp",
+      "FileFunction": "SolderPaste,Bot",
       "FilePolarity": "Positive"
     },
     {
@@ -110,13 +134,14 @@
     },
     {
       "Type": "Copper",
-      "Thickness": 0.035,
+      "Thickness": 0.07,
       "Name": "F.Cu"
     },
     {
       "Type": "Dielectric",
-      "Thickness": 0.274,
-      "Material": "FR4",
+      "Color": "R109G116B75",
+      "Thickness": 0.1,
+      "Material": "FR-4",
       "Name": "F.Cu/In1.Cu",
       "Notes": "Type: dielectric layer 1 (from F.Cu to In1.Cu)"
     },
@@ -127,20 +152,22 @@
     },
     {
       "Type": "Dielectric",
-      "Thickness": 0.274,
-      "Material": "FR4",
+      "Color": "R109G116B75",
+      "Thickness": 0.18,
+      "Material": "FR-4",
       "Name": "In1.Cu/In2.Cu",
       "Notes": "Type: dielectric layer 2 (from In1.Cu to In2.Cu)"
     },
     {
       "Type": "Copper",
-      "Thickness": 0.035,
+      "Thickness": 0.07,
       "Name": "In2.Cu"
     },
     {
       "Type": "Dielectric",
-      "Thickness": 0.274,
-      "Material": "FR4",
+      "Color": "R109G116B75",
+      "Thickness": 0.18,
+      "Material": "FR-4",
       "Name": "In2.Cu/In3.Cu",
       "Notes": "Type: dielectric layer 3 (from In2.Cu to In3.Cu)"
     },
@@ -151,8 +178,9 @@
     },
     {
       "Type": "Dielectric",
-      "Thickness": 0.274,
-      "Material": "FR4",
+      "Color": "R109G116B75",
+      "Thickness": 0.26,
+      "Material": "FR-4",
       "Name": "In3.Cu/In4.Cu",
       "Notes": "Type: dielectric layer 4 (from In3.Cu to In4.Cu)"
     },
@@ -163,14 +191,41 @@
     },
     {
       "Type": "Dielectric",
-      "Thickness": 0.274,
-      "Material": "FR4",
-      "Name": "In4.Cu/B.Cu",
-      "Notes": "Type: dielectric layer 5 (from In4.Cu to B.Cu)"
+      "Color": "R109G116B75",
+      "Thickness": 0.18,
+      "Material": "FR-4",
+      "Name": "In4.Cu/In5.Cu",
+      "Notes": "Type: dielectric layer 5 (from In4.Cu to In5.Cu)"
+    },
+    {
+      "Type": "Copper",
+      "Thickness": 0.07,
+      "Name": "In5.Cu"
+    },
+    {
+      "Type": "Dielectric",
+      "Color": "R109G116B75",
+      "Thickness": 0.18,
+      "Material": "FR-4",
+      "Name": "In5.Cu/In6.Cu",
+      "Notes": "Type: dielectric layer 6 (from In5.Cu to In6.Cu)"
     },
     {
       "Type": "Copper",
       "Thickness": 0.035,
+      "Name": "In6.Cu"
+    },
+    {
+      "Type": "Dielectric",
+      "Color": "R109G116B75",
+      "Thickness": 0.1,
+      "Material": "FR-4",
+      "Name": "In6.Cu/B.Cu",
+      "Notes": "Type: dielectric layer 7 (from In6.Cu to B.Cu)"
+    },
+    {
+      "Type": "Copper",
+      "Thickness": 0.07,
       "Name": "B.Cu"
     },
     {

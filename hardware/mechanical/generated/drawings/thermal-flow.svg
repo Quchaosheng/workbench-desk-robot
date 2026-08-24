@@ -6,5 +6,5 @@
 <rect class="box" x="430" y="120" width="220" height="170"/><text x="485" y="190" font-size="22">Jetson 40 W</text><text x="470" y="225" font-size="18">pad -> chassis</text>
 <rect class="box" x="820" y="145" width="200" height="120"/><text x="850" y="210" font-size="22">2200 mm2 outlet</text>
 <path class="flow" d="M240 205 C330 205 345 185 430 185"/><path class="flow" d="M650 185 C735 185 745 205 820 205"/>
-<text x="360" y="350" font-size="20">60 mm fan; lower-front to upper-rear; outlet/inlet area ratio 1.22</text>
+<text x="300" y="350" font-size="20">60 mm fan; lower-front to upper-rear; traction childboard heat load remains TBD</text>
 </svg>

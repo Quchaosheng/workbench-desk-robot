@@ -58,9 +58,26 @@ def board_connectivity() -> dict[str, dict[str, str | None]]:
     return connectivity
 
 
+def logical_connectivity(
+    physical: dict[str, dict[str, str | None]],
+) -> dict[str, dict[str, str | None]]:
+    logical = {reference: dict(pins) for reference, pins in physical.items()}
+    for reference in ("Q1", "Q2"):
+        if reference not in physical:
+            continue
+        pins = physical[reference]
+        logical[reference] = {
+            "1": pins.get("4"),
+            "2": pins.get("1"),
+            "3": pins.get("5"),
+        }
+    return logical
+
+
 def audit() -> dict[str, object]:
     expected = json.loads(EXPECTED.read_text(encoding="utf-8"))
-    actual = board_connectivity()
+    physical = board_connectivity()
+    actual = logical_connectivity(physical)
     mismatches = []
     for reference, expected_pins in expected.items():
         if reference not in actual:
@@ -72,11 +89,30 @@ def audit() -> dict[str, object]:
                 mismatches.append({"reference": reference, "pin": pin, "expected": expected_net, "actual": actual_net})
 
     domain_checks = {
-        "input_protection_stages_are_distinct": len({actual["F1"]["1"], actual["F1"]["2"], actual["U1"]["3"]}) == 3,
-        "can_isolated_ground_is_distinct": actual["U6"]["2"] != actual["U6"]["6"],
-        "can_isolated_supply_is_distinct": actual["U6"]["1"] != actual["U6"]["5"],
-        "software_request_is_not_safe_output": actual["U8"]["3"] != actual["U8"]["4"],
-        "both_estop_channels_are_independent": len({actual["J10"][str(pin)] for pin in range(1, 5)}) == 4,
+        "input_protection_stages_are_distinct": len(
+            {physical["F1"]["1"], physical["F1"]["2"], physical["Q2"]["5"], physical["RS1"]["2"]}
+        )
+        == 4,
+        "back_to_back_fets_share_only_the_source_node": physical["Q1"]["1"]
+        == physical["Q1"]["2"]
+        == physical["Q1"]["3"]
+        == physical["Q2"]["1"]
+        == physical["Q2"]["2"]
+        == physical["Q2"]["3"]
+        == "FET_COMMON"
+        and physical["Q1"]["5"] != physical["Q2"]["5"],
+        "ltc4368_sense_resistor_is_kelvin_named": physical["U1"]["9"] == physical["RS1"]["1"] == "INPUT_SENSE"
+        and physical["U1"]["8"] == physical["RS1"]["2"] == "VBAT_PROTECTED",
+        "can_isolated_ground_is_distinct": physical["U6"]["2"] != physical["U6"]["9"],
+        "can_isolated_supply_is_distinct": physical["U6"]["1"] != physical["U6"]["11"],
+        "software_request_is_not_safe_output": physical["K1"]["3"] != physical["K2"]["4"],
+        "both_estop_channels_are_independent": physical["J10"]["1"] == physical["J10"]["3"] == "ESTOP_12V"
+        and physical["J10"]["2"] != physical["J10"]["4"],
+        "both_manual_reset_returns_are_independent": physical["J12"]["2"] != physical["J12"]["4"],
+        "estop_diagnostics_are_open_collector": physical["U8"]["16"] == physical["R49"]["2"] == "ESTOP_A_MON"
+        and physical["U8"]["14"] == physical["R50"]["2"] == "ESTOP_B_MON"
+        and physical["U8"]["15"] == physical["U8"]["13"] == "GND"
+        and physical["R49"]["1"] == physical["R50"]["1"] == "3V3_LOGIC",
     }
     return {
         "status": "CONNECTIVITY_PASS" if not mismatches and all(domain_checks.values()) else "CONNECTIVITY_FAIL",

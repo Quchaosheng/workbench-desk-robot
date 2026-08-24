@@ -19,6 +19,15 @@ def _append_entity_evidence(state: WorldState, entity_id: str, evidence_refs: li
     entity_evidence.extend(reference for reference in evidence_refs if reference not in entity_evidence)
 
 
+def _update_location(state: WorldState, entity_id: str, location: object, evidence_refs: list[str]) -> None:
+    normalized_location = str(location)
+    if state.entity_locations.get(entity_id) != normalized_location:
+        state.entity_evidence_refs[entity_id] = list(dict.fromkeys(evidence_refs))
+    else:
+        _append_entity_evidence(state, entity_id, evidence_refs)
+    state.entity_locations[entity_id] = normalized_location
+
+
 def apply_event(state: WorldState, event: WorldEvent) -> WorldState:
     """Apply one ordered event. Re-applying an event is idempotent."""
     if event.event_id in state.applied_event_ids:
@@ -34,14 +43,15 @@ def apply_event(state: WorldState, event: WorldEvent) -> WorldState:
         if entity_id:
             normalized_entity_id = str(entity_id)
             if location:
-                next_state.entity_locations[normalized_entity_id] = str(location)
+                _update_location(next_state, normalized_entity_id, location, event.evidence_refs)
             next_state.entity_confidence[normalized_entity_id] = float(event.payload.get("confidence", 0.0))
             attributes = event.payload.get("attributes")
             if isinstance(attributes, dict):
                 next_state.entity_attributes[normalized_entity_id] = {
                     str(key): str(value) for key, value in attributes.items()
                 }
-            _append_entity_evidence(next_state, normalized_entity_id, event.evidence_refs)
+            if not location:
+                _append_entity_evidence(next_state, normalized_entity_id, event.evidence_refs)
 
     elif event.event_type is WorldEventType.ACTION_RESULT and event.payload.get("outcome") == "completed":
         entity_id = event.payload.get("entity_id")
@@ -49,8 +59,9 @@ def apply_event(state: WorldState, event: WorldEvent) -> WorldState:
         if entity_id:
             normalized_entity_id = str(entity_id)
             if location:
-                next_state.entity_locations[normalized_entity_id] = str(location)
-            _append_entity_evidence(next_state, normalized_entity_id, event.evidence_refs)
+                _update_location(next_state, normalized_entity_id, location, event.evidence_refs)
+            else:
+                _append_entity_evidence(next_state, normalized_entity_id, event.evidence_refs)
 
     return next_state
 

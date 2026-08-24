@@ -223,6 +223,39 @@ class WorldModelTests(unittest.TestCase):
         self.assertEqual(result.reason_code, ReasonCode.EVIDENCE_MISSING)
         self.assertIn("no evidence", result.claim)
 
+    def test_location_change_cannot_reuse_stale_or_unrelated_evidence(self) -> None:
+        move_without_evidence = placed_event().model_copy(update={"sequence_no": 3, "evidence_refs": []})
+        state = reduce_events(
+            "run-001",
+            [
+                observation_event("evt-table", 1),
+                observation_event("evt-unrelated", 2, entity_id="blue_block", location="in:tray"),
+                move_without_evidence,
+            ],
+        )
+
+        result = verify_object_in_tray(state, "task-001", "red_block", "tray")
+
+        self.assertEqual(state.entity_evidence_refs["red_block"], [])
+        self.assertEqual(result.status, VerificationStatus.INSUFFICIENT_EVIDENCE)
+        self.assertEqual(result.reason_code, ReasonCode.EVIDENCE_MISSING)
+        self.assertEqual(result.evidence_refs, ["system://world-state/no-evidence"])
+
+    def test_same_location_evidence_accumulates_until_location_changes(self) -> None:
+        table_events = [observation_event("evt-table-1", 1), observation_event("evt-table-2", 2)]
+        same_location = reduce_events("run-001", table_events)
+        state = reduce_events("run-001", [*table_events, observation_event("evt-tray", 3, location="in:tray")])
+
+        self.assertEqual(
+            same_location.entity_evidence_refs["red_block"],
+            ["frame://evt-table-1", "frame://evt-table-2"],
+        )
+        self.assertEqual(state.entity_evidence_refs["red_block"], ["frame://evt-tray"])
+        self.assertEqual(
+            verify_object_in_tray(state, "task-001", "red_block", "tray").evidence_refs,
+            ["frame://evt-tray"],
+        )
+
     def test_kitting_verifier_checks_all_parts_extras_confidence_and_evidence(self) -> None:
         state = WorldState(
             run_id="kit-run",

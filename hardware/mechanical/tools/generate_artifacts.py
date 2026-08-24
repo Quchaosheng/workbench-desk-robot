@@ -300,9 +300,9 @@ def write_engineering_drawings(report: dict[str, object]) -> None:
 <path class="shell" d="M160 218 Q160 190 190 188 L315 188 Q342 190 342 220 L328 456 L174 456 Z"/>
 <rect class="frame" x="230" y="167" width="44" height="34" rx="12"/><rect class="shell" x="185" y="100" width="135" height="70" rx="28"/><circle cx="252" cy="135" r="25" fill="#101716"/><circle cx="243" cy="132" r="4" fill="#72c9b4"/><circle cx="261" cy="132" r="4" fill="#72c9b4"/>
 <polyline points="342,318 382,306 420,350 458,405 493,444 525,466 553,480" fill="none" stroke="#404745" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
-<g>{''.join(f'<circle class="joint" cx="{x}" cy="{y}" r="{r}"/>' for x, y, r in [(342,318,22),(382,306,20),(420,350,18),(458,405,16),(493,444,14),(525,466,12),(553,480,10)])}</g>
+<g>{"".join(f'<circle class="joint" cx="{x}" cy="{y}" r="{r}"/>' for x, y, r in [(342, 318, 22), (382, 306, 20), (420, 350, 18), (458, 405, 16), (493, 444, 14), (525, 466, 12), (553, 480, 10)])}</g>
 <polyline points="163,318 126,306 94,350 72,405 58,444 48,466 40,480" fill="none" stroke="#404745" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
-<g>{''.join(f'<circle class="joint" cx="{x}" cy="{y}" r="{r}"/>' for x, y, r in [(163,318,22),(126,306,20),(94,350,18),(72,405,16),(58,444,14),(48,466,12),(40,480,10)])}</g>
+<g>{"".join(f'<circle class="joint" cx="{x}" cy="{y}" r="{r}"/>' for x, y, r in [(163, 318, 22), (126, 306, 20), (94, 350, 18), (72, 405, 16), (58, 444, 14), (48, 466, 12), (40, 480, 10)])}</g>
 <text x="195" y="224" class="note">independent neck</text><text x="183" y="294" class="note">torso-side shoulders</text>
 <line class="dim" x1="90" y1="112" x2="90" y2="662"/><text x="50" y="410" class="note" transform="rotate(-90 50 410)">max {height}</text>
 <line class="dim" x1="115" y1="700" x2="385" y2="700"/><text x="222" y="725" class="note">base {width}</text>
@@ -332,8 +332,14 @@ def write_engineering_drawings(report: dict[str, object]) -> None:
         "drop_energy_j": report["drop_energy_j"],
         "effective_stroke_mm": SPEC["impact"]["effective_absorber_stroke_mm"],
         "estimated_bumper_contact_area_mm2": 18000,
-        "estimated_average_compressive_stress_mpa": round(report["mass_kg"] * SPEC["impact"]["design_deceleration_g"] * 9.80665 / 18000, 3),
-        "acceptance": {"peak_deceleration_g": SPEC["impact"]["design_deceleration_g"], "no_battery_contact": True, "no_sharp_shell_fracture": True},
+        "estimated_average_compressive_stress_mpa": round(
+            report["mass_kg"] * SPEC["impact"]["design_deceleration_g"] * 9.80665 / 18000, 3
+        ),
+        "acceptance": {
+            "peak_deceleration_g": SPEC["impact"]["design_deceleration_g"],
+            "no_battery_contact": True,
+            "no_sharp_shell_fracture": True,
+        },
     }
     (OUT / "drop-screening.json").write_text(json.dumps(fea, indent=2) + "\n", encoding="utf-8")
     sequence = [

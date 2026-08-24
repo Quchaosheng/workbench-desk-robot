@@ -25,17 +25,17 @@ for(const x of[.02,1.28]){cyl(.13,2.55,metal,[x,2.25,0],[0,0,0]);cyl(.18,.12,jad
 const lower=box(2.95,2.32,2.65,.48,shell,[.65,4.12,0],[0,0,-.02]);box(2.7,.18,2.35,.08,metal,[.65,3.02,0]);
 // Flush parcel drawer: graphite textile field inside an aluminium aperture.
 box(1.98,.78,.08,.16,metal,[.65,3.97,1.34],[0,0,0]);box(1.72,.58,.04,.12,textile,[.65,3.99,1.405]);
-// Twin load-bearing shoulder yokes tie both arms directly into the lift frame.
-for(const side of[-1,1]){const sx=.65+side*1.35;box(.82,1.95,.76,.2,metal,[sx,5.08,.12],[0,0,side*.16]);box(.66,.38,.7,.15,elastomer,[sx,5.98,.12],[0,0,side*.16])}
+// Twin load-bearing shoulder yokes sit in the torso side walls, below the neck.
+for(const side of[-1,1]){const sx=.65+side*1.35;box(.88,1.45,.82,.24,metal,[sx,4.52,.12],[0,0,side*.16]);box(.70,.32,.76,.14,elastomer,[sx,5.18,.12],[0,0,side*.16])}
 // Each arm has seven revolute axes: three shoulder axes, elbow, forearm roll and compact two-axis wrist.
 function joint(p,r,rot=[Math.PI/2,0,0]){cyl(r*.72,.28,metal,p,rot);cyl(r*.42,.30,elastomer,p,rot);cyl(r*.20,.32,jade,p,rot)}function link(a,b,r,matl=metal){const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),v=B.clone().sub(A),mid=A.clone().add(B).multiplyScalar(.5);const o=add(new THREE.CylinderGeometry(r*.86,r*1.08,v.length(),36),matl,mid);o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.normalize());return o}
-function buildArm(side){const sx=.65+side*1.35;const P={j1:[sx,5.42,.12],j2:[sx+side*.16,5.56,.24],j3:[sx+side*.34,5.5,.46],j4:[sx+side*.83,4.86,1.18],j5:[sx+side*.64,4.22,1.92],j6:[.65+side*.72,3.98,2.34],j7:[.65+side*.58,3.78,2.52],ee:[.65+side*.48,3.62,2.65]};joint(P.j1,.42,[0,0,0]);joint(P.j2,.37,[0,Math.PI/2,0]);joint(P.j3,.32,[Math.PI/2,0,0]);link(P.j3,P.j4,.31);joint(P.j4,.28,[0,Math.PI/2,0]);link(P.j4,P.j5,.25,metal);joint(P.j5,.22,[Math.PI/2,0,0]);link(P.j5,P.j6,.17,graphite);joint(P.j6,.18,[0,Math.PI/2,0]);link(P.j6,P.j7,.14,graphite);joint(P.j7,.15,[Math.PI/2,0,0]);link(P.j7,P.ee,.12,graphite);cyl(.13,.26,physical(0xc5c6bb,.28,.55),P.ee,[Math.PI/2,0,0]);box(.14,.5,.12,.04,elastomer,[P.ee[0],3.44,2.68+side*.18],[0,0,side*.18])}
+function buildArm(side){const sx=.65+side*1.35;const P={j1:[sx,4.54,.12],j2:[sx+side*.16,4.45,.24],j3:[sx+side*.34,4.34,.46],j4:[sx+side*.83,3.82,1.18],j5:[sx+side*.64,3.35,1.92],j6:[.65+side*.72,3.12,2.34],j7:[.65+side*.58,3.0,2.52],ee:[.65+side*.48,2.9,2.65]};joint(P.j1,.42,[0,0,0]);joint(P.j2,.37,[0,Math.PI/2,0]);joint(P.j3,.32,[Math.PI/2,0,0]);link(P.j3,P.j4,.31);joint(P.j4,.28,[0,Math.PI/2,0]);link(P.j4,P.j5,.25,metal);joint(P.j5,.22,[Math.PI/2,0,0]);link(P.j5,P.j6,.17,graphite);joint(P.j6,.18,[0,Math.PI/2,0]);link(P.j6,P.j7,.14,graphite);joint(P.j7,.15,[Math.PI/2,0,0]);link(P.j7,P.ee,.12,graphite);cyl(.13,.26,physical(0xc5c6bb,.28,.55),P.ee,[Math.PI/2,0,0]);box(.14,.5,.12,.04,elastomer,[P.ee[0],2.74,2.68+side*.18],[0,0,side*.18])}
 buildArm(-1);buildArm(1);
 for(const x of[-2.65,3.95])for(const z of[-1.85,1.85])link([x*.82,.53,z*.82],[x,.28,z],.09,metal);
 // Both adaptive grippers contact the parcel sides in the shared bimanual volume.
 const parcel=box(1.28,.92,1.0,.08,physical(0xb79d7c,.7,.02),[.65,3.15,2.82]);box(.08,.94,1.05,.02,physical(0x252a27,.62,.1),[.65,3.15,2.82],[0,0,0]);
-// Head: one coherent smoked-glass face, carried by a real neck bracket.
-box(1.0,.48,.78,.2,metal,[.65,6.1,0]);box(2.62,1.18,1.05,.34,shell,[.65,6.68,0],[-.05,0,0]);box(2.22,.88,.07,.24,glass,[.65,6.66,.56],[-.05,0,0]);for(const x of[-.02,1.08])box(.4,.13,.025,.06,jade,[x,6.71,.61],[-.05,0,0]);
+// Head: a separate rounded neck supports a friendly circular smoked-glass face.
+box(.78,1.0,.72,.28,metal,[.65,6.08,0]);box(2.62,1.18,1.05,.42,shell,[.65,6.68,0],[-.05,0,0]);cyl(.47,.08,glass,[.65,6.66,.56],[Math.PI/2,0,0]);for(const x of[.48,.82])cyl(.07,.025,jade,[x,6.72,.6],[Math.PI/2,0,0]);
 // A detachable tool dock carries brush, dry mop, and insulated cooking tool.
 box(.62,2.0,.88,.2,metal,[-1.45,2.0,-1.65]);for(const z of[-1.88,-1.65,-1.42])cyl(.12,.4,physical(0xb9b7aa,.45,.2),[-1.45,2.0,z],[0,Math.PI/2,0]);
 // Studio architecture: limestone floor, warm wall, soft window key.

@@ -95,25 +95,26 @@ module head_and_face() {
   translate([0, -12, head_z]) rotate([6, 0, 0]) {
     color([0.92, 0.91, 0.87]) rounded_prism(HEAD_W, HEAD_D, HEAD_H, 32);
     color([0.025, 0.035, 0.035])
-      translate([0, -HEAD_D/2-3, 20])
-        rotate([90, 0, 0]) rounded_prism(226, 88, 7, 22);
+      translate([0, -HEAD_D/2-4, 20])
+        rotate([90, 0, 0]) cylinder(h=7, d=96, center=true);
     color([0.44, 0.79, 0.70])
-      for (x=[-54, 54])
-        translate([x, -HEAD_D/2-8, 62]) rotate([90, 0, 0]) rounded_prism(30, 10, 2, 5);
+      for (x=[-20, 20])
+        translate([x, -HEAD_D/2-8, 48]) rotate([90, 0, 0]) cylinder(h=2, d=12, center=true);
   }
 }
 
 module seven_axis_arm(side=1) {
   // Active parcel pose. Three shoulder axes, two primary links, and a compact
   // three-axis wrist keep the load path legible without a bead-chain look.
-  p1 = [side*176, 54, 810];
-  p2 = [side*204, 20, 824];
-  p3 = [side*250, -20, 790];
-  p4 = [side*375, -165, 655];
-  p5 = [side*330, -280, 575];
-  p6 = [side*270, -315, 550];
-  p7 = [side*225, -330, 535];
-  ee = [side*182, -342, 525];
+  // Shoulder axes sit in the torso side walls, below the independent neck.
+  p1 = [side*176, 118, 770];
+  p2 = [side*204, 88, 758];
+  p3 = [side*250, 48, 730];
+  p4 = [side*375, -105, 625];
+  p5 = [side*330, -245, 560];
+  p6 = [side*270, -295, 540];
+  p7 = [side*225, -318, 528];
+  ee = [side*182, -335, 520];
 
   // Two load-bearing elliptical arm shells.
   tapered_link(p1, p2, 39, 36);

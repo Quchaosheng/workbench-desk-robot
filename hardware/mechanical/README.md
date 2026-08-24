@@ -31,6 +31,10 @@ warm amber is reserved for one status light. Visible glossy plastic, exposed
 fasteners, decorative color blocks, toy-like antennae, and exposed wheels are
 out of scope.
 
+The head uses a circular expression window inside a soft white frame and a
+dedicated neck. Both shoulder centres are mounted in the torso side walls below
+that neck; neither arm supports or visually frames the head.
+
 ## Reproduce
 
 ```bash

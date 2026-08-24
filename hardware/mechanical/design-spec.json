@@ -48,8 +48,9 @@
     "width": 260,
     "depth": 105,
     "height": 128,
-    "display_cutout": [220, 88],
-    "display_bezel_mm": 2.5,
+    "display_cutout": [96, 96],
+    "display_shape": "round",
+    "display_bezel_mm": 3.5,
     "tilt_deg": 6,
     "pan_deg": 160,
     "neck_channel_width": 32
@@ -61,6 +62,13 @@
     "parcel_bay_volume_l": 18,
     "parcel_bay_payload_kg": 5,
     "tool_dock_slots": 3
+  },
+  "shoulder_mounts": {
+    "location": "upper torso side walls below independent neck",
+    "center_spacing_mm": 352,
+    "structural_path": "left/right anodized aluminium yokes into lift-supported central spine",
+    "head_support_independent": true,
+    "cosmetic_shell_load_bearing": false
   },
   "manipulator": {
     "count": 2,

@@ -185,12 +185,7 @@ def export_cad_package() -> bool:
         .rotate((0, 0, 0), (1, 0, 0), head_spec["tilt_deg"])
         .translate((0, -12, 900))
     )
-    face_lens = (
-        cq.Workplane("XZ")
-        .rect(*head_spec["display_cutout"])
-        .extrude(5)
-        .translate((0, -67, 900))
-    )
+    face_lens = cq.Workplane("XZ").circle(head_spec["display_cutout"][0] / 2).extrude(5).translate((0, -67, 900))
     tray_spec = SPEC["electronics_tray"]
     tray = (
         cq.Workplane("XY")
@@ -211,14 +206,14 @@ def export_cad_package() -> bool:
     tool_dock = cq.Workplane("XY").box(62, 160, 230).edges("|Z").fillet(18).translate((-178, 86, 357))
 
     right_arm_points = [
-        (176, 54, 810),
-        (204, 20, 824),
-        (250, -20, 790),
-        (375, -165, 655),
-        (330, -280, 575),
-        (270, -315, 550),
-        (225, -330, 535),
-        (182, -342, 525),
+        (176, 118, 770),
+        (204, 88, 758),
+        (250, 48, 730),
+        (375, -105, 625),
+        (330, -245, 560),
+        (270, -295, 540),
+        (225, -318, 528),
+        (182, -335, 520),
     ]
     joint_radii = [41, 38, 34, 29, 24, 20, 17]
     left_arm_points = [(-x, y, z) for x, y, z in right_arm_points]
@@ -303,11 +298,12 @@ def write_engineering_drawings(report: dict[str, object]) -> None:
 <text x="36" y="72" class="note">Dual seven-axis arms + 350 mm braked lift; concept geometry; mm</text>
 <rect class="frame" x="115" y="590" width="270" height="72" rx="24"/><rect class="frame" x="188" y="452" width="124" height="150" rx="16"/>
 <path class="shell" d="M160 218 Q160 190 190 188 L315 188 Q342 190 342 220 L328 456 L174 456 Z"/>
-<rect class="shell" x="185" y="112" width="135" height="70" rx="24"/><rect x="198" y="125" width="109" height="42" rx="14" fill="#101716"/>
-<polyline points="320,268 382,244 420,302 458,370 493,424 525,452 553,468" fill="none" stroke="#404745" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
-<g>{''.join(f'<circle class="joint" cx="{x}" cy="{y}" r="{r}"/>' for x, y, r in [(320,268,22),(382,244,20),(420,302,18),(458,370,16),(493,424,14),(525,452,12),(553,468,10)])}</g>
-<polyline points="185,268 126,244 94,302 72,370 58,424 48,452 40,468" fill="none" stroke="#404745" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
-<g>{''.join(f'<circle class="joint" cx="{x}" cy="{y}" r="{r}"/>' for x, y, r in [(185,268,22),(126,244,20),(94,302,18),(72,370,16),(58,424,14),(48,452,12),(40,468,10)])}</g>
+<rect class="frame" x="230" y="167" width="44" height="34" rx="12"/><rect class="shell" x="185" y="100" width="135" height="70" rx="28"/><circle cx="252" cy="135" r="25" fill="#101716"/><circle cx="243" cy="132" r="4" fill="#72c9b4"/><circle cx="261" cy="132" r="4" fill="#72c9b4"/>
+<polyline points="342,318 382,306 420,350 458,405 493,444 525,466 553,480" fill="none" stroke="#404745" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+<g>{''.join(f'<circle class="joint" cx="{x}" cy="{y}" r="{r}"/>' for x, y, r in [(342,318,22),(382,306,20),(420,350,18),(458,405,16),(493,444,14),(525,466,12),(553,480,10)])}</g>
+<polyline points="163,318 126,306 94,350 72,405 58,444 48,466 40,480" fill="none" stroke="#404745" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+<g>{''.join(f'<circle class="joint" cx="{x}" cy="{y}" r="{r}"/>' for x, y, r in [(163,318,22),(126,306,20),(94,350,18),(72,405,16),(58,444,14),(48,466,12),(40,480,10)])}</g>
+<text x="195" y="224" class="note">independent neck</text><text x="183" y="294" class="note">torso-side shoulders</text>
 <line class="dim" x1="90" y1="112" x2="90" y2="662"/><text x="50" y="410" class="note" transform="rotate(-90 50 410)">max {height}</text>
 <line class="dim" x1="115" y1="700" x2="385" y2="700"/><text x="222" y="725" class="note">base {width}</text>
 <text x="630" y="130" font-size="21" font-weight="bold">LIFT STATES</text>

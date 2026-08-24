@@ -5,11 +5,12 @@
 <text x="36" y="72" class="note">Dual seven-axis arms + 350 mm braked lift; concept geometry; mm</text>
 <rect class="frame" x="115" y="590" width="270" height="72" rx="24"/><rect class="frame" x="188" y="452" width="124" height="150" rx="16"/>
 <path class="shell" d="M160 218 Q160 190 190 188 L315 188 Q342 190 342 220 L328 456 L174 456 Z"/>
-<rect class="shell" x="185" y="112" width="135" height="70" rx="24"/><rect x="198" y="125" width="109" height="42" rx="14" fill="#101716"/>
-<polyline points="320,268 382,244 420,302 458,370 493,424 525,452 553,468" fill="none" stroke="#404745" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
-<g><circle class="joint" cx="320" cy="268" r="22"/><circle class="joint" cx="382" cy="244" r="20"/><circle class="joint" cx="420" cy="302" r="18"/><circle class="joint" cx="458" cy="370" r="16"/><circle class="joint" cx="493" cy="424" r="14"/><circle class="joint" cx="525" cy="452" r="12"/><circle class="joint" cx="553" cy="468" r="10"/></g>
-<polyline points="185,268 126,244 94,302 72,370 58,424 48,452 40,468" fill="none" stroke="#404745" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
-<g><circle class="joint" cx="185" cy="268" r="22"/><circle class="joint" cx="126" cy="244" r="20"/><circle class="joint" cx="94" cy="302" r="18"/><circle class="joint" cx="72" cy="370" r="16"/><circle class="joint" cx="58" cy="424" r="14"/><circle class="joint" cx="48" cy="452" r="12"/><circle class="joint" cx="40" cy="468" r="10"/></g>
+<rect class="frame" x="230" y="167" width="44" height="34" rx="12"/><rect class="shell" x="185" y="100" width="135" height="70" rx="28"/><circle cx="252" cy="135" r="25" fill="#101716"/><circle cx="243" cy="132" r="4" fill="#72c9b4"/><circle cx="261" cy="132" r="4" fill="#72c9b4"/>
+<polyline points="342,318 382,306 420,350 458,405 493,444 525,466 553,480" fill="none" stroke="#404745" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+<g><circle class="joint" cx="342" cy="318" r="22"/><circle class="joint" cx="382" cy="306" r="20"/><circle class="joint" cx="420" cy="350" r="18"/><circle class="joint" cx="458" cy="405" r="16"/><circle class="joint" cx="493" cy="444" r="14"/><circle class="joint" cx="525" cy="466" r="12"/><circle class="joint" cx="553" cy="480" r="10"/></g>
+<polyline points="163,318 126,306 94,350 72,405 58,444 48,466 40,480" fill="none" stroke="#404745" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+<g><circle class="joint" cx="163" cy="318" r="22"/><circle class="joint" cx="126" cy="306" r="20"/><circle class="joint" cx="94" cy="350" r="18"/><circle class="joint" cx="72" cy="405" r="16"/><circle class="joint" cx="58" cy="444" r="14"/><circle class="joint" cx="48" cy="466" r="12"/><circle class="joint" cx="40" cy="480" r="10"/></g>
+<text x="195" y="224" class="note">independent neck</text><text x="183" y="294" class="note">torso-side shoulders</text>
 <line class="dim" x1="90" y1="112" x2="90" y2="662"/><text x="50" y="410" class="note" transform="rotate(-90 50 410)">max 1450</text>
 <line class="dim" x1="115" y1="700" x2="385" y2="700"/><text x="222" y="725" class="note">base 540</text>
 <text x="630" y="130" font-size="21" font-weight="bold">LIFT STATES</text>

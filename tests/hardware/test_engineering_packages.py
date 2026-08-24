@@ -87,11 +87,20 @@ class MechanicalPackageTests(unittest.TestCase):
         self.assertEqual(spec["chassis"]["stabilizer_count"], 4)
         self.assertEqual(spec["manipulator"]["count"], 2)
         self.assertEqual(spec["manipulator"]["total_revolute_axes"], 14)
+        self.assertEqual(spec["head"]["display_shape"], "round")
+        self.assertEqual(spec["head"]["display_cutout"], [96, 96])
         self.assertEqual(len(spec["manipulator"]["joints"]), 7)
         self.assertEqual([joint["id"] for joint in spec["manipulator"]["joints"]], [f"J{i}" for i in range(1, 8)])
         self.assertEqual(spec["tool_system"]["interface"], "kinematic_quick_change_with_mechanical_lock")
         scad = (ROOT / "hardware/mechanical/cad/desk_robot.scad").read_text(encoding="utf-8")
-        for feature in ("mobile_base", "lifting_platform", "seven_axis_arm", "dual_seven_axis_arms", "tool_dock"):
+        for feature in (
+            "mobile_base",
+            "lifting_platform",
+            "seven_axis_arm",
+            "dual_seven_axis_arms",
+            "head_and_face",
+            "tool_dock",
+        ):
             self.assertIn(f"module {feature}", scad)
         drawing = (ROOT / "hardware/mechanical/generated/drawings/general-arrangement.svg").read_text(encoding="utf-8")
         self.assertIn("REV D", drawing)

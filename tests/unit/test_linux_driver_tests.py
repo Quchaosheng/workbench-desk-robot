@@ -5,6 +5,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 MODULE_PATH = ROOT / "kernel" / "wbcan" / "validate_test_report.py"
+TEST_SCRIPT = ROOT / "kernel" / "wbcan" / "test_wbcan.sh"
 SPEC = importlib.util.spec_from_file_location("validate_wbcan_report", MODULE_PATH)
 assert SPEC and SPEC.loader
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -74,3 +75,10 @@ def test_report_rejects_missing_or_unexpected_test_ids(tmp_path: Path) -> None:
             minimum_checks=1,
             required_test_ids={"wbcan-first", "wbcan-second"},
         )
+
+
+def test_fault_suite_fails_if_report_append_fails() -> None:
+    script = TEST_SCRIPT.read_text(encoding="utf-8")
+
+    assert '>> "$REPORT_FILE" || {' in script
+    assert "cannot append to test report" in script

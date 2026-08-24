@@ -12,8 +12,6 @@ and never turns fixture data into hardware evidence.
 from __future__ import annotations
 
 import json
-import os
-import subprocess
 import sys
 import threading
 import urllib.error
@@ -25,11 +23,10 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT / "services" / "backend")]
 
+from local_runner import plan_offline
 from workbench_backend.server import create_server
 
-
 DATA_DIR = ROOT / "apps" / "dashboard" / "data"
-RUNNER = ROOT / "tools" / "scripts" / "local_runner.py"
 
 
 def _read_json(base_url: str, route: str) -> tuple[int, dict]:
@@ -52,25 +49,62 @@ def backend():
 
 
 def test_offline_template_runner_emits_a_bounded_task_graph() -> None:
-    pytest.importorskip("pydantic", reason="project runtime dependencies are installed in CI")
-    environment = os.environ.copy()
-    environment["WORKBENCH_OFFLINE"] = "1"
-    completed = subprocess.run(
-        [sys.executable, str(RUNNER), "--goal", "Place the red block in the tray"],
-        cwd=ROOT,
-        env=environment,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-
-    payload = json.loads(completed.stdout)
+    payload = plan_offline("Place the red block in the tray")
     assert payload["offline"] is True
-    assert payload["provider"] == "template"
+    assert payload["provider"] == "template-v1"
     assert payload["network_access"] == "disabled"
     actions = [step["action"]["action_type"] for step in payload["task_graph"]["steps"]]
     assert actions == ["observe", "grasp", "place"]
     assert all(action in {"observe", "grasp", "place", "ask_confirm", "express", "stop"} for action in actions)
+
+
+def test_planner_output_drives_backend_event_replay(tmp_path: Path) -> None:
+    planned = plan_offline("Place the red block in the tray")
+    task_graph = planned["task_graph"]
+    run_id = "offline-generated"
+    events = [
+        {
+            "event_id": "offline-generated-000",
+            "run_id": run_id,
+            "sequence_no": 0,
+            "event_type": "task_accepted",
+            "occurred_at": "2026-08-24T00:00:00Z",
+            "payload": {"task_id": task_graph["task_id"], "goal": task_graph["goal"], "mode": "offline"},
+            "evidence_refs": [],
+        },
+        {
+            "event_id": "offline-generated-001",
+            "run_id": run_id,
+            "sequence_no": 1,
+            "event_type": "task_graph",
+            "occurred_at": "2026-08-24T00:00:01Z",
+            "payload": task_graph,
+            "evidence_refs": [],
+        },
+    ]
+    (tmp_path / f"{run_id}.jsonl").write_text(
+        "".join(json.dumps(event, separators=(",", ":")) + "\n" for event in events),
+        encoding="utf-8",
+    )
+
+    server = create_server("127.0.0.1", 0, data_dir=tmp_path)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base_url = f"http://127.0.0.1:{server.server_address[1]}"
+    try:
+        status, replay = _read_json(base_url, f"/api/v1/runs/{run_id}/events")
+        assert status == 200
+        replayed_graph = replay["events"][1]["payload"]
+        assert replayed_graph == task_graph
+        assert [step["action"]["action_type"] for step in replayed_graph["steps"]] == [
+            "observe",
+            "grasp",
+            "place",
+        ]
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
 
 
 def test_backend_exposes_health_readiness_replay_and_all_status_states(backend: str) -> None:

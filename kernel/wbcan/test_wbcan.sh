@@ -15,7 +15,6 @@ DBG="/sys/kernel/debug/wbcan/${IFACE}"
 FAIL_ERROR_SKB="/sys/module/wbcan/parameters/fail_error_skb"
 PASS=0
 FAIL=0
-CHECK_NO=0
 REPORT_FILE="${WBCAN_TEST_REPORT:-}"
 
 red()   { printf '\033[31m%s\033[0m\n' "$*"; }
@@ -31,10 +30,22 @@ fi
 report_check() {
 	local result="$1" name="$2" want="$3" got="$4" slug
 	[ -n "$REPORT_FILE" ] || return 0
-	CHECK_NO=$((CHECK_NO + 1))
 	slug=$(printf '%s' "$name" | tr '[:upper:] ' '[:lower:]_' | tr -cd '[:alnum:]_-')
-	printf '%s\twbcan-%03d-%s\t%s\t%s\t%s\n' \
-		"$result" "$CHECK_NO" "$slug" "$name" "$want" "$got" >> "$REPORT_FILE"
+	printf '%s\twbcan-%s\t%s\t%s\t%s\n' \
+		"$result" "$slug" "$name" "$want" "$got" >> "$REPORT_FILE"
+}
+
+check() {
+	local name="$1" want="$2" got="$3"
+	if [ "$want" = "$got" ]; then
+		green "PASS  $name"
+		PASS=$((PASS + 1))
+		report_check PASS "$name" "$want" "$got"
+	else
+		red   "FAIL  $name: want '$want' got '$got'"
+		FAIL=$((FAIL + 1))
+		report_check FAIL "$name" "$want" "$got"
+	fi
 }
 
 need() {
@@ -55,19 +66,17 @@ trap restore_error_skb_allocation EXIT
 [ -d "$DBG" ] || { red "no debugfs dir at $DBG - is the module loaded?"; exit 1; }
 ip link show "$IFACE" >/dev/null 2>&1 || { red "no interface $IFACE"; exit 1; }
 if [ -w "$DBG/inject" ] && [ -r "$DBG/status" ]; then
-	green "PASS  fault-plane readiness: PASS"
-	PASS=$((PASS + 1))
+	fault_plane_readiness=PASS
 else
-	red "FAIL  fault-plane readiness: FAIL"
-	FAIL=$((FAIL + 1))
+	fault_plane_readiness=FAIL
 fi
+check "fault-plane readiness" "PASS" "$fault_plane_readiness"
 if [ -w "$FAIL_ERROR_SKB" ] && [ -r "$FAIL_ERROR_SKB" ]; then
-	green "PASS  error-SKB failure injection readiness: PASS"
-	PASS=$((PASS + 1))
+	error_skb_readiness=PASS
 else
-	red "FAIL  error-SKB failure injection readiness: FAIL"
-	FAIL=$((FAIL + 1))
+	error_skb_readiness=FAIL
 fi
+check "error-SKB failure injection readiness" "PASS" "$error_skb_readiness"
 
 arm()   { echo "$*" > "$DBG/inject"; }
 clear_fault() { arm "none 0"; }
@@ -112,19 +121,6 @@ capture() {
 	candump -L -T "$ms" -n 100 "$IFACE,0:0,#FFFFFFFF" 2>/dev/null
 }
 
-check() {
-	local name="$1" want="$2" got="$3"
-	if [ "$want" = "$got" ]; then
-		green "PASS  $name"
-		PASS=$((PASS + 1))
-		report_check PASS "$name" "$want" "$got"
-	else
-		red   "FAIL  $name: want '$want' got '$got'"
-		FAIL=$((FAIL + 1))
-		report_check FAIL "$name" "$want" "$got"
-	fi
-}
-
 # wbcan is a module-load singleton, not an RTNL-created link kind.
 if ip link add dev wbcan-test type wbcan 2>/dev/null; then
 	check "RTNL creation is rejected for singleton wbcan" "rejected" "accepted"
@@ -133,12 +129,11 @@ else
 	check "RTNL creation is rejected for singleton wbcan" "rejected" "rejected"
 fi
 if ip link show wbcan-test >/dev/null 2>&1; then
-	red "FAIL  RTNL probe left an unexpected wbcan-test device"
-	FAIL=$((FAIL + 1))
+	singleton_probe=present
 else
-	green "PASS  RTNL probe leaves singleton lifecycle unchanged"
-	PASS=$((PASS + 1))
+	singleton_probe=absent
 fi
+check "RTNL probe leaves singleton lifecycle unchanged" "absent" "$singleton_probe"
 
 restart_if_bus_off() {
 	if [ "$(stat state)" = "bus-off" ]; then

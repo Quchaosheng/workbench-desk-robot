@@ -25,6 +25,19 @@ jobs:
       - run: make test
       - run: make contract
       - run: make scenario-check
+      - name: Assert skipped Gazebo execution is not a pass
+        run: |
+          mkdir -p runs
+          set +e
+          python tests/regression/run_frozen_scenarios.py \
+            --version ci \
+            --runner gazebo \
+            --output-dir runs/ci-frozen > runs/ci-frozen-summary.txt 2>&1
+          status=$?
+          set -e
+          test "$status" -eq 2
+          grep -q "NOT_EXECUTED" runs/ci-frozen-summary.txt
+          ! grep -q -E "placeholder|VTCR" runs/ci-frozen-summary.txt
       - run: make golden-check
       - run: make context-check
       - run: python tools/scripts/check_task_packet.py --all

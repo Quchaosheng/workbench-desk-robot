@@ -1,17 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760">
-<style>text{font-family:Arial,sans-serif;fill:#111} .part{fill:#e8edf2;stroke:#111;stroke-width:2} .dim{stroke:#1769aa;stroke-width:2;marker-start:url(#a);marker-end:url(#a)} .note{font-size:18px}</style>
-<defs><marker id="a" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M8,0 L0,4 L8,8" fill="none" stroke="#1769aa"/></marker></defs>
-<text x="40" y="45" font-size="28" font-weight="bold">Workbench-1 General Arrangement - mm - REV A</text>
-<rect class="part" x="90" y="120" width="420.0" height="495.0" rx="27"/>
-<rect x="187" y="450" width="225" height="108" fill="#20252b" stroke="#111" stroke-width="2"/>
-<line class="dim" x1="90" y1="90" x2="510" y2="90"/><text x="280" y="80" class="note">280</text>
-<line class="dim" x1="55" y1="120" x2="55" y2="615"/><text x="12" y="375" class="note" transform="rotate(-90 12 375)">330</text>
-<text x="120" y="650" class="note">Front: display cutout 150 x 72; nominal wall 2.5</text>
-<rect class="part" x="660" y="170" width="420.0" height="360.0" rx="27"/>
-<line class="dim" x1="660" y1="140" x2="1080" y2="140"/><text x="850" y="130" class="note">280</text>
-<line class="dim" x1="1120" y1="170" x2="1120" y2="530"/><text x="1140" y="370" class="note" transform="rotate(-90 1140 370)">240</text>
-<rect x="675" y="185" width="390" height="330" fill="none" stroke="#e65c00" stroke-width="12" rx="24"/>
-<text x="700" y="565" class="note">8 TPU skin over 24 effective compliant stroke</text>
-<text x="660" y="625" class="note">CG Z=101.9; static tip angle=45.9 deg</text>
-<text x="660" y="660" class="note">ISO 2768-m unless noted; prototype only until physical validation</text>
+<style>text{font-family:Arial,sans-serif;fill:#17201f} .shell{fill:#ecece7;stroke:#17201f;stroke-width:3} .frame{fill:#404745;stroke:#17201f;stroke-width:3} .joint{fill:#202625;stroke:#7a807d;stroke-width:5} .dim{stroke:#287b70;stroke-width:2;marker-start:url(#a);marker-end:url(#a)} .note{font-size:17px}</style>
+<defs><marker id="a" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M8,0 L0,4 L8,8" fill="none" stroke="#287b70"/></marker></defs>
+<text x="36" y="44" font-size="28" font-weight="bold">Workbench Home Robot - General Arrangement - REV D</text>
+<text x="36" y="72" class="note">Dual seven-axis arms + 350 mm braked lift; concept geometry; mm</text>
+<rect class="frame" x="115" y="590" width="270" height="72" rx="24"/><rect class="frame" x="188" y="452" width="124" height="150" rx="16"/>
+<path class="shell" d="M160 218 Q160 190 190 188 L315 188 Q342 190 342 220 L328 456 L174 456 Z"/>
+<rect class="frame" x="230" y="167" width="44" height="34" rx="12"/><rect class="shell" x="185" y="100" width="135" height="70" rx="28"/><circle cx="252" cy="135" r="25" fill="#101716"/><circle cx="243" cy="132" r="4" fill="#72c9b4"/><circle cx="261" cy="132" r="4" fill="#72c9b4"/>
+<polyline points="342,318 382,306 420,350 458,405 493,444 525,466 553,480" fill="none" stroke="#404745" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+<g><circle class="joint" cx="342" cy="318" r="22"/><circle class="joint" cx="382" cy="306" r="20"/><circle class="joint" cx="420" cy="350" r="18"/><circle class="joint" cx="458" cy="405" r="16"/><circle class="joint" cx="493" cy="444" r="14"/><circle class="joint" cx="525" cy="466" r="12"/><circle class="joint" cx="553" cy="480" r="10"/></g>
+<polyline points="163,318 126,306 94,350 72,405 58,444 48,466 40,480" fill="none" stroke="#404745" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+<g><circle class="joint" cx="163" cy="318" r="22"/><circle class="joint" cx="126" cy="306" r="20"/><circle class="joint" cx="94" cy="350" r="18"/><circle class="joint" cx="72" cy="405" r="16"/><circle class="joint" cx="58" cy="444" r="14"/><circle class="joint" cx="48" cy="466" r="12"/><circle class="joint" cx="40" cy="480" r="10"/></g>
+<text x="195" y="224" class="note">independent neck</text><text x="183" y="294" class="note">torso-side shoulders</text>
+<line class="dim" x1="90" y1="112" x2="90" y2="662"/><text x="50" y="410" class="note" transform="rotate(-90 50 410)">max 1450</text>
+<line class="dim" x1="115" y1="700" x2="385" y2="700"/><text x="222" y="725" class="note">base 540</text>
+<text x="630" y="130" font-size="21" font-weight="bold">LIFT STATES</text>
+<rect class="frame" x="650" y="520" width="190" height="70" rx="22"/><rect class="frame" x="710" y="385" width="70" height="145" rx="14"/><rect class="shell" x="680" y="245" width="130" height="145" rx="30"/>
+<rect class="frame" x="930" y="520" width="190" height="70" rx="22"/><rect class="frame" x="990" y="260" width="70" height="270" rx="14"/><rect class="shell" x="960" y="120" width="130" height="145" rx="30"/>
+<line class="dim" x1="875" y1="260" x2="875" y2="385"/><text x="892" y="330" class="note">travel 350</text>
+<text x="675" y="625" class="note">LOW / DRIVE</text><text x="958" y="625" class="note">RAISED / WORK</text>
+<text x="630" y="680" class="note">CG Z=441.6 · drive tip=27.5 deg · stabilized tip=38.0 deg</text>
+<text x="630" y="712" class="note">Manipulation requires wheel brakes + deployed support feet.</text>
 </svg>

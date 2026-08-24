@@ -1,32 +1,47 @@
 [
   {
     "step": 10,
-    "part": "lower_chassis",
-    "fastener": "fixture datum A"
+    "part": "mobile_base",
+    "fastener": "fixture datum A + brake check"
   },
   {
     "step": 20,
-    "part": "motor_brackets",
-    "fastener": "8x M3x8 @ 0.55 Nm"
+    "part": "stabilizers",
+    "fastener": "4x captive M6 + deployed-foot witness"
   },
   {
     "step": 30,
+    "part": "lifting_platform",
+    "fastener": "dual screw synchronization + lock pins"
+  },
+  {
+    "step": 40,
     "part": "electronics_tray",
     "fastener": "4x M3x8 @ 0.55 Nm"
   },
   {
-    "step": 40,
-    "part": "display_bracket",
-    "fastener": "4x M3x6 @ 0.25 Nm"
-  },
-  {
     "step": 50,
-    "part": "upper_shell",
-    "fastener": "8x M3x8 @ 0.25 Nm"
+    "part": "utility_torso",
+    "fastener": "8x M4 captive @ 1.2 Nm"
   },
   {
     "step": 60,
-    "part": "impact_bumper",
-    "fastener": "snap + 4 retained screws"
+    "part": "left_seven_axis_arm",
+    "fastener": "left shoulder datum + torque witness"
+  },
+  {
+    "step": 70,
+    "part": "right_seven_axis_arm",
+    "fastener": "right shoulder datum + torque witness"
+  },
+  {
+    "step": 80,
+    "part": "head_module",
+    "fastener": "4x M4 captive @ 0.8 Nm"
+  },
+  {
+    "step": 90,
+    "part": "tool_dock",
+    "fastener": "3x M4 captive @ 0.8 Nm"
   }
 ]

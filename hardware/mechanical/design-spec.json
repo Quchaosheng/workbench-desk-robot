@@ -1,17 +1,156 @@
 {
   "units": "mm",
-  "enclosure": {"width": 280, "depth": 240, "height": 330, "wall": 2.5, "corner_radius": 18},
-  "chassis": {"width": 260, "depth": 220, "thickness": 4, "wheelbase": 180, "track": 210, "ground_clearance": 18},
-  "head": {"width": 190, "height": 92, "display_cutout": [150, 72], "tilt_deg": 8},
-  "electronics_tray": {"width": 220, "depth": 170, "clearance_above": 32, "pcb_envelope": [160, 130, 1.6], "pcb_mount_pattern": [152, 122], "pcb_mount_hole_mm": 3.2, "minimum_edge_service_margin": 20},
-  "ventilation": {"inlet_area_mm2": 1800, "outlet_area_mm2": 2200, "fan_mm": 60, "direction": "lower-front to upper-rear"},
-  "impact": {"bumper_material": "TPU 95A over compliant honeycomb", "bumper_thickness": 8, "effective_absorber_stroke_mm": 24, "drop_height_m": 0.75, "design_deceleration_g": 35},
+  "revision": "D",
+  "product_class": "mobile domestic manipulator concept",
+  "design_intent": "a calm-appliance household utility robot with two seven-axis collaborative arms, a braked liftable torso, stabilized wheeled base, bimanual parcel handling, cleaning assistance, and supervised induction-cooking assistance",
+  "validation_status": "CONCEPT_PHYSICAL_VALIDATION_REQUIRED",
+  "enclosure": {
+    "width": 540,
+    "depth": 520,
+    "height": 1450,
+    "stowed_height": 1100,
+    "wall": 3.0,
+    "corner_radius": 36
+  },
+  "chassis": {
+    "width": 540,
+    "depth": 520,
+    "thickness": 6,
+    "wheelbase": 390,
+    "track": 460,
+    "stabilized_support_width": 690,
+    "stabilized_support_depth": 680,
+    "ground_clearance": 28,
+    "wheel_brakes": "normally_closed",
+    "stabilizer_count": 4
+  },
+  "stability_gates": {
+    "analytical_screen_only": true,
+    "worst_case_pose": "lift_max + both_arms_shared_workspace + bimanual_payload + emergency_stop",
+    "minimum_dynamic_stability_factor": 2.0,
+    "required_physical_tests": ["pull_test", "5_deg_slope", "emergency_stop", "brake_hold", "stabilizer_deploy"],
+    "drive_tip_angle_is_not_manipulation_release": true
+  },
+  "lifting_platform": {
+    "type": "four_guide_dual_screw_synchronized_lift",
+    "travel": 350,
+    "rated_axial_load_n": 3000,
+    "minimum_shoulder_height": 780,
+    "maximum_shoulder_height": 1130,
+    "normally_closed_brakes": 2,
+    "mechanical_lock_pins": 2,
+    "position_encoders": 2,
+    "hard_limits": ["lower", "upper"],
+    "pinch_detection": ["motor_current", "edge_sensor"],
+    "drive_speed_limit_when_raised_mps": 0.25
+  },
+  "head": {
+    "width": 260,
+    "depth": 105,
+    "height": 128,
+    "display_cutout": [96, 96],
+    "display_shape": "round",
+    "display_bezel_mm": 3.5,
+    "tilt_deg": 6,
+    "pan_deg": 160,
+    "neck_channel_width": 32
+  },
+  "torso": {
+    "width": 420,
+    "depth": 330,
+    "height": 430,
+    "parcel_bay_volume_l": 18,
+    "parcel_bay_payload_kg": 5,
+    "tool_dock_slots": 3
+  },
+  "shoulder_mounts": {
+    "location": "upper torso side walls below independent neck",
+    "center_spacing_mm": 352,
+    "structural_path": "left/right anodized aluminium yokes into lift-supported central spine",
+    "head_support_independent": true,
+    "cosmetic_shell_load_bearing": false
+  },
+  "manipulator": {
+    "count": 2,
+    "type": "dual_seven_revolute_axis_collaborative_arms",
+    "arm_ids": ["left", "right"],
+    "total_revolute_axes": 14,
+    "reach_mm": 720,
+    "continuous_payload": {"mass_kg": 2, "reach_mm": 650},
+    "reduced_speed_payload": {"mass_kg": 3, "reach_mm": 400},
+    "links_mm": {"upper_arm": 275, "forearm": 245, "wrist_stack": 115},
+    "internal_cable_routing": true,
+    "bimanual_payload": {"mass_kg": 4, "reach_mm": 450, "mode": "reduced_speed_shared_workspace"},
+    "workspace_partition": {
+      "left_only": true,
+      "right_only": true,
+      "shared_bimanual": true,
+      "forbidden_interference": ["opposite_shoulder", "head", "lift_column", "tool_dock"],
+      "shared_volume_requires_single_coordinator": true
+    },
+    "joints": [
+      {"id": "J1", "name": "base_yaw", "axis": "Z", "limits_deg": [-170, 170], "continuous_peak_torque_nm": [45, 90]},
+      {"id": "J2", "name": "shoulder_pitch", "axis": "Y", "limits_deg": [-90, 120], "continuous_peak_torque_nm": [70, 130]},
+      {"id": "J3", "name": "shoulder_roll", "axis": "X", "limits_deg": [-95, 95], "continuous_peak_torque_nm": [45, 85]},
+      {"id": "J4", "name": "elbow_pitch", "axis": "Y", "limits_deg": [-135, 10], "continuous_peak_torque_nm": [35, 70]},
+      {"id": "J5", "name": "forearm_roll", "axis": "X", "limits_deg": [-180, 180], "continuous_peak_torque_nm": [15, 30]},
+      {"id": "J6", "name": "wrist_pitch", "axis": "Y", "limits_deg": [-110, 110], "continuous_peak_torque_nm": [12, 24]},
+      {"id": "J7", "name": "tool_roll", "axis": "X", "limits_deg": [-180, 180], "continuous_peak_torque_nm": [8, 16]}
+    ]
+  },
+  "tool_system": {
+    "interface": "kinematic_quick_change_with_mechanical_lock",
+    "services": ["24V", "CAN-FD", "tool_id", "force_torque"],
+    "tools": [
+      {"name": "adaptive_gripper", "span_mm": 120, "safe_force_n": 45, "sensors": ["finger_force", "slip", "tool_mass"]},
+      {"name": "compliant_cleaning_head", "width_mm": 240, "compliance_mm": 20, "modes": ["brush", "dry_mop"]},
+      {"name": "induction_cooking_tool", "materials": ["316L stainless steel", "PEEK", "food-grade silicone"], "continuous_tip_temperature_c": 200, "short_tip_temperature_c": 250}
+    ]
+  },
+  "operation_boundary": {
+    "parcel": "indoor reachable shelf or doorstep only; stairs, public roads, locked doors, and uncontrolled elevators excluded",
+    "cleaning": "force-limited removable tools; no flooding or sharp debris",
+    "cooking": "supervised induction-only stirring and turning with thermal barrier and spill detection; no open flame, boiling-liquid carry, or unrestrained hot pan",
+    "prohibited": ["person lifting", "stairs", "open flame", "unattended hot work"]
+  },
+  "interaction": {
+    "display": "expressive smoked-glass face",
+    "states": ["idle", "happy", "thinking", "help_needed", "task_complete", "hot_zone_warning"],
+    "audio": true
+  },
+  "cmf": {
+    "primary_shell": "warm mineral-white fine-texture PC-ABS, 10-15 GU at 60 degrees",
+    "structural_spine_and_arm": "bead-blasted recycled aluminium, graphite natural anodized, 20-30 GU",
+    "joint_gaps": "charcoal low-gloss elastomer with 4-6 mm controlled shadow gap",
+    "face_lens": "smoked chemically strengthened glass, AF/AR coating, black mask printed on rear surface",
+    "acoustic_and_bay_panel": "graphite 3D-knit recycled PET textile over removable carrier",
+    "food_contact": "removable 316L stainless steel, PEEK, and food-grade silicone only",
+    "accent": "one desaturated jade or warm amber status light; no decorative color blocks",
+    "parting_strategy": "hide primary splits under the waist band, face lens, arm recess, and rear service panel"
+  },
+  "service_panel": {"width": 250, "height": 300, "rear_clearance_mm": 80, "fastener": "6x captive M4"},
+  "electronics_tray": {
+    "width": 300,
+    "depth": 260,
+    "clearance_above": 45,
+    "pcb_envelope": [160, 130, 1.6],
+    "pcb_keepout_envelope": [220, 180, 2.0],
+    "pcb_mount_pattern": [152, 122],
+    "pcb_mount_hole_mm": 3.2,
+    "minimum_edge_service_margin": 35
+  },
+  "ventilation": {"inlet_area_mm2": 3600, "outlet_area_mm2": 4400, "fan_mm": 80, "direction": "lower-front to upper-rear isolated from food-contact zone"},
+  "impact": {"bumper_material": "charcoal TPU over compliant honeycomb", "bumper_thickness": 10, "effective_absorber_stroke_mm": 28, "drop_height_m": 0.2, "design_deceleration_g": 20},
   "components": [
-    {"name": "chassis_and_motors", "mass_kg": 2.70, "xyz": [0, 0, 55]},
-    {"name": "battery", "mass_kg": 1.60, "xyz": [0, -25, 68]},
-    {"name": "electronics", "mass_kg": 0.82, "xyz": [0, 10, 142]},
-    {"name": "shell", "mass_kg": 0.75, "xyz": [0, 0, 170]},
-    {"name": "head_display", "mass_kg": 0.55, "xyz": [0, 5, 278]}
+    {"name": "chassis_drives_and_ballast", "mass_kg": 16.0, "xyz": [0, 0, 110]},
+    {"name": "battery", "mass_kg": 14.0, "xyz": [0, -35, 100]},
+    {"name": "lifting_platform", "mass_kg": 7.5, "xyz": [0, 0, 440]},
+    {"name": "torso_electronics", "mass_kg": 5.0, "xyz": [0, 15, 720]},
+    {"name": "shell_and_bay", "mass_kg": 3.5, "xyz": [0, 0, 720]},
+    {"name": "left_seven_axis_arm", "mass_kg": 6.0, "xyz": [-180, 0, 900]},
+    {"name": "right_seven_axis_arm", "mass_kg": 6.0, "xyz": [180, 0, 900]},
+    {"name": "head_display", "mass_kg": 1.5, "xyz": [0, 5, 1080]},
+    {"name": "tools_and_bimanual_payload", "mass_kg": 4.0, "xyz": [0, -280, 760]}
   ],
-  "minimum_clearances": {"moving_to_fixed": 3, "cable_to_sharp_edge": 5, "pcb_to_shell": 6, "battery_to_heat_source": 20}
+  "minimum_clearances": {"moving_to_fixed": 8, "cable_to_sharp_edge": 8, "pcb_to_shell": 10, "battery_to_heat_source": 80, "hot_tool_to_shell": 120}
 }

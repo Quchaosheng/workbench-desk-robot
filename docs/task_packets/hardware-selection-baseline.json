@@ -6,6 +6,7 @@
     "hardware/mechanical/service-robot-product-baseline.json",
     "hardware/release/prephysical-component-decisions.csv",
     "hardware/release/recommended-selection-package.md",
+    "hardware/release/selection-closure-register.csv",
     "docs/task_packets/hardware-selection-baseline.json",
     "tests/hardware/test_full_system_mechanics.py"
   ],

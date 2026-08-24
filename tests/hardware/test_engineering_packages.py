@@ -63,7 +63,11 @@ class MechanicalPackageTests(unittest.TestCase):
         generated = ROOT / "hardware/mechanical/generated"
         self.assertGreater((generated / "desk_robot_assembly.step").stat().st_size, 100_000)
         self.assertGreater((generated / "desk_robot_exploded.step").stat().st_size, 100_000)
-        self.assertEqual(len(list((generated / "parts").glob("*.step"))), 9)
+        self.assertEqual(len(list((generated / "parts").glob("*.step"))), 10)
+        neck_step = (generated / "parts/neck_mount.step").read_text(encoding="ascii")
+        self.assertIn("MANIFOLD_SOLID_BREP", neck_step)
+        sequence = json.loads((generated / "assembly-sequence.json").read_text(encoding="utf-8"))
+        self.assertEqual([item["part"] for item in sequence[-3:]], ["neck_mount", "head_module", "tool_dock"])
         self.assertTrue((generated / "drawings/general-arrangement.svg").exists())
         screening = json.loads((generated / "drop-screening.json").read_text(encoding="utf-8"))
         self.assertEqual(screening["acceptance"]["peak_deceleration_g"], 20)
@@ -90,6 +94,10 @@ class MechanicalPackageTests(unittest.TestCase):
         self.assertEqual(spec["head"]["display_shape"], "rounded_rectangle")
         self.assertEqual(spec["head"]["display_cutout"], [228, 92])
         self.assertEqual(spec["head"]["display_corner_radius_mm"], 24)
+        neck_mount = spec["head"]["neck_mount"]
+        self.assertEqual(neck_mount["type"], "keyed_pedestal_with_hidden_bolted_flange")
+        self.assertEqual(neck_mount["fasteners"], "4x M6 captive from underside + 2x dowel pins")
+        self.assertEqual(neck_mount["cable_passage_mm"], 32)
         self.assertEqual(len(spec["manipulator"]["joints"]), 7)
         self.assertEqual([joint["id"] for joint in spec["manipulator"]["joints"]], [f"J{i}" for i in range(1, 8)])
         arm_design = spec["manipulator"]["industrial_design"]
@@ -104,12 +112,14 @@ class MechanicalPackageTests(unittest.TestCase):
             "seven_axis_arm",
             "dual_seven_axis_arms",
             "head_and_face",
+            "neck_mount",
             "tool_dock",
         ):
             self.assertIn(f"module {feature}", scad)
         drawing = (ROOT / "hardware/mechanical/generated/drawings/general-arrangement.svg").read_text(encoding="utf-8")
         self.assertIn("REV D", drawing)
         self.assertIn("Dual seven-axis arms", drawing)
+        self.assertIn("keyed bolted neck mount", drawing)
 
 
 class PcbPackageTests(unittest.TestCase):

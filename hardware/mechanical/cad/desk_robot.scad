@@ -98,10 +98,29 @@ module utility_torso() {
     translate([128, 62, body_z+60]) rounded_prism(74, 96, 286, 26);
 }
 
+module neck_mount(head_z) {
+  // The head seats on a broad shoulder plate and keyed locating register.
+  // Four captive M6 fasteners enter from below; the centre stays open for loom routing.
+  difference() {
+    union() {
+      color([0.30, 0.32, 0.31])
+        translate([0, 12, head_z-56]) rounded_prism(132, 86, 72, 24);
+      color([0.22, 0.24, 0.23])
+        translate([0, 12, head_z-10]) rounded_prism(184, 74, 10, 14);
+      color([0.38, 0.41, 0.39])
+        translate([0, 12, head_z]) rounded_prism(154, 58, 8, 12);
+    }
+    translate([0, 12, head_z-60]) cylinder(h=100, d=32);
+    for (x=[-48, 48], y=[-22, 22])
+      translate([x, 12+y, head_z-16]) cylinder(h=36, d=6.8);
+    for (x=[-60, 60])
+      translate([x, 12, head_z-4]) cylinder(h=18, d=4.1);
+  }
+}
+
 module head_and_face() {
   head_z = GROUND+BASE_H+LIFT_EXTENSION+592;
-  color([0.30, 0.32, 0.31])
-    translate([0, 12, head_z-30]) rounded_prism(92, 88, 66, 25);
+  neck_mount(head_z);
   translate([0, -12, head_z]) rotate([6, 0, 0]) {
     color([0.92, 0.91, 0.87]) rounded_prism(HEAD_W, HEAD_D, HEAD_H, 32);
     color([0.025, 0.035, 0.035])

@@ -1,7 +1,7 @@
 {
   "issue": "domestic-industrial-design-refinement",
   "human_owner": "Quchaosheng",
-  "objective": "Replace the undersized circular expression window with a wide rounded-rectangle face and replace tube-like arm geometry with legible joint cartridges and directional link fairings while preserving the independent neck, torso-side shoulders, and seven-axis Revision D architecture.",
+  "objective": "Replace the undersized circular expression window with a wide rounded-rectangle face, replace tube-like arm geometry with legible joint cartridges and directional link fairings, and turn the visual neck into a manufacturable mounted head interface while preserving the torso-side shoulders and seven-axis Revision D architecture.",
   "allowed_paths": [
     "hardware/mechanical/**",
     "tests/hardware/test_engineering_packages.py",
@@ -16,7 +16,8 @@
     "each arm remains seven-axis with a recessed three-axis shoulder, readable elbow cartridge, roll cuff, and compact two-axis wrist",
     "upper-arm and forearm fairings are directional rounded housings rather than undifferentiated cylinders",
     "the SCAD, STEP, engineering drawing, interactive render, and campaign image use the same face and arm design language",
-    "the independent neck and torso-side shoulder architecture remain unchanged",
+    "the head is supported by a keyed neck pedestal, shoulder flange, hidden M6 fasteners, dowel pins, and a central cable passage",
+    "the torso-side shoulder architecture remains unchanged",
     "mechanical tests, Ruff, and Task Packet validation pass"
   ],
   "commands": [
@@ -29,6 +30,7 @@
     "hardware/mechanical/design-spec.json",
     "hardware/mechanical/cad/desk_robot.scad",
     "hardware/mechanical/generated/parts/head_module.step",
+    "hardware/mechanical/generated/parts/neck_mount.step",
     "hardware/mechanical/generated/parts/left_seven_axis_arm.step",
     "hardware/mechanical/generated/drawings/general-arrangement.svg",
     "docs/assets/premium-product-render.html",

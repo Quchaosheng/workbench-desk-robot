@@ -31,9 +31,14 @@ warm amber is reserved for one status light. Visible glossy plastic, exposed
 fasteners, decorative color blocks, toy-like antennae, and exposed wheels are
 out of scope.
 
-The head uses a circular expression window inside a soft white frame and a
-dedicated neck. Both shoulder centres are mounted in the torso side walls below
-that neck; neither arm supports or visually frames the head.
+The head uses a wide rounded-rectangle expression window inside a soft white
+frame. It is not a floating shell: a dedicated neck mount has a load-bearing
+pedestal, broad shoulder plate, keyed head register, four hidden M6 fasteners,
+two dowel pins, and a 32 mm central cable passage. The head is lifted onto the
+register after the harness is connected and can be removed vertically after
+the rear cover and underside fasteners are released. Both shoulder centres are
+mounted in the torso side walls below that neck; neither arm supports or
+visually frames the head.
 
 ## Reproduce
 
@@ -51,7 +56,7 @@ stability, force-limit, or guarded household-task tests on a serialized unit.
 - `generated/desk_robot_assembly.step`: mobile base, lift, torso, head, dual 7R arms,
   stabilizers, and tool dock assembly.
 - `generated/desk_robot_exploded.step`: exploded assembly for work instructions.
-- `generated/parts/*.step`: nine D revision concept parts.
+- `generated/parts/*.step`: ten D revision concept parts, including the separate neck mount.
 - `generated/drawings/general-arrangement.svg`: D revision architecture and lift states.
 - `generated/drawings/thermal-flow.svg`: isolated electronics airflow path.
 - `generated/analysis.json`: mass, CG, drive/stabilized tip screens, payload moment, and clearances.

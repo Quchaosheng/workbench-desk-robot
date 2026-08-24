@@ -3,8 +3,11 @@ ME-C01,Mobile base and enclosed drive skirt,5052-H32 aluminium + TPU,1
 ME-C02,Dual-screw lifting platform,6061-T6 aluminium + steel screws,1
 ME-C03,Utility torso and parcel bay,mineral PC-ABS + recycled PET,1
 ME-D04,Seven-axis arm joint set,bead-blasted anodized aluminium,2
-ME-C05,Smoked glass head module,chemically strengthened glass + PC-ABS,1
-ME-C06,Deployable stabilizer feet,steel core + charcoal TPU,4
-ME-C07,Tool dock and quick-change datum,6061-T6 aluminium + PEEK,1
+ME-C05,Keyed neck mount and head flange,6061-T6 aluminium + steel inserts,1
+ME-C06,Smoked glass head module,chemically strengthened glass + PC-ABS,1
+ME-C07,Deployable stabilizer feet,steel core + charcoal TPU,4
+ME-C08,Tool dock and quick-change datum,6061-T6 aluminium + PEEK,1
 ISO4762-M4,Captive socket screw,A2-70 stainless,28
+ISO4762-M6,Captive neck mount socket screw,A2-70 stainless,4
+DOWEL-04,Head register dowel pin,hardened stainless,2
 LIFT-LOCK-01,Normally-closed brake and lock pin set,steel + spring,2

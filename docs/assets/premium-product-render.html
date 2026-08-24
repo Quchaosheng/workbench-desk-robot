@@ -34,8 +34,8 @@ buildArm(-1);buildArm(1);
 for(const x of[-2.65,3.95])for(const z of[-1.85,1.85])link([x*.82,.53,z*.82],[x,.28,z],.09,metal);
 // Both adaptive grippers contact the parcel sides in the shared bimanual volume.
 const parcel=box(1.28,.92,1.0,.08,physical(0xb79d7c,.7,.02),[.65,3.15,2.82]);box(.08,.94,1.05,.02,physical(0x252a27,.62,.1),[.65,3.15,2.82],[0,0,0]);
-// Head: the wide rounded display is the face, with only a slim structural border around it.
-box(.78,1.0,.72,.28,metal,[.65,6.08,0]);box(2.62,1.18,1.05,.42,shell,[.65,6.68,0],[-.05,0,0]);box(2.30,.84,.44,.22,glass,[.65,6.66,.34],[-.05,0,0]);for(const x of[.29,1.01])cyl(.07,.025,jade,[x,6.72,.575],[Math.PI/2,0,0]);box(.44,.045,.025,.02,jade,[.65,6.47,.58],[-.05,0,0]);
+// The head is seated on a continuous load path: pedestal, bolted shoulder plate and keyed register.
+box(1.32,.94,.86,.26,metal,[.65,5.65,0]);box(1.84,.18,.74,.08,graphite,[.65,6.01,0]);box(1.54,.16,.58,.06,metal,[.65,6.10,0]);box(2.62,1.18,1.05,.42,shell,[.65,6.68,0],[-.05,0,0]);box(2.30,.84,.44,.22,glass,[.65,6.66,.34],[-.05,0,0]);for(const x of[.29,1.01])cyl(.07,.025,jade,[x,6.72,.575],[Math.PI/2,0,0]);box(.44,.045,.025,.02,jade,[.65,6.47,.58],[-.05,0,0]);
 // A detachable tool dock carries brush, dry mop, and insulated cooking tool.
 box(.62,2.0,.88,.2,metal,[-1.45,2.0,-1.65]);for(const z of[-1.88,-1.65,-1.42])cyl(.12,.4,physical(0xb9b7aa,.45,.2),[-1.45,2.0,z],[0,Math.PI/2,0]);
 // Studio architecture: limestone floor, warm wall, soft window key.

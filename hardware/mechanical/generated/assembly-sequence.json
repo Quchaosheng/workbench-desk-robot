@@ -36,11 +36,16 @@
   },
   {
     "step": 80,
-    "part": "head_module",
-    "fastener": "4x M4 captive @ 0.8 Nm"
+    "part": "neck_mount",
+    "fastener": "4x M6 captive + 2x dowel pins; loom through 32 mm passage"
   },
   {
     "step": 90,
+    "part": "head_module",
+    "fastener": "lift onto keyed register; connect head harness"
+  },
+  {
+    "step": 100,
     "part": "tool_dock",
     "fastener": "3x M4 captive @ 0.8 Nm"
   }

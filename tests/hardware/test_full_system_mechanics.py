@@ -136,6 +136,26 @@ def test_cost_optimized_service_robot_target_is_bounded_and_unmeasured() -> None
     assert report["cost_targets_usd"] == {"evt": 30000, "production_100": 16000}
     assert report["required_drive_torque_nm_each_before_margin"] == 7.8
     assert report["checks"]["drive_torque_screen_met"] is True
+    assert report["checks"]["original_appearance_policy_is_explicit"] is True
+    assert report["checks"]["cost_controlled_cover_count_met"] is True
+    assert report["checks"]["emergency_stops_and_status_light_are_separated"] is True
+    assert report["checks"]["sensor_windows_are_serviceable"] is True
+    assert report["checks"]["cable_routes_are_complete_and_fail_closed"] is True
+    assert report["exterior_part_count"] == 9
+    assert report["cable_route_count"] == 10
     assert report["costs_are_quotes"] is False
     assert report["mass_is_measured"] is False
     assert report["release_blockers"]
+
+
+def test_service_robot_concept_drawing_is_explicitly_nonproduction() -> None:
+    generator = load_generator_from_name("analyse_service_robot.py", "service_robot_concept")
+    generator.write_concept_svg()
+    drawing = ROOT / "hardware/mechanical/generated/drawings/service-robot-concept.svg"
+    text = drawing.read_text(encoding="utf-8")
+    assert drawing.stat().st_size > 3000
+    assert "NOT PRODUCTION CAD" in text
+    assert "#F2F1ED" in text
+    assert "#292D32" in text
+    assert "#18A999" in text
+    assert "#D92D20" in text

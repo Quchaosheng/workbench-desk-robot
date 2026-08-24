@@ -75,6 +75,7 @@
       "HWC-COST-001",
       "HWC-DRIVE-001",
       "HWC-HAR-001",
+      "HWC-ID-001",
       "HWC-LIFT-001",
       "HWC-PCB-001",
       "HWC-PCB-002",
@@ -94,6 +95,7 @@
       "HWC-DRIVE-001",
       "HWC-HAR-001",
       "HWC-HAR-002",
+      "HWC-ID-001",
       "HWC-LIFT-001",
       "HWC-MEC-002",
       "HWC-PCB-001",
@@ -108,7 +110,7 @@
       "HWC-VAL-002",
       "HWC-WIRE-001"
     ],
-    "row_count": 22
+    "row_count": 23
   },
   "evidence_bindings": {
     "binding_contract_mismatches": [],

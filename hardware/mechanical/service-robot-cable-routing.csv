@@ -1,0 +1,11 @@
+route_id,system,zone,moving,min_bend_radius_mm,min_separation_from_power_mm,service_loop_mm,protection,status
+CR-01,48V battery and traction,left base,false,75,0,100,covered tray plus edge grommets,ROUTE_TARGET_NOT_PHYSICALLY_VERIFIED
+CR-02,12V compute and auxiliary,right base,false,50,50,100,covered tray plus branch fuse labels,ROUTE_TARGET_NOT_PHYSICALLY_VERIFIED
+CR-03,CAN and Ethernet,right rear spine,true,120,50,150,segregated high-flex energy chain,ROUTE_TARGET_NOT_PHYSICALLY_VERIFIED
+CR-04,dual-channel safety,center rear spine,true,120,50,150,dedicated high-flex cable with independent connectors,ROUTE_TARGET_NOT_PHYSICALLY_VERIFIED
+CR-05,left seven-axis arm,left shoulder,true,120,50,180,vendor-rated dress pack and strain relief,SELECTED_ARM_INTERFACE_REQUIRED
+CR-06,right seven-axis arm,right shoulder,true,120,50,180,vendor-rated dress pack and strain relief,SELECTED_ARM_INTERFACE_REQUIRED
+CR-07,lift motor brake and limits,left rear spine,true,120,50,150,segregated lift energy chain,SELECTED_LIFT_INTERFACE_REQUIRED
+CR-08,display cameras speakers and status light,upper right spine,true,100,50,120,low-voltage braided sleeve with keyed breakouts,ROUTE_TARGET_NOT_PHYSICALLY_VERIFIED
+CR-09,protective bonding,center rear spine,true,150,0,200,green-yellow flexible braid with independent studs,PHYSICAL_BOND_TEST_REQUIRED
+CR-10,automatic charging contacts,rear base,false,75,50,100,covered abrasion-resistant conduit,DOCK_INTERFACE_REQUIRED

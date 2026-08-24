@@ -3,6 +3,8 @@
   "configuration_id": "COST_OPTIMIZED_DUAL_7DOF_SERVICE_ROBOT_REV_A",
   "status": "PRODUCT_TARGET_ENGINEERING_AND_PHYSICAL_VALIDATION_REQUIRED",
   "functional_reference": "ugo Pro public product architecture; no appearance or proprietary design copying",
+  "industrial_design_spec": "hardware/mechanical/service-robot-industrial-design.json",
+  "cable_routing_spec": "hardware/mechanical/service-robot-cable-routing.csv",
   "target_envelope_mm": [520, 650, 1800],
   "target_mass_kg": 80,
   "target_use_cases": ["inspection", "button_operation", "access_card_operation", "guidance", "light_delivery"],
@@ -73,6 +75,7 @@
     "drive wheel brake and caster package not selected",
     "battery runtime charge dock and thermal design not validated",
     "sensor coverage stopping distance and elevator operation not validated",
+    "industrial design supplier CAD cable sweeps and CMF samples not validated",
     "target mass and cost are allocations not supplier quotes or measured results"
   ]
 }

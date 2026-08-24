@@ -46,6 +46,15 @@ the compact enclosure remains a subsystem, while the dual arms mount to a
 - `generated/full_system/drawings/general-arrangement.svg`: top/side interface
   drawing; supplier envelopes remain visibly marked as TBD.
 
+The cost-optimized service-robot product direction is controlled separately by
+`service-robot-product-baseline.json`. Its original appearance, low-tooling
+cover strategy, human interfaces, sensor integration and service access are in
+`service-robot-industrial-design.json`; the ten power, data, safety, arm, lift,
+bond and charging routes are in `service-robot-cable-routing.csv`. Run
+`python hardware/mechanical/tools/analyse_service_robot.py` to reproduce the
+engineering screen and `generated/drawings/service-robot-concept.svg`.
+The SVG is an industrial-design intent view, not supplier surface CAD.
+
 - `generated/enclosure.step`: AP203 STEP envelope for supplier exchange.
 - `generated/desk_robot_assembly.step`: reproducible seventeen-solid assembly including eight named TBD envelopes and the childboard support.
 - `generated/desk_robot_exploded.step`: exploded assembly for work instructions.

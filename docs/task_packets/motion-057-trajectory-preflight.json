@@ -1,0 +1,77 @@
+{
+  "issue": 57,
+  "human_owner": "cyathea152-bit",
+  "objective": "On top of merged PR #149, implement the ROS-free, fail-closed and deterministic trajectory preflight required by #57 while preserving the Phase-2 validator and evidence compatibility.",
+  "allowed_paths": [
+    "robot/control/ISSUE57.md",
+    "robot/control/README.md",
+    "robot/control/workbench_motion/config/trajectory_preflight.yaml",
+    "robot/control/workbench_motion/workbench_motion/joint_limits.py",
+    "robot/control/workbench_motion/workbench_motion/phase2_probe.py",
+    "robot/control/workbench_motion/test/test_joint_limits.py",
+    "robot/control/workbench_motion/test/test_trajectory_preflight.py",
+    "robot/control/workbench_motion/test/test_phase2_probe.py",
+    "docs/task_packets/motion-057-trajectory-preflight.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "services/**",
+    "firmware/**",
+    "AGENTS.md",
+    "docs/context/**",
+    "docs/project-management/**"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "services/**",
+    "firmware/**",
+    "MoveIt/controller execution",
+    "ROS dispatch, ActionResult or EvidenceSink",
+    "physical or Gazebo execution claims"
+  ],
+  "acceptance": [
+    "The implementation is based on current origin/main commit 1044c843, which contains merged PR #149 commit d283bb9; the old da7c97c/#117 worktree is not used as the implementation base.",
+    "preflight_trajectory(traj, current_joint_positions, *, context) is the single validator implementation and returns immutable AcceptedTrajectory on success or Violation on failure; it imports no ROS, has no dispatcher/callback, does not mutate, clamp, reorder, repair, emit events or execute.",
+    "check_trajectory keeps the PR #149 signature and positional/keyword behavior, remains a thin Violation-or-None wrapper, preserves the six dataclass/asdict fields kind/message/joint/value/bound/point_index, and retains its supplied limits and limit_epsilon precedence rules.",
+    "build_preflight_context accepts keyword-only optional policy, expected_joint_names, hard_limits and override_limits; None loads controlled files and an explicit value wholly replaces that source. Expected joints and effective limits must match exactly and all stored mappings are converted to immutable tuples.",
+    "The policy file robot/control/workbench_motion/config/trajectory_preflight.yaml freezes version=1, limit_epsilon=0.000001, max_duration_s=30.0 and max_start_state_delta_rad=0.05. Epsilon is inward-only; duration and start delta are positive finite values; malformed policy fails closed with invalid_policy.",
+    "The stable trajectory ReasonCode set contains legacy codes joint_names/current_state/points/array_length/non_finite/time/current_position/position/velocity/effort/initial_position/segment_velocity plus joint_order_mismatch/timestamp_malformed/duration_exceeded/start_state_discontinuity. Codes are machine values, may only be added, and message text is non-contractual. Configuration errors are invalid_policy or invalid_limits and are not trajectory Violations.",
+    "The expected joint tuple is sourced from robot/control/workbench_motion/config/arm.yaml. Empty, duplicate, missing, unknown and partial names return joint_names; a same-set permutation returns joint_order_mismatch; no automatic sorting or repair is allowed.",
+    "Time parsing is nanosecond-exact: mapping/object durations require integer non-bool sec and nanosec with -2147483648 <= sec <= 2147483647 and 0 <= nanosec < 1000000000; scalar seconds reject bool, non-finite and sub-nanosecond values; -0.0 normalizes to 0 ns; malformed shape is timestamp_malformed and representable negative/non-increasing time keeps legacy time.",
+    "Validation rejects malformed arrays, NaN/Infinity, negative/non-increasing time, duration greater than 30.0 seconds, position/velocity/effort values outside inward epsilon limits, start-state delta greater than 0.05 rad, and mean segment velocity violations in the fixed validation order documented by ISSUE57.md.",
+    "A first point at t=0 is accepted only as a current-state anchor within limit_epsilon and is not treated as a motion segment; no point insertion, deletion, shifting or timestamp repair occurs.",
+    "AcceptedTrajectory has no public construction path, contains a deeply immutable normalized snapshot, canonical UTF-8 compact JSON bytes, trajectory_sha256='sha256:' plus lowercase SHA-256, policy_version, effective_limits_sha256 and context_sha256. Canonicalization uses exact joint order, integer nanoseconds, [] for absent optional arrays and finite float.hex() strings.",
+    "Equivalent mapping and ROS-like inputs produce byte-identical canonical output; changing any joint value, point, timestamp or optional array changes trajectory_sha256; changing policy, expected joints or effective limits changes the corresponding context evidence without changing the meaning of trajectory_sha256.",
+    "phase2_probe explicitly serializes exactly the legacy six validator_violation keys and tests assert their key set and string values; no new top-level code field is added to that evidence schema.",
+    "Tests cover every configured joint around position/velocity boundaries, every non-identity joint permutation, all timestamp representations and edges, duration/start-delta boundaries, configuration failures, input immutability, post-validation mutation isolation, canonicalization determinism and hash mutation sensitivity without ROS/Gazebo/network dependencies.",
+    "README and robot/control/ISSUE57.md state that #52 must accept only AcceptedTrajectory, while runtime state/scene TOCTOU recheck, controller materialization, zero-dispatch proof, #59 failed-dispatch mapping and C3b sampled collision gating remain downstream and are not claimed by #57.",
+    "Task Packet validation, Motion tests and root make test, make contract, make scenario-check, make context-check and make demo-scripted pass with no forbidden-path changes."
+  ],
+  "commands": [
+    "make task-check PACKET=docs/task_packets/motion-057-trajectory-preflight.json",
+    "uv run --directory robot/control pytest -q",
+    "uv run --directory robot/control pytest -q workbench_motion/test/test_joint_limits.py workbench_motion/test/test_trajectory_preflight.py workbench_motion/test/test_phase2_probe.py",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "make demo-scripted"
+  ],
+  "evidence": [
+    "Task Packet validation output and independent branch base commit 1044c843",
+    "Motion unit-test output covering legacy compatibility, frozen ReasonCode/configuration codes, every-joint boundaries, exact timing, immutable AcceptedTrajectory isolation and canonical/context/trajectory hashes",
+    "phase2_probe validator_violation JSON key-set regression output",
+    "root make test, contract, scenario-check, context-check and demo-scripted output",
+    "reviewable trajectory_preflight.yaml values and recorded policy/effective-limits/context hashes"
+  ],
+  "stop_conditions": [
+    "origin/main or PR #149 changes incompatibly before implementation is rebased; re-verify the clean base before continuing",
+    "the task requires any forbidden path, public interface/schema change, ROS/controller dispatch, ActionResult, EvidenceSink, Agent Runtime, WorldState, firmware or physical claim",
+    "expected joints or vendor-derived limits cannot be loaded from arm.yaml and controlled vendor configuration; do not add hard-coded fallback limits",
+    "Motion Owner has not approved the exact policy values, ReasonCode table, canonicalization rules or AcceptedTrajectory/context-hash execution boundary",
+    "a proposed implementation creates a second validator, silently clips/reorders/repairs input, re-reads mutable raw input after acceptance, or permits a raw trajectory to cross the execution boundary",
+    "required checks fail and the failure cannot be explained by an unrelated pre-existing dirty-worktree condition"
+  ]
+}

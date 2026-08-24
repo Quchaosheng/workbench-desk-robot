@@ -11,7 +11,7 @@
   "arm": {
     "quantity": 2,
     "joint_count_each": 7,
-    "minimum_reach_mm": 1000,
+    "minimum_reach_mm": 850,
     "rated_payload_kg_each": 7,
     "maximum_mass_kg_each": 30,
     "collision_or_torque_detection_required": true,

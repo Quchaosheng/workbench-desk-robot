@@ -13,7 +13,7 @@ Status: engineering recommendation for the fixed Rev C shape. This document does
 
 | Function | Recommended candidate | Quantity | Why this is the baseline | Must close before order |
 |---|---|---:|---|---|
-| Collaborative arm | Kassow KR810, exact purchased revision TBD | 2 | Native 7-DOF architecture, 850 mm class reach, collaborative torque sensing, fits the reserved 30 kg arm envelope | Supplier base drawing, reaction loads, controller power, safety I/O, payload/reach confirmation |
+| Collaborative arm | Kassow KR810, exact purchased revision TBD | 2 | Native 7-DOF architecture, 850 mm class reach, collaborative torque sensing, fits the fixed 1000 mm maximum reach envelope | Supplier base drawing, reaction loads, controller power, safety I/O, payload/reach confirmation |
 | Lift column | LINAK LC3 6000 N family, exact ordering code TBD | 4 | Self-locking screw-column family with brake and feedback options; matches the four-column frame | Ordering codes, synchronizer, limit/absolute feedback, mechanical lock, proof-load method |
 | Drive motor/gearbox | Dunkermotoren BG75 + PLG75 brake/gearhead configuration, exact winding TBD | 2 | Industrial 48 V class, serviceable gearbox, encoder and fail-safe brake options; sized for 200 mm wheels | Supplier torque-speed curve, shaft/flange drawing, encoder, brake torque, thermal curve |
 | Drive servo | Elmo Gold Twitter 80 V STO class, exact variant TBD | 2 | Regeneration handling, dual-channel STO option, CAN/EtherCAT ecosystem | Motor matching, STO timing, regen clamp, EMC and thermal evidence |

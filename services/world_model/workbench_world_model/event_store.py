@@ -1,8 +1,9 @@
 import json
 import sqlite3
 from pathlib import Path
+from typing import Any
 
-from workbench_contracts import WorldEvent
+from workbench_contracts import WorldEvent, WorldEventType
 
 
 class EventStoreIntegrityError(RuntimeError):
@@ -82,7 +83,8 @@ class SQLiteEventStore:
     @staticmethod
     def _canonical_event_json(event: WorldEvent) -> str:
         return json.dumps(
-            event.model_dump(mode="json"),
+            event.model_dump(mode="python"),
+            allow_nan=False,
             ensure_ascii=False,
             separators=(",", ":"),
             sort_keys=True,
@@ -118,6 +120,89 @@ class SQLiteEventStore:
                     f"for event_id {sequence_owner[0]!r}"
                 ) from error
             raise EventStoreIntegrityError("world event violates an unknown SQLite integrity constraint") from error
+
+    def _rollback_after_failure(self) -> None:
+        try:
+            self.connection.rollback()
+        except sqlite3.Error:
+            pass
+
+    def append_allocated(
+        self,
+        *,
+        event_id: str,
+        run_id: str,
+        event_type: WorldEventType,
+        occurred_at: str,
+        payload: dict[str, Any],
+        evidence_refs: list[str] | None = None,
+    ) -> WorldEvent:
+        """Atomically allocate the next per-run sequence and append an event.
+
+        Exact retries reuse the persisted sequence and event. Reusing an
+        event_id with different canonical content fails closed.
+        """
+        try:
+            self.connection.execute("BEGIN IMMEDIATE")
+            existing_row = self.connection.execute(
+                "SELECT event_json FROM world_events WHERE event_id = ?",
+                (event_id,),
+            ).fetchone()
+            if existing_row is not None:
+                existing = WorldEvent.model_validate(json.loads(existing_row[0]))
+                candidate = WorldEvent(
+                    event_id=event_id,
+                    run_id=run_id,
+                    sequence_no=existing.sequence_no,
+                    event_type=event_type,
+                    occurred_at=occurred_at,
+                    payload=payload,
+                    evidence_refs=list(evidence_refs or []),
+                )
+                if self._canonical_event_json(candidate) != existing_row[0]:
+                    raise EventStoreIntegrityError(
+                        f"event_id {event_id!r} already exists with different canonical event content"
+                    )
+                self.connection.commit()
+                return existing
+
+            maximum = self.connection.execute(
+                "SELECT MAX(sequence_no) FROM world_events WHERE run_id = ?",
+                (run_id,),
+            ).fetchone()
+            sequence_no = (maximum[0] if maximum and maximum[0] is not None else 0) + 1
+            event = WorldEvent(
+                event_id=event_id,
+                run_id=run_id,
+                sequence_no=sequence_no,
+                event_type=event_type,
+                occurred_at=occurred_at,
+                payload=payload,
+                evidence_refs=list(evidence_refs or []),
+            )
+            event_json = self._canonical_event_json(event)
+            self.connection.execute(
+                "INSERT OR ABORT INTO world_events(event_id, run_id, sequence_no, event_json) VALUES (?, ?, ?, ?)",
+                (event.event_id, event.run_id, event.sequence_no, event_json),
+            )
+            self.connection.commit()
+            return event
+        except EventStoreIntegrityError:
+            self._rollback_after_failure()
+            raise
+        except sqlite3.IntegrityError as error:
+            self._rollback_after_failure()
+            raise EventStoreIntegrityError("world event violates an unknown SQLite integrity constraint") from error
+        except (sqlite3.Error, TypeError, ValueError):
+            self._rollback_after_failure()
+            raise
+
+    def get_event(self, event_id: str) -> WorldEvent | None:
+        row = self.connection.execute(
+            "SELECT event_json FROM world_events WHERE event_id = ?",
+            (event_id,),
+        ).fetchone()
+        return None if row is None else WorldEvent.model_validate(json.loads(row[0]))
 
     def list_run(self, run_id: str) -> list[WorldEvent]:
         rows = self.connection.execute(

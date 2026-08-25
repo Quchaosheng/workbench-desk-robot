@@ -83,3 +83,8 @@ handoff before the controlled deadline; otherwise the core emits one local
 `STOP_TIMEOUT` outcome and never claims stopped confirmation. The exact
 constants and clock-wrap rules are documented in
 `docs/architecture/mcu-watchdog-v1.md`.
+
+While the STOP handoff is pending, an equal `retry_count` is an exact
+link-level replay and a strictly greater count is a protocol-level retry.
+Decreasing or wrapped retry counts are stale and rejected without changing the
+pending ACK correlation.

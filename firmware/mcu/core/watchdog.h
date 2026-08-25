@@ -92,10 +92,11 @@ bool mcu_watchdog_poll(mcu_watchdog_t *watchdog,
 
 /* A valid STOP is dispatched before this function returns. The returned ACK
  * is ready for transport immediately; an exact link retry replays the cached
- * record, while a protocol retry with the same command ID echoes its new
- * retry_count and preserves the cached result fields. Neither retry extends
- * the pending deadline. The caller must confirm handoff through
- * mcu_watchdog_confirm_stop_ack(). */
+ * record, while a protocol retry with the same command ID and a strictly
+ * greater retry_count echoes its new count and preserves the cached result
+ * fields. A lower retry_count is stale and rejected; the pending retry
+ * sequence does not wrap. Neither retry extends the pending deadline. The
+ * caller must confirm handoff through mcu_watchdog_confirm_stop_ack(). */
 bool mcu_watchdog_receive_stop(mcu_watchdog_t *watchdog,
                                mcu_state_machine_t *machine,
                                const mcu_wire_frame_t *stop,

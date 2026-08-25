@@ -72,9 +72,11 @@ static bool stop_matches_pending(const mcu_watchdog_t *watchdog,
                                  const mcu_wire_frame_t *stop)
 {
     /* retry_count is attempt metadata, not part of STOP command semantics.
-     * mcu_frame_encode() has already validated the STOP opcode and frame kind,
-     * so the command ID is the remaining correlation key. */
-    return watchdog->stop_ack_pending && watchdog->stop_command_id == stop->command_id;
+     * Equal counts are link-level replays and strictly greater counts are
+     * protocol retries. A pending uint8_t retry sequence does not wrap: a
+     * lower count is stale and must not roll back the correlation slot. */
+    return watchdog->stop_ack_pending && watchdog->stop_command_id == stop->command_id &&
+           stop->retry_count >= watchdog->stop_retry_count;
 }
 
 static mcu_wire_fault_t map_fault(mcu_fault_code_t fault_code)

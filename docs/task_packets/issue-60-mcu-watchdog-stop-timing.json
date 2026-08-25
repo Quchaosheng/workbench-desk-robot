@@ -45,6 +45,7 @@
     "Only explicitly accepted new protocol activity refreshes the software link watchdog; malformed, duplicate, retry and stale traffic cannot feed it.",
     "A link timeout observed while executing dispatches WATCHDOG_EXPIRED, forces safe outputs, latches the fault and emits exactly one correlated fault/telemetry record.",
     "A valid STOP enters the safe state and retains its command correlation until a bounded STOP acknowledgement is handed to transport; a missed deadline emits a distinct stop-timeout outcome and never reports stopped confirmation.",
+    "A pending STOP accepts an equal retry_count as a link replay and only a strictly greater retry_count as a protocol retry; decreasing or wrapped retry counts are rejected without changing ACK correlation or deadline.",
     "Reset cannot clear an active watchdog or STOP-timeout cause without the existing trusted state-machine transition.",
     "Deadline comparisons and deadline arithmetic remain deterministic across uint64_t wraparound.",
     "Host tests use an injected fake clock with no sleep or wall-clock flakiness and cover feed eligibility, link timeout, STOP acknowledgement bound, timeout fault and single-emission behavior.",

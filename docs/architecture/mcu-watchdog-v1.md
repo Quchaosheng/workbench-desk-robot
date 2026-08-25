@@ -71,16 +71,18 @@ cleared.
 An exact link-level STOP retry while the pending slot is live replays the cached
 original STOP ACK record, including its observed timestamp, retry count, wire
 result, fault and device mode, and does not extend the deadline. A
-protocol-level retry with the same STOP command ID and a different
+protocol-level retry with the same STOP command ID and a strictly greater
 `retry_count` matches the same command semantics, emits a new observation that
 echoes the received `retry_count`, and preserves the original wire result,
-fault and device mode. Neither form repeats the STOP side effect or extends the
-deadline; the most recently emitted retry count is the one used for transport
-handoff confirmation and timeout correlation. Both replays remain unchanged in
-their semantic fields if the state machine enters a fault after the first ACK
-was created. A different pending STOP is rejected by the bounded single-slot
-implementation; retry deduplication and multi-command windows remain separate
-work.
+fault and device mode. A retry with the same count is an exact link replay; a
+lower/decreasing count, including a `255 -> 0` wrap, is stale and rejected
+without changing the pending slot. Neither accepted form repeats the STOP side
+effect or extends the deadline; the most recently emitted retry count is the
+one used for transport handoff confirmation and timeout correlation. Both
+replays remain unchanged in their semantic fields if the state machine enters a
+fault after the first ACK was created. A different pending STOP is rejected by
+the bounded single-slot implementation; retry deduplication and multi-command
+windows remain separate work.
 
 ## Hardware watchdog and HAL boundary
 

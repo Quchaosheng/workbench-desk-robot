@@ -5,6 +5,8 @@ from typing import Any
 
 from workbench_contracts import WorldEvent, WorldEventType
 
+from .event_payloads import normalize_world_event
+
 
 class EventStoreIntegrityError(RuntimeError):
     """The requested append conflicts with the persisted event stream."""
@@ -91,6 +93,7 @@ class SQLiteEventStore:
         )
 
     def append(self, event: WorldEvent) -> None:
+        event = normalize_world_event(event)
         event_json = self._canonical_event_json(event)
         try:
             with self.connection:
@@ -142,6 +145,19 @@ class SQLiteEventStore:
         Exact retries reuse the persisted sequence and event. Reusing an
         event_id with different canonical content fails closed.
         """
+        references = list(evidence_refs or [])
+        preflight = normalize_world_event(
+            WorldEvent(
+                event_id=event_id,
+                run_id=run_id,
+                sequence_no=0,
+                event_type=event_type,
+                occurred_at=occurred_at,
+                payload=payload,
+                evidence_refs=references,
+            )
+        )
+        payload = preflight.payload
         try:
             self.connection.execute("BEGIN IMMEDIATE")
             existing_row = self.connection.execute(
@@ -149,7 +165,7 @@ class SQLiteEventStore:
                 (event_id,),
             ).fetchone()
             if existing_row is not None:
-                existing = WorldEvent.model_validate(json.loads(existing_row[0]))
+                existing = normalize_world_event(WorldEvent.model_validate(json.loads(existing_row[0])))
                 candidate = WorldEvent(
                     event_id=event_id,
                     run_id=run_id,
@@ -157,9 +173,9 @@ class SQLiteEventStore:
                     event_type=event_type,
                     occurred_at=occurred_at,
                     payload=payload,
-                    evidence_refs=list(evidence_refs or []),
+                    evidence_refs=references,
                 )
-                if self._canonical_event_json(candidate) != existing_row[0]:
+                if self._canonical_event_json(candidate) != self._canonical_event_json(existing):
                     raise EventStoreIntegrityError(
                         f"event_id {event_id!r} already exists with different canonical event content"
                     )
@@ -178,7 +194,7 @@ class SQLiteEventStore:
                 event_type=event_type,
                 occurred_at=occurred_at,
                 payload=payload,
-                evidence_refs=list(evidence_refs or []),
+                evidence_refs=references,
             )
             event_json = self._canonical_event_json(event)
             self.connection.execute(
@@ -202,13 +218,13 @@ class SQLiteEventStore:
             "SELECT event_json FROM world_events WHERE event_id = ?",
             (event_id,),
         ).fetchone()
-        return None if row is None else WorldEvent.model_validate(json.loads(row[0]))
+        return None if row is None else normalize_world_event(WorldEvent.model_validate(json.loads(row[0])))
 
     def list_run(self, run_id: str) -> list[WorldEvent]:
         rows = self.connection.execute(
             "SELECT event_json FROM world_events WHERE run_id = ? ORDER BY sequence_no ASC", (run_id,)
         ).fetchall()
-        return [WorldEvent.model_validate(json.loads(row[0])) for row in rows]
+        return [normalize_world_event(WorldEvent.model_validate(json.loads(row[0]))) for row in rows]
 
     def close(self) -> None:
         self.connection.close()

@@ -12,7 +12,7 @@ enable_local_packages()
 
 from workbench_agent_runtime import build_template_plan
 from workbench_backend.logging import StructuredLogger
-from workbench_contracts import WorldEvent, WorldEventType
+from workbench_contracts import ActionResult, WorldEvent, WorldEventType
 from workbench_virtual_mcu import VirtualMcu
 from workbench_world_model import SQLiteEventStore, reduce_events, verify_object_in_tray
 
@@ -77,7 +77,19 @@ def run_once(run_id: str, logger: StructuredLogger) -> dict:
             run_id,
             3,
             WorldEventType.ACTION_RESULT,
-            {"outcome": "completed", "entity_id": "red_block", "resulting_location": "in:tray"},
+            ActionResult(
+                result_id="result-003",
+                action_id="act-scripted-place",
+                run_id=run_id,
+                outcome="completed",
+                dispatch_state="sent",
+                device_state="confirmed",
+                started_at="2026-08-04T00:00:00Z",
+                ended_at="2026-08-04T00:00:01Z",
+                entity_id="red_block",
+                resulting_location="in:tray",
+                evidence_refs=["action-result-003"],
+            ).model_dump(mode="json"),
             ["action-result-003"],
         ),
     ]

@@ -106,8 +106,22 @@ def test_stable_reference_resolves_exact_event(tmp_path: Path) -> None:
         execution_event_data(payload={}),
         execution_event_data(run_id="run-other"),
         execution_event_data(action_id="act-other"),
+        execution_event_data(payload=action_result_payload(result_id="")),
+        execution_event_data(
+            payload=action_result_payload(
+                outcome="failed",
+                device_state="rejected",
+            )
+        ),
     ],
-    ids=["node-started", "invalid-payload", "run-mismatch", "action-mismatch"],
+    ids=[
+        "node-started",
+        "invalid-payload",
+        "run-mismatch",
+        "action-mismatch",
+        "empty-result-id",
+        "failed-resulting-location",
+    ],
 )
 def test_invalid_execution_event_fails_before_write(tmp_path: Path, data: dict[str, object]) -> None:
     store = SQLiteEventStore(tmp_path / "events.sqlite")

@@ -263,14 +263,25 @@ def _parse_name_status(output: bytes) -> set[str]:
     return paths
 
 
-def _changed_paths(base: str) -> set[str]:
-    if base.startswith("-") or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]*", base):
-        raise TaskPacketError(f"invalid base revision: {base!r}")
-    _git_output(["rev-parse", "--verify", f"{base}^{{commit}}"])
-    merge_base = _git_output(["merge-base", base, "HEAD"]).decode("ascii").strip()
+def _validate_revision(revision: str, *, field: str) -> None:
+    if revision.startswith("-") or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]*", revision):
+        raise TaskPacketError(f"invalid {field} revision: {revision!r}")
+    _git_output(["rev-parse", "--verify", f"{revision}^{{commit}}"])
+
+
+def _changed_paths(base: str, head: str | None = None) -> set[str]:
+    _validate_revision(base, field="base")
+    if head is not None:
+        _validate_revision(head, field="head")
+        merge_base = _git_output(["merge-base", base, head]).decode("ascii").strip()
+    else:
+        merge_base = _git_output(["merge-base", base, "HEAD"]).decode("ascii").strip()
     if not re.fullmatch(r"[0-9a-fA-F]{40,64}", merge_base):
         raise TaskPacketError("git returned an invalid merge-base revision")
     diff_args = ["diff", "--find-renames", "--name-status", "-z"]
+    if head is not None:
+        return _parse_name_status(_git_output([*diff_args, merge_base, head, "--"]))
+
     paths = _parse_name_status(_git_output([*diff_args, merge_base, "--"]))
     paths.update(_parse_name_status(_git_output([*diff_args, "--cached", merge_base, "--"])))
     untracked = _git_output(["ls-files", "--others", "--exclude-standard", "-z", "--"])
@@ -318,8 +329,8 @@ def _validate_write_boundary(changed_paths: set[str], packets: list[dict[str, An
     raise TaskPacketError(f"no single active Task Packet authorizes every changed path; rejected: {closest}")
 
 
-def _validate_diff(base: str, selected_packets: list[Path] | None = None) -> None:
-    changed_paths = _changed_paths(base)
+def _validate_diff(base: str, head: str | None = None, selected_packets: list[Path] | None = None) -> None:
+    changed_paths = _changed_paths(base, head)
     packet_paths = selected_packets or [ROOT / path for path in sorted(changed_paths) if _is_packet_path(path)]
     packet_paths = [path for path in packet_paths if path.is_file() or path.is_symlink()]
     if changed_paths and not packet_paths:
@@ -348,6 +359,10 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     selection.add_argument("packet", nargs="?", type=Path, help="one Task Packet JSON file")
     selection.add_argument("--all", action="store_true", help="validate every committed packet in docs/task_packets")
     parser.add_argument("--base", help="also enforce Git-visible changed paths relative to this revision")
+    parser.add_argument(
+        "--head",
+        help="when used with --base, compare against this committed head instead of the checked-out HEAD",
+    )
     return parser.parse_args(argv)
 
 
@@ -370,8 +385,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Task Packet validation passed: {packet_path}")
     if failures:
         raise TaskPacketError("Task Packet validation failed:\n" + "\n".join(failures))
+    if args.head and not args.base:
+        raise TaskPacketError("--head requires --base")
     if args.base:
-        _validate_diff(args.base, None if args.all else packet_paths)
+        _validate_diff(args.base, args.head, None if args.all else packet_paths)
     return 0
 
 

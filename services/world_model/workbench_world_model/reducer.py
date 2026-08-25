@@ -51,13 +51,6 @@ def apply_event(state: WorldState, event: WorldEvent) -> WorldState:
         if location is None:
             _append_entity_evidence(next_state, entity_id, event.evidence_refs)
 
-    elif event.event_type is WorldEventType.ACTION_RESULT and event.payload.get("outcome") == "completed":
-        entity_id = event.payload.get("entity_id")
-        location = event.payload.get("resulting_location")
-        if entity_id is not None:
-            assert location is not None
-            _update_location(next_state, entity_id, location, event.evidence_refs)
-
     return next_state
 
 

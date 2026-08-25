@@ -68,8 +68,10 @@ def test_motion_append_store_replay_and_lookup(tmp_path: Path) -> None:
     assert len(replayed) == 1
     assert adapter.resolve(reference) == replayed[0]
     state = reduce_events("run-integration-001", replayed)
-    assert state.entity_locations == {"red_block": "in:tray"}
-    assert state.entity_evidence_refs["red_block"] == ["mcu-frame-0142", "mcu-frame-0143"]
+    assert state.applied_event_ids == [replayed[0].event_id]
+    assert state.evidence_refs == ["mcu-frame-0142", "mcu-frame-0143"]
+    assert state.entity_locations == {}
+    assert state.entity_evidence_refs == {}
     assert replayed[0].payload["resulting_location"] == "in:tray"
     assert replayed[0].evidence_refs == ["mcu-frame-0142", "mcu-frame-0143"]
     store.close()

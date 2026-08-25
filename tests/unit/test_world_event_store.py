@@ -6,6 +6,7 @@ from pathlib import Path
 from threading import Barrier
 
 import pytest
+from pydantic import ValidationError
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT / "libs/contracts"), str(ROOT / "services/world_model")]
@@ -482,6 +483,35 @@ def test_get_event_returns_exact_event_or_none(tmp_path: Path) -> None:
 
     assert store.get_event("evt-lookup") == stored
     assert store.get_event("missing") is None
+    store.close()
+
+
+@pytest.mark.parametrize(
+    ("field_name", "invalid_value"),
+    [("sequence_no", True), ("sequence_no", "1"), ("unexpected", "value")],
+    ids=["bool-as-integer", "numeric-string", "unknown-field"],
+)
+def test_get_event_rejects_coercive_or_unknown_stored_values(
+    tmp_path: Path,
+    field_name: str,
+    invalid_value: object,
+) -> None:
+    store = SQLiteEventStore(tmp_path / "events.sqlite")
+    event = make_event("evt-strict")
+    payload = event.model_dump(mode="json")
+    payload[field_name] = invalid_value
+    with store.connection:
+        store.connection.execute(
+            """
+            INSERT INTO world_events(event_id, run_id, sequence_no, event_json)
+            VALUES (?, ?, ?, ?)
+            """,
+            (event.event_id, event.run_id, event.sequence_no, json.dumps(payload)),
+        )
+
+    with pytest.raises(ValidationError):
+        store.get_event(event.event_id)
+
     store.close()
 
 

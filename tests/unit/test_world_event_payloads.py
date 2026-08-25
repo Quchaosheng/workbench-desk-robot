@@ -9,7 +9,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT / "libs/contracts"), str(ROOT / "services/world_model")]
 
-from workbench_contracts import WorldEvent, WorldEventType
+from workbench_contracts import ActionOutcome, ActionResult, WorldEvent, WorldEventType
 from workbench_world_model.event_payloads import (
     MAX_ATTRIBUTE_COUNT,
     MAX_ATTRIBUTE_KEY_LENGTH,
@@ -241,6 +241,17 @@ def test_valid_action_result_payload_is_normalized() -> None:
     normalized = normalize_world_event(action_result_event())
 
     assert normalized.payload == action_result_payload()
+
+
+def test_action_result_payload_adapter_returns_strict_canonical_model() -> None:
+    result = normalize_action_result_payload(
+        action_result_payload(),
+        event_run_id="run-001",
+        event_evidence_refs=["mcu-frame-001"],
+    )
+
+    assert type(result) is ActionResult
+    assert result.outcome is ActionOutcome.COMPLETED
 
 
 @pytest.mark.parametrize(

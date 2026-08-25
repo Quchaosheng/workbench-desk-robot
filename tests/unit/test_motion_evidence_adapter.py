@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 import subprocess
@@ -83,7 +84,7 @@ def test_valid_action_result_maps_to_world_event(tmp_path: Path) -> None:
     assert stored.event_type is WorldEventType.ACTION_RESULT
     assert stored.occurred_at == "2026-08-04T00:00:15.900Z"
     assert stored.evidence_refs == ["mcu-frame-0142", "mcu-frame-0143"]
-    assert ActionResult.model_validate(stored.payload).model_dump(mode="json") == stored.payload
+    assert ActionResult.model_validate_json(json.dumps(stored.payload)).model_dump(mode="json") == stored.payload
     store.close()
 
 

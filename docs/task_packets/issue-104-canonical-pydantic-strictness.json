@@ -7,6 +7,7 @@
     "libs/contracts/workbench_contracts/models.py",
     "services/world_model/workbench_world_model/event_payloads.py",
     "services/world_model/workbench_world_model/event_store.py",
+    "tools/scripts/demo_scripted.py",
     "tools/scripts/run_evaluation.py",
     "tools/scripts/scenario_tools.py",
     "tools/scripts/sim_cli.py",
@@ -63,12 +64,14 @@
     "libs/contracts/workbench_contracts/models.py",
     "services/world_model/workbench_world_model/event_payloads.py",
     "services/world_model/workbench_world_model/event_store.py",
+    "tools/scripts/demo_scripted.py",
     "tools/scripts/scenario_tools.py"
   ],
   "outputs": [
     "libs/contracts/workbench_contracts/models.py",
     "services/world_model/workbench_world_model/event_payloads.py",
     "services/world_model/workbench_world_model/event_store.py",
+    "tools/scripts/demo_scripted.py",
     "tools/scripts/run_evaluation.py",
     "tools/scripts/scenario_tools.py",
     "tools/scripts/sim_cli.py",
@@ -92,10 +95,11 @@
     "SQLite WorldEvent replay uses one JSON-aware strict parser and rejects coercive or unknown persisted fields.",
     "The World Model ActionResult payload adapter permits only explicit JSON string-to-enum conversion and then revalidates through canonical ActionResult.",
     "The simulation CLI isolates its reviewed scene_variant extension while strictly validating the canonical ScenarioManifest projection.",
+    "The scripted demo constructs canonical ActionResult values with explicit enum instances and remains executable under strict contracts.",
     "No interfaces, MCU Wire V1 models, firmware, robot control, schema coverage policy or database schema is changed."
   ],
   "commands": [
-    "python3 tools/scripts/check_task_packet.py docs/task_packets/issue-104-canonical-pydantic-strictness.json --base origin/main",
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/issue-104-canonical-pydantic-strictness.json --base origin/main --head HEAD",
     "python3 -m pytest tests/unit/test_contract_strictness.py tests/unit/test_contract_state_invariants.py tests/unit/test_policy_validator.py tests/unit/test_world_event_payloads.py tests/unit/test_world_event_store.py tests/unit/test_motion_evidence_adapter.py tests/integration/test_motion_evidence_persistence.py tests/unit/test_sim_cli.py -v",
     "python3 -m pytest tests/unit/test_agent_runtime.py tests/unit/test_world_model.py tests/unit/test_evaluation_tools.py -v",
     "python3 -m ruff check libs/contracts/workbench_contracts/models.py services/world_model/workbench_world_model/event_payloads.py services/world_model/workbench_world_model/event_store.py tools/scripts/run_evaluation.py tools/scripts/scenario_tools.py tools/scripts/sim_cli.py tools/scripts/validate_scenarios.py tests/unit/test_contract_strictness.py tests/unit/test_contract_state_invariants.py tests/unit/test_evaluation_tools.py tests/unit/test_policy_validator.py tests/unit/test_world_event_payloads.py tests/unit/test_world_event_store.py tests/unit/test_motion_evidence_adapter.py tests/integration/test_motion_evidence_persistence.py tests/unit/test_sim_cli.py",
@@ -103,6 +107,7 @@
     "make contract",
     "make scenario-check",
     "make context-check",
+    "make demo-scripted",
     "git diff --check"
   ],
   "evidence": [

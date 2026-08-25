@@ -4,11 +4,9 @@ import sys
 from pathlib import Path
 
 import pytest
+from performance_regression import PerformanceGateError, evaluate, load_json
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "tools" / "scripts"))
-
-from performance_regression import PerformanceGateError, evaluate, load_json
 
 
 ENVIRONMENT = {"platform": "test-linux", "python": "3.12.0", "machine": "x86_64"}

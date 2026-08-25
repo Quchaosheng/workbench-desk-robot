@@ -226,6 +226,15 @@ def test_scalar_seconds_above_structured_int32_range_parse_before_duration_check
     rejected(trajectory(point(timestamp)), ReasonCode.DURATION_EXCEEDED)
 
 
+def test_adjacent_large_integer_timestamps_remain_exact():
+    timestamp = 123456789012345678901234567890
+    violation = rejected(
+        trajectory(point(timestamp), point(timestamp + 1)),
+        ReasonCode.DURATION_EXCEEDED,
+    )
+    assert violation.point_index == 1
+
+
 @pytest.mark.parametrize("timestamp", [-(2**31) - 1, -(10**400)])
 def test_negative_scalar_seconds_below_structured_int32_range_parse_before_time_check(timestamp):
     rejected(trajectory(point(timestamp)), ReasonCode.TIME)

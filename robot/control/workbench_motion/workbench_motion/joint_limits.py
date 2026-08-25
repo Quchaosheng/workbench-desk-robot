@@ -570,6 +570,8 @@ def _time_ns(raw: Any, index: int) -> int | Violation:
     if raw is _MISSING or isinstance(raw, bool):
         return _bad(ReasonCode.TIMESTAMP_MALFORMED, "time_from_start is missing or malformed", point_index=index)
     if isinstance(raw, int | float):
+        if isinstance(raw, int):
+            return raw * _NANOSECONDS_PER_SECOND
         if isinstance(raw, float) and not math.isfinite(raw):
             return _bad(ReasonCode.NON_FINITE, "trajectory contains NaN or infinity", point_index=index)
         try:

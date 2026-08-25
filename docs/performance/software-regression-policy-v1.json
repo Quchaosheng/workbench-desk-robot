@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "evidence_class": "local_software",
+  "required_reports": ["startup", "resources", "telemetry"],
+  "minimum_samples": 5,
+  "metrics": {
+    "startup.container_start_to_health": {
+      "maximum": 10.0,
+      "max_regression_percent": 25.0,
+      "noise_tolerance": 1.0
+    },
+    "startup.container_start_to_ready": {
+      "maximum": 10.0,
+      "max_regression_percent": 25.0,
+      "noise_tolerance": 1.0
+    },
+    "startup.full_stack_clone_to_ready": {
+      "maximum": 120.0,
+      "max_regression_percent": 25.0,
+      "noise_tolerance": 5.0
+    },
+    "resources.cpu_percent_p95_total": {
+      "maximum": 200.0,
+      "max_regression_percent": 25.0,
+      "noise_tolerance": 5.0
+    },
+    "resources.memory_bytes_p95_total": {
+      "maximum": 2147483648,
+      "max_regression_percent": 25.0,
+      "noise_tolerance": 16777216
+    },
+    "telemetry.end_to_end.p95_ms": {
+      "maximum": 50.0,
+      "max_regression_percent": 25.0,
+      "noise_tolerance": 2.0
+    }
+  }
+}

@@ -3,14 +3,13 @@
 
 import argparse
 import json
-import platform
 import subprocess
 import time
 import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
 
-from performance_tools import summarize_resource_samples
+from performance_tools import software_environment, summarize_resource_samples
 
 
 def docker_stats(containers: list[str]) -> list[dict]:
@@ -68,7 +67,7 @@ def main() -> int:
         "schema_version": 1,
         "started_at": started_at,
         "finished_at": datetime.now(UTC).isoformat(),
-        "environment": {"platform": platform.platform(), "python": platform.python_version()},
+        "environment": software_environment(),
         "containers": containers,
         "sample_count": args.samples,
         "interval_s": args.interval,

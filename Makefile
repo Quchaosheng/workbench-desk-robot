@@ -2,7 +2,8 @@ PYTHON ?= python3
 
 .PHONY: bootstrap lint fmt test contract scenario-check golden-check evaluation-check evaluation-scripted context-check \
 	dashboard-test dashboard demo demo-scripted demo-offline demo-model model-provision performance-test benchmark-startup \
-	benchmark-resources offline-integration docs task-check check container-smoke sim sim-doctor sim-list sim-run
+	benchmark-resources performance-regression-test offline-integration docs task-check check container-smoke \
+	sim sim-doctor sim-list sim-run
 
 bootstrap:
 	$(PYTHON) -m pip install --upgrade pip
@@ -79,6 +80,9 @@ benchmark-startup:
 
 benchmark-resources:
 	$(PYTHON) tools/scripts/benchmark_resources.py --project workbench-startup-benchmark --output runs/performance/resources.json
+
+performance-regression-test:
+	$(PYTHON) -m pytest tests/unit/test_performance_regression.py -v
 
 dashboard-test:
 	$(PYTHON) -m unittest tests.unit.test_dashboard_backend -v

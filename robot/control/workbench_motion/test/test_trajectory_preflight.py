@@ -540,6 +540,20 @@ def test_extreme_integer_hard_limit_fails_with_stable_configuration_code():
     assert caught.value.code == ConfigurationCode.INVALID_LIMITS
 
 
+@pytest.mark.parametrize("field", ["min_position", "max_position", "max_velocity", "max_effort"])
+def test_extreme_integer_hard_limit_cannot_be_masked_by_normal_override(field):
+    hard = dict(LIMITS)
+    hard["j1"] = replace(hard["j1"], **{field: 10**400})
+    with pytest.raises(PreflightConfigurationError) as caught:
+        build_preflight_context(
+            policy=POLICY,
+            expected_joint_names=NAMES,
+            hard_limits=hard,
+            override_limits={"j1": LIMITS["j1"]},
+        )
+    assert caught.value.code == ConfigurationCode.INVALID_LIMITS
+
+
 @pytest.mark.parametrize(
     "override",
     [

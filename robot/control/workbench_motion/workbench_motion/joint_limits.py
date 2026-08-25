@@ -139,10 +139,7 @@ class _LimitsLoader(yaml.SafeLoader):
 
 
 def _degrees(loader: yaml.SafeLoader, node: yaml.Node) -> float:
-    try:
-        return math.radians(float(loader.construct_scalar(node)))
-    except OverflowError as exc:
-        raise ValueError("degree value must be a finite number") from exc
+    return math.radians(float(loader.construct_scalar(node)))
 
 
 _LimitsLoader.add_constructor("!degrees", _degrees)
@@ -478,6 +475,7 @@ def build_preflight_context(
         expected = tuple(arm.joints if expected_joint_names is None else expected_joint_names)
         hard = load_hard_limits(arm.vendor_description_pkg, arm.ur_type) if hard_limits is None else dict(hard_limits)
         override = load_hw_override(hard_limits=hard) if override_limits is None else dict(override_limits)
+        _validate_limits(expected, hard, validated_policy.limit_epsilon)
         combined = effective_limits(hard, override)
         _validate_limits(expected, combined, validated_policy.limit_epsilon)
         ordered = {joint: combined[joint] for joint in expected}

@@ -579,6 +579,59 @@ def test_stop_preempts_a_command_blocked_inside_transport_send() -> None:
     assert [frame.arbitration_id for frame in transport.sent] == [MCU_CAN_ID_COMMAND, MCU_CAN_ID_STOP]
 
 
+def test_shutdown_during_lifecycle_operation_stays_false_until_cleanup_finishes() -> None:
+    class BlockingConfigureAdapter(RecordingAdapter):
+        def __init__(self) -> None:
+            super().__init__()
+            self.configure_entered = threading.Event()
+            self.release_configure = threading.Event()
+            self.cleanup_entered = threading.Event()
+            self.release_cleanup = threading.Event()
+
+        def configure(self) -> bool:
+            self.events.append("configure")
+            self.configure_entered.set()
+            assert self.release_configure.wait(1.0)
+            return True
+
+        def cleanup(self) -> bool:
+            self.events.append("cleanup")
+            self.cleanup_entered.set()
+            assert self.release_cleanup.wait(1.0)
+            return True
+
+    adapter = BlockingConfigureAdapter()
+    runtime = DeviceRuntime(
+        adapter,
+        command_capacity=1,
+        telemetry_capacity=1,
+        health_capacity=1,
+        max_subscribers_per_id=1,
+        poll_interval_s=0.001,
+    )
+    start_result: list[bool] = []
+    start_thread = threading.Thread(target=lambda: start_result.append(runtime.start(background=False)))
+    start_thread.start()
+    assert adapter.configure_entered.wait(1.0)
+
+    assert not runtime.shutdown(timeout_s=0.0)
+    assert runtime.state is DeviceRuntimeState.DEACTIVATING
+    assert not adapter.cleanup_entered.is_set()
+
+    adapter.release_configure.set()
+    assert adapter.cleanup_entered.wait(1.0)
+    assert not runtime.shutdown(timeout_s=0.0)
+    assert runtime.state is DeviceRuntimeState.DEACTIVATING
+
+    adapter.release_cleanup.set()
+    start_thread.join(1.0)
+    assert not start_thread.is_alive()
+    assert start_result == [False]
+    assert adapter.events == ["configure", "deactivate", "cleanup"]
+    assert runtime.state is DeviceRuntimeState.CLEANED
+    assert runtime.shutdown(timeout_s=0.0)
+
+
 def test_start_cannot_reactivate_after_concurrent_shutdown() -> None:
     class BlockingOpenTransport(FakeTransport):
         def __init__(self) -> None:
@@ -598,12 +651,15 @@ def test_start_cannot_reactivate_after_concurrent_shutdown() -> None:
     start_thread.start()
     assert transport.open_entered.wait(1.0)
 
-    assert bus.shutdown(timeout_s=0.0)
+    assert not bus.shutdown(timeout_s=0.0)
+    assert not transport.closed
+    assert bus.runtime.state is DeviceRuntimeState.DEACTIVATING
     transport.release_open.set()
     start_thread.join(1.0)
     assert start_result == [False]
     assert transport.closed
     assert bus.state is CanLinkState.SHUTDOWN
+    assert bus.shutdown(timeout_s=0.0)
 
 
 def test_shutdown_retries_join_after_an_initial_timeout() -> None:
@@ -653,12 +709,16 @@ def test_recovery_cannot_reactivate_after_concurrent_shutdown() -> None:
     recovery_thread = threading.Thread(target=lambda: recovery_result.append(bus.recover()))
     recovery_thread.start()
     assert transport.recover_entered.wait(1.0)
-    assert bus.shutdown(timeout_s=0.0)
+    assert not bus.shutdown(timeout_s=0.0)
+    assert not transport.closed
+    assert bus.runtime.state is DeviceRuntimeState.DEACTIVATING
     transport.release_recover.set()
     recovery_thread.join(1.0)
 
     assert recovery_result == [False]
+    assert transport.closed
     assert bus.state is CanLinkState.SHUTDOWN
+    assert bus.shutdown(timeout_s=0.0)
 
 
 def test_shutdown_stops_worker_closes_transport_and_rejects_future_send() -> None:

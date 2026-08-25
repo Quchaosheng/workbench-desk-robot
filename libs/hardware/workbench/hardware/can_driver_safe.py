@@ -466,8 +466,8 @@ class DeviceRuntime:
             if configured:
                 self._configured = True
             if not configured:
-                self._state = DeviceRuntimeState.FAILED
-                self._lifecycle_operation = None
+                if self._state is not DeviceRuntimeState.DEACTIVATING:
+                    self._state = DeviceRuntimeState.FAILED
             elif self._state is DeviceRuntimeState.CONFIGURING:
                 self._state = DeviceRuntimeState.CONFIGURED
             else:
@@ -480,7 +480,6 @@ class DeviceRuntime:
 
         with self._lock:
             if self._state is not DeviceRuntimeState.CONFIGURED:
-                self._lifecycle_operation = None
                 activate = False
             else:
                 self._state = DeviceRuntimeState.ACTIVATING
@@ -510,7 +509,6 @@ class DeviceRuntime:
                     self._worker.start()
                     return True
                 return True
-            self._lifecycle_operation = None
 
         self._finish_start(activated)
         return False
@@ -521,9 +519,17 @@ class DeviceRuntime:
         with self._lock:
             shutdown_requested = self._shutdown_requested or self._state is DeviceRuntimeState.DEACTIVATING
             self._state = DeviceRuntimeState.DEACTIVATING
-            self._lifecycle_operation = None
+            # Keep the lifecycle marker until the owner has completed cleanup.
+            # A concurrent shutdown must not mistake this hand-off window for
+            # an idle runtime and start a second cleanup owner.
+            self._cleanup_in_progress = True
         cleanup_ok = self._run_cleanup(activated)
         with self._lock:
+            self._cleanup_in_progress = False
+            self._cleanup_done = cleanup_ok
+            self._activated = False
+            self._worker = None
+            self._lifecycle_operation = None
             if shutdown_requested:
                 self._state = DeviceRuntimeState.CLEANED if cleanup_ok else DeviceRuntimeState.FAILED
                 self._shutdown_result = cleanup_ok
@@ -581,7 +587,6 @@ class DeviceRuntime:
             # The adapter may be in a blocking configure/activate/recovery
             # operation.  It owns that call until it returns; cleanup must not
             # race it.  The operation's completion path calls the finalizer.
-            operation_pending = self._lifecycle_operation is not None or self._active_operations > 0
 
         shutdown_hook = getattr(self._adapter, "on_runtime_shutdown_requested", None)
         if shutdown_hook is not None:
@@ -599,15 +604,18 @@ class DeviceRuntime:
 
         with self._lock:
             cleanup_in_progress = self._cleanup_in_progress
-            operation_pending = (
-                operation_pending or self._lifecycle_operation is not None or self._active_operations > 0
-            )
+            operation_pending = self._lifecycle_operation is not None or self._active_operations > 0
+            cleaned = self._state is DeviceRuntimeState.CLEANED
+            shutdown_result = self._shutdown_result
         if cleanup_in_progress:
             return False
         if operation_pending:
-            # Cancellation has been accepted; the operation that owns the
-            # blocking call will finish cleanup without a second owner.
-            return True
+            # Cancellation has been accepted, but the operation that owns the
+            # blocking call has not completed its cleanup yet.  Report failure
+            # until a later call observes CLEANED and its stored result.
+            return False
+        if cleaned:
+            return shutdown_result is True
         result = self._finalize_shutdown()
         return result is True
 

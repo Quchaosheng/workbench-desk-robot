@@ -5,6 +5,7 @@ import importlib.util
 import json
 import multiprocessing
 import re
+import sys
 import tempfile
 import threading
 import unittest
@@ -13,6 +14,7 @@ from pathlib import Path
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "libs" / "task_utils"))
 
 
 def load_module(name: str, path: Path):
@@ -337,7 +339,7 @@ class ValidationPackageTests(unittest.TestCase):
 
     def test_concurrent_duplicate_evidence_id_has_one_process_winner(self) -> None:
         record = self._record("EVIDENCE-DUPLICATE")
-        context = multiprocessing.get_context("fork")
+        context = multiprocessing.get_context("spawn")
         barrier = context.Barrier(2)
         results = context.Queue()
         processes = [
@@ -388,6 +390,10 @@ class ValidationPackageTests(unittest.TestCase):
                 self.module.register(self.register, self._record("EVIDENCE-002"), **self.kwargs)
         self.assertEqual(self.register.read_bytes(), original)
         self.assertEqual(self.module.validate_register(self.register, **self.kwargs), [first])
+
+        third = self._record("EVIDENCE-003")
+        self.module.register(self.register, third, **self.kwargs)
+        self.assertEqual(self.module.validate_register(self.register, **self.kwargs), [first, third])
 
     def test_physical_result_requires_physical_pass_for_every_scenario(self) -> None:
         module = load_module("validation_result_derivation", ROOT / "hardware/validation/tools/validate_validation.py")

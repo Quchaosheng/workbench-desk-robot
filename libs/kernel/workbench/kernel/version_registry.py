@@ -1,6 +1,5 @@
 """K3: durable schema version registry."""
 
-import fcntl
 import json
 import os
 import tempfile
@@ -8,6 +7,8 @@ import threading
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
+
+from workbench_task_utils import exclusive_file_lock
 
 
 class VersionRegistryError(ValueError):
@@ -50,12 +51,8 @@ class VersionRegistry:
         try:
             self.registry_file.parent.mkdir(parents=True, exist_ok=True)
             lock_path = self.registry_file.with_name(f".{self.registry_file.name}.lock")
-            with lock_path.open("a+b") as lock_file:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
-                try:
-                    yield
-                finally:
-                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+            with exclusive_file_lock(lock_path):
+                yield
         except OSError as exc:
             raise VersionRegistryError(f"registry could not be locked: {self.registry_file}") from exc
 

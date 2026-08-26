@@ -1,0 +1,42 @@
+{
+  "issue": 244,
+  "human_owner": "Quchaosheng",
+  "objective": "Bind entity evidence to the current location transition so stale or unrelated evidence cannot confirm a location claim.",
+  "allowed_paths": [
+    "services/world_model/workbench_world_model/reducer.py",
+    "services/world_model/workbench_world_model/verifier.py",
+    "tests/unit/test_world_model.py",
+    "docs/task_packets/issue-244-location-relation-evidence.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "libs/contracts/**"
+  ],
+  "forbidden": [
+    "robot/**",
+    "firmware/**",
+    "hardware/safety/**"
+  ],
+  "acceptance": [
+    "a location change replaces evidence from the previous location",
+    "an evidence-free location change cannot reuse run-wide or unrelated entity evidence",
+    "same-location observations retain unique evidence in event order",
+    "object verification returns only evidence for the current object location"
+  ],
+  "commands": [
+    "python -m pytest tests/unit/test_world_model.py -v",
+    "make check",
+    "python tools/scripts/check_task_packet.py docs/task_packets/issue-244-location-relation-evidence.json --base origin/main",
+    "git diff --check"
+  ],
+  "evidence": [
+    "world-model reducer and verifier regression output",
+    "full repository check output",
+    "Task Packet boundary output"
+  ],
+  "stop_conditions": [
+    "a public schema or contract change is required",
+    "physical or robot-control evidence is requested",
+    "the fix requires writes outside the allowed paths"
+  ]
+}

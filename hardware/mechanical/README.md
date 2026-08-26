@@ -1,10 +1,49 @@
 # Mechanical engineering package
 
-This directory is the source-controlled mechanical baseline for the desk robot.
-Dimensions are millimetres and mass values are kilograms. The design is a compact
-two-piece enclosure around a 260 x 220 mm chassis with a removable 150 x 72 mm
-face module, internal electronics tray, motor mounts, cable channels, and a
-perimeter TPU impact bumper.
+This directory is the source-controlled mechanical concept for the Workbench
+Home Robot, Revision D. It is no longer the 280 x 240 x 330 mm tabletop shell.
+The current target is a 540 x 520 mm mobile base with a 350 mm braked liftable torso,
+a continuous mineral-white utility body, two seven-axis arms, an 18 L parcel bay,
+and a locked quick-change tool system.
+
+## Product architecture
+
+- **Mobile base:** four independent steer-drive modules provide longitudinal,
+  lateral, diagonal, and rotate-in-place self-motion. Each module has a 140 mm
+  non-marking wheel, absolute steering encoder, drive encoder, 30 mm suspension,
+  and a normally-closed brake. Stabilizer feet remain flush during navigation
+  and deploy only for stationary manipulation.
+- **Lift:** four guides, two synchronized screws, two normally-closed brakes,
+  two mechanical lock pins, dual encoders, hard limits, and pinch detection.
+- **Arms:** each arm has J1 base yaw, J2 shoulder pitch, J3 shoulder roll,
+  J4 elbow pitch, J5 forearm roll, J6 wrist pitch, and J7 tool roll. The per-arm
+  planning envelope is 2 kg at 650 mm reach or 3 kg at 400 mm at reduced speed; these are not yet
+  certified performance claims.
+- **Tools:** adaptive parcel gripper, compliant brush/dry-mop head, and a
+  removable 316L/PEEK/silicone induction-cooking tool. Cooking is supervised,
+  induction-only, and excludes open flame, boiling-liquid carry, and hot-pan
+  transport.
+
+## Industrial design and CMF
+
+The consumer-facing surface is a continuous warm mineral-white shell with hidden
+primary parting lines. The structural waist, lift, and arm links use bead-blasted
+graphite anodized aluminium; the face is a single smoked strengthened-glass
+lens; the parcel-bay/acoustic insert is graphite 3D-knit recycled PET. Jade or
+warm amber is reserved for one status light. Visible glossy plastic, exposed
+fasteners, decorative color blocks, toy-like antennae, and unguarded wheel
+mechanisms are out of scope. The four wheel treads remain visually readable so
+the product clearly communicates self-motion, while the steering bearings and
+cabling stay guarded inside the base skirt.
+
+The head uses a wide rounded-rectangle expression window inside a soft white
+frame. It is not a floating shell: a dedicated neck mount has a load-bearing
+pedestal, broad shoulder plate, keyed head register, four hidden M6 fasteners,
+two dowel pins, and a 32 mm central cable passage. The head is lifted onto the
+register after the harness is connected and can be removed vertically after
+the rear cover and underside fasteners are released. Both shoulder centres are
+mounted in the torso side walls below that neck; neither arm supports or
+visually frames the head.
 
 ## Reproduce
 
@@ -12,48 +51,18 @@ perimeter TPU impact bumper.
 python hardware/mechanical/tools/generate_artifacts.py
 ```
 
-The command validates clearances and writes the reports. When CadQuery 2.5 or
-newer is installed it also regenerates the solid STEP file; otherwise the checked-in
-STEP remains unchanged.
+The command regenerates the analytical report, C revision general arrangement,
+thermal path, drop screen, BOM, assembly sequence, and CadQuery STEP package.
+It intentionally reports `CONCEPT_PHYSICAL_VALIDATION_REQUIRED`: no rendering
+or analytical result substitutes for lift synchronization, arm sweep, thermal,
+stability, force-limit, or guarded household-task tests on a serialized unit.
 
-- `generated/enclosure.step`: AP203 STEP envelope for supplier exchange.
-- `generated/desk_robot_assembly.step`: seven-solid assembly.
+- `generated/enclosure.step`: torso exchange solid for supplier review.
+- `generated/desk_robot_assembly.step`: mobile base, lift, torso, head, dual 7R arms,
+  stabilizers, and tool dock assembly.
 - `generated/desk_robot_exploded.step`: exploded assembly for work instructions.
-- `generated/parts/*.step`: shell, chassis, tray, display bracket, bumper, and motor bracket.
-- `generated/drawings/general-arrangement.svg`: dimensioned overall drawing.
-- `generated/drawings/thermal-flow.svg`: inlet, heat source, conduction and outlet path.
-- `generated/analysis.json`: mass, centre of gravity, tip angle, drop energy, and clearances.
-- `generated/drop-screening.json`: equivalent-static impact screen and acceptance limits.
-- `generated/assembly-sequence.json`: fastener and torque-controlled assembly order.
-- `generated/bom.csv`: mechanical material and standard-parts BOM.
-
-Open `cad/desk_robot.scad` in OpenSCAD for the detailed, parameterized assembly.
-Export individual parts as STL for prototype printing. The STEP envelope is an
-interface model; production fillets, draft, ribs, bosses, and tooling splits
-remain controlled by the injection-moulding supplier after DFM review.
-
-## Design baseline
-
-| Property | Value |
-|---|---:|
-| Overall envelope | 280 x 240 x 330 mm |
-| Chassis wheelbase / track | 180 / 210 mm |
-| Ground clearance | 18 mm |
-| Shell nominal wall | 2.5 mm |
-| Electronics tray | 220 x 170 mm |
-| Controller PCB / mount pattern | 160 x 130 / 152 x 122 mm |
-| Estimated mass | 6.42 kg |
-| Estimated CG from floor | 101.9 mm |
-| Static tip angle | 45.9 deg |
-| Target drop | 0.75 m onto plywood over concrete |
-
-## Release status
-
-MECH1-10 and MECH15 have reproducible design evidence in this package. MECH11-14
-and MECH16 have controlled execution/acceptance definitions but require the actual
-prototype, drop video, fit inspection, toolmaker data, and approved production BOM.
-Generated analysis is not represented as physical test evidence.
-The electronics tray now uses the controller PCB's actual 152 x 122 mm mounting
-pattern and provides 60 x 40 mm total planar margin. Cable bend radius, connector
-access and the 32 mm vertical envelope remain physical fit-check items. The digital
-fit check also enforces 30 mm side and 20 mm front/rear service margins around the PCB.
+- `generated/parts/*.step`: ten D revision concept parts, including the separate neck mount.
+- `generated/drawings/general-arrangement.svg`: D revision architecture and lift states.
+- `generated/drawings/thermal-flow.svg`: isolated electronics airflow path.
+- `generated/analysis.json`: mass, CG, drive/stabilized tip screens, payload moment, and clearances.
+- `revision-d-architecture.md`: bimanual workspace, task boundary, and architecture rationale.

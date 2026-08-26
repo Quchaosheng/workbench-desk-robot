@@ -105,7 +105,9 @@ def _result(
     reason_code: ReasonCode,
     recovery_hint: RecoveryHint,
     rule_version: str,
+    evidence_refs: list[str] | None = None,
 ) -> VerificationResult:
+    selected_evidence = _unique_evidence(state) if evidence_refs is None else list(dict.fromkeys(evidence_refs))
     return VerificationResult(
         verification_id=f"ver-{uuid.uuid4().hex[:12]}",
         run_id=state.run_id,
@@ -113,7 +115,7 @@ def _result(
         claim=claim,
         status=status,
         reason_code=reason_code,
-        evidence_refs=_unique_evidence(state) or [NO_EVIDENCE_REF],
+        evidence_refs=selected_evidence or [NO_EVIDENCE_REF],
         recovery_hint=recovery_hint,
         verified_at="1970-01-01T00:00:00Z",
         rule_version=rule_version,
@@ -125,7 +127,7 @@ def verify_object_in_tray(state: WorldState, task_id: str, object_id: str, tray_
         raise ValueError("object_id and tray_id must be non-empty")
     expected_location = f"in:{tray_id}"
     actual_location = state.entity_locations.get(object_id)
-    evidence = _unique_evidence(state)
+    evidence = state.entity_evidence_refs.get(object_id, [])
     if actual_location is None:
         status = VerificationStatus.INSUFFICIENT_EVIDENCE
         reason_code = ReasonCode.TARGET_NOT_OBSERVED
@@ -146,7 +148,7 @@ def verify_object_in_tray(state: WorldState, task_id: str, object_id: str, tray_
         reason_code = ReasonCode.GOAL_NOT_SATISFIED
         recovery_hint = RecoveryHint.RETRY_ACTION
         claim = f"{object_id} inside {tray_id}: found at {actual_location}"
-    return _result(state, task_id, claim, status, reason_code, recovery_hint, "tray-membership-v1")
+    return _result(state, task_id, claim, status, reason_code, recovery_hint, "tray-membership-v1", evidence)
 
 
 def verify_kit_contents(

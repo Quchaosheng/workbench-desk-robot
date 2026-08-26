@@ -1,0 +1,45 @@
+{
+  "issue": "home-robot-revision-c",
+  "human_owner": "Quchaosheng",
+  "objective": "Replace the tabletop two-link visual concept with a truthful mobile domestic manipulator architecture: one seven-axis collaborative arm, a braked lifting platform, stabilized mobile base, tool changing, and bounded parcel, cleaning, and induction-cooking assistance.",
+  "allowed_paths": [
+    "hardware/mechanical/**",
+    "hardware/mechanical/system-integration.md",
+    "tests/hardware/test_engineering_packages.py",
+    "docs/assets/premium-product-render.html",
+    "docs/assets/workbench-home-robot-premium.png",
+    "docs/task_packets/home-robot-revision-c.json",
+    "README.md",
+    "README.zh-CN.md"
+  ],
+  "read_only_paths": ["robot/**", "interfaces/**", "firmware/**", "hardware/pcb/**"],
+  "forbidden": ["robot/control/**", "firmware/**", "services/**", "interfaces/**"],
+  "acceptance": [
+    "Revision C declares seven revolute arm joints with limits and planning torque classes",
+    "the lifting platform has controlled travel, brakes, mechanical locks, hard limits, and pinch detection",
+    "the mobile base declares driving and deployed stabilization footprints and uses low-mounted ballast",
+    "SCAD and CadQuery sources depict seven coherent joints, a telescopic lift, hidden wheels, and tool quick-change",
+    "parcel, cleaning, and cooking-assistance claims remain target capabilities pending physical validation",
+    "the main product visual removes floating parts, exposed wheels, decorative rods, and unsupported payload claims",
+    "mechanical package tests and Task Packet validation pass"
+  ],
+  "commands": [
+    "python hardware/mechanical/tools/generate_artifacts.py",
+    "python -m pytest tests/hardware/test_engineering_packages.py::MechanicalPackageTests -q",
+    "python tools/scripts/check_task_packet.py docs/task_packets/home-robot-revision-c.json"
+  ],
+  "evidence": [
+    "hardware/mechanical/design-spec.json",
+    "hardware/mechanical/cad/desk_robot.scad",
+    "hardware/mechanical/tools/generate_artifacts.py",
+    "hardware/mechanical/generated/drawings/general-arrangement.svg",
+    "hardware/mechanical/revision-c-architecture.md",
+    "docs/assets/workbench-home-robot-premium.png"
+  ],
+  "stop_conditions": [
+    "a change requires robot control, firmware, interfaces, or PCB ownership",
+    "a visual implies autonomous open-flame cooking, stair traversal, person lifting, or proven physical performance",
+    "motion or thermal safety evidence would need to be invented",
+    "the generated CAD cannot preserve declared lift, arm, tool, or support datums"
+  ]
+}

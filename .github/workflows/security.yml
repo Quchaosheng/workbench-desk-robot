@@ -33,6 +33,40 @@ jobs:
         with:
           category: /language:python
 
+  codeql-c-cpp:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: Install C and C++ build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            "linux-headers-$(uname -r)" \
+            linux-headers-generic \
+            gcc-riscv64-unknown-elf
+      - uses: github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd  # v4.37.7
+        with:
+          languages: c-cpp
+          build-mode: manual
+      - name: Build kernel and freestanding MCU targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          kernel_headers="$(find /usr/src -maxdepth 1 -type d -name 'linux-headers-*-generic' | sort | head -n1)"
+          test -n "$kernel_headers"
+          make -C kernel/wbcan clean KDIR="$kernel_headers"
+          make -C kernel/wbcan KDIR="$kernel_headers"
+          make -C firmware/mcu clean
+          make -C firmware/mcu host
+          make -C firmware/mcu qemu
+      - uses: github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd  # v4.37.7
+        with:
+          category: /language:c-cpp
+
   dependency-review:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04

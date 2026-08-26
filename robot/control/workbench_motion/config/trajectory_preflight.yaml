@@ -1,0 +1,6 @@
+# Versioned, fail-closed policy for the ROS-free trajectory preflight gate.
+trajectory_preflight:
+  version: "1"
+  limit_epsilon: 0.000001
+  max_duration_s: 30.0
+  max_start_state_delta_rad: 0.05

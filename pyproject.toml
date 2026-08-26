@@ -28,6 +28,7 @@ packages = [
   "workbench.application",
   "workbench.hardware",
   "workbench.kernel",
+  "workbench_task_utils",
   "workbench_agent_runtime",
   "workbench_backend",
   "workbench_contracts",
@@ -39,6 +40,7 @@ packages = [
 "workbench.application" = "libs/application/workbench/application"
 "workbench.hardware" = "libs/hardware/workbench/hardware"
 "workbench.kernel" = "libs/kernel/workbench/kernel"
+workbench_task_utils = "libs/task_utils/workbench_task_utils"
 workbench_agent_runtime = "services/agent_runtime/workbench_agent_runtime"
 workbench_backend = "services/backend/workbench_backend"
 workbench_contracts = "libs/contracts/workbench_contracts"

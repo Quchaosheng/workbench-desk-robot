@@ -1,0 +1,49 @@
+{
+  "issue": 255,
+  "human_owner": "TH3478",
+  "objective": "Make CI Task Packet changed-path validation compare the pull request head instead of a synthetic merge commit.",
+  "allowed_paths": [
+    ".github/workflows/ci.yml",
+    "docs/task_packets/issue-255-task-packet-head-validation.json",
+    "tests/unit/test_task_packet.py",
+    "tools/scripts/check_task_packet.py"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "docs/architecture/mcu-protocol-v1.md",
+    "tools/schemas/task-packet-v1.schema.json"
+  ],
+  "forbidden": [
+    "hardware/**",
+    "interfaces/**",
+    "robot/control/**",
+    "services/**"
+  ],
+  "acceptance": [
+    "CI keeps foundation tests on the pull request merge result",
+    "Task Packet boundary validation can compare the base revision with an explicit pull request head",
+    "main-only changes present in a synthetic merge commit are excluded from the pull request changed-path set",
+    "the explicit-head path remains commit-only and does not include local untracked files",
+    "the packet authorizes no MCU, protocol, hardware, or runtime source changes"
+  ],
+  "commands": [
+    "python tools/scripts/check_task_packet.py --all",
+    "python -m pytest tests/unit -k task_packet -v",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "git diff --check"
+  ],
+  "evidence": [
+    "explicit-head changed-path regression output",
+    "Task Packet validation output",
+    "repository test and contract output",
+    "clean diff check"
+  ],
+  "stop_conditions": [
+    "the fix requires changing protocol schemas or MCU safety behavior",
+    "a workflow outside .github/workflows/ci.yml must change",
+    "the PR head revision cannot be resolved in the CI checkout"
+  ]
+}

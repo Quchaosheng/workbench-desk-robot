@@ -19,6 +19,7 @@ sys.path[:0] = [
     str(ROOT / "tools/scripts"),
 ]
 
+from pydantic import ValidationError
 from workbench_agent_runtime.policy_validator import (
     PolicyFinding,
     PolicyReport,
@@ -361,10 +362,9 @@ class PolicyValidatorBoundaryTests(unittest.TestCase):
         self.assertFalse(report.is_valid)
         self.assertTrue(any(f.field == "target_id" for f in report.findings))
 
-    def test_empty_task_graph_is_valid(self) -> None:
-        """Structural minItems is Pydantic's job; the validator passes empty."""
-        report = self.validator.check(TaskGraph(task_id="task-empty", goal="test", steps=[], planner="test"))
-        self.assertTrue(report.is_valid)
+    def test_empty_task_graph_is_rejected_at_contract_boundary(self) -> None:
+        with self.assertRaises(ValidationError):
+            TaskGraph(task_id="task-empty", goal="test", steps=[], planner="test")
 
     def test_validator_uses_injected_registry(self) -> None:
         """The validator must read its whitelist from the injected registry,

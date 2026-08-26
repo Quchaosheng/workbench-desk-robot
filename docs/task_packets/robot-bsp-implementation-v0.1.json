@@ -4,6 +4,8 @@
   "objective": "Create the repository-side implementation register, Linux BSP inputs, rootfs service boundaries, firmware compatibility contract and guarded bring-up plan for the selected one-board six-domain robot architecture.",
   "allowed_paths": [
     "bsp/**",
+    "README.md",
+    "README.zh-CN.md",
     "docs/architecture/robot-bsp-*.md",
     "docs/architecture/robot-bsp-*.yaml",
     "docs/task_packets/robot-bsp-*.json",

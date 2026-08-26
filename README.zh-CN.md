@@ -86,6 +86,11 @@ metadata 和 checksums。它会明确标记为 `SCRIPTED_FIXTURE`，并保持
 **还没有：**完整 Gazebo 世界、真实相机桥接、MoveIt 抓取放置适配器、Gazebo 实测任务结果
 和真实硬件证据。仓库中的 fixture 是软件链路测试，不是机器人或 Gazebo 证据。
 
+**BSP 基线：**原型方案已选定一块 Jetson Orin Nano Super 8 GB Linux 主控和六个控制域：
+底盘、左右机械臂、左右末端以及独立安全域。[`bsp/`](bsp/) 已包含 CAN 身份、kernel/服务
+要求、固件兼容、成本审查和失败关闭式 readiness 校验。载板 pin/IRQ、供应商协议、启动镜像、
+AVL 审批和实机 bring-up 在真实证据到位前仍保持 `BLOCKED` 或 `NOT_EXECUTED`。
+
 仓库提供的确定性保证彼此独立：
 
 1. 同一冻结 manifest 和 seed 会得到同一物化场景 hash。
@@ -106,6 +111,7 @@ seed 本身不能决定事件顺序；这些保证也不代表 Gazebo 物理、�
 | 容器 | runtime 与 devcontainer 使用同一个不可变 Ubuntu digest | 未固定基础镜像也可复现 |
 | Dashboard 后端 | 有界只读 HTTP API；写方法返回 `405` | 公网部署认证或任何控制权限 |
 | `wbcan` | Linux 内核构建、虚拟 SocketCAN 故障测试、并发安全计数 | 真实 CAN 时序、MCU 行为或执行器安全 |
+| 机器人 BSP | 已选原型拓扑、manifest、kernel/服务要求和 readiness 校验 | 可启动 Jetson 镜像、获批 AVL、真实 CAN、急停或散热证据 |
 | 脚本场景 | 带 checksum 的确定性 fixture artifact | 真实机器人或 Gazebo 执行 |
 
 完整的可移植检查是 `python -m pytest`。Linux CI 另外负责容器、MCU-QEMU 和特权内核模块
@@ -173,6 +179,7 @@ Dashboard API 只读。所有 HTTP 写方法返回 `405`；服务不会发布 RO
 
 - [用户指南](docs/user-guide/index.md)
 - [系统架构](docs/architecture/system.md)
+- [机器人 BSP](bsp/README.md)
 - [仿真边界](sim/README.md)
 - [分机部署](docs/deployment/multi-host.md)
 - [安全策略](SECURITY.md)

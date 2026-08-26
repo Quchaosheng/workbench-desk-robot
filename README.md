@@ -95,6 +95,14 @@ fail-closed simulation controls.
 grasp/place adapter, Gazebo-backed task results, and physical hardware evidence.
 Committed fixtures are pipeline tests, not robot or Gazebo evidence.
 
+**BSP baseline:** the prototype plan selects one Jetson Orin Nano Super 8 GB
+Linux board and six controller domains: base, left/right arm, left/right tool,
+and independent safety. The repository includes CAN identity, kernel/service
+requirements, firmware compatibility, cost review and fail-closed readiness
+checks under [`bsp/`](bsp/). Carrier-board pin/IRQ data, supplier protocols,
+boot images, AVL approval and physical bring-up remain blocked or
+`NOT_EXECUTED` until real evidence is attached.
+
 The reproducibility guarantees are deliberately separate:
 
 1. The same frozen manifest and seed produce the same materialized scene hash.
@@ -118,6 +126,7 @@ remain explicitly separate:
 | Containers | Runtime and devcontainer share one immutable Ubuntu digest | Reproducibility on an unpinned base image |
 | Dashboard backend | Bounded read-only HTTP API; write methods return `405` | Authentication for public deployment or any control authority |
 | `wbcan` | Linux kernel build, virtual SocketCAN fault tests, race-safe counters | Physical CAN timing, MCU behavior, or actuator safety |
+| Robot BSP | Selected prototype topology, manifests, kernel/service requirements and readiness checks | A bootable Jetson image, approved AVL, physical CAN, E-stop or thermal evidence |
 | Scripted scenarios | Deterministic fixture artifacts with checksums | Physical or Gazebo execution |
 
 The complete portable check is `python -m pytest`. Linux CI additionally owns

@@ -1,0 +1,1931 @@
+{
+  "pass": true,
+  "hard_gate_pass": true,
+  "status": "LAYOUT_HARD_GATES_PASS_RISKS_OPEN",
+  "board": "C:\\Users\\qucha\\Documents\\Codex\\2026-08-18\\pcb-48v-12v-jetson-12v-5a\\work\\workbench-desk-robot\\hardware\\pcb\\kicad\\controller.kicad_pcb",
+  "checks": {
+    "high_current_widths_with_bounded_neckdowns": true,
+    "reference_layer_net_categories": true,
+    "oscillator_fcu_only_no_vias": true,
+    "can_in1_reference_zone_declared": true,
+    "u6_full_copper_isolation_keepout": true,
+    "u7_full_copper_isolation_keepout": true,
+    "u2_source_return_via_arrays": true,
+    "u3_exposed_pad_thermal_microvia_array": true,
+    "u3_output_parallel_transfer_vias": true,
+    "raw_can_matched_fcu_in3_blind_vias": true,
+    "can_candidate_layers_and_pair_delta": true,
+    "can_testpoint_stub_geometry": true
+  },
+  "details": {
+    "high_current_widths_with_bounded_neckdowns": {
+      "VBAT_RAW": {
+        "pass": true,
+        "target_width_mm": 2.0,
+        "segment_count": 5,
+        "min_width_mm": 2.5,
+        "zone_count": 1,
+        "state": "ok",
+        "nominal_width_coverage_pct": 100.0,
+        "total_route_length_mm": 9.8785,
+        "nominal_width_length_mm": 9.8785,
+        "neckdown_total_length_mm": 0,
+        "minimum_width_ratio": 1.25,
+        "neckdown_rule": null,
+        "accepted_neckdowns": [],
+        "violations": []
+      },
+      "VBAT_FUSED": {
+        "pass": true,
+        "target_width_mm": 2.0,
+        "segment_count": 22,
+        "min_width_mm": 0.2,
+        "zone_count": 1,
+        "state": "bounded_neckdown",
+        "nominal_width_coverage_pct": 94.856,
+        "total_route_length_mm": 65.4694,
+        "nominal_width_length_mm": 62.1018,
+        "neckdown_total_length_mm": 3.3676,
+        "minimum_width_ratio": 0.1,
+        "neckdown_rule": {
+          "min_width_mm": 0.2,
+          "max_segment_length_mm": 1.5,
+          "max_total_length_mm": 4.0,
+          "min_nominal_coverage_pct": 90.0,
+          "allowed_use": "LTC4368 VIN monitor branch and package escapes"
+        },
+        "accepted_neckdowns": [
+          {
+            "width_mm": 0.2,
+            "length_mm": 1.3000000000000007
+          },
+          {
+            "width_mm": 0.8014,
+            "length_mm": 1.107999999999997
+          },
+          {
+            "width_mm": 0.8014,
+            "length_mm": 0.21354624791833707
+          },
+          {
+            "width_mm": 0.2,
+            "length_mm": 0.7460733744076383
+          }
+        ],
+        "violations": []
+      },
+      "FET_COMMON": {
+        "pass": true,
+        "target_width_mm": 2.0,
+        "segment_count": 19,
+        "min_width_mm": 0.651,
+        "zone_count": 1,
+        "state": "bounded_neckdown",
+        "nominal_width_coverage_pct": 66.894,
+        "total_route_length_mm": 25.6989,
+        "nominal_width_length_mm": 17.191,
+        "neckdown_total_length_mm": 8.5079,
+        "minimum_width_ratio": 0.3255,
+        "neckdown_rule": {
+          "min_width_mm": 0.65,
+          "max_segment_length_mm": 1.9,
+          "max_total_length_mm": 9.0,
+          "min_nominal_coverage_pct": 60.0,
+          "allowed_use": "back-to-back MOSFET package escapes"
+        },
+        "accepted_neckdowns": [
+          {
+            "width_mm": 0.651,
+            "length_mm": 1.846899999999998
+          },
+          {
+            "width_mm": 0.651,
+            "length_mm": 1.2699999999999996
+          },
+          {
+            "width_mm": 0.651,
+            "length_mm": 0.49384337598068695
+          },
+          {
+            "width_mm": 0.651,
+            "length_mm": 0.6819337797763099
+          },
+          {
+            "width_mm": 0.651,
+            "length_mm": 1.2699999999999996
+          },
+          {
+            "width_mm": 0.651,
+            "length_mm": 0.30560000000000187
+          },
+          {
+            "width_mm": 0.651,
+            "length_mm": 0.6819337797763073
+          },
+          {
+            "width_mm": 0.651,
+            "length_mm": 0.02913279938488569
+          },
+          {
+            "width_mm": 0.651,
+            "length_mm": 1.2700000000000031
+          },
+          {
+            "width_mm": 0.651,
+            "length_mm": 0.22960000000000136
+          },
+          {
+            "width_mm": 0.9016,
+            "length_mm": 0.4289309734677599
+          }
+        ],
+        "violations": []
+      },
+      "INPUT_SENSE": {
+        "pass": true,
+        "target_width_mm": 2.0,
+        "segment_count": 10,
+        "min_width_mm": 0.2,
+        "zone_count": 1,
+        "state": "bounded_neckdown",
+        "nominal_width_coverage_pct": 40.593,
+        "total_route_length_mm": 21.7156,
+        "nominal_width_length_mm": 8.815,
+        "neckdown_total_length_mm": 12.9006,
+        "minimum_width_ratio": 0.1,
+        "neckdown_rule": {
+          "min_width_mm": 0.2,
+          "max_segment_length_mm": 5.2,
+          "max_total_length_mm": 13.5,
+          "min_nominal_coverage_pct": 35.0,
+          "allowed_use": "Kelvin sense branch from RS1 to LTC4368 SENSE"
+        },
+        "accepted_neckdowns": [
+          {
+            "width_mm": 0.2,
+            "length_mm": 1.8999999999999986
+          },
+          {
+            "width_mm": 0.2,
+            "length_mm": 3.2015621187164243
+          },
+          {
+            "width_mm": 0.2,
+            "length_mm": 2.6999999999999993
+          },
+          {
+            "width_mm": 0.2,
+            "length_mm": 5.0990195135927845
+          }
+        ],
+        "violations": []
+      },
+      "VBAT_PROTECTED": {
+        "pass": true,
+        "target_width_mm": 2.0,
+        "segment_count": 14,
+        "min_width_mm": 0.2,
+        "zone_count": 1,
+        "state": "bounded_neckdown",
+        "nominal_width_coverage_pct": 93.353,
+        "total_route_length_mm": 100.0656,
+        "nominal_width_length_mm": 93.414,
+        "neckdown_total_length_mm": 6.6516,
+        "minimum_width_ratio": 0.1,
+        "neckdown_rule": {
+          "min_width_mm": 0.2,
+          "max_segment_length_mm": 4.0,
+          "max_total_length_mm": 7.0,
+          "min_nominal_coverage_pct": 90.0,
+          "allowed_use": "LTC4368 VOUT monitor branch and package escapes"
+        },
+        "accepted_neckdowns": [
+          {
+            "width_mm": 0.2,
+            "length_mm": 3.8999999999999986
+          },
+          {
+            "width_mm": 0.2,
+            "length_mm": 1.8000000000000007
+          },
+          {
+            "width_mm": 0.2,
+            "length_mm": 0.9516013451020329
+          }
+        ],
+        "violations": []
+      },
+      "GND_PWR": {
+        "pass": true,
+        "target_width_mm": 2.0,
+        "segment_count": 25,
+        "min_width_mm": 0.8014,
+        "zone_count": 3,
+        "state": "bounded_neckdown",
+        "nominal_width_coverage_pct": 98.48,
+        "total_route_length_mm": 122.9162,
+        "nominal_width_length_mm": 121.0484,
+        "neckdown_total_length_mm": 1.8678,
+        "minimum_width_ratio": 0.4007,
+        "neckdown_rule": {
+          "min_width_mm": 0.8,
+          "max_segment_length_mm": 0.9,
+          "max_total_length_mm": 2.0,
+          "min_nominal_coverage_pct": 95.0,
+          "allowed_use": "primary controller and divider returns"
+        },
+        "accepted_neckdowns": [
+          {
+            "width_mm": 0.8014,
+            "length_mm": 0.21354624791833707
+          },
+          {
+            "width_mm": 0.8014,
+            "length_mm": 0.8824000000000005
+          },
+          {
+            "width_mm": 0.8014,
+            "length_mm": 0.771877762343235
+          }
+        ],
+        "violations": []
+      },
+      "12V_ISO": {
+        "pass": true,
+        "target_width_mm": 2.5,
+        "segment_count": 42,
+        "min_width_mm": 0.250199,
+        "zone_count": 1,
+        "state": "bounded_neckdown",
+        "nominal_width_coverage_pct": 93.568,
+        "total_route_length_mm": 211.7574,
+        "nominal_width_length_mm": 198.1375,
+        "neckdown_total_length_mm": 13.62,
+        "minimum_width_ratio": 0.1001,
+        "neckdown_rule": {
+          "min_width_mm": 0.2,
+          "max_segment_length_mm": 3.5,
+          "max_total_length_mm": 14.0,
+          "min_nominal_coverage_pct": 90.0,
+          "allowed_use": "parallel eFuse pins, decoupling, feedback, and control branches"
+        },
+        "accepted_neckdowns": [
+          {
+            "width_mm": 0.250199,
+            "length_mm": 0.8844491619081323
+          },
+          {
+            "width_mm": 0.250199,
+            "length_mm": 0.018950461735791735
+          },
+          {
+            "width_mm": 0.8014,
+            "length_mm": 0.771877762343235
+          },
+          {
+            "width_mm": 1.25,
+            "length_mm": 1.7395999999999958
+          },
+          {
+            "width_mm": 1.0018,
+            "length_mm": 0.002899999999996794
+          },
+          {
+            "width_mm": 0.8014,
+            "length_mm": 0.4949747468305903
+          },
+          {
+            "width_mm": 1.0018,
+            "length_mm": 3.4496
+          },
+          {
+            "width_mm": 0.3002,
+            "length_mm": 1.7753999999999976
+          },
+          {
+            "width_mm": 0.250199,
+            "length_mm": 1.7887000000000057
+          },
+          {
+            "width_mm": 0.250199,
+            "length_mm": 0.5
+          },
+          {
+            "width_mm": 1.875,
+            "length_mm": 0.12760000000000105
+          },
+          {
+            "width_mm": 2.3998,
+            "length_mm": 1.5005000000000024
+          },
+          {
+            "width_mm": 2.3998,
+            "length_mm": 0.5654025822367621
+          }
+        ],
+        "violations": []
+      },
+      "JETSON_12V": {
+        "pass": true,
+        "target_width_mm": 1.5,
+        "segment_count": 21,
+        "min_width_mm": 0.250199,
+        "zone_count": 3,
+        "state": "bounded_neckdown",
+        "nominal_width_coverage_pct": 97.567,
+        "total_route_length_mm": 141.8943,
+        "nominal_width_length_mm": 138.4413,
+        "neckdown_total_length_mm": 3.453,
+        "minimum_width_ratio": 0.1668,
+        "neckdown_rule": {
+          "min_width_mm": 0.25,
+          "max_segment_length_mm": 1.9,
+          "max_total_length_mm": 4.0,
+          "min_nominal_coverage_pct": 95.0,
+          "allowed_use": "parallel eFuse output pins and PGOOD divider branch"
+        },
+        "accepted_neckdowns": [
+          {
+            "width_mm": 1.1,
+            "length_mm": 1.7749999999999986
+          },
+          {
+            "width_mm": 0.8014,
+            "length_mm": 0.6844000000000001
+          },
+          {
+            "width_mm": 0.8014,
+            "length_mm": 0.493560533268213
+          },
+          {
+            "width_mm": 0.250199,
+            "length_mm": 0.5
+          }
+        ],
+        "violations": []
+      }
+    },
+    "reference_layer_net_categories": {
+      "policy": {
+        "In1.Cu": [
+          "ground",
+          "low_speed_signal",
+          "can_differential"
+        ],
+        "In4.Cu": [
+          "ground",
+          "low_speed_signal"
+        ]
+      },
+      "usage_length_by_category_mm": {
+        "In4.Cu": {
+          "low_speed_signal": 458.35899990335207,
+          "ground": 82.39817752296611
+        },
+        "In1.Cu": {
+          "low_speed_signal": 490.4705697355853,
+          "ground": 163.41737467981739
+        }
+      },
+      "violations": []
+    },
+    "oscillator_fcu_only_no_vias": {
+      "OSC_IN": {
+        "pass": true,
+        "segment_count": 6,
+        "via_count": 0,
+        "layers": [
+          "F.Cu"
+        ],
+        "non_fcu_layers": [],
+        "aggregate_length_mm": 16.642919163992207
+      },
+      "OSC_OUT": {
+        "pass": true,
+        "segment_count": 7,
+        "via_count": 0,
+        "layers": [
+          "F.Cu"
+        ],
+        "non_fcu_layers": [],
+        "aggregate_length_mm": 10.21261151157268
+      },
+      "pair_length_delta_mm": 6.4303,
+      "load_cap_ground_returns": {
+        "pass": true,
+        "state": "checked",
+        "maximum_via_distance_mm": 2.0,
+        "points": {
+          "CY1": {
+            "pass": true,
+            "ground_pad_position_mm": [
+              88.5,
+              101.725
+            ],
+            "nearest_ground_via_distance_mm": 1.625
+          },
+          "CY2": {
+            "pass": true,
+            "ground_pad_position_mm": [
+              92.775,
+              106.5
+            ],
+            "nearest_ground_via_distance_mm": 0.9059
+          }
+        }
+      }
+    },
+    "can_in1_reference_zone_declared": {
+      "pass": true,
+      "required_net": "GND_CAN_ISO",
+      "required_layer": "In1.Cu",
+      "matching_zone_count": 1,
+      "note": "Declaration presence only; continuity, clearance, and impedance remain manual/supplier checks."
+    },
+    "can_reference_zone_coverage_bounds": {
+      "pass": false,
+      "scope": "F.Cu CANH/CANL endpoint bounds against declared In1.Cu GND_CAN_ISO polygons",
+      "reference_polygon_count": 1,
+      "endpoint_count": 54,
+      "covered_endpoint_count": 46,
+      "coverage_percent": 85.185,
+      "uncovered_endpoints_mm": [
+        [
+          140.5,
+          85.0
+        ],
+        [
+          141.0,
+          88.0
+        ],
+        [
+          141.5375,
+          84.0
+        ],
+        [
+          148.0,
+          86.54
+        ],
+        [
+          149.5,
+          85.0
+        ],
+        [
+          150.0,
+          87.0
+        ],
+        [
+          151.0,
+          83.0
+        ],
+        [
+          152.0,
+          88.0
+        ]
+      ],
+      "note": "Polygon-bound coverage does not prove the filled copper shape, clearance voids, or return-current continuity."
+    },
+    "u6_full_copper_isolation_keepout": {
+      "pass": true,
+      "reference": "U6",
+      "pad_edge_clearance_mm": 8.1,
+      "minimum_pad_edge_clearance_mm": 8.0,
+      "expected_bounds_mm": [
+        130.95,
+        35.255,
+        139.05,
+        44.745
+      ],
+      "required_layers": [
+        "B.Cu",
+        "F.Cu",
+        "In1.Cu",
+        "In2.Cu",
+        "In3.Cu",
+        "In4.Cu",
+        "In5.Cu",
+        "In6.Cu"
+      ],
+      "required_restrictions": [
+        "tracks",
+        "vias",
+        "copperpour"
+      ],
+      "matching_rule_area_count": 1,
+      "rule_area_candidates": [
+        {
+          "pass": true,
+          "bounds_mm": [
+            130.95,
+            35.255,
+            139.05,
+            44.745
+          ],
+          "layers_complete": true,
+          "missing_copper_layers": [],
+          "restrictions": {
+            "tracks": true,
+            "vias": true,
+            "pads": true,
+            "copperpour": true
+          },
+          "geometry_matches": true
+        },
+        {
+          "pass": false,
+          "bounds_mm": [
+            135.415,
+            23.125,
+            141.285,
+            24.875
+          ],
+          "layers_complete": true,
+          "missing_copper_layers": [],
+          "restrictions": {
+            "tracks": true,
+            "vias": true,
+            "pads": true,
+            "copperpour": true
+          },
+          "geometry_matches": false
+        },
+        {
+          "pass": false,
+          "bounds_mm": [
+            0.0,
+            0.0,
+            8.0,
+            8.0
+          ],
+          "layers_complete": true,
+          "missing_copper_layers": [],
+          "restrictions": {
+            "tracks": true,
+            "vias": true,
+            "pads": true,
+            "copperpour": true
+          },
+          "geometry_matches": false
+        },
+        {
+          "pass": false,
+          "bounds_mm": [
+            0.0,
+            122.0,
+            8.0,
+            130.0
+          ],
+          "layers_complete": true,
+          "missing_copper_layers": [],
+          "restrictions": {
+            "tracks": true,
+            "vias": true,
+            "pads": true,
+            "copperpour": true
+          },
+          "geometry_matches": false
+        },
+        {
+          "pass": false,
+          "bounds_mm": [
+            152.0,
+            122.0,
+            160.0,
+            130.0
+          ],
+          "layers_complete": true,
+          "missing_copper_layers": [],
+          "restrictions": {
+            "tracks": true,
+            "vias": true,
+            "pads": true,
+            "copperpour": true
+          },
+          "geometry_matches": false
+        },
+        {
+          "pass": false,
+          "bounds_mm": [
+            152.0,
+            0.0,
+            160.0,
+            8.0
+          ],
+          "layers_complete": true,
+          "missing_copper_layers": [],
+          "restrictions": {
+            "tracks": true,
+            "vias": true,
+            "pads": true,
+            "copperpour": true
+          },
+          "geometry_matches": false
+        }
+      ]
+    },
+    "u7_full_copper_isolation_keepout": {
+      "pass": true,
+      "reference": "U7",
+      "pad_edge_clearance_mm": 5.87,
+      "minimum_pad_edge_clearance_mm": 0.0,
+      "expected_bounds_mm": [
+        135.415,
+        23.125,
+        141.285,
+        24.875
+      ],
+      "required_layers": [
+        "B.Cu",
+        "F.Cu",
+        "In1.Cu",
+        "In2.Cu",
+        "In3.Cu",
+        "In4.Cu",
+        "In5.Cu",
+        "In6.Cu"
+      ],
+      "required_restrictions": [
+        "tracks",
+        "vias",
+        "copperpour"
+      ],
+      "matching_rule_area_count": 1,
+      "rule_area_candidates": [
+        {
+          "pass": false,
+          "bounds_mm": [
+            130.95,
+            35.255,
+            139.05,
+            44.745
+          ],
+          "layers_complete": true,
+          "missing_copper_layers": [],
+          "restrictions": {
+            "tracks": true,
+            "vias": true,
+            "pads": true,
+            "copperpour": true
+          },
+          "geometry_matches": false
+        },
+        {
+          "pass": true,
+          "bounds_mm": [
+            135.415,
+            23.125,
+            141.285,
+            24.875
+          ],
+          "layers_complete": true,
+          "missing_copper_layers": [],
+          "restrictions": {
+            "tracks": true,
+            "vias": true,
+            "pads": true,
+            "copperpour": true
+          },
+          "geometry_matches": true
+        },
+        {
+          "pass": false,
+          "bounds_mm": [
+            0.0,
+            0.0,
+            8.0,
+            8.0
+          ],
+          "layers_complete": true,
+          "missing_copper_layers": [],
+          "restrictions": {
+            "tracks": true,
+            "vias": true,
+            "pads": true,
+            "copperpour": true
+          },
+          "geometry_matches": false
+        },
+        {
+          "pass": false,
+          "bounds_mm": [
+            0.0,
+            122.0,
+            8.0,
+            130.0
+          ],
+          "layers_complete": true,
+          "missing_copper_layers": [],
+          "restrictions": {
+            "tracks": true,
+            "vias": true,
+            "pads": true,
+            "copperpour": true
+          },
+          "geometry_matches": false
+        },
+        {
+          "pass": false,
+          "bounds_mm": [
+            152.0,
+            122.0,
+            160.0,
+            130.0
+          ],
+          "layers_complete": true,
+          "missing_copper_layers": [],
+          "restrictions": {
+            "tracks": true,
+            "vias": true,
+            "pads": true,
+            "copperpour": true
+          },
+          "geometry_matches": false
+        },
+        {
+          "pass": false,
+          "bounds_mm": [
+            152.0,
+            0.0,
+            160.0,
+            8.0
+          ],
+          "layers_complete": true,
+          "missing_copper_layers": [],
+          "restrictions": {
+            "tracks": true,
+            "vias": true,
+            "pads": true,
+            "copperpour": true
+          },
+          "geometry_matches": false
+        }
+      ],
+      "system_target_clearance_mm": 8.0,
+      "system_target_met": false
+    },
+    "u2_source_return_via_arrays": {
+      "U2.4": {
+        "pass": true,
+        "net": "12V_ISO",
+        "description": "isolated 12 V source transfer",
+        "pad_center_mm": [
+          81.0,
+          21.0
+        ],
+        "required_shape": "3x3 ring around the THT pad",
+        "pitch_mm": 1.5,
+        "via_diameter_mm": 0.8,
+        "via_drill_mm": 0.4,
+        "position_tolerance_mm": 0.12,
+        "dimension_tolerance_mm": 0.05,
+        "matched_via_count": 8,
+        "matched_vias": [
+          {
+            "position_mm": [
+              79.5,
+              19.5
+            ],
+            "position_error_mm": 0.0,
+            "diameter_mm": 0.8,
+            "drill_mm": 0.4
+          },
+          {
+            "position_mm": [
+              81.0,
+              19.5
+            ],
+            "position_error_mm": 0.0,
+            "diameter_mm": 0.8,
+            "drill_mm": 0.4
+          },
+          {
+            "position_mm": [
+              82.5,
+              19.5
+            ],
+            "position_error_mm": 0.0,
+            "diameter_mm": 0.8,
+            "drill_mm": 0.4
+          },
+          {
+            "position_mm": [
+              79.5,
+              21.0
+            ],
+            "position_error_mm": 0.0,
+            "diameter_mm": 0.8,
+            "drill_mm": 0.4
+          },
+          {
+            "position_mm": [
+              82.5,
+              21.0
+            ],
+            "position_error_mm": 0.0,
+            "diameter_mm": 0.8,
+            "drill_mm": 0.4
+          },
+          {
+            "position_mm": [
+              79.5,
+              22.5
+            ],
+            "position_error_mm": 0.0,
+            "diameter_mm": 0.8,
+            "drill_mm": 0.4
+          },
+          {
+            "position_mm": [
+              81.0,
+              22.5
+            ],
+            "position_error_mm": 0.0,
+            "diameter_mm": 0.8,
+            "drill_mm": 0.4
+          },
+          {
+            "position_mm": [
+              82.5,
+              22.5
+            ],
+            "position_error_mm": 0.0,
+            "diameter_mm": 0.8,
+            "drill_mm": 0.4
+          }
+        ],
+        "missing_positions_mm": []
+      },
+      "U2.5": {
+        "pass": true,
+        "net": "GND",
+        "description": "isolated 12 V return transfer",
+        "pad_center_mm": [
+          81.0,
+          33.0
+        ],
+        "required_shape": "3x3 ring around the THT pad",
+        "pitch_mm": 1.5,
+        "via_diameter_mm": 0.8,
+        "via_drill_mm": 0.4,
+        "position_tolerance_mm": 0.12,
+        "dimension_tolerance_mm": 0.05,
+        "matched_via_count": 8,
+        "matched_vias": [
+          {
+            "position_mm": [
+              79.5,
+              31.5
+            ],
+            "position_error_mm": 0.0,
+            "diameter_mm": 0.8,
+            "drill_mm": 0.4
+          },
+          {
+            "position_mm": [
+              81.0,
+              31.5
+            ],
+            "position_error_mm": 0.0,
+            "diameter_mm": 0.8,
+            "drill_mm": 0.4
+          },
+          {
+            "position_mm": [
+              82.5,
+              31.5
+            ],
+            "position_error_mm": 0.0,
+            "diameter_mm": 0.8,
+            "drill_mm": 0.4
+          },
+          {
+            "position_mm": [
+              79.5,
+              33.0
+            ],
+            "position_error_mm": 0.0,
+            "diameter_mm": 0.8,
+            "drill_mm": 0.4
+          },
+          {
+            "position_mm": [
+              82.5,
+              33.0
+            ],
+            "position_error_mm": 0.0,
+            "diameter_mm": 0.8,
+            "drill_mm": 0.4
+          },
+          {
+            "position_mm": [
+              79.5,
+              34.5
+            ],
+            "position_error_mm": 0.0,
+            "diameter_mm": 0.8,
+            "drill_mm": 0.4
+          },
+          {
+            "position_mm": [
+              81.0,
+              34.5
+            ],
+            "position_error_mm": 0.0,
+            "diameter_mm": 0.8,
+            "drill_mm": 0.4
+          },
+          {
+            "position_mm": [
+              82.5,
+              34.5
+            ],
+            "position_error_mm": 0.0,
+            "diameter_mm": 0.8,
+            "drill_mm": 0.4
+          }
+        ],
+        "missing_positions_mm": []
+      }
+    },
+    "u3_exposed_pad_thermal_microvia_array": {
+      "pass": true,
+      "pad_center_mm": [
+        111.825,
+        11.825
+      ],
+      "array_center_offset_mm": [
+        -0.25,
+        0.0
+      ],
+      "required_shape": "3x3",
+      "pitch_mm": 0.4,
+      "via_type": "micro",
+      "layers": [
+        "F.Cu",
+        "In1.Cu"
+      ],
+      "via_diameter_mm": 0.45,
+      "via_drill_mm": 0.15,
+      "matched_via_count": 9,
+      "matched_vias": [
+        {
+          "position_mm": [
+            111.175,
+            11.425
+          ],
+          "position_error_mm": 0.0
+        },
+        {
+          "position_mm": [
+            111.575,
+            11.425
+          ],
+          "position_error_mm": 0.0
+        },
+        {
+          "position_mm": [
+            111.975,
+            11.425
+          ],
+          "position_error_mm": 0.0
+        },
+        {
+          "position_mm": [
+            111.175,
+            11.825
+          ],
+          "position_error_mm": 0.0
+        },
+        {
+          "position_mm": [
+            111.575,
+            11.825
+          ],
+          "position_error_mm": 0.0
+        },
+        {
+          "position_mm": [
+            111.975,
+            11.825
+          ],
+          "position_error_mm": 0.0
+        },
+        {
+          "position_mm": [
+            111.175,
+            12.225
+          ],
+          "position_error_mm": 0.0
+        },
+        {
+          "position_mm": [
+            111.575,
+            12.225
+          ],
+          "position_error_mm": 0.0
+        },
+        {
+          "position_mm": [
+            111.975,
+            12.225
+          ],
+          "position_error_mm": 0.0
+        }
+      ],
+      "missing_positions_mm": []
+    },
+    "u3_output_parallel_transfer_vias": {
+      "pass": true,
+      "output_pad_midpoint_mm": [
+        113.975,
+        10.825
+      ],
+      "minimum_via_count": 4,
+      "search_radius_mm": 3.0,
+      "via_type": "through",
+      "layers": [
+        "F.Cu",
+        "B.Cu"
+      ],
+      "via_diameter_mm": 0.8,
+      "via_drill_mm": 0.4,
+      "matched_via_count": 4,
+      "matched_vias": [
+        {
+          "position_mm": [
+            113.5,
+            8.8
+          ]
+        },
+        {
+          "position_mm": [
+            113.5,
+            8.1
+          ]
+        },
+        {
+          "position_mm": [
+            114.5,
+            8.1
+          ]
+        },
+        {
+          "position_mm": [
+            114.5,
+            8.8
+          ]
+        }
+      ]
+    },
+    "raw_can_matched_fcu_in3_blind_vias": {
+      "pass": true,
+      "per_net": {
+        "CANH_RAW": {
+          "pass": true,
+          "required_via_count": 2,
+          "total_via_count": 2,
+          "matching_via_count": 2,
+          "required_type": "blind",
+          "required_layers": [
+            "F.Cu",
+            "In3.Cu"
+          ],
+          "matched_vias": [
+            {
+              "position_mm": [
+                140.7,
+                46.95
+              ],
+              "diameter_mm": 0.6,
+              "drill_mm": 0.3
+            },
+            {
+              "position_mm": [
+                141.95,
+                39.365
+              ],
+              "diameter_mm": 0.6,
+              "drill_mm": 0.3
+            }
+          ]
+        },
+        "CANL_RAW": {
+          "pass": true,
+          "required_via_count": 2,
+          "total_via_count": 2,
+          "matching_via_count": 2,
+          "required_type": "blind",
+          "required_layers": [
+            "F.Cu",
+            "In3.Cu"
+          ],
+          "matched_vias": [
+            {
+              "position_mm": [
+                141.0,
+                40.0
+              ],
+              "diameter_mm": 0.6,
+              "drill_mm": 0.3
+            },
+            {
+              "position_mm": [
+                139.7,
+                49.05
+              ],
+              "diameter_mm": 0.6,
+              "drill_mm": 0.3
+            }
+          ]
+        }
+      },
+      "matched_geometry": true,
+      "geometry_by_net": {
+        "CANH_RAW": [
+          [
+            0.6,
+            0.3
+          ]
+        ],
+        "CANL_RAW": [
+          [
+            0.6,
+            0.3
+          ]
+        ]
+      }
+    },
+    "can_candidate_layers_and_pair_delta": {
+      "nets": {
+        "CANH": {
+          "pass": true,
+          "segment_count": 22,
+          "via_count": 0,
+          "layers": [
+            "F.Cu"
+          ],
+          "layers_outside_impedance_candidates": [],
+          "aggregate_length_mm": 72.35216240009179
+        },
+        "CANH_RAW": {
+          "pass": true,
+          "segment_count": 4,
+          "via_count": 2,
+          "layers": [
+            "F.Cu",
+            "In3.Cu"
+          ],
+          "layers_outside_impedance_candidates": [],
+          "aggregate_length_mm": 12.21
+        },
+        "CANL": {
+          "pass": true,
+          "segment_count": 30,
+          "via_count": 0,
+          "layers": [
+            "F.Cu"
+          ],
+          "layers_outside_impedance_candidates": [],
+          "aggregate_length_mm": 72.0730805525837
+        },
+        "CANL_RAW": {
+          "pass": true,
+          "segment_count": 4,
+          "via_count": 2,
+          "layers": [
+            "F.Cu",
+            "In3.Cu"
+          ],
+          "layers_outside_impedance_candidates": [],
+          "aggregate_length_mm": 13.941840773346541
+        }
+      },
+      "pairs": {
+        "CANH/CANL": {
+          "pass": true,
+          "topology": "branched_multidrop",
+          "length_matching_applicable": false,
+          "topology_compatible": true,
+          "graph_shape_compatible": true,
+          "graph_metrics": {
+            "CANH": {
+              "segment_count": 22,
+              "node_count": 23,
+              "connected_component_count": 1,
+              "terminal_count": 3,
+              "branch_node_count": 1,
+              "maximum_node_degree": 3,
+              "degree_histogram": {
+                "1": 3,
+                "2": 19,
+                "3": 1
+              },
+              "length_by_layer_mm": {
+                "F.Cu": 72.3522
+              }
+            },
+            "CANL": {
+              "segment_count": 30,
+              "node_count": 31,
+              "connected_component_count": 1,
+              "terminal_count": 3,
+              "branch_node_count": 1,
+              "maximum_node_degree": 3,
+              "degree_histogram": {
+                "1": 3,
+                "2": 27,
+                "3": 1
+              },
+              "length_by_layer_mm": {
+                "F.Cu": 72.0731
+              }
+            }
+          },
+          "via_counts_matched": true,
+          "via_count_delta": 0,
+          "aggregate_length_delta_mm": 0.2790818475080812,
+          "limit_mm": 5.0
+        },
+        "CANH_RAW/CANL_RAW": {
+          "pass": true,
+          "topology": "point_to_point",
+          "length_matching_applicable": true,
+          "topology_compatible": true,
+          "graph_shape_compatible": true,
+          "graph_metrics": {
+            "CANH_RAW": {
+              "segment_count": 4,
+              "node_count": 5,
+              "connected_component_count": 1,
+              "terminal_count": 2,
+              "branch_node_count": 0,
+              "maximum_node_degree": 2,
+              "degree_histogram": {
+                "1": 2,
+                "2": 3
+              },
+              "length_by_layer_mm": {
+                "F.Cu": 3.375,
+                "In3.Cu": 8.835
+              }
+            },
+            "CANL_RAW": {
+              "segment_count": 4,
+              "node_count": 5,
+              "connected_component_count": 1,
+              "terminal_count": 2,
+              "branch_node_count": 0,
+              "maximum_node_degree": 2,
+              "degree_histogram": {
+                "1": 2,
+                "2": 3
+              },
+              "length_by_layer_mm": {
+                "F.Cu": 3.5918,
+                "In3.Cu": 10.35
+              }
+            }
+          },
+          "via_counts_matched": true,
+          "via_count_delta": 0,
+          "aggregate_length_delta_mm": 1.7318407733465406,
+          "limit_mm": 5.0
+        }
+      }
+    },
+    "can_testpoint_stub_geometry": {
+      "max_stub_length_mm": 3.5,
+      "pair_stub_delta_limit_mm": 1.0,
+      "position_tolerance_mm": 0.01,
+      "pair_stub_delta_mm": 0.8053,
+      "pair_match_pass": true,
+      "points": {
+        "TP6": {
+          "pass": true,
+          "net": "CANH",
+          "layer": "F.Cu",
+          "stub_length_mm": 3.0414,
+          "start": [
+            140.5,
+            85.0
+          ],
+          "end": [
+            141.0,
+            88.0
+          ]
+        },
+        "TP7": {
+          "pass": true,
+          "net": "CANL",
+          "layer": "F.Cu",
+          "stub_length_mm": 2.2361,
+          "start": [
+            150.0,
+            87.0
+          ],
+          "end": [
+            152.0,
+            88.0
+          ]
+        }
+      },
+      "state": "checked",
+      "pass": true
+    }
+  },
+  "risks": {
+    "can_differential_impedance": {
+      "status": "OPEN_SUPPLIER_FIELD_SOLVE_REQUIRED",
+      "machine_verifiable": false,
+      "candidate_layers": [
+        "F.Cu",
+        "In1.Cu",
+        "In3.Cu"
+      ],
+      "note": "Layer choice and aggregate length do not prove 120-ohm differential impedance."
+    },
+    "can_via_discontinuities": {
+      "status": "OPEN_LAYOUT_REVIEW_REQUIRED",
+      "machine_verifiable": true,
+      "via_count_by_net": {
+        "CANH": 0,
+        "CANH_RAW": 2,
+        "CANL": 0,
+        "CANL_RAW": 2
+      }
+    },
+    "can_pair_coupling_and_stub_geometry": {
+      "status": "OPEN_LAYOUT_REVIEW_REQUIRED",
+      "machine_verifiable": false,
+      "machine_evidence": {
+        "pair_route_metrics": {
+          "CANH/CANL": {
+            "pass": true,
+            "topology": "branched_multidrop",
+            "length_matching_applicable": false,
+            "topology_compatible": true,
+            "graph_shape_compatible": true,
+            "graph_metrics": {
+              "CANH": {
+                "segment_count": 22,
+                "node_count": 23,
+                "connected_component_count": 1,
+                "terminal_count": 3,
+                "branch_node_count": 1,
+                "maximum_node_degree": 3,
+                "degree_histogram": {
+                  "1": 3,
+                  "2": 19,
+                  "3": 1
+                },
+                "length_by_layer_mm": {
+                  "F.Cu": 72.3522
+                }
+              },
+              "CANL": {
+                "segment_count": 30,
+                "node_count": 31,
+                "connected_component_count": 1,
+                "terminal_count": 3,
+                "branch_node_count": 1,
+                "maximum_node_degree": 3,
+                "degree_histogram": {
+                  "1": 3,
+                  "2": 27,
+                  "3": 1
+                },
+                "length_by_layer_mm": {
+                  "F.Cu": 72.0731
+                }
+              }
+            },
+            "via_counts_matched": true,
+            "via_count_delta": 0,
+            "aggregate_length_delta_mm": 0.2790818475080812,
+            "limit_mm": 5.0
+          },
+          "CANH_RAW/CANL_RAW": {
+            "pass": true,
+            "topology": "point_to_point",
+            "length_matching_applicable": true,
+            "topology_compatible": true,
+            "graph_shape_compatible": true,
+            "graph_metrics": {
+              "CANH_RAW": {
+                "segment_count": 4,
+                "node_count": 5,
+                "connected_component_count": 1,
+                "terminal_count": 2,
+                "branch_node_count": 0,
+                "maximum_node_degree": 2,
+                "degree_histogram": {
+                  "1": 2,
+                  "2": 3
+                },
+                "length_by_layer_mm": {
+                  "F.Cu": 3.375,
+                  "In3.Cu": 8.835
+                }
+              },
+              "CANL_RAW": {
+                "segment_count": 4,
+                "node_count": 5,
+                "connected_component_count": 1,
+                "terminal_count": 2,
+                "branch_node_count": 0,
+                "maximum_node_degree": 2,
+                "degree_histogram": {
+                  "1": 2,
+                  "2": 3
+                },
+                "length_by_layer_mm": {
+                  "F.Cu": 3.5918,
+                  "In3.Cu": 10.35
+                }
+              }
+            },
+            "via_counts_matched": true,
+            "via_count_delta": 0,
+            "aggregate_length_delta_mm": 1.7318407733465406,
+            "limit_mm": 5.0
+          }
+        },
+        "testpoint_stubs": {
+          "max_stub_length_mm": 3.5,
+          "pair_stub_delta_limit_mm": 1.0,
+          "position_tolerance_mm": 0.01,
+          "pair_stub_delta_mm": 0.8053,
+          "pair_match_pass": true,
+          "points": {
+            "TP6": {
+              "pass": true,
+              "net": "CANH",
+              "layer": "F.Cu",
+              "stub_length_mm": 3.0414,
+              "start": [
+                140.5,
+                85.0
+              ],
+              "end": [
+                141.0,
+                88.0
+              ]
+            },
+            "TP7": {
+              "pass": true,
+              "net": "CANL",
+              "layer": "F.Cu",
+              "stub_length_mm": 2.2361,
+              "start": [
+                150.0,
+                87.0
+              ],
+              "end": [
+                152.0,
+                88.0
+              ]
+            }
+          },
+          "state": "checked",
+          "pass": true
+        }
+      },
+      "note": "Branched CAN totals are not differential length; review coupled runs and connector, TVS, testpoint, and termination stubs manually."
+    },
+    "can_branched_path_correspondence": {
+      "status": "OPEN_LAYOUT_REVIEW_REQUIRED",
+      "machine_verifiable": false,
+      "machine_evidence": {
+        "CANH/CANL": {
+          "graph_shape_compatible": true,
+          "graph_metrics": {
+            "CANH": {
+              "segment_count": 22,
+              "node_count": 23,
+              "connected_component_count": 1,
+              "terminal_count": 3,
+              "branch_node_count": 1,
+              "maximum_node_degree": 3,
+              "degree_histogram": {
+                "1": 3,
+                "2": 19,
+                "3": 1
+              },
+              "length_by_layer_mm": {
+                "F.Cu": 72.3522
+              }
+            },
+            "CANL": {
+              "segment_count": 30,
+              "node_count": 31,
+              "connected_component_count": 1,
+              "terminal_count": 3,
+              "branch_node_count": 1,
+              "maximum_node_degree": 3,
+              "degree_histogram": {
+                "1": 3,
+                "2": 27,
+                "3": 1
+              },
+              "length_by_layer_mm": {
+                "F.Cu": 72.0731
+              }
+            }
+          }
+        },
+        "CANH_RAW/CANL_RAW": {
+          "graph_shape_compatible": true,
+          "graph_metrics": {
+            "CANH_RAW": {
+              "segment_count": 4,
+              "node_count": 5,
+              "connected_component_count": 1,
+              "terminal_count": 2,
+              "branch_node_count": 0,
+              "maximum_node_degree": 2,
+              "degree_histogram": {
+                "1": 2,
+                "2": 3
+              },
+              "length_by_layer_mm": {
+                "F.Cu": 3.375,
+                "In3.Cu": 8.835
+              }
+            },
+            "CANL_RAW": {
+              "segment_count": 4,
+              "node_count": 5,
+              "connected_component_count": 1,
+              "terminal_count": 2,
+              "branch_node_count": 0,
+              "maximum_node_degree": 2,
+              "degree_histogram": {
+                "1": 2,
+                "2": 3
+              },
+              "length_by_layer_mm": {
+                "F.Cu": 3.5918,
+                "In3.Cu": 10.35
+              }
+            }
+          }
+        }
+      },
+      "note": "Branch presence and layer parity do not prove matching endpoint paths; compare each CANH/CANL connector, protection, testpoint, and termination branch manually."
+    },
+    "can_testpoint_stub_geometry": {
+      "status": "MACHINE_CHECKED_SHORT_STUB",
+      "machine_verifiable": true,
+      "note": "TP6/TP7 are constrained to short, same-layer, paired probe branches; differential coupling and probe loading still require oscilloscope review."
+    },
+    "can_reference_plane_continuity": {
+      "status": "OPEN_LAYOUT_REVIEW_REQUIRED",
+      "machine_verifiable": false,
+      "machine_evidence": {
+        "pass": false,
+        "scope": "F.Cu CANH/CANL endpoint bounds against declared In1.Cu GND_CAN_ISO polygons",
+        "reference_polygon_count": 1,
+        "endpoint_count": 54,
+        "covered_endpoint_count": 46,
+        "coverage_percent": 85.185,
+        "uncovered_endpoints_mm": [
+          [
+            140.5,
+            85.0
+          ],
+          [
+            141.0,
+            88.0
+          ],
+          [
+            141.5375,
+            84.0
+          ],
+          [
+            148.0,
+            86.54
+          ],
+          [
+            149.5,
+            85.0
+          ],
+          [
+            150.0,
+            87.0
+          ],
+          [
+            151.0,
+            83.0
+          ],
+          [
+            152.0,
+            88.0
+          ]
+        ],
+        "note": "Polygon-bound coverage does not prove the filled copper shape, clearance voids, or return-current continuity."
+      },
+      "note": "Candidate signal layers do not prove a continuous adjacent GND_CAN_ISO reference plane; review plane coverage and return-path discontinuities manually."
+    },
+    "oscillator_return_path_and_load": {
+      "status": "OPEN_MANUAL_REVIEW_REQUIRED",
+      "machine_verifiable": false,
+      "machine_evidence": {
+        "pair_length_delta_mm": 6.4303,
+        "load_cap_ground_returns": {
+          "pass": true,
+          "state": "checked",
+          "maximum_via_distance_mm": 2.0,
+          "points": {
+            "CY1": {
+              "pass": true,
+              "ground_pad_position_mm": [
+                88.5,
+                101.725
+              ],
+              "nearest_ground_via_distance_mm": 1.625
+            },
+            "CY2": {
+              "pass": true,
+              "ground_pad_position_mm": [
+                92.775,
+                106.5
+              ],
+              "nearest_ground_via_distance_mm": 0.9059
+            }
+          }
+        }
+      },
+      "note": "Top-layer routing and zero vias do not prove crystal load, return-path, or EMI margin."
+    },
+    "high_current_path_semantics_and_thermal": {
+      "status": "OPEN_PI_THERMAL_REVIEW_REQUIRED",
+      "machine_verifiable": false,
+      "machine_evidence": {
+        "VBAT_FUSED": {
+          "state": "bounded_neckdown",
+          "target_width_mm": 2.0,
+          "minimum_width_mm": 0.2,
+          "minimum_width_ratio": 0.1,
+          "neckdown_total_length_mm": 3.3676,
+          "accepted_neckdown_count": 4,
+          "allowed_use": "LTC4368 VIN monitor branch and package escapes"
+        },
+        "FET_COMMON": {
+          "state": "bounded_neckdown",
+          "target_width_mm": 2.0,
+          "minimum_width_mm": 0.651,
+          "minimum_width_ratio": 0.3255,
+          "neckdown_total_length_mm": 8.5079,
+          "accepted_neckdown_count": 11,
+          "allowed_use": "back-to-back MOSFET package escapes"
+        },
+        "INPUT_SENSE": {
+          "state": "bounded_neckdown",
+          "target_width_mm": 2.0,
+          "minimum_width_mm": 0.2,
+          "minimum_width_ratio": 0.1,
+          "neckdown_total_length_mm": 12.9006,
+          "accepted_neckdown_count": 4,
+          "allowed_use": "Kelvin sense branch from RS1 to LTC4368 SENSE"
+        },
+        "VBAT_PROTECTED": {
+          "state": "bounded_neckdown",
+          "target_width_mm": 2.0,
+          "minimum_width_mm": 0.2,
+          "minimum_width_ratio": 0.1,
+          "neckdown_total_length_mm": 6.6516,
+          "accepted_neckdown_count": 3,
+          "allowed_use": "LTC4368 VOUT monitor branch and package escapes"
+        },
+        "GND_PWR": {
+          "state": "bounded_neckdown",
+          "target_width_mm": 2.0,
+          "minimum_width_mm": 0.8014,
+          "minimum_width_ratio": 0.4007,
+          "neckdown_total_length_mm": 1.8678,
+          "accepted_neckdown_count": 3,
+          "allowed_use": "primary controller and divider returns"
+        },
+        "12V_ISO": {
+          "state": "bounded_neckdown",
+          "target_width_mm": 2.5,
+          "minimum_width_mm": 0.250199,
+          "minimum_width_ratio": 0.1001,
+          "neckdown_total_length_mm": 13.62,
+          "accepted_neckdown_count": 13,
+          "allowed_use": "parallel eFuse pins, decoupling, feedback, and control branches"
+        },
+        "JETSON_12V": {
+          "state": "bounded_neckdown",
+          "target_width_mm": 1.5,
+          "minimum_width_mm": 0.250199,
+          "minimum_width_ratio": 0.1668,
+          "neckdown_total_length_mm": 3.453,
+          "accepted_neckdown_count": 4,
+          "allowed_use": "parallel eFuse output pins and PGOOD divider branch"
+        }
+      },
+      "note": "Geometric neckdown limits do not prove that only monitor, feedback, and package-escape current uses the narrow segments; review extracted current paths, IR drop, SOA, and copper temperature."
+    },
+    "reference_layer_signal_occupancy": {
+      "status": "OPEN_STACKUP_RETURN_PATH_REVIEW_REQUIRED",
+      "machine_verifiable": true,
+      "review_threshold_mm": 250.0,
+      "low_speed_route_length_mm": {
+        "In4.Cu": 458.359,
+        "In1.Cu": 490.4706
+      },
+      "note": "Low-speed routing on a reference layer can fragment return-current copper even when net categories pass."
+    },
+    "u3_microvia_fabrication": {
+      "status": "OPEN_SUPPLIER_DFM_REQUIRED",
+      "machine_verifiable": false,
+      "note": "U3 uses 0.45/0.15 mm F.Cu-to-In1.Cu laser microvias in its exposed pad. The supplier must approve copper filling, capping, planarization, registration, and assembly voiding controls."
+    },
+    "raw_can_blind_via_fabrication": {
+      "status": "OPEN_SUPPLIER_DFM_REQUIRED",
+      "machine_verifiable": false,
+      "note": "CANH_RAW and CANL_RAW use matched 0.60/0.30 mm F.Cu-to-In3.Cu blind vias. The supplier must approve controlled-depth drilling, aspect ratio, registration, plating reliability, lamination sequence, and the resulting impedance discontinuity."
+    },
+    "u7_isolated_power_safety_suitability": {
+      "status": "OPEN_SAFETY_AND_VENDOR_REVIEW_REQUIRED",
+      "machine_verifiable": false,
+      "board_pad_edge_clearance_mm": 5.87,
+      "note": "The full-layer board keepout preserves the available U7 pad-row gap, but the MEJ1S0305SC candidate specifies only 2 mm creepage/clearance and 200 Vrms working voltage. It cannot close the 8 mm reinforced system-isolation target without a replacement or documented safety decision."
+    }
+  },
+  "warnings": [
+    "can_differential_impedance",
+    "can_via_discontinuities",
+    "can_pair_coupling_and_stub_geometry",
+    "can_branched_path_correspondence",
+    "can_reference_plane_continuity",
+    "oscillator_return_path_and_load",
+    "high_current_path_semantics_and_thermal",
+    "reference_layer_signal_occupancy",
+    "u3_microvia_fabrication",
+    "raw_can_blind_via_fabrication",
+    "u7_isolated_power_safety_suitability"
+  ],
+  "metrics": {
+    "segment_count": 1070,
+    "via_count": 180,
+    "zone_count": 31,
+    "net_segment_counts": {
+      "12V_ISO": 42,
+      "3V3_LOGIC": 132,
+      "3V3_PGOOD": 2,
+      "5V_CAN_ISO": 19,
+      "BOOT0": 9,
+      "CANH": 22,
+      "CANH_RAW": 4,
+      "CANL": 30,
+      "CANL_RAW": 4,
+      "CAN_RX": 6,
+      "CAN_TERM": 1,
+      "CAN_TX": 5,
+      "ESTOP_12V": 3,
+      "ESTOP_A_MON": 13,
+      "ESTOP_B_MON": 10,
+      "ESTOP_CH_A_RETURN": 11,
+      "ESTOP_CH_B_RETURN": 12,
+      "ESTOP_SENSE": 22,
+      "FET_COMMON": 19,
+      "FET_GATE": 8,
+      "GND": 197,
+      "GND_CAN_ISO": 27,
+      "GND_PWR": 25,
+      "I2C_SCL": 16,
+      "I2C_SCL_MCU": 8,
+      "I2C_SDA": 11,
+      "I2C_SDA_MCU": 8,
+      "INPUT_SENSE": 10,
+      "JETSON_12V": 21,
+      "JETSON_ENABLE_REQ": 4,
+      "JETSON_FAULT_N": 11,
+      "JETSON_PGOOD": 9,
+      "MCU_RESET": 18,
+      "MOTOR_CS0": 8,
+      "MOTOR_CS0_MCU": 4,
+      "MOTOR_CS1": 5,
+      "MOTOR_CS1_MCU": 6,
+      "MOTOR_CS2": 7,
+      "MOTOR_CS2_MCU": 6,
+      "MOTOR_CS3": 5,
+      "MOTOR_CS3_MCU": 10,
+      "MOTOR_CS4": 4,
+      "MOTOR_CS4_MCU": 13,
+      "MOTOR_CS5": 4,
+      "MOTOR_CS5_MCU": 6,
+      "MOTOR_ENABLE_REQ": 7,
+      "MOTOR_ENABLE_SAFE": 2,
+      "OSC_IN": 6,
+      "OSC_OUT": 7,
+      "OV_SET": 7,
+      "RELAY_A_NC": 12,
+      "RELAY_B_NC": 13,
+      "RESET_CH_A_RETURN": 6,
+      "RESET_CH_B_RETURN": 6,
+      "SAFE_STAGE_A": 3,
+      "SENSE_STAGE_A": 1,
+      "SPI_MISO": 8,
+      "SPI_MISO_MCU": 6,
+      "SPI_MOSI": 3,
+      "SPI_MOSI_MCU": 5,
+      "SPI_SCLK": 5,
+      "SPI_SCLK_MCU": 4,
+      "SWCLK": 5,
+      "SWDIO": 4,
+      "U1_GATE": 11,
+      "U1_SHDN": 2,
+      "U3_DVDT": 2,
+      "U3_ILIM": 5,
+      "U3_IMON": 4,
+      "U3_PGTH": 11,
+      "U3_UVLO": 6,
+      "U4_CTRL": 5,
+      "U4_FB": 7,
+      "U4_SS": 5,
+      "U4_VCC": 6,
+      "U8_LED_A_K": 6,
+      "U8_LED_B_K": 4,
+      "UART_RX": 4,
+      "UART_RX_MCU": 6,
+      "UART_TX": 5,
+      "UART_TX_MCU": 6,
+      "UV_SET": 7,
+      "VBAT_FUSED": 22,
+      "VBAT_PROTECTED": 14,
+      "VBAT_RAW": 5
+    },
+    "net_via_counts": {
+      "12V_ISO": 10,
+      "3V3_LOGIC": 9,
+      "5V_CAN_ISO": 1,
+      "BOOT0": 2,
+      "CANH_RAW": 2,
+      "CANL_RAW": 2,
+      "CAN_RX": 2,
+      "CAN_TX": 2,
+      "ESTOP_A_MON": 3,
+      "ESTOP_B_MON": 3,
+      "ESTOP_CH_B_RETURN": 1,
+      "ESTOP_SENSE": 2,
+      "FET_COMMON": 2,
+      "FET_GATE": 2,
+      "GND": 38,
+      "GND_CAN_ISO": 5,
+      "GND_PWR": 1,
+      "I2C_SCL": 2,
+      "I2C_SCL_MCU": 2,
+      "I2C_SDA": 2,
+      "I2C_SDA_MCU": 2,
+      "INPUT_SENSE": 2,
+      "JETSON_12V": 6,
+      "JETSON_ENABLE_REQ": 1,
+      "JETSON_FAULT_N": 2,
+      "JETSON_PGOOD": 2,
+      "MCU_RESET": 3,
+      "MOTOR_CS0": 1,
+      "MOTOR_CS0_MCU": 2,
+      "MOTOR_CS1": 1,
+      "MOTOR_CS1_MCU": 2,
+      "MOTOR_CS2": 1,
+      "MOTOR_CS2_MCU": 2,
+      "MOTOR_CS3": 1,
+      "MOTOR_CS3_MCU": 2,
+      "MOTOR_CS4": 1,
+      "MOTOR_CS4_MCU": 2,
+      "MOTOR_CS5": 1,
+      "MOTOR_CS5_MCU": 2,
+      "MOTOR_ENABLE_REQ": 1,
+      "OV_SET": 2,
+      "RELAY_A_NC": 2,
+      "RELAY_B_NC": 2,
+      "SPI_MISO": 1,
+      "SPI_MISO_MCU": 2,
+      "SPI_MOSI": 1,
+      "SPI_MOSI_MCU": 2,
+      "SPI_SCLK": 1,
+      "SPI_SCLK_MCU": 2,
+      "SWCLK": 1,
+      "SWDIO": 1,
+      "U1_GATE": 2,
+      "U3_ILIM": 2,
+      "U3_PGTH": 2,
+      "U3_UVLO": 2,
+      "U4_CTRL": 2,
+      "U4_SS": 2,
+      "U4_VCC": 2,
+      "U8_LED_A_K": 2,
+      "UART_RX": 1,
+      "UART_RX_MCU": 2,
+      "UART_TX": 1,
+      "UART_TX_MCU": 2,
+      "UV_SET": 2,
+      "VBAT_FUSED": 3,
+      "VBAT_PROTECTED": 5,
+      "VBAT_RAW": 1
+    }
+  }
+}

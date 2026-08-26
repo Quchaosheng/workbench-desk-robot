@@ -155,7 +155,7 @@ class PcbPackageTests(unittest.TestCase):
     def test_board_declares_six_copper_layers_and_real_footprints(self) -> None:
         board = (ROOT / "hardware/pcb/kicad/controller.kicad_pcb").read_text(encoding="utf-8")
         copper_layers = re.findall(r'^\s*\(\d+ "(?:F|B|In\d+)\.Cu" signal\)$', board, flags=re.MULTILINE)
-        self.assertEqual(len(copper_layers), 6)
+        self.assertEqual(len(copper_layers), 8)
         self.assertGreaterEqual(board.count("(footprint "), 29)
         self.assertGreaterEqual(board.count("(segment"), 168)
         self.assertGreaterEqual(board.count("(via"), 8)
@@ -180,11 +180,11 @@ class PcbPackageTests(unittest.TestCase):
         module = load_module("release_readiness", ROOT / "hardware/pcb/tools/release_readiness.py")
         report = module.audit()
         self.assertTrue(report["engineering_package_pass"])
-        self.assertEqual(report["status"], "ORDER_RELEASE_BLOCKED")
-        self.assertFalse(report["order_release_checks"]["detailed_schematic_has_symbols"])
+        self.assertEqual(report["status"], "PRODUCTION_RELEASE_BLOCKED")
+        self.assertTrue(report["order_release_checks"]["detailed_schematic_has_symbols"])
         self.assertFalse(report["order_release_checks"]["safety_analysis_approved"])
         self.assertTrue(report["engineering_checks"]["approval_register_covers_all_pending_bom_lines"])
-        self.assertEqual(len(report["procurement_hold_references"]), 15)
+        self.assertEqual(len(report["procurement_hold_references"]), 68)
         self.assertTrue(report["engineering_checks"]["safety_truth_table_covers_channel_discrepancy"])
         with (ROOT / "hardware/pcb/connector-pinout.csv").open(newline="", encoding="utf-8") as handle:
             rows = list(csv.DictReader(handle))
@@ -196,14 +196,23 @@ class PcbPackageTests(unittest.TestCase):
         self.assertEqual(len([row for row in rows if row["reference"] == "J6"]), 4)
         with (ROOT / "hardware/pcb/component-selection-matrix.csv").open(newline="", encoding="utf-8") as handle:
             components = list(csv.DictReader(handle))
-        self.assertEqual({row["reference"] for row in components}, {"U1", "U2", "U3", "U4", "U5", "U6", "U7", "U8"})
+        self.assertEqual(
+            {row["reference"] for row in components},
+            {"D2", "F2", "K1 K2", "L1", "Q1 Q2", "RS1", "U1", "U2", "U3", "U4", "U5", "U6", "U7", "U8"},
+        )
         connectivity = json.loads(
             (ROOT / "hardware/pcb/generated/connectivity_report.json").read_text(encoding="utf-8")
         )
         self.assertTrue(connectivity["pass"])
-        self.assertEqual(connectivity["checked_pin_count"], 58)
+        self.assertEqual(connectivity["checked_pin_count"], 458)
         board = (ROOT / "hardware/pcb/kicad/controller.kicad_pcb").read_text(encoding="utf-8")
         self.assertTrue(all(f"TP{index}" in board for index in range(1, 9)))
+
+    def test_wiring_keeps_current_j11_separate_from_future_dual_channel_safety(self) -> None:
+        wiring = (ROOT / "docs/hardware/wiring.md").read_text(encoding="utf-8")
+        self.assertIn("J11 single-channel diagnostic output only", wiring)
+        self.assertIn("Future safety ECO: Dual-channel E-stop -> J10 -> K1/K2 -> H09 -> childboard J_SAFE", wiring)
+        self.assertNotIn("K1/K2 safety chain -> J11", wiring)
 
     def test_official_sources_and_interface_freeze_states_are_explicit(self) -> None:
         baseline = json.loads((ROOT / "hardware/pcb/source-baseline.json").read_text(encoding="utf-8"))
@@ -409,7 +418,7 @@ class ReleaseReadinessTests(unittest.TestCase):
         module = load_module("release_readiness_checks", ROOT / "hardware/release/tools/check_release_readiness.py")
         report = module.validate()
         self.assertTrue(report["pass"])
-        self.assertEqual(report["status"], "RELEASE_BLOCKED")
+        self.assertEqual(report["status"], "PRODUCTION_RELEASE_BLOCKED")
         self.assertGreaterEqual(report["blocker_count"], 10)
         self.assertIn("REL-004", report["blockers"])
         self.assertIn("REL-014", report["blockers"])

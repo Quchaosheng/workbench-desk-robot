@@ -17,6 +17,7 @@ dev = [
   "pytest-benchmark>=4,<6",
   "ruff==0.16.4",
   "pre-commit>=3,<5",
+  "kiutils>=1.4,<2",
 ]
 docs = [
   "mkdocs>=1.6,<2",

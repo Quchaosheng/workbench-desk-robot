@@ -1,0 +1,48 @@
+{
+  "maturity": "REVIEW_SOURCES_NOT_APPROVAL_EVIDENCE",
+  "sources": [
+    {
+      "id": "SRC-TI-DRV8962-DS",
+      "kind": "official_datasheet",
+      "url": "https://www.ti.com/lit/ds/symlink/drv8962.pdf",
+      "document_revision": "SLVSFV6B, October 2023",
+      "claim": "DRV8962 supports 4.5 V to 65 V operation; DDV is a 44-pin top-exposed-pad package rated up to 10 A per output under datasheet conditions.",
+      "freeze_status": "CANDIDATE_SOURCE_ONLY",
+      "owner": "Electrical Owner"
+    },
+    {
+      "id": "SRC-LOCAL-J2",
+      "kind": "controlled_repository_artifact",
+      "path": "hardware/pcb/interface-control.md",
+      "claim": "Controller J2 is a 12 V motor auxiliary interface with a 120 W aggregate maximum.",
+      "freeze_status": "MOTION_OWNER_CONFIRMATION_REQUIRED",
+      "owner": "Motion Owner"
+    },
+    {
+      "id": "SRC-LOCAL-J11",
+      "kind": "controlled_repository_artifact",
+      "path": "hardware/pcb/connector-pinout.csv",
+      "claim": "Controller J11 exposes one MOTOR_ENABLE_SAFE output, ESTOP_SENSE, GND and 3V3_LOGIC; it does not expose two independent safety enables.",
+      "freeze_status": "SAFETY_ECO_REQUIRED",
+      "owner": "Safety Owner"
+    },
+    {
+      "id": "SRC-POLOLU-4753-PRODUCT",
+      "kind": "official_product_page",
+      "url": "https://www.pololu.com/product/4753",
+      "document_revision": "accessed 2026-08-21",
+      "claim": "Pololu item 4753 is a 12 V 50:1 metal gearmotor with a 64 CPR encoder; product-page ratings and availability are candidate evidence only.",
+      "freeze_status": "CANDIDATE_SOURCE_ONLY",
+      "owner": "Motion Owner"
+    },
+    {
+      "id": "SRC-POLOLU-37D-DATASHEET",
+      "kind": "official_datasheet",
+      "url": "https://www.pololu.com/file/0J1736/pololu-37d-metal-gearmotors-rev-1-2.pdf",
+      "document_revision": "Rev 1.2",
+      "claim": "The 37D family datasheet provides the candidate mechanical, no-load and stall figures used for an analytical current comparison; supplier and incoming-test confirmation remain required.",
+      "freeze_status": "CANDIDATE_SOURCE_ONLY",
+      "owner": "Motion Owner"
+    }
+  ]
+}

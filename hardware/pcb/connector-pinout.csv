@@ -18,7 +18,7 @@ J4,4,GND,power_return,logic,FROZEN_FOR_EVT,continuity
 J4,5,SPI_SCLK,output_from_mcu,logic,PINMUX_CONFIRMATION_REQUIRED,logic_analyser
 J4,6,SPI_MOSI,output_from_mcu,logic,PINMUX_CONFIRMATION_REQUIRED,logic_analyser
 J4,7,SPI_MISO,input_to_mcu,logic,PINMUX_CONFIRMATION_REQUIRED,logic_analyser
-J4,8,MOTOR_ENABLE_REQ,input_to_safety_gate,logic,SAFETY_OWNER_APPROVAL,gate_truth_table
+J4,8,JETSON_ENABLE_REQ,input_to_mcu,logic,PINMUX_CONFIRMATION_REQUIRED,logic_analyser
 J4,9,MOTOR_CS0,output_from_mcu,logic,PINMUX_CONFIRMATION_REQUIRED,logic_analyser
 J4,10,MOTOR_CS1,output_from_mcu,logic,PINMUX_CONFIRMATION_REQUIRED,logic_analyser
 J4,11,MOTOR_CS2,output_from_mcu,logic,PINMUX_CONFIRMATION_REQUIRED,logic_analyser
@@ -39,10 +39,14 @@ J6,1,CANH,bidirectional,CAN_ISO,FROZEN_FOR_EVT,CAN_error_counter
 J6,2,CANL,bidirectional,CAN_ISO,FROZEN_FOR_EVT,CAN_error_counter
 J6,3,GND_CAN_ISO,power_return,CAN_ISO,FROZEN_FOR_EVT,continuity
 J6,4,NC,reserved,CAN_ISO,FROZEN_FOR_EVT,visual_inspection
-J10,1,ESTOP_CH_A_OUT,power_out,safety,SAFETY_OWNER_APPROVAL,channel_open_short
+J10,1,ESTOP_12V,power_out,safety,SAFETY_OWNER_APPROVAL,channel_open_short
 J10,2,ESTOP_CH_A_RETURN,input_to_safety_gate,safety,SAFETY_OWNER_APPROVAL,channel_open_short
-J10,3,ESTOP_CH_B_OUT,power_out,safety,SAFETY_OWNER_APPROVAL,channel_open_short
+J10,3,ESTOP_12V,power_out,safety,SAFETY_OWNER_APPROVAL,channel_open_short
 J10,4,ESTOP_CH_B_RETURN,input_to_safety_gate,safety,SAFETY_OWNER_APPROVAL,channel_open_short
+J12,1,ESTOP_CH_A_RETURN,power_in,safety,SAFETY_OWNER_APPROVAL,manual_reset_sequence
+J12,2,RESET_CH_A_RETURN,input_to_relay_coil,safety,SAFETY_OWNER_APPROVAL,manual_reset_sequence
+J12,3,ESTOP_CH_B_RETURN,power_in,safety,SAFETY_OWNER_APPROVAL,manual_reset_sequence
+J12,4,RESET_CH_B_RETURN,input_to_relay_coil,safety,SAFETY_OWNER_APPROVAL,manual_reset_sequence
 J11,1,MOTOR_ENABLE_SAFE,output_from_safety_gate,safety,SAFETY_OWNER_APPROVAL,disable_time
 J11,2,ESTOP_SENSE,output_from_safety_gate,logic,SAFETY_OWNER_APPROVAL,truth_table
 J11,3,GND,power_return,logic,SAFETY_OWNER_APPROVAL,continuity

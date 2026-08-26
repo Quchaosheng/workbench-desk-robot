@@ -1,28 +1,44 @@
 {
   "issue": "130",
   "human_owner": "Quchaosheng",
-  "objective": "Make all fifteen PCB component approvals explicit and prevent schematic/order release without signed evidence.",
+  "objective": "Complete the reproducible eight-layer detailed PCB layout and keep procurement and order release blocked until signed and physical evidence exists.",
   "allowed_paths": [
     "hardware/pcb/**",
+    "hardware/procurement/bom.csv",
     "tests/hardware/**",
     "docs/task_packets/pcb-detailed-design-readiness.json"
   ],
-  "read_only_paths": ["interfaces/**", "hardware/procurement/**"],
+  "read_only_paths": ["interfaces/**", "hardware/procurement/generated/**"],
   "forbidden": ["robot/control/**", "firmware/**", "interfaces/**"],
   "acceptance": [
-    "all fifteen pending BOM references have an approval owner and evidence slots",
+    "all procurement-controlled grouped BOM lines have an approval owner and evidence slots",
     "release remains blocked until every row has an approved MPN, approver, date, and evidence reference",
-    "the architecture-only schematic cannot be reported as detailed",
+    "detailed-schematic status requires component symbols and wired connectivity rather than architecture text alone",
+    "the canonical eight-layer PCB is reproducible from the generator and checked routing session",
+    "KiCad DRC and ERC report zero violations and the connectivity and layout audits pass",
+    "oscillator load capacitors have explicit local ground returns and the protected Jetson output and exposed pad have documented current and thermal transfer geometry",
+    "CAN routing uses paired same-layer paths with matched topology while supplier field solving and impedance-coupon evidence remain open",
     "no physical bring-up or safety approval is inferred"
   ],
   "commands": [
-    "python3 hardware/pcb/tools/release_readiness.py",
-    "python3 -m pytest tests/hardware -k pcb -v"
+    "<kicad>/bin/python hardware/pcb/tools/generate_kicad_board.py --session hardware/pcb/kicad/controller.ses",
+    "python hardware/pcb/tools/audit_connectivity.py",
+    "python hardware/pcb/tools/layout_audit.py",
+    "python hardware/pcb/tools/release_readiness.py",
+    "python -m pytest tests/hardware -v"
   ],
-  "evidence": ["hardware/pcb/generated/release_readiness.json", "PCB package test output"],
+  "evidence": [
+    "hardware/pcb/generated/drc.rpt",
+    "hardware/pcb/generated/erc.rpt",
+    "hardware/pcb/generated/connectivity_report.json",
+    "hardware/pcb/generated/layout_report.json",
+    "hardware/pcb/generated/release_readiness.json",
+    "PCB package test output"
+  ],
   "stop_conditions": [
     "an approver, approved orderable MPN, or datasheet revision is missing",
     "KiCad bundled Python is unavailable",
+    "a generated candidate has any DRC violation, unconnected pad, connectivity mismatch, or failed layout hard gate",
     "physical prototype measurements or safety certification are required"
   ]
 }

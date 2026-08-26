@@ -17,9 +17,28 @@ TEST_RESTART_DELAY="/sys/module/wbcan/parameters/test_restart_delay_ms"
 TEST_STOP_DELAY="/sys/module/wbcan/parameters/test_stop_delay_ms"
 PASS=0
 FAIL=0
+REPORT_FILE="${WBCAN_TEST_REPORT:-}"
 
 red()   { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
+
+if [ -n "$REPORT_FILE" ]; then
+	printf 'result\ttest_id\tname\texpected\tactual\n' > "$REPORT_FILE" || {
+		red "cannot create test report at $REPORT_FILE"
+		exit 1
+	}
+fi
+
+report_check() {
+	local result="$1" name="$2" want="$3" got="$4" slug
+	[ -n "$REPORT_FILE" ] || return 0
+	slug=$(printf '%s' "$name" | tr '[:upper:] ' '[:lower:]_' | tr -cd '[:alnum:]_-')
+	printf '%s\twbcan-%s\t%s\t%s\t%s\n' \
+		"$result" "$slug" "$name" "$want" "$got" >> "$REPORT_FILE" || {
+		red "cannot append to test report at $REPORT_FILE"
+		exit 1
+	}
+}
 
 need() {
 	command -v "$1" >/dev/null 2>&1 || {
@@ -140,9 +159,11 @@ check() {
 	if [ "$want" = "$got" ]; then
 		green "PASS  $name"
 		PASS=$((PASS + 1))
+		report_check PASS "$name" "$want" "$got"
 	else
 		red   "FAIL  $name: want '$want' got '$got'"
 		FAIL=$((FAIL + 1))
+		report_check FAIL "$name" "$want" "$got"
 	fi
 }
 

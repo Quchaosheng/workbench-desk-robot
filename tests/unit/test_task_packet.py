@@ -154,7 +154,8 @@ def test_path_validation_allows_future_paths_but_rejects_changed_links(
     monkeypatch.setattr(task_packet, "ROOT", tmp_path)
     assert task_packet._normalize_repo_path("new/path/**", field="allowed_paths") == "new/path/**"
     link = tmp_path / "new"
-    link.symlink_to(tmp_path / "outside")
+    link.mkdir()
+    monkeypatch.setattr(task_packet, "_is_link", lambda path: path == link)
     with pytest.raises(task_packet.TaskPacketError, match="symbolic links"):
         task_packet._validate_write_boundary({"new"}, [{"allowed_paths": ["new/**"]}])
 

@@ -101,6 +101,18 @@ def test_append_rejects_duplicate_identity_and_mixed_run_before_writing(tmp_path
     assert log.read_bytes() == before
 
 
+def test_append_reloads_jsonl_after_external_change(tmp_path: Path) -> None:
+    log = tmp_path / "events.jsonl"
+    store = EventStore(log)
+    store.append(event(0))
+    with log.open("a", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(event(1), separators=(",", ":")) + "\n")
+
+    store.append(event(2))
+
+    assert store.replay() == [event(0), event(1), event(2)]
+
+
 def test_integrity_checks_contract_and_strict_json(tmp_path: Path) -> None:
     log = tmp_path / "events.jsonl"
     store = EventStore(log)

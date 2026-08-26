@@ -105,7 +105,7 @@ def benchmark(iterations: int) -> dict:
     snapshot_json = json.dumps(snapshot.as_dict(), separators=(",", ":"), allow_nan=False).encode()
     prometheus = collector.metrics.export_prometheus().encode()
     max_rss = None
-    if resource is not None:
+    if resource is not None and hasattr(resource, "getrusage") and hasattr(resource, "RUSAGE_SELF"):
         max_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         if platform.system() == "Linux":
             max_rss *= 1_024

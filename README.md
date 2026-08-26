@@ -95,18 +95,54 @@ fail-closed simulation controls.
 grasp/place adapter, Gazebo-backed task results, and physical hardware evidence.
 Committed fixtures are pipeline tests, not robot or Gazebo evidence.
 
-The same manifest and seed produce the same materialized scene hash. That does
-not imply deterministic Gazebo physics, sensor noise, process timing, or event ordering.
+The reproducibility guarantees are deliberately separate:
+
+1. The same frozen manifest and seed produce the same materialized scene hash.
+2. The same valid, ordered event log reduces to the same replay state.
+3. The scripted fixture generator emits the same ordered events only when its
+   complete input, including versions and configuration, is identical.
+
+A seed alone does not determine event order. None of these guarantees implies
+deterministic Gazebo physics, sensor noise, process timing, or physical behavior.
+
+## Validation and Platform Support
+
+The portable Python runtime is tested on Python 3.12. Native Windows support
+covers contracts, event processing, the read-only backend, monitoring, task
+packet validation, and deterministic fixture workflows. Linux-only features
+remain explicitly separate:
+
+| Boundary | Supported evidence | Not implied |
+| --- | --- | --- |
+| Python runtime | Unit and integration tests on Linux and Windows | Gazebo, ROS 2, or robot motion |
+| Containers | Runtime and devcontainer share one immutable Ubuntu digest | Reproducibility on an unpinned base image |
+| Dashboard backend | Bounded read-only HTTP API; write methods return `405` | Authentication for public deployment or any control authority |
+| `wbcan` | Linux kernel build, virtual SocketCAN fault tests, race-safe counters | Physical CAN timing, MCU behavior, or actuator safety |
+| Scripted scenarios | Deterministic fixture artifacts with checksums | Physical or Gazebo execution |
+
+The complete portable check is `python -m pytest`. Linux CI additionally owns
+container, MCU-QEMU, and privileged kernel-module gates. A merge is not treated
+as validated when any required job fails or is skipped.
 
 ## Quickstart
 
-Ubuntu 24.04 or WSL2, Python 3.12, no GPU required.
+Ubuntu 24.04, WSL2, or Windows 11 with Python 3.12; no GPU is required for the
+portable runtime. Kernel-module, ROS 2, and container checks require Linux.
 
 ```bash
 git clone https://github.com/Quchaosheng/workbench-desk-robot.git
 cd workbench-desk-robot
 make bootstrap
 make demo-scripted
+```
+
+On native Windows, install the editable development package and run the
+portable checks directly:
+
+```powershell
+py -3.12 -m pip install -e ".[dev]"
+py -3.12 -m pytest
+py -3.12 tools/scripts/demo_scripted.py
 ```
 
 Useful commands:

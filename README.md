@@ -1,248 +1,200 @@
 # Workbench Desk Robot
 
-A tabletop robot that verifies task completion instead of assuming it.
+> **Verify before you say done.**
+>
+> Workbench Home Robot is an evidence-first foundation for mobile domestic
+> manipulators:
+> bounded actions, replayable event logs, and a verifier that can say
+> **confirmed**, **refuted**, or **insufficient evidence** instead of guessing.
 
-[English](README.md) | [简体中文](README.zh-CN.md)
+![Workbench Home Robot premium product concept](docs/assets/workbench-home-robot-premium.png)
 
----
+[Explore the interactive 3D product view](docs/assets/premium-product-render.html)
 
-## Core Contributions (Kernel Engineering)
+The hero shows the bimanual parcel-assist pose; cleaning and supervised induction tools
+are separate quick-change concepts, not simultaneous performance claims.
 
-This project combines systems integration, runtime architecture, and task verification. The kernel engineering work includes:
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](pyproject.toml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-2ea44f)](LICENSE)
+[![Status](https://img.shields.io/badge/status-software%20foundation-f0c36b)](#honest-status)
 
-**Event Store & Replay**
-- Append-only event log with deterministic replay from any checkpoint
-- Schema-versioned events validated against explicit contracts
-- State reconstruction from event stream without external snapshot dependency
+[简体中文](README.zh-CN.md)
 
-**Contract-Driven Architecture** 
-- 11 JSON schemas defining all module boundaries (`interfaces/json_schema/`)
-- Fail-closed validation: off-contract requests rejected at ingress, not execution
-- Matching Pydantic models and contract checks guard producers and consumers against drift
+The project is built around one practical question: **did the robot actually
+complete the task, and can we prove it?**
 
-**Evidence-First Verification**
-- Three-valued logic (confirmed / refuted / insufficient_evidence) replaces boolean success
-- Verification carries structured evidence references, not just pass/fail flags
-- Same seed → same scene → same event sequence → deterministic evaluation
+The current mechanical baseline is **Revision D**: a 540 x 520 mm stabilized
+mobile base, 350 mm braked liftable torso, two seven-axis arms, 18 L parcel bay,
+and locked quick-change tools. Bimanual parcel handling, cleaning, and induction-cooking assistance
+are target capabilities under physical validation; the visual is not a claim of
+an assembled or certified product.
 
-**System Reliability**
-- Split-host controller/simulation with readiness probes and peer availability checks
-- Structured logging, health endpoints, SBOM workflow, and hash-bound hardware evidence
-- Reproducible startup P50/P95 metrics, CPU/RAM profiling, and container smoke tests
+## Why It Matters
 
-**Hardware-Facing Foundations**
-- A Linux `wbcan` SocketCAN kernel module with build, checkpatch, and privileged fault-test paths
-- A platform-separated RISC-V safety-MCU scaffold for host, QEMU, and CH32V307 HALs
-- Fail-closed hardware release gates covering procurement, manufacturing, QA, compliance, and field validation
+Most robot demos treat a successful command as a successful task. That is how a
+robot can report “placed” while the part is still on the floor.
 
-**What's NOT included:** Gazebo world, MoveIt grasp/place, real camera (OpenCV + AprilTag), and Gazebo-backed evaluation results are pending. Committed fixtures are scripted pipeline tests, not hardware evidence.
+Workbench separates the layers that are usually blurred together:
 
-**Role Boundary:** Model routes to bounded semantic actions; joint control, velocities, and emergency stop remain in trusted code outside model reach.
+1. **Intent** — the model chooses from bounded semantic actions.
+2. **Execution** — trusted runtime code dispatches and records what happened.
+3. **Verification** — evidence is evaluated after the action, with no silent success.
+4. **Replay** — the complete event trail can be inspected and reconstructed.
 
----
+## What You Can Try Today
 
-## Problem
+The repository currently ships a deterministic, offline tabletop runtime. It
+covers placement, three-part kitting, inspection, obstacle-clearance recovery,
+and evidence-first parcel intake.
 
-Tell a robot to put a block in a tray. It moves, reports success, and the block is on the floor.
+```bash
+python tools/scripts/sim_cli.py doctor
+python tools/scripts/sim_cli.py list
+python tools/scripts/sim_cli.py run normal-001 --runner scripted --output-dir runs/demo
+python tools/scripts/demo_scripted.py
+```
 
-The function returned OK, so the robot thinks it succeeded. But the task failed.
+The scripted runner creates an inspectable artifact containing the source
+manifest, materialized scene, event log, stdout/stderr, metadata, and checksums.
+It is deliberately labelled `SCRIPTED_FIXTURE` and `release_eligible: false`.
 
-Most demos can't tell these apart. This one tries to.
+## Core Contributions
 
----
+**Evidence-first verification**
 
-## What it does
+- Three-valued task status: `confirmed`, `refuted`, `insufficient_evidence`
+- Structured evidence references instead of a bare pass/fail bit
+- Post-action checks that retain failed attempts and recovery history
 
-The current runnable path is a deterministic, scripted tabletop runtime. The red-block task remains a frozen regression baseline; the v0.2 benchmark also covers three-part kitting, multi-workpiece inspection, obstacle-clearance recovery, and evidence-first parcel intake. You give it a bounded goal in plain text, it:
+**Contract-driven runtime**
 
-- Looks at every required entity in the scene
-- Routes the goal to a bounded semantic plan (`observe`, `grasp`, `place`)
-- Executes semantic actions through the scripted runtime (MoveIt integration is pending)
-- **Checks afterwards**: are all required goal conditions satisfied, with no extra kit parts?
-- If unsure (camera lost track, low confidence, stale evidence), says "I can't confirm" instead of guessing
-- Re-observes and retries recoverable failures while retaining the failed attempt in replay
+- 11 JSON schemas define module boundaries
+- Strict ingress validation and matching Pydantic models
+- Append-only event store with deterministic replay from checkpoints
 
-The model picks a goal, but cannot send joint positions or velocities. That boundary is enforced by code, not prompts.
+**Bounded agent behavior**
 
----
+- Model routes only to semantic actions such as `observe`, `grasp`, `place`,
+  `ask_confirm`, `express`, and `stop`
+- Joint positions, velocities, and emergency stop remain outside model reach
+- Dangerous or mixed-boundary goals fail closed
 
-## Current state
+**Operator visibility**
 
-**Works today:**
-- Contract definitions (11 JSON schemas)
-- Event store with replay
-- Template planner for five task families (no model needed)
-- Task-specific verification for placement, exact kit contents, inspection confidence, workspace clearance, and manifest-reconciled parcel routing
-- Read-only multi-entity dashboard with ordered replay, recovery history and evidence inspection
-- Offline container, health endpoints, structured logs and release/SBOM workflow
-- A localhost-only Ollama runner: the model routes to five bounded families, while trusted code emits semantic actions
-- Reproducible startup, stage P50/P95, CPU/RAM and hash-bound hardware evidence tooling
-- Split-host controller/simulation Compose topology with readiness failure when the peer is unavailable
-- Linux `wbcan` SocketCAN kernel module sources and CI build/checkpatch coverage; runtime fault tests require a privileged Linux host
-- RISC-V safety-MCU host/QEMU/board HAL scaffold with CI checks that preserve an explicit incomplete status
-- Auditable hardware engineering packages and a fail-closed release report; the current report remains `RELEASE_BLOCKED` pending external evidence
-- MkDocs operator manual covering installation, daily operation, maintenance, troubleshooting, and the 90-minute demo
-- 12 frozen v0.1 baselines plus 24 expanded v0.2 scenarios with deterministic seed checks
-- 50 golden task requests across five families plus 26 dangerous requests that must fail closed
-- CI running lint, contracts, evaluation fixtures, offline demo and container smoke checks
+- Read-only dashboard for task status, evidence, recovery, and replay
+- `doctor`, `list`, and `run` simulation controls with explicit execution states
+- Atomic run artifacts with raw logs, metadata, and SHA-256 checksums
 
-**Not built yet:**
-- Gazebo world
-- MoveIt grasp/place
-- Real camera (OpenCV + AprilTag)
-- Gazebo-backed evaluation results (the committed runs are explicit scripted fixtures)
-- Physical build, supplier quotes, laboratory certification, and field-validation evidence
+## Honest Status
 
-Real camera, Gazebo and hardware evidence still require external equipment; repository fixtures are never promoted as hardware evidence.
+**Works today:** deterministic Python runtime, five task families, replayable
+event logs, read-only dashboard, local model routing, scenario validation, and
+fail-closed simulation controls.
 
----
+**Not built yet:** a complete Gazebo world, real camera bridge, MoveIt
+grasp/place adapter, Gazebo-backed task results, and physical hardware evidence.
+Committed fixtures are pipeline tests, not robot or Gazebo evidence.
 
-## Try it
+The reproducibility guarantees are deliberately separate:
 
-Ubuntu 24.04 or WSL2, Python 3.12, no GPU required.
+1. The same frozen manifest and seed produce the same materialized scene hash.
+2. The same valid, ordered event log reduces to the same replay state.
+3. The scripted fixture generator emits the same ordered events only when its
+   complete input, including versions and configuration, is identical.
+
+A seed alone does not determine event order. None of these guarantees implies
+deterministic Gazebo physics, sensor noise, process timing, or physical behavior.
+
+## Validation and Platform Support
+
+The portable Python runtime is tested on Python 3.12. Native Windows support
+covers contracts, event processing, the read-only backend, monitoring, task
+packet validation, and deterministic fixture workflows. Linux-only features
+remain explicitly separate:
+
+| Boundary | Supported evidence | Not implied |
+| --- | --- | --- |
+| Python runtime | Unit and integration tests on Linux and Windows | Gazebo, ROS 2, or robot motion |
+| Containers | Runtime and devcontainer share one immutable Ubuntu digest | Reproducibility on an unpinned base image |
+| Dashboard backend | Bounded read-only HTTP API; write methods return `405` | Authentication for public deployment or any control authority |
+| `wbcan` | Linux kernel build, virtual SocketCAN fault tests, race-safe counters | Physical CAN timing, MCU behavior, or actuator safety |
+| Scripted scenarios | Deterministic fixture artifacts with checksums | Physical or Gazebo execution |
+
+The complete portable check is `python -m pytest`. Linux CI additionally owns
+container, MCU-QEMU, and privileged kernel-module gates. A merge is not treated
+as validated when any required job fails or is skipped.
+
+## Quickstart
+
+Ubuntu 24.04, WSL2, or Windows 11 with Python 3.12; no GPU is required for the
+portable runtime. Kernel-module, ROS 2, and container checks require Linux.
 
 ```bash
 git clone https://github.com/Quchaosheng/workbench-desk-robot.git
 cd workbench-desk-robot
 make bootstrap
 make demo-scripted
-make performance-test
 ```
 
-`demo-scripted` runs the full chain (observe -> plan -> verify -> replay) in pure Python, with no simulator. It is the fastest feedback loop.
+On native Windows, install the editable development package and run the
+portable checks directly:
 
-Other commands:
+```powershell
+py -3.12 -m pip install -e ".[dev]"
+py -3.12 -m pytest
+py -3.12 tools/scripts/demo_scripted.py
+```
+
+Useful commands:
 
 ```bash
-make test             # unit + contract tests
-make lint             # ruff check
-make check            # core Python checks and offline demos
-make docs             # strict MkDocs build
+make test             # unit and integration tests
+make lint             # Ruff checks
+make scenario-check   # manifest validation and deterministic scene checks
+make sim-doctor       # diagnose simulator dependencies
+make sim-list         # list scenarios and scene hashes
+make sim              # configured Gazebo runner; missing Gazebo is NOT_EXECUTED
+make dashboard        # read-only local dashboard
 ```
 
-Once Gazebo integration lands:
+For an offline fixture, run:
 
 ```bash
-make sim              # start world + arm + camera
-make demo             # full run, fixed script
+python tools/scripts/sim_cli.py run normal-001 --runner scripted --output-dir runs/demo
 ```
 
-Task dashboard, no network or GPU required:
+For a configured external runner, provide tokenized argv through
+`WORKBENCH_GAZEBO_COMMAND` or `--command`. The runner uses each manifest's
+timeout, captures bounded stdout/stderr, terminates the process tree on timeout,
+and validates the resulting event log before publishing the artifact.
 
-```bash
-make dashboard
-# open http://127.0.0.1:8080
+## Architecture Boundary
+
+```text
+goal -> bounded planner -> semantic action -> trusted executor
+                                      \-> event store -> verifier -> replay/dashboard
 ```
 
-Container path:
-
-```bash
-docker compose up --build
-curl http://127.0.0.1:8080/healthz
-```
-
-Provision the optional local model once; runtime traffic stays on an internal Docker network:
-
-```bash
-docker compose --profile model-bootstrap run --rm model-bootstrap
-docker compose --profile model up -d
-docker compose run --rm dashboard python tools/scripts/local_runner.py \
-  --provider ollama --endpoint http://model:11434 --allow-host model \
-  --goal "Handle the parcels already in the intake area"
-```
-
-See [`docs/performance/README.md`](docs/performance/README.md) and
-[`docs/deployment/multi-host.md`](docs/deployment/multi-host.md) for evidence and split-host deployment.
-Operator and maintainer procedures start at [`docs/user-guide/index.md`](docs/user-guide/index.md).
-Hardware release status is generated by:
-
-```bash
-python hardware/release/tools/check_release_readiness.py
-```
-
-A successful report validation means that repository evidence is internally consistent. It does not clear the external blockers or release physical hardware.
-
-The dashboard API is read-only. Every HTTP write method returns `405`; this service contains no ROS, motion, MCU or emergency-stop publisher.
-
----
-
-## Three things that matter
-
-**1. Action result splits "sent" from "confirmed"**
-
-Most code treats a successful write as a successful action. Here they're separate:
-
-```python
-ActionResult(
-    dispatch_state="sent",  # frame left the host
-    device_state="unconfirmed",  # device hasn't replied
-    outcome="timeout",
-)
-```
-
-**2. Verification is three-valued, not boolean**
-
-```python
-status = "confirmed"  # goal met, here's the evidence
-status = "refuted"  # goal definitely not met
-status = "insufficient_evidence"  # can't tell, here's what's missing
-```
-
-A boolean forces the system to guess when it doesn't know. Three states let it say "I don't know."
-
-**3. The model never controls motors**
-
-It picks from six actions: `observe`, `grasp`, `place`, `ask_confirm`, `express`, `stop`. 
-
-Joint angles, velocities, emergency stop are outside its reach. If it returns something off-list, the request fails closed.
-
----
+The dashboard API is read-only. HTTP write methods return `405`; this service
+does not publish ROS, motion, MCU, or emergency-stop commands.
 
 ## Roadmap
 
-v0.1 frozen regression → v0.2 five task families (scripted) → v0.3 hardware. Model boundary and evidence requirements won't change.
+- **v0.1** — frozen regression baseline and evidence contracts
+- **v0.2** — five scripted task families and recovery paths
+- **Next** — real Gazebo world, perception bridge, semantic motion adapter,
+  and simulation fault injectors
+- **Later** — hardware validation without changing the evidence boundary
 
----
+## Documentation
 
-## Metrics
-
-Key targets for v0.1. Safety metrics marked **0** are release blockers.
-
-| Category | Metric | Target |
-|---|---|---|
-| **Safety** | False completion (reported done, wasn't) | **0** |
-| | Collisions / joint limit violations | **0** |
-| | Model emitting raw joint control | **0** |
-| **Task** | Verified task completion rate | >= 80% |
-| | Recovery after first failure | >= 70% |
-| **Evidence** | Verification carries evidence refs | 100% |
-| | Same seed -> same scene config | 100% |
-| **System** | Clone -> running demo, no model | < 90s |
-| | GPU required | no |
-
----
-
-## What this proves and doesn't prove
-
-Simulation only. Software contracts and Gazebo behavior don't prove CAN electrical, actuator dynamics, or sensor noise. Scripted fixtures exercise event logic, not Gazebo performance.
-
-**Software safe-stop is not a hardware emergency stop.** Gazebo numbers don't transfer to real grippers without re-validation.
-
-Scripted evaluation fixtures also do not prove Gazebo performance. They exercise event ordering, evidence coverage, replay and reporting, and are marked `release_eligible: false`. See [documented fixture failures](docs/evaluation/failure-cases.md) and the [container runbook](docs/deployment/container.md).
-
-Parcel handling is intentionally limited to parcels already on the tabletop intake area. It scans the complete batch before manipulation, routes only verified intact parcels to the pickup shelf, and isolates condition exceptions before label-only exceptions. Capacity preflight rejects a batch before any manipulation if the pickup or quarantine destination cannot hold it. The current arm has no mobile base, elevator, or parcel-locker access; those requests fail closed instead of being simulated as completed.
-
----
-
-## Contributing
-
-Start with `AGENTS.md` (working rules) and the schema for your boundary (`interfaces/json_schema/`). Full workflow in `CONTRIBUTING.md`, architecture in `docs/architecture/system.md`.
-
-Core rules: `interfaces/` defines module boundaries. Planner emits semantic actions, never joint positions. Success claims need events and reproducible evidence.
-
----
+- [User guide](docs/user-guide/index.md)
+- [System architecture](docs/architecture/system.md)
+- [Simulation boundary](sim/README.md)
+- [Deployment](docs/deployment/multi-host.md)
+- [Security policy](SECURITY.md)
+- [Contributing](CONTRIBUTING.md)
 
 ## License
 
-Apache-2.0; see [LICENSE](LICENSE) and [NOTICE](NOTICE).
-Third-party asset licenses in [THIRD_PARTY_REVIEW.md](THIRD_PARTY_REVIEW.md).
+Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).

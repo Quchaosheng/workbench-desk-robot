@@ -1,14 +1,14 @@
-part_number,description,material,quantity,release_status
-ME-001,Lower chassis,5052-H32 aluminium,1,ENGINEERING_BASELINE
-ME-002,Upper shell,PC-ABS FR,1,ENGINEERING_BASELINE
-ME-003,Impact bumper,TPU 95A,1,ENGINEERING_BASELINE
-ME-004,Electronics tray,5052-H32 aluminium,1,ENGINEERING_BASELINE
-ISO4762-M3x8,Socket screw,A2-70 stainless,16,ENGINEERING_BASELINE
-DIN934-M3,Hex nut,A2 stainless,16,ENGINEERING_BASELINE
-TBD_MOTOR_BRACKET,Two motor bracket envelopes with provisional 35 x 25 mm mount pattern,6061-T6 aluminium,2,DO_NOT_ORDER_MOTOR_INTERFACE_REQUIRED
-ME-006,Display bracket,PC-ABS FR,1,ENGINEERING_BASELINE
-TBD_WHEEL_HUB_TYRE_ASSEMBLY,"Four wheel envelopes at controlled wheelbase and track; hub, tyre, bearing and fastener TBD",TBD_NOT_SELECTED,4,DO_NOT_ORDER_SELECTION_AND_LOAD_VALIDATION_REQUIRED
-TBD_TRACTION_MOTOR_MPN,"Traction motor reserved envelope only; technology, shaft, mount and MPN TBD",TBD_NOT_SELECTED,2,DO_NOT_ORDER_SELECTION_REQUIRED
-TBD_TRACTION_DRIVER_CHILDBOARD,Independent traction driver childboard reserved envelope only,TBD_FINAL_ASSEMBLY,1,DO_NOT_ORDER_OUTLINE_THERMAL_AND_CONNECTOR_FREEZE_REQUIRED
-TBD_TRACTION_CHILDBOARD_SUPPORT,Childboard support plate and four standoffs; datum and retention TBD,TBD_FINAL_ASSEMBLY,1,DO_NOT_ORDER_MOUNT_AND_SHOCK_RETENTION_REQUIRED
-TBD_BATTERY_PACK_AND_RESTRAINT,"Battery reserved envelope and impact restraint; pack, BMS, disconnect and bracket TBD",TBD_NOT_SELECTED,1,DO_NOT_ORDER_PACK_AND_RESTRAINT_REQUIRED
+part_number,description,material,quantity
+ME-C01,Holonomic base frame and perimeter bumper,5052-H32 aluminium + TPU,1
+ME-D01A,Independent steer-drive wheel module,6061-T6 aluminium + non-marking PU,4
+ME-C02,Dual-screw lifting platform,6061-T6 aluminium + steel screws,1
+ME-C03,Utility torso and parcel bay,mineral PC-ABS + recycled PET,1
+ME-D04,Seven-axis arm joint set,bead-blasted anodized aluminium,2
+ME-C05,Keyed neck mount and head flange,6061-T6 aluminium + steel inserts,1
+ME-C06,Smoked glass head module,chemically strengthened glass + PC-ABS,1
+ME-C07,Deployable stabilizer feet,steel core + charcoal TPU,4
+ME-C08,Tool dock and quick-change datum,6061-T6 aluminium + PEEK,1
+ISO4762-M4,Captive socket screw,A2-70 stainless,28
+ISO4762-M6,Captive neck mount socket screw,A2-70 stainless,4
+DOWEL-04,Head register dowel pin,hardened stainless,2
+LIFT-LOCK-01,Normally-closed brake and lock pin set,steel + spring,2

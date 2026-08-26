@@ -415,6 +415,14 @@ class RemoteHttpSecurityTests(unittest.TestCase):
             },
             {
                 "event_source_url": "http://10.20.30.40:8090",
+                "event_source_allowlist": "",
+            },
+            {
+                "event_source_url": "http://10.20.30.40:8090",
+                "event_source_allowlist": "   ",
+            },
+            {
+                "event_source_url": "http://10.20.30.40:8090",
                 "event_source_allowlist": "not-a-network",
             },
             {
@@ -441,29 +449,90 @@ class RemoteHttpSecurityTests(unittest.TestCase):
                     server.server_close()
                     thread.join(timeout=2)
 
-    def test_cli_allowlist_is_explicit_and_does_not_read_environment(self) -> None:
+    def test_cli_allowlist_defaults_to_environment(self) -> None:
         event_source_url = "http://10.20.30.40:8090"
-        for cli_arguments, expected_allowlist in (
-            ([], None),
-            (["--event-source-allowlist", "10.20.30.40/32"], "10.20.30.40/32"),
+        environment_allowlist = "10.20.30.40/32,2001:db8:1::/48"
+        fake_server = mock.Mock()
+        fake_server.serve_forever.side_effect = KeyboardInterrupt
+        argv = ["workbench-backend", "--event-source-url", event_source_url]
+        with (
+            mock.patch.dict(
+                os.environ,
+                {"WORKBENCH_EVENT_SOURCE_ALLOWLIST": environment_allowlist},
+                clear=False,
+            ),
+            mock.patch.object(sys, "argv", argv),
+            mock.patch("workbench_backend.server.create_server", return_value=fake_server) as factory,
         ):
-            fake_server = mock.Mock()
-            fake_server.serve_forever.side_effect = KeyboardInterrupt
-            argv = ["workbench-backend", "--event-source-url", event_source_url, *cli_arguments]
-            with (
-                self.subTest(cli_arguments=cli_arguments),
-                mock.patch.dict(
-                    os.environ,
-                    {"WORKBENCH_EVENT_SOURCE_ALLOWLIST": "192.0.2.1/32"},
-                    clear=False,
-                ),
-                mock.patch.object(sys, "argv", argv),
-                mock.patch("workbench_backend.server.create_server", return_value=fake_server) as factory,
-            ):
-                self.assertEqual(main(), 0)
-            self.assertEqual(factory.call_args.kwargs["event_source_url"], event_source_url)
-            self.assertEqual(factory.call_args.kwargs["event_source_allowlist"], expected_allowlist)
-            fake_server.server_close.assert_called_once()
+            self.assertEqual(main(), 0)
+        self.assertEqual(factory.call_args.kwargs["event_source_url"], event_source_url)
+        self.assertEqual(factory.call_args.kwargs["event_source_allowlist"], environment_allowlist)
+        fake_server.server_close.assert_called_once()
+
+    def test_cli_allowlist_argument_overrides_environment(self) -> None:
+        event_source_url = "http://10.20.30.40:8090"
+        environment_allowlist = "10.20.30.0/24"
+        cli_allowlist = "10.20.30.40/32"
+        fake_server = mock.Mock()
+        fake_server.serve_forever.side_effect = KeyboardInterrupt
+        argv = [
+            "workbench-backend",
+            "--event-source-url",
+            event_source_url,
+            "--event-source-allowlist",
+            cli_allowlist,
+        ]
+        with (
+            mock.patch.dict(
+                os.environ,
+                {"WORKBENCH_EVENT_SOURCE_ALLOWLIST": environment_allowlist},
+                clear=False,
+            ),
+            mock.patch.object(sys, "argv", argv),
+            mock.patch("workbench_backend.server.create_server", return_value=fake_server) as factory,
+        ):
+            self.assertEqual(main(), 0)
+        self.assertEqual(factory.call_args.kwargs["event_source_url"], event_source_url)
+        self.assertEqual(factory.call_args.kwargs["event_source_allowlist"], cli_allowlist)
+        fake_server.server_close.assert_called_once()
+
+    def test_cli_allowlist_is_none_when_environment_is_unset(self) -> None:
+        event_source_url = "http://10.20.30.40:8090"
+        fake_server = mock.Mock()
+        fake_server.serve_forever.side_effect = KeyboardInterrupt
+        argv = ["workbench-backend", "--event-source-url", event_source_url]
+        environment = os.environ.copy()
+        environment.pop("WORKBENCH_EVENT_SOURCE_ALLOWLIST", None)
+        with (
+            mock.patch.dict(os.environ, environment, clear=True),
+            mock.patch.object(sys, "argv", argv),
+            mock.patch("workbench_backend.server.create_server", return_value=fake_server) as factory,
+        ):
+            self.assertEqual(main(), 0)
+        self.assertEqual(factory.call_args.kwargs["event_source_url"], event_source_url)
+        self.assertIsNone(factory.call_args.kwargs["event_source_allowlist"])
+        fake_server.server_close.assert_called_once()
+
+    def test_cli_allowlist_preserves_blank_environment_values(self) -> None:
+        event_source_url = "http://10.20.30.40:8090"
+        for environment_allowlist in ("", "   "):
+            with self.subTest(environment_allowlist=environment_allowlist):
+                fake_server = mock.Mock()
+                fake_server.serve_forever.side_effect = KeyboardInterrupt
+                argv = ["workbench-backend", "--event-source-url", event_source_url]
+                with (
+                    mock.patch.dict(
+                        os.environ,
+                        {"WORKBENCH_EVENT_SOURCE_ALLOWLIST": environment_allowlist},
+                        clear=False,
+                    ),
+                    mock.patch.object(sys, "argv", argv),
+                    mock.patch("workbench_backend.server.create_server", return_value=fake_server) as factory,
+                ):
+                    self.assertEqual(main(), 0)
+                self.assertEqual(factory.call_args.kwargs["event_source_url"], event_source_url)
+                self.assertEqual(factory.call_args.kwargs["event_source_allowlist"], environment_allowlist)
+                fake_server.server_close.assert_called_once()
 
 
 if __name__ == "__main__":

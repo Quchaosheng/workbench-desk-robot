@@ -26,6 +26,7 @@ DEFAULT_DATA_DIR = DEFAULT_STATIC_DIR / "data"
 OPENAPI_RESOURCE = resources.files("workbench_backend").joinpath("api-openapi-v1.json")
 API_VERSION = "1"
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024
+MAX_REJECTED_REQUEST_BODY_BYTES = 1024 * 1024
 RUN_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 
 
@@ -182,6 +183,16 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self._send_file(static_path)
 
     def _reject_write(self) -> None:
+        raw_length = self.headers.get("Content-Length", "0")
+        try:
+            content_length = int(raw_length)
+        except ValueError:
+            content_length = -1
+        if not 0 <= content_length <= MAX_REJECTED_REQUEST_BODY_BYTES:
+            self._send_json({"error": "invalid_request_body"}, HTTPStatus.BAD_REQUEST)
+            return
+        if content_length:
+            self.rfile.read(content_length)
         self._send_json(
             {"error": "read_only", "message": "This service exposes no robot or ROS control operations."},
             HTTPStatus.METHOD_NOT_ALLOWED,
@@ -228,7 +239,10 @@ def main() -> int:
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     parser.add_argument("--event-source-url", default=os.environ.get("WORKBENCH_EVENT_SOURCE_URL"))
-    parser.add_argument("--event-source-allowlist")
+    parser.add_argument(
+        "--event-source-allowlist",
+        default=os.environ.get("WORKBENCH_EVENT_SOURCE_ALLOWLIST"),
+    )
     args = parser.parse_args()
     server = create_server(
         args.host,

@@ -78,9 +78,51 @@ halt:
     .global trap_entry
     .type trap_entry, @function
 trap_entry:
-    addi    sp, sp, -16
-    sw      ra, 12(sp)
+    /* Preserve the caller-saved registers before inspecting mcause. In
+     * particular, t0/t1 are used for dispatch and must still be restored to
+     * their pre-interrupt values on the timer-return path. */
+    addi    sp, sp, -64
+    sw      ra, 0(sp)
+    sw      t0, 4(sp)
+    sw      t1, 8(sp)
+    sw      t2, 12(sp)
+    sw      t3, 16(sp)
+    sw      t4, 20(sp)
+    sw      t5, 24(sp)
+    sw      t6, 28(sp)
+    sw      a0, 32(sp)
+    sw      a1, 36(sp)
+    sw      a2, 40(sp)
+    sw      a3, 44(sp)
+    sw      a4, 48(sp)
+    sw      a5, 52(sp)
+    sw      a6, 56(sp)
+    sw      a7, 60(sp)
 
+    csrr    t0, mcause
+    li      t1, 0x80000007
+    bne     t0, t1, unexpected_trap
+    call    mcu_qemu_timer_interrupt
+    lw      ra, 0(sp)
+    lw      t0, 4(sp)
+    lw      t1, 8(sp)
+    lw      t2, 12(sp)
+    lw      t3, 16(sp)
+    lw      t4, 20(sp)
+    lw      t5, 24(sp)
+    lw      t6, 28(sp)
+    lw      a0, 32(sp)
+    lw      a1, 36(sp)
+    lw      a2, 40(sp)
+    lw      a3, 44(sp)
+    lw      a4, 48(sp)
+    lw      a5, 52(sp)
+    lw      a6, 56(sp)
+    lw      a7, 60(sp)
+    addi    sp, sp, 64
+    mret
+
+unexpected_trap:
     csrr    a0, mcause
     csrr    a1, mepc
     call    hal_report_trap

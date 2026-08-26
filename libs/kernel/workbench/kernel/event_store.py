@@ -57,6 +57,7 @@ class EventStore:
         self.checkpoints: list[int] = []
         self._lock = threading.RLock()
         self._connection: sqlite3.Connection | None = None
+        self._events_signature: tuple[int, int, int] | None = None
         if self.backend == "sqlite":
             self._connection = sqlite3.connect(self.log_file)
             self._connection.execute("PRAGMA foreign_keys = ON")
@@ -98,6 +99,13 @@ class EventStore:
                     "SELECT event_count FROM checkpoints ORDER BY checkpoint_id"
                 ).fetchall()
             ]
+
+    def _jsonl_signature(self) -> tuple[int, int, int] | None:
+        try:
+            stat = self.log_file.stat()
+        except FileNotFoundError:
+            return None
+        return stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns
 
     def _validate_events(self, events: list[dict[str, Any]]) -> None:
         if self.legacy_objects:
@@ -211,7 +219,10 @@ class EventStore:
             raise EventStoreError("event must contain strict JSON values") from exc
         persisted_events = [json.loads(encoded) for encoded in serialized]
         with self._lock:
-            events = self._read_events()
+            if self.backend == "jsonl" and self._events_signature == self._jsonl_signature():
+                events = self.events
+            else:
+                events = self._read_events()
             self._validate_events([*events, *persisted_events])
             if self.backend == "jsonl":
                 try:
@@ -234,6 +245,8 @@ class EventStore:
                     self._connection.rollback()
                     raise EventStoreError(f"event database could not be appended: {self.log_file}") from exc
             self.events = [*events, *persisted_events]
+            if self.backend == "jsonl":
+                self._events_signature = self._jsonl_signature()
 
     def create_checkpoint(self) -> int:
         with self._lock:

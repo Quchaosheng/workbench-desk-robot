@@ -1,4 +1,4 @@
-FROM ubuntu@sha256:678c6550cc43645e08669028bc177f50be4e7c5b8cca677067b1914d4afc7a03
+FROM ubuntu@sha256:2260313b31c8c011cd2eebe728008efac1b3982be73eb71348ea2648d2c0e09b
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -23,6 +23,7 @@ COPY libs/application ./libs/application
 COPY libs/contracts ./libs/contracts
 COPY libs/hardware ./libs/hardware
 COPY libs/kernel ./libs/kernel
+COPY libs/task_utils ./libs/task_utils
 COPY services/agent_runtime ./services/agent_runtime
 COPY services/backend ./services/backend
 COPY services/world_model ./services/world_model

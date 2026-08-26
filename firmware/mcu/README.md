@@ -7,7 +7,7 @@ Decision and rationale: `docs/decisions/ADR-0003-mcu-riscv-qemu.md`.
 
 ```
 core/           platform-independent C. State machine, frame codec,
-                watchdog, dedup, ring buffers.
+                watchdog timing, dedup, ring buffers.
                 No peripheral registers. No vendor headers.
 hal/qemu/       QEMU target, CTU CAN FD over PCI. Used by CI.
 hal/ch32v307/   real board, CH32V307 CAN peripheral. P3.
@@ -64,5 +64,27 @@ make test-qemu   # fault suite in QEMU, what CI runs
 
 The platform-independent C safety state machine is implemented by Issue #53.
 Issue #54 adds the strict Classic CAN Wire V1 codec and shared Host/QEMU golden
-vectors. The HAL CAN driver, watchdog timing path, command deduplication and
-physical CAN validation remain separate follow-up tasks.
+vectors. Issue #60 adds the allocation-free heartbeat watchdog, bounded STOP
+acknowledgement timing, fake-clock tests and QEMU machine-timer/watchdog
+evidence. The HAL CAN driver, command deduplication and physical CAN validation
+remain separate follow-up tasks.
+
+## Timing safety path
+
+`core/watchdog.[ch]` owns the timing state but not timer or watchdog registers.
+Only a complete, valid and serially new ordinary frame may refresh the
+software link watchdog. Malformed, retry, duplicate, stale and STOP traffic do
+not extend the execution deadline. A missed deadline enters the existing
+latched `FAULT/watchdog_expired` state and emits one telemetry record.
+
+A valid STOP immediately transitions the state machine to `SAFE_STOP` and
+creates a correlated `STOP_ACK` handoff record. The transport must confirm the
+handoff before the controlled deadline; otherwise the core emits one local
+`STOP_TIMEOUT` outcome and never claims stopped confirmation. The exact
+constants and clock-wrap rules are documented in
+`docs/architecture/mcu-watchdog-v1.md`.
+
+While the STOP handoff is pending, an equal `retry_count` is an exact
+link-level replay and a strictly greater count is a protocol-level retry.
+Decreasing or wrapped retry counts are stale and rejected without changing the
+pending ACK correlation.

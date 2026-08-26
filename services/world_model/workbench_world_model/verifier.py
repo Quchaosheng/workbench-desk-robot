@@ -22,11 +22,15 @@ DEFAULT_PARCEL_ATTRIBUTES = {
 PARCEL_IDENTITY_KEYS = ("tracking_id", "barcode", "parcel_uid")
 
 
-def _unique_evidence(state: WorldState) -> list[str]:
-    evidence = list(state.evidence_refs)
-    for references in state.entity_evidence_refs.values():
-        evidence.extend(references)
-    return list(dict.fromkeys(evidence))
+def _entity_evidence(state: WorldState, entity_ids: set[str]) -> list[str]:
+    evidence: list[str] = []
+    seen: set[str] = set()
+    for entity_id in sorted(entity_ids):
+        for reference in state.entity_evidence_refs.get(entity_id, []):
+            if reference not in seen:
+                evidence.append(reference)
+                seen.add(reference)
+    return evidence
 
 
 def _missing_entity_evidence(state: WorldState, entity_ids: set[str]) -> list[str]:
@@ -105,7 +109,9 @@ def _result(
     reason_code: ReasonCode,
     recovery_hint: RecoveryHint,
     rule_version: str,
+    supporting_entity_ids: set[str],
 ) -> VerificationResult:
+    evidence_refs = _entity_evidence(state, supporting_entity_ids)
     return VerificationResult(
         verification_id=f"ver-{uuid.uuid4().hex[:12]}",
         run_id=state.run_id,
@@ -113,7 +119,7 @@ def _result(
         claim=claim,
         status=status,
         reason_code=reason_code,
-        evidence_refs=_unique_evidence(state) or [NO_EVIDENCE_REF],
+        evidence_refs=evidence_refs or [NO_EVIDENCE_REF],
         recovery_hint=recovery_hint,
         verified_at="1970-01-01T00:00:00Z",
         rule_version=rule_version,
@@ -125,13 +131,12 @@ def verify_object_in_tray(state: WorldState, task_id: str, object_id: str, tray_
         raise ValueError("object_id and tray_id must be non-empty")
     expected_location = f"in:{tray_id}"
     actual_location = state.entity_locations.get(object_id)
-    evidence = _unique_evidence(state)
     if actual_location is None:
         status = VerificationStatus.INSUFFICIENT_EVIDENCE
         reason_code = ReasonCode.TARGET_NOT_OBSERVED
         recovery_hint = RecoveryHint.RE_OBSERVE
         claim = f"{object_id} inside {tray_id}: never observed"
-    elif actual_location == expected_location and not evidence:
+    elif actual_location == expected_location and not state.entity_evidence_refs.get(object_id):
         status = VerificationStatus.INSUFFICIENT_EVIDENCE
         reason_code = ReasonCode.EVIDENCE_MISSING
         recovery_hint = RecoveryHint.RE_OBSERVE
@@ -146,7 +151,7 @@ def verify_object_in_tray(state: WorldState, task_id: str, object_id: str, tray_
         reason_code = ReasonCode.GOAL_NOT_SATISFIED
         recovery_hint = RecoveryHint.RETRY_ACTION
         claim = f"{object_id} inside {tray_id}: found at {actual_location}"
-    return _result(state, task_id, claim, status, reason_code, recovery_hint, "tray-membership-v1")
+    return _result(state, task_id, claim, status, reason_code, recovery_hint, "tray-membership-v1", {object_id})
 
 
 def verify_kit_contents(
@@ -182,19 +187,24 @@ def verify_kit_contents(
     )
     if unobserved:
         outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.TARGET_NOT_OBSERVED, RecoveryHint.RE_OBSERVE)
+        supporting_entity_ids = set(unobserved)
     elif low_confidence:
         outcome = (
             VerificationStatus.INSUFFICIENT_EVIDENCE,
             ReasonCode.CONFIDENCE_BELOW_THRESHOLD,
             RecoveryHint.RE_OBSERVE,
         )
+        supporting_entity_ids = set(low_confidence)
     elif missing_evidence:
         outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.EVIDENCE_MISSING, RecoveryHint.RE_OBSERVE)
+        supporting_entity_ids = set(missing_evidence)
     elif misplaced or extras:
         outcome = (VerificationStatus.REFUTED, ReasonCode.GOAL_NOT_SATISFIED, RecoveryHint.RETRY_ACTION)
+        supporting_entity_ids = set(misplaced) | set(extras)
     else:
         outcome = (VerificationStatus.CONFIRMED, ReasonCode.GOAL_SATISFIED, RecoveryHint.NONE)
-    return _result(state, task_id, claim, *outcome, "kit-contents-v1")
+        supporting_entity_ids = required
+    return _result(state, task_id, claim, *outcome, "kit-contents-v1", supporting_entity_ids)
 
 
 def verify_inspection_evidence(
@@ -213,38 +223,47 @@ def verify_inspection_evidence(
     claim = f"inspection: unobserved={unobserved}; low_confidence={low_confidence}; missing_evidence={missing_evidence}"
     if unobserved:
         outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.TARGET_NOT_OBSERVED, RecoveryHint.RE_OBSERVE)
+        supporting_entity_ids = set(unobserved)
     elif low_confidence:
         outcome = (
             VerificationStatus.INSUFFICIENT_EVIDENCE,
             ReasonCode.CONFIDENCE_BELOW_THRESHOLD,
             RecoveryHint.RE_OBSERVE,
         )
+        supporting_entity_ids = set(low_confidence)
     elif missing_evidence:
         outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.EVIDENCE_MISSING, RecoveryHint.RE_OBSERVE)
+        supporting_entity_ids = set(missing_evidence)
     else:
         outcome = (VerificationStatus.CONFIRMED, ReasonCode.GOAL_SATISFIED, RecoveryHint.NONE)
-    return _result(state, task_id, claim, *outcome, "inspection-evidence-v1")
+        supporting_entity_ids = required
+    return _result(state, task_id, claim, *outcome, "inspection-evidence-v1", supporting_entity_ids)
 
 
 def verify_workspace_clearance(state: WorldState, task_id: str) -> VerificationResult:
     expected = {"blue_cylinder": "in:staging_bin", "red_block": "in:tray"}
     unobserved = sorted(entity_id for entity_id in expected if entity_id not in state.entity_locations)
-    unmet = sorted(
-        f"{entity_id}->{location}"
+    unmet_entity_ids = sorted(
+        entity_id
         for entity_id, location in expected.items()
         if entity_id in state.entity_locations and state.entity_locations[entity_id] != location
     )
+    unmet = [f"{entity_id}->{expected[entity_id]}" for entity_id in unmet_entity_ids]
     missing_evidence = _missing_entity_evidence(state, set(expected))
     claim = f"workspace clearance: unobserved={unobserved}; unmet={unmet}; missing_evidence={missing_evidence}"
     if unobserved:
         outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.TARGET_NOT_OBSERVED, RecoveryHint.RE_OBSERVE)
+        supporting_entity_ids = set(unobserved)
     elif missing_evidence:
         outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.EVIDENCE_MISSING, RecoveryHint.RE_OBSERVE)
-    elif unmet:
+        supporting_entity_ids = set(missing_evidence)
+    elif unmet_entity_ids:
         outcome = (VerificationStatus.REFUTED, ReasonCode.GOAL_NOT_SATISFIED, RecoveryHint.RETRY_ACTION)
+        supporting_entity_ids = set(unmet_entity_ids)
     else:
         outcome = (VerificationStatus.CONFIRMED, ReasonCode.GOAL_SATISFIED, RecoveryHint.NONE)
-    return _result(state, task_id, claim, *outcome, "workspace-clearance-v1")
+        supporting_entity_ids = set(expected)
+    return _result(state, task_id, claim, *outcome, "workspace-clearance-v1", supporting_entity_ids)
 
 
 def verify_parcel_sorting(
@@ -288,18 +307,23 @@ def verify_parcel_sorting(
     missing_evidence = _missing_entity_evidence(state, required)
     missing_attributes: list[str] = []
     attribute_mismatches: list[str] = []
+    missing_attribute_entities: set[str] = set()
+    attribute_mismatch_entities: set[str] = set()
     for parcel_id in sorted(required):
         observed = state.entity_attributes.get(parcel_id, {})
         for key, expected_value in attributes[parcel_id].items():
             if key not in observed:
                 missing_attributes.append(f"{parcel_id}.{key}")
+                missing_attribute_entities.add(parcel_id)
             elif observed[key] != expected_value:
                 attribute_mismatches.append(f"{parcel_id}.{key}={observed[key]}")
-    misrouted = sorted(
-        f"{parcel_id}->{destination}"
+                attribute_mismatch_entities.add(parcel_id)
+    misrouted_entity_ids = sorted(
+        parcel_id
         for parcel_id, destination in routes.items()
         if parcel_id in state.entity_locations and state.entity_locations[parcel_id] != f"in:{destination}"
     )
+    misrouted = [f"{parcel_id}->{routes[parcel_id]}" for parcel_id in misrouted_entity_ids]
     managed_locations = {f"in:{destination}" for destination in routes.values()}
     extras = sorted(
         entity_id
@@ -313,19 +337,24 @@ def verify_parcel_sorting(
     )
     if unobserved:
         outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.TARGET_NOT_OBSERVED, RecoveryHint.RE_OBSERVE)
+        supporting_entity_ids = set(unobserved)
     elif low_confidence:
         outcome = (
             VerificationStatus.INSUFFICIENT_EVIDENCE,
             ReasonCode.CONFIDENCE_BELOW_THRESHOLD,
             RecoveryHint.RE_OBSERVE,
         )
+        supporting_entity_ids = set(low_confidence)
     elif missing_evidence or missing_attributes:
         outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.EVIDENCE_MISSING, RecoveryHint.RE_OBSERVE)
+        supporting_entity_ids = set(missing_evidence) | missing_attribute_entities
     elif attribute_mismatches or misrouted or extras:
         outcome = (VerificationStatus.REFUTED, ReasonCode.GOAL_NOT_SATISFIED, RecoveryHint.RETRY_ACTION)
+        supporting_entity_ids = attribute_mismatch_entities | set(misrouted_entity_ids) | set(extras)
     else:
         outcome = (VerificationStatus.CONFIRMED, ReasonCode.GOAL_SATISFIED, RecoveryHint.NONE)
-    return _result(state, task_id, claim, *outcome, "parcel-sorting-v1")
+        supporting_entity_ids = required
+    return _result(state, task_id, claim, *outcome, "parcel-sorting-v1", supporting_entity_ids)
 
 
 def verify_parcel_policy(
@@ -361,6 +390,8 @@ def verify_parcel_policy(
     missing_manifest_identities: list[str] = []
     manifest_mismatches: list[str] = []
     duplicate_identities: list[str] = []
+    missing_attribute_entities: set[str] = set()
+    duplicate_identity_entities: set[str] = set()
     seen_identities: dict[str, tuple[str, str]] = {}
     decisions: dict[str, str] = {}
     decision_reasons: dict[str, str] = {}
@@ -368,6 +399,7 @@ def verify_parcel_policy(
         observed = state.entity_attributes.get(parcel_id, {})
         if not isinstance(observed, Mapping):
             missing_attributes.extend([f"{parcel_id}.label_status", f"{parcel_id}.condition"])
+            missing_attribute_entities.add(parcel_id)
             if normalized_manifest_id is not None:
                 missing_manifest_identities.append(parcel_id)
             continue
@@ -375,8 +407,10 @@ def verify_parcel_policy(
         condition = observed.get("condition")
         if not isinstance(label_status, str) or not label_status.strip():
             missing_attributes.append(f"{parcel_id}.label_status")
+            missing_attribute_entities.add(parcel_id)
         if not isinstance(condition, str) or not condition.strip():
             missing_attributes.append(f"{parcel_id}.condition")
+            missing_attribute_entities.add(parcel_id)
         observed_identities: dict[str, str] = {}
         for identity_key in PARCEL_IDENTITY_KEYS:
             identity_value = observed.get(identity_key)
@@ -386,6 +420,7 @@ def verify_parcel_policy(
                 identity = _normalize_parcel_identity(identity_value, identity_key)
             except ValueError:
                 missing_attributes.append(f"{parcel_id}.{identity_key}")
+                missing_attribute_entities.add(parcel_id)
                 continue
             observed_identities[identity_key] = identity
             previous = seen_identities.get(identity)
@@ -393,6 +428,7 @@ def verify_parcel_policy(
                 duplicate_identities.append(
                     f"{previous[0]}.{previous[1]}={parcel_id}.{identity_key} ({str(identity_value).strip()})"
                 )
+                duplicate_identity_entities.update({previous[0], parcel_id})
             else:
                 seen_identities[identity] = (parcel_id, identity_key)
         if normalized_manifest_id is not None:
@@ -423,11 +459,12 @@ def verify_parcel_policy(
             if condition != "intact":
                 reasons.append(f"condition_{condition}")
             decision_reasons[parcel_id] = "+".join(reasons)
-    misrouted = sorted(
-        f"{parcel_id}->{expected_location}"
+    misrouted_entity_ids = sorted(
+        parcel_id
         for parcel_id, expected_location in decisions.items()
         if state.entity_locations.get(parcel_id) != expected_location
     )
+    misrouted = [f"{parcel_id}->{decisions[parcel_id]}" for parcel_id in misrouted_entity_ids]
     managed_locations = {f"in:{pickup_shelf_id}", f"in:{quarantine_bin_id}"}
     extras = sorted(
         entity_id
@@ -444,16 +481,23 @@ def verify_parcel_policy(
     )
     if unobserved:
         outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.TARGET_NOT_OBSERVED, RecoveryHint.RE_OBSERVE)
+        supporting_entity_ids = set(unobserved)
     elif low_confidence:
         outcome = (
             VerificationStatus.INSUFFICIENT_EVIDENCE,
             ReasonCode.CONFIDENCE_BELOW_THRESHOLD,
             RecoveryHint.RE_OBSERVE,
         )
+        supporting_entity_ids = set(low_confidence)
     elif missing_evidence or missing_attributes or missing_manifest_identities:
         outcome = (VerificationStatus.INSUFFICIENT_EVIDENCE, ReasonCode.EVIDENCE_MISSING, RecoveryHint.RE_OBSERVE)
+        supporting_entity_ids = set(missing_evidence) | missing_attribute_entities | set(missing_manifest_identities)
     elif manifest_mismatches or duplicate_identities or misrouted or extras:
         outcome = (VerificationStatus.REFUTED, ReasonCode.GOAL_NOT_SATISFIED, RecoveryHint.RETRY_ACTION)
+        supporting_entity_ids = (
+            set(manifest_mismatches) | duplicate_identity_entities | set(misrouted_entity_ids) | set(extras)
+        )
     else:
         outcome = (VerificationStatus.CONFIRMED, ReasonCode.GOAL_SATISFIED, RecoveryHint.NONE)
-    return _result(state, task_id, claim, *outcome, "parcel-policy-v2")
+        supporting_entity_ids = required
+    return _result(state, task_id, claim, *outcome, "parcel-policy-v2", supporting_entity_ids)

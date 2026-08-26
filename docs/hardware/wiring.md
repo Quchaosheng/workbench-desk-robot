@@ -18,12 +18,13 @@ Jetson dev kit <-- J4 3.3 V control backplane --> U5 MCU
                                                    |
                          U7 isolated supply -> U6 CAN FD -> J5/J6
 
-Dual-channel E-stop -> J10 -> K1/K2 safety chain -> J11 MOTOR_ENABLE_SAFE
-                                      ^
-                       MOTOR_ENABLE_REQ from U5 is a request only
+Current controller: Dual-channel E-stop -> J10 -> safety logic
+                                              |-- J11 single-channel diagnostic output only
+                                              `-- MOTOR_ENABLE_REQ from U5 is a request only
+
+Future safety ECO: Dual-channel E-stop -> J10 -> K1/K2 -> H09 -> childboard J_SAFE
 
 Controller J2 (H02, four pins) -> replaceable traction childboard J_PWR
-Controller J10/K1/K2 safety ECO (H09, four pins) -> childboard J_SAFE
 Controller J5/J6 isolated CAN (H10) -> childboard J_CAN
 Childboard J_ML/J_MR (H11/H12) -> external M1/M2 motor terminals
 Childboard J_ENC_L/J_ENC_R (H13/H14) -> external M1/M2 encoder pins

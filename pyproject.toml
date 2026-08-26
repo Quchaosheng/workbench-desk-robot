@@ -15,7 +15,7 @@ dev = [
   "jsonschema>=4,<5",
   "pytest-cov>=5,<8",
   "pytest-benchmark>=4,<6",
-  "ruff==0.16.3",
+  "ruff==0.16.4",
   "pre-commit>=3,<5",
   "kiutils>=1.4,<2",
 ]
@@ -29,6 +29,7 @@ packages = [
   "workbench.application",
   "workbench.hardware",
   "workbench.kernel",
+  "workbench_task_utils",
   "workbench_agent_runtime",
   "workbench_backend",
   "workbench_contracts",
@@ -40,6 +41,7 @@ packages = [
 "workbench.application" = "libs/application/workbench/application"
 "workbench.hardware" = "libs/hardware/workbench/hardware"
 "workbench.kernel" = "libs/kernel/workbench/kernel"
+workbench_task_utils = "libs/task_utils/workbench_task_utils"
 workbench_agent_runtime = "services/agent_runtime/workbench_agent_runtime"
 workbench_backend = "services/backend/workbench_backend"
 workbench_contracts = "libs/contracts/workbench_contracts"

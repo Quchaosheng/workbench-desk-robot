@@ -1,3 +1,4 @@
+import json
 import sqlite3
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -5,12 +6,14 @@ from pathlib import Path
 from threading import Barrier
 
 import pytest
+from pydantic import ValidationError
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT / "libs/contracts"), str(ROOT / "services/world_model")]
 
 from workbench_contracts import WorldEvent, WorldEventType
 from workbench_world_model import event_store as event_store_module
+from workbench_world_model.event_payloads import WorldEventPayloadValidationError
 
 SQLiteEventStore = event_store_module.SQLiteEventStore
 EventStoreIntegrityError = event_store_module.EventStoreIntegrityError
@@ -24,13 +27,20 @@ def make_event(
     sequence_no: int = 1,
     payload: dict[str, object] | None = None,
 ) -> WorldEvent:
+    event_payload: dict[str, object] = {
+        "entity_id": "red_block",
+        "location": "on:table",
+        "confidence": 0.9,
+    }
+    if payload is not None:
+        event_payload.update(payload)
     return WorldEvent(
         event_id=event_id,
         run_id=run_id,
         sequence_no=sequence_no,
         event_type=WorldEventType.OBSERVATION,
         occurred_at="2026-08-04T10:00:00Z",
-        payload=payload or {"entity_id": "red_block", "location": "on:table"},
+        payload=event_payload,
         evidence_refs=["camera-frame-001"],
     )
 
@@ -381,3 +391,216 @@ def test_concurrent_sequence_conflict_has_one_winner(tmp_path: Path) -> None:
     assert sorted(results) == ["conflict", "stored"]
     assert len(stored) == 1
     assert stored[0] in events
+
+
+def append_allocated_event(
+    store: SQLiteEventStore,
+    event_id: str,
+    *,
+    run_id: str = "run-allocated",
+    payload: dict[str, object] | None = None,
+) -> WorldEvent:
+    result_payload: dict[str, object] = {
+        "result_id": event_id,
+        "action_id": "act-001",
+        "run_id": run_id,
+        "outcome": "completed",
+        "dispatch_state": "sent",
+        "device_state": "confirmed",
+        "error_code": None,
+        "error_reason": None,
+        "started_at": "2026-08-04T10:00:00Z",
+        "ended_at": "2026-08-04T10:00:01Z",
+        "clock_id": "monotonic",
+        "retry_count": 0,
+        "entity_id": None,
+        "resulting_location": None,
+        "evidence_refs": ["mcu-frame-001"],
+    }
+    if payload is not None:
+        result_payload.update(payload)
+    return store.append_allocated(
+        event_id=event_id,
+        run_id=run_id,
+        event_type=WorldEventType.ACTION_RESULT,
+        occurred_at="2026-08-04T10:00:01Z",
+        payload=result_payload,
+        evidence_refs=["mcu-frame-001"],
+    )
+
+
+def test_allocated_sequence_follows_run_maximum(tmp_path: Path) -> None:
+    store = SQLiteEventStore(tmp_path / "events.sqlite")
+
+    first = append_allocated_event(store, "evt-allocated-001")
+    store.append(make_event("evt-existing", run_id="run-allocated", sequence_no=4))
+    following = append_allocated_event(store, "evt-allocated-002")
+
+    assert first.sequence_no == 1
+    assert following.sequence_no == 5
+    assert [event.sequence_no for event in store.list_run("run-allocated")] == [1, 4, 5]
+    store.close()
+
+
+def test_allocated_sequence_is_per_run(tmp_path: Path) -> None:
+    store = SQLiteEventStore(tmp_path / "events.sqlite")
+
+    first_run = append_allocated_event(store, "evt-run-a", run_id="run-a")
+    second_run = append_allocated_event(store, "evt-run-b", run_id="run-b")
+
+    assert first_run.sequence_no == second_run.sequence_no == 1
+    store.close()
+
+
+def test_allocated_exact_retry_is_idempotent_and_conflict_preserves_original(tmp_path: Path) -> None:
+    store = SQLiteEventStore(tmp_path / "events.sqlite")
+    original_payload = {"result_id": "res-001", "action_id": "act-001", "outcome": "completed"}
+
+    original = append_allocated_event(store, "evt-allocated-001", payload=original_payload)
+    retry = append_allocated_event(
+        store,
+        "evt-allocated-001",
+        payload={"outcome": "completed", "action_id": "act-001", "result_id": "res-001"},
+    )
+
+    assert retry == original
+    assert store.list_run("run-allocated") == [original]
+
+    with pytest.raises(EventStoreIntegrityError, match="event_id"):
+        append_allocated_event(
+            store,
+            "evt-allocated-001",
+            payload={"result_id": "res-001", "action_id": "act-001", "outcome": "failed"},
+        )
+
+    assert store.list_run("run-allocated") == [original]
+    store.close()
+
+
+def test_get_event_returns_exact_event_or_none(tmp_path: Path) -> None:
+    store = SQLiteEventStore(tmp_path / "events.sqlite")
+    stored = append_allocated_event(store, "evt-lookup")
+
+    assert store.get_event("evt-lookup") == stored
+    assert store.get_event("missing") is None
+    store.close()
+
+
+@pytest.mark.parametrize(
+    ("field_name", "invalid_value"),
+    [("sequence_no", True), ("sequence_no", "1"), ("unexpected", "value")],
+    ids=["bool-as-integer", "numeric-string", "unknown-field"],
+)
+def test_get_event_rejects_coercive_or_unknown_stored_values(
+    tmp_path: Path,
+    field_name: str,
+    invalid_value: object,
+) -> None:
+    store = SQLiteEventStore(tmp_path / "events.sqlite")
+    event = make_event("evt-strict")
+    payload = event.model_dump(mode="json")
+    payload[field_name] = invalid_value
+    with store.connection:
+        store.connection.execute(
+            """
+            INSERT INTO world_events(event_id, run_id, sequence_no, event_json)
+            VALUES (?, ?, ?, ?)
+            """,
+            (event.event_id, event.run_id, event.sequence_no, json.dumps(payload)),
+        )
+
+    with pytest.raises(ValidationError):
+        store.get_event(event.event_id)
+
+    store.close()
+
+
+def test_concurrent_allocated_appends_are_race_safe(tmp_path: Path) -> None:
+    database_path = tmp_path / "events.sqlite"
+    initial = SQLiteEventStore(database_path)
+    initial.close()
+    barrier = Barrier(2)
+
+    def append(event_id: str) -> WorldEvent:
+        store = SQLiteEventStore(database_path)
+        barrier.wait()
+        try:
+            return append_allocated_event(store, event_id, run_id="run-concurrent")
+        finally:
+            store.close()
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(append, ["evt-concurrent-a", "evt-concurrent-b"]))
+
+    store = SQLiteEventStore(database_path)
+    replayed = store.list_run("run-concurrent")
+    store.close()
+
+    assert sorted(event.sequence_no for event in results) == [1, 2]
+    assert [event.sequence_no for event in replayed] == [1, 2]
+    assert {event.event_id for event in replayed} == {"evt-concurrent-a", "evt-concurrent-b"}
+
+
+def test_store_rejects_non_finite_json_before_insert(tmp_path: Path) -> None:
+    store = SQLiteEventStore(tmp_path / "events.sqlite")
+    invalid = make_event("evt-nan", payload={"confidence": float("nan")})
+
+    with pytest.raises(WorldEventPayloadValidationError, match="confidence"):
+        store.append(invalid)
+
+    assert store.connection.execute("SELECT COUNT(*) FROM world_events").fetchone()[0] == 0
+    assert store.list_run("run-001") == []
+    store.close()
+
+
+def test_append_rejects_invalid_observation_before_insert(tmp_path: Path) -> None:
+    store = SQLiteEventStore(tmp_path / "events.sqlite")
+    invalid = make_event("evt-invalid", payload={"entity_id": 123})
+
+    with pytest.raises(WorldEventPayloadValidationError, match="entity_id"):
+        store.append(invalid)
+
+    assert store.connection.execute("SELECT COUNT(*) FROM world_events").fetchone()[0] == 0
+    store.close()
+
+
+def test_append_allocated_rejects_before_committing_sequence(tmp_path: Path) -> None:
+    store = SQLiteEventStore(tmp_path / "events.sqlite")
+
+    with pytest.raises(WorldEventPayloadValidationError, match="result_id"):
+        append_allocated_event(store, "evt-invalid", payload={"result_id": ""})
+
+    assert store.connection.execute("SELECT COUNT(*) FROM world_events").fetchone()[0] == 0
+    stored = append_allocated_event(store, "evt-valid")
+    assert stored.sequence_no == 1
+    store.close()
+
+
+def test_list_run_rejects_externally_inserted_malformed_payload(tmp_path: Path) -> None:
+    store = SQLiteEventStore(tmp_path / "events.sqlite")
+    malformed = make_event("evt-legacy-invalid", payload={"entity_id": 123})
+    event_json = json.dumps(
+        malformed.model_dump(mode="python"),
+        allow_nan=False,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    with store.connection:
+        store.connection.execute(
+            """
+            INSERT INTO world_events(event_id, run_id, sequence_no, event_json)
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                malformed.event_id,
+                malformed.run_id,
+                malformed.sequence_no,
+                event_json,
+            ),
+        )
+
+    with pytest.raises(WorldEventPayloadValidationError, match="entity_id"):
+        store.list_run("run-001")
+
+    store.close()

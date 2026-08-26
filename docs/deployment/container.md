@@ -53,14 +53,28 @@ Publishing still requires a human-owned version tag and repository permissions. 
 
 ## Windows without Make
 
-Run the equivalent checks with the active Python interpreter:
+Create an isolated Python 3.12 environment, install the current checkout, and
+run the complete Python test suite and validation checks from PowerShell:
 
 ```powershell
-python -m unittest discover -s tests -p "test_*.py" -v
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev,docs]"
+python -m ruff check .
+python -m ruff format --check .
+python -m pytest -v
 python tools/scripts/validate_contracts.py
 python tools/scripts/validate_scenarios.py
 python tools/scripts/validate_golden_set.py
 python tools/scripts/check_context.py
+python tools/scripts/check_task_packet.py --all
+python -m mkdocs build --strict
 python tools/scripts/demo_scripted.py
 python tools/scripts/local_runner.py --goal "Place the red block in the tray"
 ```
+
+The locking regressions use `spawn`, so the same registry and evidence
+concurrency tests are collected on Windows and POSIX. A persistent sidecar
+`.lock` file is expected next to each protected registry; it contains no
+application data and must not be deleted while writers may be active.

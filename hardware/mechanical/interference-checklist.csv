@@ -5,31 +5,3 @@ INT-003,right_arm-base,30,CAD_sweep_plus_stop_distance,no_contact_after_stop,NOT
 INT-004,tool-cable,25,full_joint_sweep,bend_radius_and_clearance_met,NOT_EXECUTED
 INT-005,payload-cover,20,maximum_bounding_payload,no_pinching_or_impact,NOT_EXECUTED
 INT-006,arm-operator,guarded_low_speed_sweep,site_risk_assessment,restricted_volume_respected,NOT_EXECUTED
-INT-007,left_traction_motor-envelope_to_chassis,3,CAD_envelope_plus_physical_fit,no_contact_across_tolerance_and_wheel_sweep,NOT_EXECUTED
-INT-008,right_traction_motor-envelope_to_chassis,3,CAD_envelope_plus_physical_fit,no_contact_across_tolerance_and_wheel_sweep,NOT_EXECUTED
-INT-009,traction_driver_childboard-controller_service_volume,6,CAD_envelope_plus_service_trial,controller_and_childboard_are_independently_removable,NOT_EXECUTED
-INT-010,traction_driver_childboard-rear_harness_corridor,20,CAD_route_plus_harness_mockup,bend_radius_strain_relief_and_connector_access_met,NOT_EXECUTED
-INT-011,four_wheel_envelopes-chassis_edges,0,CAD_envelope_plus_tolerance_stack,wheel_rotation_is_unobstructed_across_tolerance,NOT_EXECUTED
-INT-012,wheel_sweep-traction_harness,10,CAD_route_plus_guarded_wheel_sweep,no_chafe_pinching_or_entanglement,NOT_EXECUTED
-INT-013,wheel_floor_interface,0,load_traction_and_surface_test,approved_load_grip_wear_noise_and_floor_marking_limits_met,NOT_EXECUTED
-INT-014,battery-envelope-traction-motors,20,CAD_envelope_plus_thermal_review,minimum analytical heat-source clearance maintained,NOT_EXECUTED
-INT-015,battery-envelope-controller-tray,20,CAD_envelope_plus_service_trial,battery and electronics remain independently removable,NOT_EXECUTED
-INT-016,battery-restraint-lower-chassis,0,impact_fixture_and_drop_test,pack cannot shift or contact sharp structure,NOT_EXECUTED
-INT-017,childboard-support-traction-childboard,0,CAD_mount_stack_plus_shock_test,lower posts contact tray datum and upper standoffs retain board without floating or shorting,NOT_EXECUTED
-INT-018,motor-bracket-lower-chassis,0,CAD_mount_datum_plus_torque_trial,each bracket base contacts chassis top and reaction fasteners remain accessible,NOT_EXECUTED
-INT-019,traction-motor-childboard,3,CAD_tolerance_stack_plus_harness_mockup,motor envelope and childboard remain separated across tolerance and service routing,NOT_EXECUTED
-INT-020,left_arm_base-right_arm_base,100,CAD_datum_and_supplier_envelope,base covers plates and installation tools remain separated,NOT_EXECUTED
-INT-021,left_arm_sweep-right_arm_sweep,50,CAD_sweep_plus_guarded_low_speed_test,no collision including tools payload calibration error and stop distance,NOT_EXECUTED
-INT-022,battery_ballast-two_arm_controllers,50,CAD_clearance_plus_service_trial,thermal separation and independent removal are maintained,NOT_EXECUTED
-INT-023,arm_cables-rear_and_riser_trays,120,full_joint_sweep_with_representative_harness,moving bend radius strain relief and no snag are maintained,NOT_EXECUTED
-INT-024,casters-toe_guard,20,CAD_envelope_plus_transport_sweep,no foot pinch or wheel obstruction through full swivel range,NOT_EXECUTED
-INT-025,leveling_feet-perimeter_bumper,0,CAD_support_polygon_plus_setup_trial,all pads deploy inside guarded outline and carry load before arm enable,NOT_EXECUTED
-INT-026,arm_mount_fasteners-upper_crossmembers,0,CAD_section_plus_torque_access_trial,all fasteners have tool access and reactions enter both local crossmembers,NOT_EXECUTED
-INT-027,moving_upper_frame-fixed_chassis,20,full_lift_stroke_CAD_plus_guarded_test,no contact outside guided column interfaces across skew and tolerance,NOT_EXECUTED
-INT-028,lift_columns-operator,0,pinch_shear_review_plus_guarded_full_stroke_test,bellows and fixed guards prevent access to hazardous motion,NOT_EXECUTED
-INT-029,lift_energy_chain-frame,25,full_stroke_harness_sweep,bend radius strain relief and protective bond remain valid at both limits,NOT_EXECUTED
-INT-030,deployable_outriggers-casters_and_operator,20,deployment_sweep_plus_setup_trial,no wheel obstruction foot pinch or unguarded shear point,NOT_EXECUTED
-INT-031,seven_axis_elbow_sweep-opposite_arm_and_lift_columns,50,fourteen_joint_CAD_sweep_plus_guarded_test,no collision including redundant-joint poses stop distance payload and tolerance,NOT_EXECUTED
-INT-032,full_system_drive_wheels-fixed_frame,20,CAD_envelope_plus_suspension_sweep,no tyre motor gearbox brake or harness contact across wheel-load equalization travel,NOT_EXECUTED
-INT-033,full_system_drive_wheels-outriggers,30,CAD_deployment_and_steering_sweep,outriggers cannot deploy into wheel or drive harness and drive cannot enable while deployed,NOT_EXECUTED
-INT-034,full_system_drive_harness-moving_mechanisms,25,full_transport_and_lift_service_sweep,48V brake encoder and motor cables retain bend radius and cannot chafe or enter lift columns,NOT_EXECUTED

@@ -1,0 +1,64 @@
+{
+  "issue": "LINUX-APP11",
+  "human_owner": "Quchaosheng",
+  "objective": "Add a fail-closed local-software performance regression gate with comparable baselines, absolute budgets and machine-readable evidence.",
+  "allowed_paths": [
+    "tools/scripts/performance_regression.py",
+    "tools/scripts/benchmark_startup.py",
+    "tools/scripts/benchmark_resources.py",
+    "tools/scripts/performance_tools.py",
+    "tests/unit/test_performance_regression.py",
+    "tests/unit/test_performance_tools.py",
+    "docs/performance/README.md",
+    "docs/performance/software-regression-gate.md",
+    "docs/performance/software-regression-policy-v1.json",
+    "docs/task_packets/linux-app11-performance-regression.json",
+    "Makefile"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "firmware/**",
+    "robot/control/**",
+    "hardware/**",
+    "AGENTS.md"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "firmware/**",
+    "robot/control/**",
+    "hardware/**"
+  ],
+  "acceptance": [
+    "startup, aggregate container CPU and memory, and simulation end-to-end P95 are compared against a same-environment baseline",
+    "both absolute budgets and relative regression limits must pass",
+    "missing, malformed, non-finite, negative, unordered or undersampled evidence fails closed",
+    "different platform, Python version, machine architecture or startup cache mode reports are rejected as incomparable",
+    "hardware telemetry is rejected and the output marks target hardware and physical validation NOT_EXECUTED",
+    "the command writes a machine-readable report and exits non-zero when any metric fails"
+  ],
+  "commands": [
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/linux-app11-performance-regression.json",
+    "python3 -m pytest tests/unit/test_performance_regression.py tests/unit/test_performance_tools.py -v",
+    "python3 -m ruff check tools/scripts/performance_regression.py tests/unit/test_performance_regression.py",
+    "python3 -m ruff format --check tools/scripts/performance_regression.py tests/unit/test_performance_regression.py",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "git diff --check"
+  ],
+  "evidence": [
+    "performance regression unit-test output",
+    "passing and failing machine-readable gate reports",
+    "invalid and incomparable evidence rejection assertions",
+    "repository gate output"
+  ],
+  "stop_conditions": [
+    "a threshold requires target-hardware or physical-robot measurement",
+    "reports were not captured on comparable software environments",
+    "a frozen interface, firmware, robot-control or hardware change is required",
+    "local software measurements would be presented as target-hardware or release evidence"
+  ]
+}

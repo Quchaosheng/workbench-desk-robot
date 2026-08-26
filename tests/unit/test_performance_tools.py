@@ -9,6 +9,7 @@ from performance_tools import (
     hardware_log_hashes,
     load_telemetry,
     parse_memory_bytes,
+    software_environment,
     summarize_resource_samples,
     summarize_telemetry,
     validate_hardware_evidence,
@@ -31,6 +32,11 @@ def record(source: str, run_id: str, sequence: int, stage: str, duration_ms: flo
 
 
 class TelemetryTests(unittest.TestCase):
+    def test_software_environment_has_comparison_identity(self) -> None:
+        environment = software_environment()
+        self.assertEqual(set(environment), {"platform", "python", "machine"})
+        self.assertTrue(all(isinstance(value, str) and value for value in environment.values()))
+
     def test_simulation_and_hardware_use_the_same_aggregator(self) -> None:
         simulation = [
             record("simulation", f"sim-{index}", 0, "planning", value) for index, value in enumerate((1, 2, 9))

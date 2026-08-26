@@ -154,7 +154,8 @@ def test_path_validation_allows_future_paths_but_rejects_changed_links(
     monkeypatch.setattr(task_packet, "ROOT", tmp_path)
     assert task_packet._normalize_repo_path("new/path/**", field="allowed_paths") == "new/path/**"
     link = tmp_path / "new"
-    link.symlink_to(tmp_path / "outside")
+    link.mkdir()
+    monkeypatch.setattr(task_packet, "_is_link", lambda path: path == link)
     with pytest.raises(task_packet.TaskPacketError, match="symbolic links"):
         task_packet._validate_write_boundary({"new"}, [{"allowed_paths": ["new/**"]}])
 
@@ -315,6 +316,38 @@ def test_changed_paths_tracks_final_git_visible_state(tmp_path: Path, monkeypatc
         "staged.py",
         "untracked.py",
     }
+
+
+def test_changed_paths_can_target_pr_head_from_merge_checkout(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def git(*arguments: str) -> str:
+        result = subprocess.run(
+            ["git", *arguments],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return result.stdout.strip()
+
+    git("init", "-q")
+    git("config", "user.name", "Task Packet Test")
+    git("config", "user.email", "task-packet@example.invalid")
+    (tmp_path / "base.txt").write_text("base\n", encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "base")
+    base = git("rev-parse", "HEAD")
+
+    (tmp_path / "main.txt").write_text("main\n", encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "main update")
+    git("checkout", "-qb", "pr", base)
+    (tmp_path / "pr.txt").write_text("pr\n", encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "pr update")
+    head = git("rev-parse", "HEAD")
+
+    monkeypatch.setattr(task_packet, "ROOT", tmp_path)
+    assert task_packet._changed_paths(base, head) == {"pr.txt"}
 
 
 def test_write_boundary_checks_every_changed_path(valid_packet: dict[str, object]) -> None:

@@ -23,9 +23,20 @@ def test_security_workflow_is_pinned_and_least_privileged() -> None:
     assert action_lines
     assert all(re.search(r"@[0-9a-f]{40}\s+# v[0-9]", line) for line in action_lines)
 
-    codeql = _job_block(workflow, "codeql-python", "dependency-review")
+    codeql = _job_block(workflow, "codeql-python", "codeql-c-cpp")
     assert "security-events: write" in codeql
     assert "build-mode: none" in codeql
+
+    codeql_c_cpp = _job_block(workflow, "codeql-c-cpp", "dependency-review")
+    assert "security-events: write" in codeql_c_cpp
+    assert "packages: read" not in codeql_c_cpp
+    assert "languages: c-cpp" in codeql_c_cpp
+    assert "build-mode: manual" in codeql_c_cpp
+    assert 'make -C kernel/wbcan KDIR="$kernel_headers"' in codeql_c_cpp
+    assert "make -C firmware/mcu host" in codeql_c_cpp
+    assert "make -C firmware/mcu qemu" in codeql_c_cpp
+    assert "category: /language:c-cpp" in codeql_c_cpp
+    assert "continue-on-error: true" not in codeql_c_cpp
 
     dependency_review = _job_block(workflow, "dependency-review")
     assert "if: github.event_name == 'pull_request'" in dependency_review

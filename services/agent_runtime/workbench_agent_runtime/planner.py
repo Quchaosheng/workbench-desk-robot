@@ -165,7 +165,13 @@ def build_place_plan(goal: str, block_id: str = "red_block", tray_id: str = "tra
             depends_on=["grasp-block"],
         ),
     ]
-    return TaskGraph(task_id="task-place-red-block", goal=goal, steps=steps, planner="template-v1")
+    return TaskGraph(
+        task_id="task-place-red-block",
+        goal=goal,
+        steps=steps,
+        planner="template-v1",
+        model_route="template",
+    )
 
 
 def build_kitting_plan(
@@ -215,7 +221,13 @@ def build_kitting_plan(
             ]
         )
         action_index += 3
-    return TaskGraph(task_id="task-kit-three-parts", goal=goal, steps=steps, planner="template-v2")
+    return TaskGraph(
+        task_id="task-kit-three-parts",
+        goal=goal,
+        steps=steps,
+        planner="template-v2",
+        model_route="template",
+    )
 
 
 def build_inspection_plan(
@@ -239,7 +251,13 @@ def build_inspection_plan(
         )
         for index, entity_id in enumerate(entity_ids, start=1)
     ]
-    return TaskGraph(task_id="task-inspect-workpieces", goal=goal, steps=steps, planner="template-v2")
+    return TaskGraph(
+        task_id="task-inspect-workpieces",
+        goal=goal,
+        steps=steps,
+        planner="template-v2",
+        model_route="template",
+    )
 
 
 def build_clear_workspace_plan(
@@ -292,7 +310,13 @@ def build_clear_workspace_plan(
             depends_on=["grasp-target"],
         ),
     ]
-    return TaskGraph(task_id="task-clear-workspace", goal=goal, steps=steps, planner="template-v2")
+    return TaskGraph(
+        task_id="task-clear-workspace",
+        goal=goal,
+        steps=steps,
+        planner="template-v2",
+        model_route="template",
+    )
 
 
 def build_parcel_sorting_plan(
@@ -369,7 +393,13 @@ def build_parcel_sorting_plan(
         )
         previous_route_step = route_step
         action_index += 2
-    return TaskGraph(task_id="task-sort-parcels", goal=goal, steps=steps, planner="template-v3")
+    return TaskGraph(
+        task_id="task-sort-parcels",
+        goal=goal,
+        steps=steps,
+        planner="template-v3",
+        model_route="template",
+    )
 
 
 def _parcel_policy_decision(

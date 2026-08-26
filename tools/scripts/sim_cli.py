@@ -30,9 +30,7 @@ from _paths import ROOT, enable_local_packages
 
 enable_local_packages()
 
-from pydantic import ValidationError
-from scenario_tools import canonical_hash, materialize_scenario
-from workbench_contracts import ScenarioManifest
+from scenario_tools import canonical_hash, materialize_scenario, validate_simulation_manifest
 
 SCENARIO_ROOT = ROOT / "sim" / "scenarios"
 DEFAULT_OUTPUT_DIR = ROOT / "runs" / "sim"
@@ -168,9 +166,9 @@ def _read_manifest(path: Path) -> tuple[dict[str, Any], bytes]:
     if not isinstance(payload, dict):
         raise SimulationInputError(f"scenario manifest must be an object: {path}")
     try:
-        ScenarioManifest.model_validate(payload, strict=True)
+        validate_simulation_manifest(payload)
         materialize_scenario(payload)
-    except (ValidationError, ValueError, KeyError) as exc:
+    except (ValueError, KeyError) as exc:
         raise SimulationInputError(f"invalid scenario manifest {path}: {exc}") from exc
     scenario_id = payload.get("scenario_id")
     if not isinstance(scenario_id, str) or not _safe_id(scenario_id):

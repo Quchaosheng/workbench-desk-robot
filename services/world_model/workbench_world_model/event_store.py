@@ -92,6 +92,10 @@ class SQLiteEventStore:
             sort_keys=True,
         )
 
+    @staticmethod
+    def _parse_event_json(event_json: str) -> WorldEvent:
+        return normalize_world_event(WorldEvent.model_validate_json(event_json))
+
     def append(self, event: WorldEvent) -> None:
         event = normalize_world_event(event)
         event_json = self._canonical_event_json(event)
@@ -165,7 +169,7 @@ class SQLiteEventStore:
                 (event_id,),
             ).fetchone()
             if existing_row is not None:
-                existing = normalize_world_event(WorldEvent.model_validate(json.loads(existing_row[0])))
+                existing = self._parse_event_json(existing_row[0])
                 candidate = WorldEvent(
                     event_id=event_id,
                     run_id=run_id,
@@ -218,13 +222,13 @@ class SQLiteEventStore:
             "SELECT event_json FROM world_events WHERE event_id = ?",
             (event_id,),
         ).fetchone()
-        return None if row is None else normalize_world_event(WorldEvent.model_validate(json.loads(row[0])))
+        return None if row is None else self._parse_event_json(row[0])
 
     def list_run(self, run_id: str) -> list[WorldEvent]:
         rows = self.connection.execute(
             "SELECT event_json FROM world_events WHERE run_id = ? ORDER BY sequence_no ASC", (run_id,)
         ).fetchall()
-        return [normalize_world_event(WorldEvent.model_validate(json.loads(row[0]))) for row in rows]
+        return [self._parse_event_json(row[0]) for row in rows]
 
     def close(self) -> None:
         self.connection.close()

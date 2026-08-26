@@ -10,7 +10,7 @@ sys.path[:0] = [
     str(ROOT / "services/world_model"),
 ]
 
-from workbench_contracts import ActionResult
+from workbench_contracts import ActionOutcome, ActionResult, DeviceState, DispatchState
 from workbench_motion.evidence import EvidenceSink, ExecutionEvent
 from workbench_world_model.event_store import SQLiteEventStore
 from workbench_world_model.motion_evidence_adapter import MotionEvidenceAdapter
@@ -22,9 +22,9 @@ def motion_event(payload: dict[str, object] | None = None) -> ExecutionEvent:
         result_id="res-integration-001",
         action_id="act-integration-001",
         run_id="run-integration-001",
-        outcome="completed",
-        dispatch_state="sent",
-        device_state="confirmed",
+        outcome=ActionOutcome.COMPLETED,
+        dispatch_state=DispatchState.SENT,
+        device_state=DeviceState.CONFIRMED,
         started_at="2026-08-04T00:00:12.400Z",
         ended_at="2026-08-04T00:00:15.900Z",
         entity_id="red_block",
@@ -46,9 +46,9 @@ def test_motion_append_store_replay_and_lookup(tmp_path: Path) -> None:
         result_id="res-integration-001",
         action_id="act-integration-001",
         run_id="run-integration-001",
-        outcome="completed",
-        dispatch_state="sent",
-        device_state="confirmed",
+        outcome=ActionOutcome.COMPLETED,
+        dispatch_state=DispatchState.SENT,
+        device_state=DeviceState.CONFIRMED,
         started_at="2026-08-04T00:00:12.400Z",
         ended_at="2026-08-04T00:00:15.900Z",
         entity_id="red_block",

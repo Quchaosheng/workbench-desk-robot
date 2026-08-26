@@ -7,8 +7,16 @@ import math
 from copy import deepcopy
 from typing import Any
 
-from pydantic import ConfigDict, ValidationError, model_validator
-from workbench_contracts import ActionOutcome, ActionResult, WorldEvent, WorldEventType
+from pydantic import ConfigDict, Field, ValidationError, model_validator
+from workbench_contracts import (
+    ActionOutcome,
+    ActionResult,
+    ClockId,
+    DeviceState,
+    DispatchState,
+    WorldEvent,
+    WorldEventType,
+)
 
 MAX_ATTRIBUTE_COUNT = 32
 MAX_ATTRIBUTE_KEY_LENGTH = 64
@@ -95,6 +103,11 @@ class TypedActionResult(ActionResult):
 
     model_config = ConfigDict(extra="forbid")
 
+    outcome: ActionOutcome = Field(strict=False)
+    dispatch_state: DispatchState = Field(strict=False)
+    device_state: DeviceState = Field(strict=False)
+    clock_id: ClockId = Field(default=ClockId.MONOTONIC, strict=False)
+
     @model_validator(mode="before")
     @classmethod
     def validate_strict_json_fields(cls, value: object) -> object:
@@ -158,11 +171,12 @@ def normalize_action_result_payload(
     event_run_id: object,
     event_evidence_refs: object | None = None,
     expected_action_id: object | None = None,
-) -> TypedActionResult:
+) -> ActionResult:
     """Validate ActionResult fields and their enclosing event correlations."""
 
     try:
-        result = TypedActionResult.model_validate(payload)
+        adapted = TypedActionResult.model_validate(payload)
+        result = ActionResult.model_validate(adapted.model_dump(mode="python"))
     except ValidationError as error:
         raise WorldEventPayloadValidationError(f"invalid ActionResult payload: {error}") from error
 

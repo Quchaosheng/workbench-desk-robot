@@ -203,6 +203,19 @@ class EvaluationPipelineTests(unittest.TestCase):
         with self.assertRaisesRegex(EvaluationInputError, "filesystem-safe"):
             validate_label("../outside", "version")
 
+    def test_evaluation_manifest_adapter_accepts_reviewed_extension_only(self) -> None:
+        expanded = ROOT / "sim" / "scenarios" / "expanded" / "multi-object-003.json"
+        loaded = load_scenario_manifests([expanded])
+        self.assertEqual(loaded[0][1]["scene_variant"], "multi_object")
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "unknown-extension.json"
+            payload = dict(loaded[0][1])
+            payload["unreviewed_extension"] = True
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            with self.assertRaisesRegex(EvaluationInputError, "unknown simulation manifest fields"):
+                load_scenario_manifests([path])
+
     def test_event_log_rejects_bad_json_missing_verification_and_boolean_sequence(self) -> None:
         manifest = json.loads((ROOT / "sim" / "scenarios" / "frozen" / "normal-001.json").read_text(encoding="utf-8"))
         events = scripted_events("v-test", manifest, "abc123", 1000)

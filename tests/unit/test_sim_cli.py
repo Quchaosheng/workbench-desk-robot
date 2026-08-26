@@ -56,6 +56,16 @@ class SimulationCliTests(unittest.TestCase):
             with self.assertRaisesRegex(SimulationInputError, "duplicate JSON key"):
                 load_scenarios([path])
 
+    def test_simulation_manifest_adapter_rejects_unknown_extensions(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "unknown-extension.json"
+            payload = dict(self.scenario.manifest)
+            payload["unreviewed_extension"] = True
+            path.write_text(json.dumps(payload), encoding="utf-8")
+
+            with self.assertRaisesRegex(SimulationInputError, "unknown simulation manifest fields"):
+                load_scenarios([path])
+
     def test_scripted_fixture_publishes_complete_non_release_artifact(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             result = run_scenario(self.scenario, runner="scripted", output_dir=Path(directory), version="test")

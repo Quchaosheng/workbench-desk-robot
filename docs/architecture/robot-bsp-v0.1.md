@@ -1,12 +1,20 @@
 # Robot BSP V0.1 Freeze Package
 
-Status: architecture proposal pending board and controller selection.
+Status: logical topology frozen; physical board and controller part selection
+remains an implementation gate.
 
 This document freezes the logical ownership and safety boundaries for the robot
-board-support package. It does not claim that a physical board, kernel port,
+board-support package. The selected quantity is **one Linux development board
+and four MCUs per robot**. It does not claim that a physical board, kernel port,
 device tree, or production safety approval exists. Exact SoC, kernel release,
 CAN controller, pin numbers, IRQ numbers, and electrical ratings remain open
 until the board selection gate is signed.
+
+The quantity decision is intentionally independent of vendor part selection:
+one Linux board is the single high-level compute and gateway domain, while the
+four MCU domains provide real-time ownership and safety isolation. Adding a
+second Linux board or a fifth lift MCU requires a new architecture review and
+cannot happen implicitly in a BSP implementation PR.
 
 ## 1. System topology
 
@@ -28,7 +36,7 @@ until the board selection gate is signed.
   Linux commands are requests; they cannot create a safety permissive.
 ```
 
-The baseline uses four MCUs. The lift is owned by `MCU-BASE` for V0.1. A
+The baseline uses four MCUs and one Linux board. The lift is owned by `MCU-BASE` for V0.1. A
 separate `MCU-LIFT` is allowed only if the selected lift controller requires a
 different real-time rate, isolation boundary, or safety certification package.
 
@@ -79,7 +87,22 @@ replacement for the independent `MCU-SAFETY` path.
 6. CAN isolation, shield termination and chassis bonding are fixed by the
    electrical design review; software must not infer them.
 
-## 5. Multi-node CAN contract to add before BSP implementation
+## 5. V0.1 node and CAN allocation
+
+| Node | ID | CAN role | Reset domain |
+|---|---:|---|---|
+| Linux gateway | `0x01` | host gateway and diagnostics; never a safety authority | Linux board |
+| `MCU-BASE` | `0x10` | traction, encoders, lift and chassis telemetry | base motion |
+| `MCU-ARM-L` | `0x11` | left arm and tool telemetry | left arm |
+| `MCU-ARM-R` | `0x12` | right arm and tool telemetry | right arm |
+| `MCU-SAFETY` | `0x1F` | safety state and inhibit diagnostics | independent safety |
+
+These node IDs are logical V0.1 identifiers, not final arbitration IDs. The
+reserved `0x1F` safety node must retain the highest protocol priority for STOP
+and fault traffic. The complete arbitration map, bitrate and physical CAN
+controller remain implementation gates.
+
+## 6. Multi-node CAN contract to add before BSP implementation
 
 The existing MCU Wire V1 defines frame semantics but does not freeze a complete
 multi-node address plan. BSP V0.1 therefore requires:
@@ -94,7 +117,20 @@ multi-node address plan. BSP V0.1 therefore requires:
 `kernel/wbcan` remains a virtual regression device. It cannot be used as proof
 of physical CAN throughput, latency, EMC, or bus recovery.
 
-## 6. Freeze gates
+## 7. Execution stages after quantity freeze
+
+1. **BSP-1 board selection:** select one Linux board and record SoC, memory,
+   storage, power input, CAN interface, kernel baseline and boot media.
+2. **BSP-2 MCU selection:** select four MCU part numbers and record clock,
+   flash/RAM, CAN peripheral, reset, programming and watchdog resources.
+3. **BSP-3 electrical and device tree:** freeze schematic net names, pinctrl,
+   clocks, regulators, GPIO polarity, IRQ ownership and CAN termination.
+4. **BSP-4 boot image:** produce reproducible bootloader, kernel, DTB, rootfs,
+   firmware bundle and recovery image for the single Linux board.
+5. **BSP-5 hardware bring-up:** prove boot, CAN discovery, four heartbeats,
+   STOP, MCU reset, Linux restart and independent E-stop on real hardware.
+
+## 8. Freeze gates
 
 The package is ready to move from proposal to implementation only when all of
 the following have an owner and evidence reference:
@@ -108,4 +144,5 @@ the following have an owner and evidence reference:
 - E-stop and safe-enable truth table reviewed by the safety owner;
 - reproducible cross-compile, image assembly and recovery instructions.
 
-Until these gates close, the BSP status is `PROPOSAL_NOT_READY_FOR_PHYSICAL_BRINGUP`.
+Until the physical selection and bring-up gates close, the BSP status is
+`LOGICAL_TOPOLOGY_FROZEN_PHYSICAL_BRINGUP_PENDING`.

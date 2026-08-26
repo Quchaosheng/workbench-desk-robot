@@ -1,0 +1,49 @@
+version: "0.1"
+status: logical_topology_frozen_physical_selection_pending
+quantity_decision:
+  linux_boards_per_robot: 1
+  mcus_per_robot: 4
+  lift_mcu: false
+  change_control: new_architecture_review_required
+linux_board:
+  role: high_level_compute_and_gateway
+  model: TBD_VENDOR_SELECTION
+  soc: TBD_VENDOR_SELECTION
+  target_kernel: TBD_VERSION_SELECTION
+  interfaces:
+    can: can0
+    ethernet: eth0
+    usb: usb0
+    mcu_uart: ttyS-mcu
+    debug_uart: ttyS-debug
+    management_i2c: i2c-bmc
+    expansion_spi: spi-exp
+    watchdog: watchdog0
+mcus:
+  - id: MCU-BASE
+    node_id: 0x10
+    role: traction_and_lift
+    reset_domain: base_motion
+  - id: MCU-ARM-L
+    node_id: 0x11
+    role: left_seven_axis_arm_and_tool
+    reset_domain: left_arm
+  - id: MCU-ARM-R
+    node_id: 0x12
+    role: right_seven_axis_arm_and_tool
+    reset_domain: right_arm
+  - id: MCU-SAFETY
+    node_id: 0x1F
+    role: estop_watchdog_safe_enable_and_fault_latch
+    reset_domain: independent_safety
+can:
+  logical_bus: can0
+  transport: SocketCAN
+  controller: TBD_VENDOR_SELECTION
+  bitrate: TBD_ELECTRICAL_SELECTION
+  safety_node_priority: highest
+  termination: TBD_ELECTRICAL_SELECTION
+boundaries:
+  linux_is_not_safety_authority: true
+  wbcan_is_physical_evidence: false
+  physical_bringup_complete: false

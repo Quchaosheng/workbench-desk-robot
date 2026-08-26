@@ -4,19 +4,20 @@
   "objective": "Define the robot Linux-board and multi-MCU BSP V0.1 logical topology, ownership, interface allocation, IRQ rules, power boundaries, and freeze gates without claiming physical hardware validation.",
   "allowed_paths": [
     "docs/architecture/robot-bsp-v0.1.md",
+    "docs/architecture/robot-bsp-manifest-v0.1.yaml",
     "docs/task_packets/robot-bsp-freeze-v0.1.json"
   ],
   "read_only_paths": ["interfaces/**", "firmware/**", "robot/control/**"],
   "forbidden": ["interfaces/**", "firmware/**", "robot/control/**"],
   "acceptance": [
-    "the document describes Linux, four baseline MCUs, CAN, power, and independent safety ownership",
+    "the document and manifest freeze one Linux board and four baseline MCUs, CAN, power, and independent safety ownership",
     "logical peripherals have owners and IRQ/DMA allocation rules without invented pin numbers",
     "multi-node CAN addressing and unresolved physical decisions are explicit",
     "the document does not claim physical BSP bring-up or production safety approval"
   ],
   "commands": [
     "python -m json.tool docs/task_packets/robot-bsp-freeze-v0.1.json",
-    "python -c \"from pathlib import Path; p=Path('docs/architecture/robot-bsp-v0.1.md'); assert p.is_file() and 'PROPOSAL_NOT_READY_FOR_PHYSICAL_BRINGUP' in p.read_text(encoding='utf-8')\""
+    "python -c \"from pathlib import Path; p=Path('docs/architecture/robot-bsp-v0.1.md'); assert p.is_file() and 'one Linux development board and four MCUs per robot' in p.read_text(encoding='utf-8')\""
   ],
   "evidence": ["document review", "JSON parse output"],
   "stop_conditions": ["a physical part number or pin assignment is presented as confirmed without an owner source", "the Linux board is allowed to bypass MCU-SAFETY"]

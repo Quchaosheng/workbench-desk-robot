@@ -1,0 +1,52 @@
+{
+  "issue": 184,
+  "human_owner": "TH3478",
+  "objective": "Preserve standard SocketCAN software TX timestamp semantics for every frame accepted by wbcan without timestamping rejected or retried SKBs.",
+  "allowed_paths": [
+    "kernel/wbcan/wbcan.c",
+    "kernel/wbcan/test_wbcan.sh",
+    "kernel/wbcan/test_tx_timestamp.py",
+    "docs/task_packets/linux-wbcan-software-tx-timestamps.json"
+  ],
+  "read_only_paths": [
+    ".github/workflows/ci.yml",
+    "AGENTS.md",
+    "docs/task_packets/linux-wbcan-state-serialization.json"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "firmware/**",
+    "robot/control/**"
+  ],
+  "acceptance": [
+    "every normal, dropped, or injected-error SKB accepted by wbcan requests exactly one standard software TX timestamp",
+    "NETDEV_TX_BUSY and invalid frames produce no timestamp before a successful retry or acceptance",
+    "loopback, own-message, drop, error, counter, ownership, and fault semantics remain unchanged",
+    "ethtool reports software TX and RX timestamping with no PHC or hardware timestamp capability",
+    "a bounded CAN_RAW SO_TIMESTAMPING and MSG_ERRQUEUE probe compares wbcan with vcan",
+    "the timestamp probe closes every socket and removes its temporary vcan interface",
+    "all evidence is labelled as host software enqueue timing rather than wire, MCU, actuator, or hard-real-time timing"
+  ],
+  "commands": [
+    "make -C kernel/wbcan",
+    "make -C kernel/wbcan checkpatch",
+    "sudo make -C kernel/wbcan reload",
+    "sudo make -C kernel/wbcan test",
+    "python tools/scripts/check_task_packet.py docs/task_packets/linux-wbcan-software-tx-timestamps.json --base origin/fix/153-wbcan-state-serialization",
+    "git diff --check origin/fix/153-wbcan-state-serialization...HEAD"
+  ],
+  "evidence": [
+    "kernel module build and checkpatch output",
+    "vcan comparison and wbcan MSG_ERRQUEUE timestamp counts",
+    "software-only ethtool capability assertion",
+    "normal, loopback-disabled, own-message, drop, injected-error, TX-full retry, and invalid-frame results",
+    "existing privileged wbcan fault and concurrency suite output",
+    "clean readable marker-delimited kernel diagnostics"
+  ],
+  "stop_conditions": [
+    "the #153 state-serialization base changes incompatibly",
+    "the target kernel lacks standard skb_tx_timestamp or ethtool timestamp helpers",
+    "firmware, interfaces, hardware timestamp emulation, or physical CAN claims are required",
+    "the privileged runner cannot load wbcan, create vcan, or read MSG_ERRQUEUE"
+  ]
+}

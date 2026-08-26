@@ -86,18 +86,49 @@ metadata 和 checksums。它会明确标记为 `SCRIPTED_FIXTURE`，并保持
 **还没有：**完整 Gazebo 世界、真实相机桥接、MoveIt 抓取放置适配器、Gazebo 实测任务结果
 和真实硬件证据。仓库中的 fixture 是软件链路测试，不是机器人或 Gazebo 证据。
 
-同一 manifest 和 seed 会得到同一物化场景 hash，但这不意味着 Gazebo 物理、传感器噪声、
-进程时序或事件顺序也完全确定。
+仓库提供的确定性保证彼此独立：
+
+1. 同一冻结 manifest 和 seed 会得到同一物化场景 hash。
+2. 同一份合法且顺序一致的事件日志会归约为同一回放状态。
+3. 只有完整输入、版本和配置都一致时，脚本 fixture 生成器才保证输出同一有序事件序列。
+
+seed 本身不能决定事件顺序；这些保证也不代表 Gazebo 物理、传感器噪声、进程时序或真实
+机器人行为完全确定。
+
+## 验证与平台支持
+
+可移植 Python 运行时以 Python 3.12 为基线。原生 Windows 支持覆盖契约、事件处理、只读后端、
+监控、Task Packet 校验和确定性 fixture 流程；Linux 专属能力保持独立边界：
+
+| 边界 | 已支持的证据 | 不代表 |
+| --- | --- | --- |
+| Python runtime | Linux 和 Windows 上的单元、集成测试 | Gazebo、ROS 2 或机器人运动 |
+| 容器 | runtime 与 devcontainer 使用同一个不可变 Ubuntu digest | 未固定基础镜像也可复现 |
+| Dashboard 后端 | 有界只读 HTTP API；写方法返回 `405` | 公网部署认证或任何控制权限 |
+| `wbcan` | Linux 内核构建、虚拟 SocketCAN 故障测试、并发安全计数 | 真实 CAN 时序、MCU 行为或执行器安全 |
+| 脚本场景 | 带 checksum 的确定性 fixture artifact | 真实机器人或 Gazebo 执行 |
+
+完整的可移植检查是 `python -m pytest`。Linux CI 另外负责容器、MCU-QEMU 和特权内核模块
+门禁。任何必需 job 失败或被跳过时，都不能把该次合并视为已经验证。
 
 ## 快速开始
 
-Ubuntu 24.04 或 WSL2，Python 3.12，不需要 GPU。
+Ubuntu 24.04、WSL2 或安装 Python 3.12 的 Windows 11 都可运行可移植 runtime，且不需要
+GPU。内核模块、ROS 2 和容器检查仍要求 Linux。
 
 ```bash
 git clone https://github.com/Quchaosheng/workbench-desk-robot.git
 cd workbench-desk-robot
 make bootstrap
 make demo-scripted
+```
+
+原生 Windows 可直接安装开发依赖并运行可移植检查：
+
+```powershell
+py -3.12 -m pip install -e ".[dev]"
+py -3.12 -m pytest
+py -3.12 tools/scripts/demo_scripted.py
 ```
 
 常用命令：

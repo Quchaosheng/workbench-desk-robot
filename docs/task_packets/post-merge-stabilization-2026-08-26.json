@@ -1,0 +1,70 @@
+{
+  "issue": "post-merge-stabilization-2026-08-26",
+  "issues": [40, 157, 161, 222, 242, 243],
+  "human_owner": "Quchaosheng",
+  "objective": "Restore post-merge test integrity, Windows portability, wbcan statistics serialization, and truthful platform documentation after the August 26 merge batch.",
+  "allowed_paths": [
+    "README.md",
+    "README.zh-CN.md",
+    "docs/task_packets/post-merge-stabilization-2026-08-26.json",
+    "kernel/wbcan/test_state_concurrency.py",
+    "kernel/wbcan/test_wbcan.sh",
+    "kernel/wbcan/wbcan.c",
+    "libs/kernel/workbench/kernel/event_store.py",
+    "services/backend/workbench_backend/server.py",
+    "tests/integration/test_offline_system.py",
+    "tests/unit/test_container_baseline.py",
+    "tests/unit/test_kernel_event_store.py",
+    "tests/unit/test_monitoring.py",
+    "tests/unit/test_task_packet.py",
+    "tools/scripts/benchmark_monitoring.py"
+  ],
+  "read_only_paths": [
+    ".devcontainer/Dockerfile",
+    ".github/workflows/ci.yml",
+    "AGENTS.md",
+    "Dockerfile",
+    "kernel/wbcan/validate_test_report.py",
+    "tools/schemas/task-packet-v1.schema.json"
+  ],
+  "forbidden": [
+    "firmware/**",
+    "interfaces/**",
+    "robot/control/**"
+  ],
+  "acceptance": [
+    "runtime and development containers use one immutable Ubuntu digest without duplicating that digest in a test constant",
+    "native Windows tests do not require POSIX resource APIs or symbolic-link privileges",
+    "read-only HTTP write rejection drains bounded request bodies before responding",
+    "wbcan netdev counters use a race-safe snapshot boundary and never count rejected RX delivery as received",
+    "JSONL append reuses validated in-process state while detecting and reloading external file changes",
+    "the wbcan machine-readable report is created and every check append fails closed",
+    "English and Chinese READMEs distinguish portable Python validation from privileged Linux and physical evidence",
+    "English and Chinese READMEs state scene materialization, event replay, and scripted fixture determinism as three separate guarantees"
+  ],
+  "commands": [
+    "python tools/scripts/check_task_packet.py docs/task_packets/post-merge-stabilization-2026-08-26.json",
+    "python -m pytest tests/unit/test_container_baseline.py tests/unit/test_monitoring.py tests/unit/test_task_packet.py tests/integration/test_offline_system.py -v",
+    "python -m pytest tests/unit/test_linux_driver_tests.py -v",
+    "python -m pytest -v",
+    "python -m ruff check .",
+    "python -m ruff format --check .",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "git diff --check"
+  ],
+  "evidence": [
+    "focused Windows-compatible Python test output",
+    "full Python test-suite output on the current host",
+    "wbcan report-contract unit-test output",
+    "kernel build and privileged fault-suite output when a supported Linux host is available",
+    "Task Packet validation and clean diff output"
+  ],
+  "stop_conditions": [
+    "a public interface or firmware change is required",
+    "physical CAN or robot evidence would be inferred from software tests",
+    "the kernel fix requires a second controller state machine beside Linux CAN core",
+    "a write outside the approved paths is required"
+  ]
+}

@@ -1,0 +1,35 @@
+version: "0.1"
+status: template_blocked_on_target_release_and_hardware
+installable: false
+target:
+  jetpack_release: TBD_COMPATIBILITY_SELECTION
+  l4t_release: TBD_COMPATIBILITY_SELECTION
+  ros_distro: TBD_COMPATIBILITY_SELECTION
+packages:
+  librealsense2:
+    version: TBD_COMPATIBILITY_SELECTION
+    source: TBD_APPROVED_VENDOR_REPOSITORY_OR_REPRODUCIBLE_BUILD
+    provides_udev_rules: required
+  realsense2_camera:
+    version: TBD_COMPATIBILITY_SELECTION
+    source: TBD_APPROVED_ROS_PACKAGE_OR_REPRODUCIBLE_BUILD
+identity:
+  selector: librealsense_serial
+  serial: TBD_FROM_PURCHASED_UNIT
+  usb_topology: TBD_FROM_INSTALLED_HARNESS
+  single_video_device_symlink: prohibited
+service:
+  unit_template: bsp/rootfs/systemd/robot-camera-head.service.in
+  launcher: bsp/rootfs/libexec/camera-head-launch
+  environment_file: /etc/workbench/camera-head.env
+  launch_package: realsense2_camera
+  launch_file: rs_launch.py
+  safety_authority: false
+activation_gates:
+  - target package versions are frozen and hashes are recorded
+  - ROS_DISTRO resolves to an installed /opt/ros release
+  - purchased D435 serial is recorded
+  - vendor udev rules enumerate every D435 interface without symlink collision
+  - required stream modes pass sustained USB 3 bandwidth testing
+  - physical intrinsics and robot extrinsics are installed
+  - timestamp and dropped-frame thresholds pass

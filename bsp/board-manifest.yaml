@@ -11,7 +11,7 @@ linux_board:
     management_i2c: i2c-bmc
     expansion_spi: spi-exp
     watchdog: watchdog0
-    head_rgbd_camera: /dev/workbench-camera-head
+    head_rgbd_camera: librealsense_serial:TBD_FROM_PURCHASED_UNIT
   unresolved:
     - carrier_board_power_input
     - target_jetpack_and_kernel_release

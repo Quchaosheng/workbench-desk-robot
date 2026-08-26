@@ -22,6 +22,12 @@ The camera node publishes sensor data; it does not directly produce verified
 task completion. Calibration, timestamp quality, frame identity and observation
 validation remain explicit boundaries.
 
+The D435 is a composite USB device and exposes multiple video interfaces. The
+BSP therefore selects it by its librealsense serial number and consumes the
+vendor udev rules from the frozen package. A single `/dev/video*` alias for the
+whole camera is prohibited because multiple interfaces would race for the same
+symlink.
+
 ## Bring-up gates
 
 1. Confirm the purchased serial number, USB 3 topology, cable retention and

@@ -23,7 +23,7 @@ services:
     safety_authority: false
   robot-camera-head:
     after: [robot-device-manager]
-    requires: [workbench_camera_head, camera_calibration]
+    requires: [d435_serial_identity, vendor_udev_rules, camera_calibration]
     restart: on-failure
     restart_limit: bounded
     safety_authority: false

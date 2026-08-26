@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+
+test -n "${D435_SERIAL:-}"
+test "${D435_SERIAL}" != "TBD_FROM_PURCHASED_UNIT"
+test -n "${ROS_DISTRO:-}"
+test "${ROS_DISTRO}" != "TBD_COMPATIBILITY_SELECTION"
+
+ros_setup="/opt/ros/${ROS_DISTRO}/setup.sh"
+test -r "${ros_setup}"
+. "${ros_setup}"
+
+exec ros2 launch realsense2_camera rs_launch.py \
+  "serial_no:=${D435_SERIAL}" \
+  "camera_name:=workbench_camera_head"

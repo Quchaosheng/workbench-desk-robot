@@ -15,9 +15,11 @@ linux_stack:
   ros2_driver: realsense2_camera
   ros2_release: TBD_COMPATIBILITY_SELECTION
 device_identity:
+  method: librealsense_serial
   serial_number: TBD_FROM_PURCHASED_UNIT
   usb_path: TBD_FROM_INSTALLED_HARNESS
-  udev_symlink: /dev/workbench-camera-head
+  udev_rules: vendor_libusb_rules_from_frozen_librealsense_package
+  single_video_device_symlink: prohibited_multi_interface_device
 frames:
   body_frame: camera_body
   optical_frame: camera_optical

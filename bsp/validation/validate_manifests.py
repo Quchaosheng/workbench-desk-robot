@@ -16,8 +16,41 @@ def validate_camera_manifest(camera: dict) -> list[str]:
         errors.append("prototype BSP requires exactly one D435 head camera")
     if camera.get("selection", {}).get("interface") != "USB_3":
         errors.append("head RGB-D camera must use the selected USB 3 boundary")
+    identity = camera.get("device_identity", {})
+    if identity.get("method") != "librealsense_serial":
+        errors.append("D435 identity must use the librealsense serial selector")
+    if identity.get("single_video_device_symlink") != "prohibited_multi_interface_device":
+        errors.append("D435 must not use one shared video-device symlink")
     if camera.get("boundaries", {}).get("physical_evidence_ready") is not False:
         errors.append("camera physical evidence must remain false before calibration and bring-up")
+    return errors
+
+
+def validate_camera_deployment(deployment: dict, unit: str, launcher: str, environment_example: str) -> list[str]:
+    errors: list[str] = []
+    unresolved = "TBD_" in yaml.safe_dump(deployment)
+    if unresolved and deployment.get("installable") is not False:
+        errors.append("camera deployment with unresolved selections must not be installable")
+    if deployment.get("identity", {}).get("selector") != "librealsense_serial":
+        errors.append("camera deployment must bind the D435 by librealsense serial")
+    if deployment.get("identity", {}).get("single_video_device_symlink") != "prohibited":
+        errors.append("camera deployment must prohibit a shared video-device symlink")
+    if deployment.get("service", {}).get("safety_authority") is not False:
+        errors.append("camera service must not own safety authority")
+    if "ExecStart=/usr/libexec/workbench/camera-head-launch" not in unit:
+        errors.append("camera systemd unit must use the guarded launcher")
+    if 'ExecStartPre=/usr/bin/test "${D435_SERIAL}" != "TBD_FROM_PURCHASED_UNIT"' not in unit:
+        errors.append("camera systemd unit must reject the placeholder serial")
+    if "serial_no:=${D435_SERIAL}" not in launcher:
+        errors.append("camera launcher must pass the frozen serial to the ROS driver")
+    if "/opt/ros/${ROS_DISTRO}/setup.sh" not in launcher:
+        errors.append("camera launcher must load the selected ROS environment")
+    required_placeholders = {
+        "D435_SERIAL=TBD_FROM_PURCHASED_UNIT",
+        "ROS_DISTRO=TBD_COMPATIBILITY_SELECTION",
+    }
+    if not required_placeholders.issubset(environment_example.splitlines()):
+        errors.append("camera environment example must remain explicitly unresolved")
     return errors
 
 
@@ -79,6 +112,11 @@ def validate() -> list[str]:
         errors.append("every BSP selection requires an explicit closure action")
     camera = yaml.safe_load((ROOT / "bsp/sensors/camera-head.yaml").read_text(encoding="utf-8"))
     errors.extend(validate_camera_manifest(camera))
+    deployment = yaml.safe_load((ROOT / "bsp/rootfs/camera-head-deployment.yaml").read_text(encoding="utf-8"))
+    unit = (ROOT / "bsp/rootfs/systemd/robot-camera-head.service.in").read_text(encoding="utf-8")
+    launcher = (ROOT / "bsp/rootfs/libexec/camera-head-launch").read_text(encoding="utf-8")
+    environment_example = (ROOT / "bsp/rootfs/camera-head.env.example").read_text(encoding="utf-8")
+    errors.extend(validate_camera_deployment(deployment, unit, launcher, environment_example))
     return errors
 
 

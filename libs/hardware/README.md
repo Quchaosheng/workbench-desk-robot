@@ -7,7 +7,7 @@
 ## Components
 
 - **HW1**: URDF Parser (implemented)
-- **HW2**: CAN Driver (planned)
+- **HW2**: Bounded CAN transport adapter (host-side, fake-transport verified)
 - **HW3**: Motor Feedback Parser (planned)
 - **HW4**: PID Controller (planned)
 - **HW5**: Sensor Simulator (planned)
@@ -21,7 +21,8 @@ Kernel (ROS 2)
     ↓ (versioned messages)
 Hardware Layer
     ├─ URDF Parser → Motor Config
-    ├─ CAN Driver ↔ MCU
+    ├─ DeviceRuntime
+    │   └─ CAN DeviceAdapter ↔ injected CAN Wire V1 transport
     ├─ Motor Feedback ← Encoders
     ├─ PID Controller → Motor Command
     ├─ Sensor Simulator ← Gazebo
@@ -58,7 +59,17 @@ generated motor configuration are recorded in
 ## P1 Deliverables
 
 - HW1: Motor configuration from expanded URDF (implemented)
-- HW2-3: CAN communication + feedback parsing (planned)
+- HW2: bounded host CAN `DeviceAdapter` hosted by the unified `DeviceRuntime`
+  (implemented; physical transport not claimed)
+- HW3: CAN feedback parsing (planned)
 - HW4: PID controller (planned)
 - HW5-6: Sensor simulation + 100Hz real-time control loop (planned)
 - HW7: Full integration test (planned)
+
+The CAN adapter does not create its own worker or lifecycle. `DeviceRuntime`
+owns `configure -> activate -> deactivate -> cleanup`, cancellation, the
+single I/O worker, bounded command/ACK, telemetry and health planes, and the
+subscriber snapshot. `SafeCANBus` compatibility lifecycle methods delegate to
+that owner. See
+[`host-can-transport-v1.md`](../../docs/architecture/host-can-transport-v1.md)
+for the exact ownership and evidence boundary.

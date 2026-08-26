@@ -180,13 +180,17 @@ class McuFrame(RootModel[McuFrameValue]):
     """Fail-closed MCU logical frame protocol v1.0."""
 
 
-class Position(BaseModel):
+class _CanonicalRuntimeModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+
+class Position(_CanonicalRuntimeModel):
     x: float
     y: float
     z: float
 
 
-class Orientation(BaseModel):
+class Orientation(_CanonicalRuntimeModel):
     """Unit quaternion. A tabletop grasp needs orientation, not just a point."""
 
     x: float
@@ -195,7 +199,7 @@ class Orientation(BaseModel):
     w: float
 
 
-class Pose(BaseModel):
+class Pose(_CanonicalRuntimeModel):
     frame_id: str
     position: Position
     orientation: Orientation
@@ -207,7 +211,7 @@ class Detector(StrEnum):
     MOCK = "mock"
 
 
-class Observation(BaseModel):
+class Observation(_CanonicalRuntimeModel):
     observation_id: str
     run_id: str
     entity_id: str
@@ -215,7 +219,7 @@ class Observation(BaseModel):
     pose: Pose
     confidence: float = Field(ge=0.0, le=1.0)
     detector: Detector = Detector.MOCK
-    hamming: int | None = None
+    hamming: int | None = Field(default=None, ge=0)
     decision_margin: float | None = None
     observed_at: str
     clock_id: ClockId = ClockId.MONOTONIC
@@ -223,7 +227,7 @@ class Observation(BaseModel):
     evidence_refs: list[str] = Field(min_length=1)
 
 
-class SemanticAction(BaseModel):
+class SemanticAction(_CanonicalRuntimeModel):
     action_id: str
     action_type: ActionType
     target_id: str | None = None
@@ -256,7 +260,7 @@ class DeviceState(StrEnum):
     STOPPED = "stopped"
 
 
-class ActionResult(BaseModel):
+class ActionResult(_CanonicalRuntimeModel):
     result_id: str
     action_id: str
     run_id: str
@@ -282,7 +286,7 @@ class ActionResult(BaseModel):
         return self
 
 
-class WorldEvent(BaseModel):
+class WorldEvent(_CanonicalRuntimeModel):
     event_id: str
     run_id: str
     sequence_no: int = Field(ge=0)
@@ -292,16 +296,16 @@ class WorldEvent(BaseModel):
     evidence_refs: list[str] = Field(default_factory=list)
 
 
-class TaskStep(BaseModel):
+class TaskStep(_CanonicalRuntimeModel):
     step_id: str
     action: SemanticAction
     depends_on: list[str] = Field(default_factory=list)
 
 
-class TaskGraph(BaseModel):
+class TaskGraph(_CanonicalRuntimeModel):
     task_id: str
     goal: str
-    steps: list[TaskStep]
+    steps: list[TaskStep] = Field(min_length=1)
     planner: str
     model_route: str = "template"
 
@@ -333,7 +337,7 @@ class RecoveryHint(StrEnum):
     NONE = "none"
 
 
-class VerificationResult(BaseModel):
+class VerificationResult(_CanonicalRuntimeModel):
     verification_id: str
     run_id: str
     task_id: str
@@ -372,7 +376,7 @@ class VerificationResult(BaseModel):
         return self.reason_code.value if self.reason_code else self.status.value
 
 
-class ScenarioManifest(BaseModel):
+class ScenarioManifest(_CanonicalRuntimeModel):
     scenario_id: str
     seed: int
     task_id: str

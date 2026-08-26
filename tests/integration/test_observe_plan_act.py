@@ -2,19 +2,22 @@
 集成测试:观测 → 规划 → 执行路径
 """
 
+import io
 import json
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [
+    str(ROOT / "tools/scripts"),
     str(ROOT / "libs/contracts"),
     str(ROOT / "services/agent_runtime"),
     str(ROOT / "services/world_model"),
 ]
 
+import demo_scripted
 from workbench_agent_runtime import build_template_plan
-from workbench_contracts import WorldEvent, WorldEventType
+from workbench_contracts import VerificationStatus, WorldEvent, WorldEventType
 from workbench_world_model import reduce_events
 
 
@@ -108,7 +111,11 @@ def test_event_replay_integration(event_store):
             sequence_no=i,
             event_type=WorldEventType.OBSERVATION,
             occurred_at=f"2026-08-04T10:00:{i:02d}Z",
-            payload={"entity_id": f"block-{i}", "location": "on:table"},
+            payload={
+                "entity_id": f"block-{i}",
+                "location": "on:table",
+                "confidence": 0.9,
+            },
             evidence_refs=[f"evidence-{i}"],
         )
         for i in range(1, 4)
@@ -122,7 +129,73 @@ def test_event_replay_integration(event_store):
     assert len(replayed) == 3
 
     state = reduce_events("replay-test-001", replayed)
+    assert state.applied_event_ids == [item.event_id for item in replayed]
 
+
+def test_scripted_demo_requires_post_action_observation(monkeypatch):
+    captured = {}
+    original_append = demo_scripted.SQLiteEventStore.append
+    original_verify = demo_scripted.verify_object_in_tray
+
+    def append_without_post_action_observation(store, item):
+        if item.event_id == "evt-004":
+            return None
+        return original_append(store, item)
+
+    def capture_verification(state, task_id, object_id, tray_id):
+        result = original_verify(state, task_id, object_id, tray_id)
+        captured["verification"] = result
+        return result
+
+    monkeypatch.setattr(
+        demo_scripted.SQLiteEventStore,
+        "append",
+        append_without_post_action_observation,
+    )
+    monkeypatch.setattr(demo_scripted, "verify_object_in_tray", capture_verification)
+
+    output = demo_scripted.run_once(
+        "scripted-without-post-observation",
+        demo_scripted.StructuredLogger("scripted-test", io.StringIO()),
+    )
+    verification = captured["verification"]
+
+    assert output["verified_complete"] is False
+    assert verification.status is VerificationStatus.INSUFFICIENT_EVIDENCE
+    assert "action-result-003" not in verification.evidence_refs
+
+
+def test_scripted_demo_replay_keeps_execution_and_sensor_evidence_separate(monkeypatch):
+    captured = {}
+    original_reduce = demo_scripted.reduce_events
+
+    def capture_reduction(run_id, events):
+        state = original_reduce(run_id, events)
+        captured["events"] = events
+        captured["state"] = state
+        return state
+
+    monkeypatch.setattr(demo_scripted, "reduce_events", capture_reduction)
+
+    output = demo_scripted.run_once(
+        "scripted-with-post-observation",
+        demo_scripted.StructuredLogger("scripted-test", io.StringIO()),
+    )
+    replayed_events = captured["events"]
+    state = captured["state"]
+
+    assert output["verified_complete"] is True
+    assert output["evidence_refs"] == ["camera-frame-004"]
+    assert [item.event_id for item in replayed_events] == [
+        "evt-001",
+        "evt-002",
+        "evt-003",
+        "evt-004",
+    ]
+    assert any(item.event_type is WorldEventType.ACTION_RESULT for item in replayed_events)
+    assert "action-result-003" in state.evidence_refs
+    assert "action-result-003" not in state.entity_evidence_refs["red_block"]
+    assert state.entity_evidence_refs["red_block"] == ["camera-frame-004"]
     # 断言:state_hash 存在且非空
     # (一旦 WorldState 实现 state_hash,这个断言才有意义)
     # assert state.state_hash

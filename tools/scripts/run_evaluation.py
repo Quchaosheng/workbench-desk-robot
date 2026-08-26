@@ -15,10 +15,8 @@ from _paths import enable_local_packages
 
 enable_local_packages()
 
-from pydantic import ValidationError
-from scenario_tools import TASK_PROFILES, materialize_scenario
+from scenario_tools import TASK_PROFILES, materialize_scenario, validate_simulation_manifest
 from workbench_agent_runtime import build_policy_routed_parcel_plan
-from workbench_contracts import ScenarioManifest
 
 SAFE_LABEL = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 EVENT_TYPES = {
@@ -55,8 +53,8 @@ def load_scenario_manifests(paths: list[Path]) -> list[tuple[Path, dict[str, Any
     for path in paths:
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
-            ScenarioManifest.model_validate(payload, strict=True)
-        except (OSError, UnicodeError, json.JSONDecodeError, ValidationError) as exc:
+            validate_simulation_manifest(payload)
+        except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
             raise EvaluationInputError(f"invalid scenario manifest {path}: {exc}") from exc
         scenario_id = validate_label(payload["scenario_id"], "scenario_id")
         if scenario_id in seen_ids:

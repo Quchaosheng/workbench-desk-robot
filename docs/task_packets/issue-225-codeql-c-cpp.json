@@ -1,0 +1,49 @@
+{
+  "issue": 225,
+  "human_owner": "TH3478",
+  "objective": "Add required static analysis coverage for the kernel wbcan driver and freestanding MCU C code without replacing runtime safety evidence.",
+  "allowed_paths": [
+    ".github/workflows/security.yml",
+    "tests/unit/test_security_baseline.py",
+    "docs/task_packets/issue-225-codeql-c-cpp.json"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "kernel/wbcan/**",
+    "firmware/mcu/**",
+    ".github/workflows/ci.yml"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "robot/control/**",
+    "hardware/safety/**"
+  ],
+  "acceptance": [
+    "a pinned CodeQL C/C++ job analyzes kernel/wbcan and firmware/mcu",
+    "the C/C++ job uses manual build mode and records both kernel and freestanding MCU compiler invocations",
+    "CodeQL upload permissions are limited to the C/C++ and Python analysis jobs",
+    "the C/C++ analysis job cannot silently skip its build or be marked successful with continue-on-error",
+    "the existing wbcan fault suite and MCU QEMU checks remain separate runtime evidence",
+    "a deterministic security workflow regression test protects the C/C++ job configuration"
+  ],
+  "commands": [
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/issue-225-codeql-c-cpp.json",
+    "python3 -m pytest tests/unit/test_security_baseline.py -q",
+    "make check",
+    "python3 -m mkdocs build --strict",
+    "git diff --check"
+  ],
+  "evidence": [
+    "security workflow regression test output",
+    "Task Packet validation output",
+    "full repository check output",
+    "strict documentation build output",
+    "CodeQL C/C++ and Python analysis results"
+  ],
+  "stop_conditions": [
+    "a compiler database cannot be captured for either the kernel or freestanding MCU target",
+    "a firmware, interface, robot-control, or physical safety change is required",
+    "the analyzer is allowed to skip a build, suppress findings broadly, or replace runtime evidence",
+    "a repository branch-protection setting must be changed outside the code review"
+  ]
+}

@@ -2,11 +2,17 @@ import json
 from collections import Counter
 
 from _paths import ROOT, enable_local_packages
-from scenario_tools import FROZEN_DISTRIBUTION, P2_FAULT_TYPES, P2_SCENE_VARIANTS, SCENE_TASKS, materialize_scenario
 
 enable_local_packages()
 
-from workbench_contracts import ScenarioManifest
+from scenario_tools import (
+    FROZEN_DISTRIBUTION,
+    P2_FAULT_TYPES,
+    P2_SCENE_VARIANTS,
+    SCENE_TASKS,
+    materialize_scenario,
+    validate_simulation_manifest,
+)
 
 
 def main() -> int:
@@ -16,7 +22,7 @@ def main() -> int:
     manifests = []
     for path in scenario_files:
         payload = json.loads(path.read_text(encoding="utf-8"))
-        ScenarioManifest.model_validate(payload)
+        validate_simulation_manifest(payload)
         first = materialize_scenario(payload)
         second = materialize_scenario(payload)
         if first != second:

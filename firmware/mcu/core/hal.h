@@ -39,6 +39,8 @@ uint64_t hal_now_us(void);
 /* Arm a one-shot timer interrupt at an absolute time. Used by FW5. */
 void hal_timer_arm_us(uint64_t deadline_us);
 void hal_timer_disarm(void);
+/* Enable the target's global timer-interrupt delivery after setup. */
+void hal_timer_enable(void);
 
 /* ----------------------------------------------------------------------- CAN
  * Frame as it goes on the wire. Matches mcu_protocol.schema.json.
@@ -65,5 +67,7 @@ bool hal_can_recv(hal_can_frame *out);
  */
 void hal_wdt_start(uint32_t timeout_ms);
 void hal_wdt_feed(void);
+uint32_t hal_wdt_feed_count(void);
+bool hal_wdt_is_expired(void);
 
 #endif /* MCU_HAL_H */

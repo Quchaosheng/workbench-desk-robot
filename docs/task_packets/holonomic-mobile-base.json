@@ -1,0 +1,43 @@
+{
+  "issue": "holonomic-mobile-base",
+  "human_owner": "Quchaosheng",
+  "objective": "Replace the visually fixed enclosed base with a connected four-module steer-drive chassis that clearly supports autonomous forward, lateral, diagonal, and rotate-in-place motion while retaining retractable stabilizers for manipulation.",
+  "allowed_paths": [
+    "hardware/mechanical/**",
+    "tests/hardware/test_engineering_packages.py",
+    "docs/assets/premium-product-render.html",
+    "docs/assets/workbench-home-robot-premium.png",
+    "docs/task_packets/holonomic-mobile-base.json"
+  ],
+  "read_only_paths": ["robot/**", "interfaces/**", "firmware/**", "hardware/pcb/**"],
+  "forbidden": ["robot/control/**", "firmware/**", "services/**", "interfaces/**"],
+  "acceptance": [
+    "the base has four independent steer-drive modules with visible connected wheel, fork, steering bearing, and chassis load paths",
+    "the declared motion modes include longitudinal, lateral, diagonal, and rotate-in-place movement",
+    "stabilizers are retracted during navigation and deploy only for stationary manipulation",
+    "SCAD, STEP, engineering drawings, interactive render, campaign image, BOM, and assembly sequence agree on the holonomic base",
+    "autonomous navigation software and physical drive validation remain explicitly incomplete",
+    "mechanical tests, Ruff, and Task Packet validation pass"
+  ],
+  "commands": [
+    "python hardware/mechanical/tools/generate_artifacts.py",
+    "python -m pytest tests/hardware/test_engineering_packages.py::MechanicalPackageTests -q",
+    "python -m ruff check hardware/mechanical tests/hardware/test_engineering_packages.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/holonomic-mobile-base.json"
+  ],
+  "evidence": [
+    "hardware/mechanical/design-spec.json",
+    "hardware/mechanical/cad/desk_robot.scad",
+    "hardware/mechanical/generated/parts/mobile_base.step",
+    "hardware/mechanical/generated/desk_robot_assembly.step",
+    "hardware/mechanical/generated/drawings/general-arrangement.svg",
+    "docs/assets/premium-product-render.html",
+    "docs/assets/workbench-home-robot-premium.png"
+  ],
+  "stop_conditions": [
+    "the chassis change requires inventing finished navigation, motor-control, localization, or safety performance",
+    "wheel modules cannot maintain guarded steering hardware and a connected structural path",
+    "the base would lose the brake and stabilizer requirements needed for dual-arm manipulation",
+    "the visual would imply physical drive validation that has not occurred"
+  ]
+}

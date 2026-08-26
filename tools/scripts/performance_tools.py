@@ -33,6 +33,15 @@ MEMORY_UNITS = {
 }
 
 
+def software_environment() -> dict[str, str]:
+    """Return the stable environment identity shared by software reports."""
+    return {
+        "platform": platform.platform(),
+        "python": platform.python_version(),
+        "machine": platform.machine(),
+    }
+
+
 def percentile(values: list[float], quantile: float) -> float | None:
     if not values:
         return None
@@ -153,11 +162,7 @@ def summarize_telemetry(
     return {
         "schema_version": 1,
         "generated_by": "tools/scripts/analyze_telemetry.py",
-        "environment": {
-            "platform": platform.platform(),
-            "python": platform.python_version(),
-            "machine": platform.machine(),
-        },
+        "environment": software_environment(),
         "record_count": len(records),
         "sources": sources,
         "hardware_evidence": (

@@ -23,6 +23,7 @@ COPY libs/application ./libs/application
 COPY libs/contracts ./libs/contracts
 COPY libs/hardware ./libs/hardware
 COPY libs/kernel ./libs/kernel
+COPY libs/task_utils ./libs/task_utils
 COPY services/agent_runtime ./services/agent_runtime
 COPY services/backend ./services/backend
 COPY services/world_model ./services/world_model

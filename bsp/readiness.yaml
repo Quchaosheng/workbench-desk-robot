@@ -1,0 +1,46 @@
+version: "0.1"
+package: robot-bsp
+status: REPOSITORY_BASELINE_READY_PHYSICAL_BRINGUP_BLOCKED
+gates:
+  - id: BSP-GATE-ARCH
+    owner: System Owner
+    status: PASS
+    evidence: docs/architecture/robot-bsp-v0.1.md
+    requirement: one Linux board and six controller domains are frozen
+  - id: BSP-GATE-SELECTION
+    owner: System and Procurement Owners
+    status: REVIEW_REQUIRED
+    evidence: bsp/procurement/selection-register.csv
+    requirement: exact orderable SKUs, quotations and lifecycle are approved
+  - id: BSP-GATE-CARRIER
+    owner: Electrical Owner
+    status: BLOCKED
+    evidence: NOT_ATTACHED
+    requirement: carrier schematic, power, camera, pinctrl and IRQ resources are frozen
+  - id: BSP-GATE-MCU
+    owner: MCU and Electrical Owners
+    status: BLOCKED
+    evidence: NOT_ATTACHED
+    requirement: STM32H563 and STM32G0B1 pin budgets and programming paths are approved
+  - id: BSP-GATE-SAFETY
+    owner: Safety Owner
+    status: BLOCKED
+    evidence: NOT_ATTACHED
+    requirement: E-stop and safe-enable truth table is independently approved
+  - id: BSP-GATE-IMAGE
+    owner: Linux Owner
+    status: NOT_EXECUTED
+    evidence: NOT_ATTACHED
+    requirement: bootloader, kernel, DTB, rootfs and recovery image are reproducible
+  - id: BSP-GATE-CAN
+    owner: Linux and Integration Owners
+    status: NOT_EXECUTED
+    evidence: NOT_ATTACHED
+    requirement: physical CAN discovers six domains and records recovery behavior
+  - id: BSP-GATE-VALIDATION
+    owner: Validation Owner
+    status: NOT_EXECUTED
+    evidence: bsp/validation/bringup-plan.yaml
+    requirement: guarded boot, reset, STOP, power, thermal and load tests are executed
+allowed_statuses: [PASS, REVIEW_REQUIRED, BLOCKED, NOT_EXECUTED, FAIL]
+physical_release_ready: false

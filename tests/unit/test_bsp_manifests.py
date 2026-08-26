@@ -5,6 +5,7 @@ from pathlib import Path
 
 import yaml
 
+from bsp.validation.check_readiness import check
 from bsp.validation.validate_manifests import validate, validate_manifests
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -19,6 +20,7 @@ def load_manifests() -> tuple[dict, dict, dict]:
 
 def test_bsp_manifests_are_consistent_and_fail_closed() -> None:
     assert validate() == []
+    assert check() == []
 
 
 def test_duplicate_node_id_and_nonindependent_safety_are_rejected() -> None:

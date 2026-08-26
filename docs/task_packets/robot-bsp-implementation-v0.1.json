@@ -8,6 +8,8 @@
     "bsp/rootfs/README.md",
     "bsp/firmware/compatibility.yaml",
     "bsp/validation/bringup-plan.yaml",
+    "bsp/validation/validate_manifests.py",
+    "tests/unit/test_bsp_manifests.py",
     "docs/task_packets/robot-bsp-implementation-v0.1.json"
   ],
   "read_only_paths": ["interfaces/**", "firmware/**", "robot/control/**"],
@@ -16,10 +18,13 @@
     "implementation stages and external evidence gates are explicit",
     "Linux, rootfs, firmware compatibility and bring-up boundaries are documented",
     "all unexecuted physical tests are marked NOT_EXECUTED",
-    "no service or Linux resource can bypass MCU-SAFETY"
+    "no service or Linux resource can bypass MCU-SAFETY",
+    "manifest validation rejects domain drift and unsafe physical-status promotion"
   ],
   "commands": [
     "python -m json.tool docs/task_packets/robot-bsp-implementation-v0.1.json",
+    "python bsp/validation/validate_manifests.py",
+    "python -m pytest tests/unit/test_bsp_manifests.py -q",
     "python -c \"from pathlib import Path; import yaml; d=yaml.safe_load(Path('bsp/validation/bringup-plan.yaml').read_text()); assert d['status']=='plan_not_executed' and all(x['result']=='NOT_EXECUTED' for x in d['tests'])\""
   ],
   "evidence": ["document review", "manifest parse output"],

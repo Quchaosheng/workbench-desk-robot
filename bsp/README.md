@@ -18,6 +18,10 @@ bsp/
   validation/                bring-up scripts and raw evidence references
 ```
 
+Run `python bsp/validation/validate_manifests.py` before changing a board,
+controller or firmware manifest. The validator checks domain identity and
+keeps physical bring-up results fail-closed until evidence is attached.
+
 Do not add pin numbers, IRQ numbers, register addresses or production power
 limits until they are sourced from the selected carrier-board schematic and
 vendor documentation.

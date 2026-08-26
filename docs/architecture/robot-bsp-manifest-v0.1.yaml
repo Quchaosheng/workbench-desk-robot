@@ -1,5 +1,5 @@
 version: "0.1"
-status: logical_topology_frozen_physical_selection_pending
+status: recommended_prototype_selection_pending_supplier_and_electrical_approval
 quantity_decision:
   linux_boards_per_robot: 1
   controller_domains_per_robot: 6
@@ -9,9 +9,12 @@ quantity_decision:
   change_control: new_architecture_review_required
 linux_board:
   role: high_level_compute_and_gateway
-  model: TBD_VENDOR_SELECTION
-  soc: TBD_VENDOR_SELECTION
-  target_kernel: TBD_VERSION_SELECTION
+  model: NVIDIA_JETSON_ORIN_NANO_SUPER_DEVELOPER_KIT_8GB
+  soc: NVIDIA_ORIN_NANO
+  target_kernel: JETPACK_BSP_RELEASE_TO_BE_CONFIRMED
+  selection_status: recommended_prototype_selection
+  storage: NVME_512GB_MINIMUM
+  cooling: ACTIVE_COOLER_REQUIRED
   interfaces:
     can: can0
     ethernet: eth0
@@ -52,7 +55,7 @@ controller_domains:
 can:
   logical_bus: can0
   transport: SocketCAN
-  controller: TBD_VENDOR_SELECTION
+  controller: ISOLATED_USB_CAN_FD_ADAPTER_PROTOTYPE
   bitrate: TBD_ELECTRICAL_SELECTION
   safety_node_priority: highest
   termination: TBD_ELECTRICAL_SELECTION
@@ -60,3 +63,15 @@ boundaries:
   linux_is_not_safety_authority: true
   wbcan_is_physical_evidence: false
   physical_bringup_complete: false
+robot_owned_mcus:
+  - id: MCU-BASE
+    part: STM32H563
+    selection_status: recommended_prototype_selection
+  - id: MCU-SAFETY
+    part: STM32G0B1
+    selection_status: recommended_prototype_selection
+module_controller_selection:
+  ARM-L-CTRL: vendor_arm_controller
+  ARM-R-CTRL: vendor_arm_controller
+  TOOL-L-CTRL: vendor_tool_controller_or_can_rs485_node
+  TOOL-R-CTRL: vendor_tool_controller_or_can_rs485_node

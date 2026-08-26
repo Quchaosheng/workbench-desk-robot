@@ -4,6 +4,8 @@ import random
 from pathlib import Path
 from typing import Any
 
+from workbench_contracts import ScenarioManifest
+
 FROZEN_DISTRIBUTION = {
     "grasp_failure": 3,
     "moving_target": 3,
@@ -12,6 +14,7 @@ FROZEN_DISTRIBUTION = {
 }
 
 P2_SCENE_VARIANTS = {"path_blocked", "low_light", "multi_object", "parcel_intake"}
+SIMULATION_MANIFEST_EXTENSIONS = frozenset({"scene_variant"})
 P2_FAULT_TYPES = {
     "actuator_timeout",
     "camera_dropout",
@@ -128,6 +131,23 @@ ENTITY_APPEARANCE = {
 def canonical_hash(value: Any) -> str:
     encoded = json.dumps(value, ensure_ascii=True, separators=(",", ":"), sort_keys=True).encode()
     return hashlib.sha256(encoded).hexdigest()
+
+
+def validate_simulation_manifest(payload: dict[str, Any]) -> ScenarioManifest:
+    """Validate the canonical manifest plus reviewed simulator extensions."""
+
+    canonical_fields = set(ScenarioManifest.model_fields)
+    unknown_fields = set(payload) - canonical_fields - SIMULATION_MANIFEST_EXTENSIONS
+    if unknown_fields:
+        raise ValueError(f"unknown simulation manifest fields: {sorted(unknown_fields)}")
+
+    canonical_payload = {field: payload[field] for field in canonical_fields if field in payload}
+    manifest = ScenarioManifest.model_validate(canonical_payload, strict=True)
+
+    scene_variant = payload.get("scene_variant")
+    if scene_variant is not None and (type(scene_variant) is not str or scene_variant not in P2_SCENE_VARIANTS):
+        raise ValueError(f"unsupported scene_variant: {scene_variant!r}")
+    return manifest
 
 
 def materialize_scenario(manifest: dict[str, Any]) -> dict[str, Any]:

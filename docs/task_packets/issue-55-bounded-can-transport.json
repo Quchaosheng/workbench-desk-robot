@@ -1,0 +1,68 @@
+{
+  "issue": 55,
+  "human_owner": "TH3478",
+  "objective": "Replace the in-memory SafeCANBus placeholder with a bounded CAN Wire V1 DeviceAdapter hosted by the unified DeviceRuntime; fail closed on malformed frames, timeouts, link faults, and lifecycle races.",
+  "allowed_paths": [
+    "libs/hardware/workbench/hardware/can_driver_safe.py",
+    "libs/hardware/workbench/hardware/__init__.py",
+    "libs/hardware/README.md",
+    "docs/architecture/host-can-transport-v1.md",
+    "tests/unit/test_can_transport.py",
+    "docs/task_packets/issue-55-bounded-can-transport.json"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "docs/architecture/mcu-protocol-v1.md",
+    "docs/architecture/mcu-wire-v1.md",
+    "interfaces/json_schema/mcu_protocol.schema.json",
+    "interfaces/examples/mcu-frame-stop-ack.json",
+    "firmware/mcu/core/frame_codec.h",
+    "firmware/mcu/core/frame_codec.c"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "firmware/**",
+    "kernel/**",
+    "robot/control/**",
+    "libs/contracts/**",
+    "services/**"
+  ],
+  "acceptance": [
+    "Construction injects a small transport port and monotonic clock without opening hardware; explicit start and shutdown delegate lifecycle ownership to DeviceRuntime.",
+    "DeviceRuntime is the sole owner of configure/activate/deactivate/cleanup, cancellation, worker join, command/telemetry/health planes, backpressure, and subscriber snapshot dispatch; SafeCANBus is an adapter and its compatibility lifecycle methods delegate to that owner.",
+    "The command/ACK, telemetry, and health/provenance planes have independent fixed capacities and observable drops/errors; no adapter-local worker, queue, callback registry, or unbounded fallback exists.",
+    "Only immutable Classic CAN standard data frames with a known Wire V1 arbitration ID, DLC 8, valid version, reserved bytes, field registry, direction, and cross-field semantics enter the queue or subscriber boundary.",
+    "The outbound queue and subscriber sets are bounded, backpressure and rejection are typed, and STOP preempts queued ordinary commands.",
+    "At most one command is in flight; successful dispatch starts a local acknowledgement deadline, retries retain command correlation with bounded retry counts, and exhaustion escalates to a correlated STOP.",
+    "STOP acknowledgement timeout, bus-off, and link loss fail closed; ordinary commands remain rejected until an explicit successful transport recovery, and recovery never replays pre-fault traffic.",
+    "Duplicate, late, uncorrelated, and malformed responses do not confirm a command or cancel STOP escalation.",
+    "Accepted inbound results carry an immutable source/interface/sequence/monotonic-time/wall-time/health/evidence envelope; recovery does not silently reset adapter-ingress ordering, and wall-clock rollback is observable and fail-closed.",
+    "Subscribe, unsubscribe, counters, diagnostics, and callback snapshot dispatch are thread-safe; callback exceptions are isolated and recorded without terminating dispatch.",
+    "Fake transport and fake-clock tests cover validation, saturation, worker draining, timeout/retry/STOP escalation, duplicate and late acknowledgements, callback mutation/failure, shutdown, bus-off, and controlled recovery.",
+    "Documentation labels fake transport evidence as host adapter behavior only, not SocketCAN, physical CAN, MCU, actuator, or hard-real-time evidence."
+  ],
+  "commands": [
+    "python3 -m pytest tests/unit/test_can_transport.py -v",
+    "python3 -m ruff check libs/hardware/workbench/hardware/can_driver_safe.py libs/hardware/workbench/hardware/__init__.py tests/unit/test_can_transport.py",
+    "python3 -m ruff format --check libs/hardware/workbench/hardware/can_driver_safe.py libs/hardware/workbench/hardware/__init__.py tests/unit/test_can_transport.py",
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/issue-55-bounded-can-transport.json",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check"
+  ],
+  "evidence": [
+    "Focused fake transport and fake-clock regression output.",
+    "Task Packet validation and changed-path boundary output.",
+    "Repository test, contract, scenario, context, lint, and formatting output.",
+    "Final git diff check and changed-path review."
+  ],
+  "stop_conditions": [
+    "The implementation requires changing frozen logical protocol or CAN Wire V1 identifiers, payload layouts, schemas, or canonical models.",
+    "The implementation requires kernel wbcan, firmware, robot control, or a concrete SocketCAN dependency.",
+    "The adapter would need to claim physical CAN delivery, MCU acceptance, stopped state, or real-time deadline evidence from queueing or fake transport behavior.",
+    "An unbounded queue, subscriber collection, retry path, diagnostic store, or shutdown wait is required.",
+    "A second adapter-local lifecycle, worker, queue, callback registry, or cancellation model would be needed outside DeviceRuntime.",
+    "A write outside allowed_paths is required."
+  ]
+}

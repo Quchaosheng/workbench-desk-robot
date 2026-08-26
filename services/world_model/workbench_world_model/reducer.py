@@ -3,6 +3,8 @@ import json
 from pydantic import BaseModel, Field
 from workbench_contracts import WorldEvent, WorldEventType
 
+from .event_payloads import normalize_world_event
+
 
 class WorldState(BaseModel):
     run_id: str
@@ -19,8 +21,17 @@ def _append_entity_evidence(state: WorldState, entity_id: str, evidence_refs: li
     entity_evidence.extend(reference for reference in evidence_refs if reference not in entity_evidence)
 
 
+def _update_location(state: WorldState, entity_id: str, location: str, evidence_refs: list[str]) -> None:
+    if state.entity_locations.get(entity_id) != location:
+        state.entity_evidence_refs[entity_id] = list(dict.fromkeys(evidence_refs))
+    else:
+        _append_entity_evidence(state, entity_id, evidence_refs)
+    state.entity_locations[entity_id] = location
+
+
 def apply_event(state: WorldState, event: WorldEvent) -> WorldState:
     """Apply one ordered event. Re-applying an event is idempotent."""
+    event = normalize_world_event(event)
     if event.event_id in state.applied_event_ids:
         return state
 
@@ -29,28 +40,16 @@ def apply_event(state: WorldState, event: WorldEvent) -> WorldState:
     next_state.evidence_refs.extend(event.evidence_refs)
 
     if event.event_type is WorldEventType.OBSERVATION:
-        entity_id = event.payload.get("entity_id")
+        entity_id = event.payload["entity_id"]
         location = event.payload.get("location")
-        if entity_id:
-            normalized_entity_id = str(entity_id)
-            if location:
-                next_state.entity_locations[normalized_entity_id] = str(location)
-            next_state.entity_confidence[normalized_entity_id] = float(event.payload.get("confidence", 0.0))
-            attributes = event.payload.get("attributes")
-            if isinstance(attributes, dict):
-                next_state.entity_attributes[normalized_entity_id] = {
-                    str(key): str(value) for key, value in attributes.items()
-                }
-            _append_entity_evidence(next_state, normalized_entity_id, event.evidence_refs)
-
-    elif event.event_type is WorldEventType.ACTION_RESULT and event.payload.get("outcome") == "completed":
-        entity_id = event.payload.get("entity_id")
-        location = event.payload.get("resulting_location")
-        if entity_id:
-            normalized_entity_id = str(entity_id)
-            if location:
-                next_state.entity_locations[normalized_entity_id] = str(location)
-            _append_entity_evidence(next_state, normalized_entity_id, event.evidence_refs)
+        if location is not None:
+            _update_location(next_state, entity_id, location, event.evidence_refs)
+        next_state.entity_confidence[entity_id] = event.payload["confidence"]
+        attributes = event.payload.get("attributes")
+        if attributes is not None:
+            next_state.entity_attributes[entity_id] = attributes
+        if location is None:
+            _append_entity_evidence(next_state, entity_id, event.evidence_refs)
 
     return next_state
 
@@ -75,6 +74,7 @@ def _validated_event_stream(run_id: str, events: list[WorldEvent]) -> list[World
     for event in events:
         if event.run_id != run_id:
             raise ValueError(f"event run_id {event.run_id!r} does not match requested run_id {run_id!r}")
+        event = normalize_world_event(event)
 
         event_content = _canonical_event_content(event)
         previous_content = content_by_event_id.get(event.event_id)

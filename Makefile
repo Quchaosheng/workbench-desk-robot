@@ -2,7 +2,8 @@ PYTHON ?= python3
 
 .PHONY: bootstrap lint fmt test contract scenario-check golden-check evaluation-check evaluation-scripted context-check \
 	dashboard-test dashboard demo demo-scripted demo-offline demo-model model-provision performance-test benchmark-startup \
-	benchmark-resources docs task-check check container-smoke
+	benchmark-resources performance-regression-test offline-integration docs task-check check container-smoke \
+	sim sim-doctor sim-list sim-run
 
 bootstrap:
 	$(PYTHON) -m pip install --upgrade pip
@@ -51,6 +52,19 @@ demo-offline:
 
 demo: demo-offline
 
+# Simulation control is deliberately truthful: without a configured Gazebo
+# adapter, sim-run exits NOT_EXECUTED instead of manufacturing a pass.
+sim: sim-run
+
+sim-doctor:
+	$(PYTHON) tools/scripts/sim_cli.py doctor
+
+sim-list:
+	$(PYTHON) tools/scripts/sim_cli.py list
+
+sim-run:
+	$(PYTHON) tools/scripts/sim_cli.py run --all --runner gazebo
+
 demo-model:
 	$(PYTHON) tools/scripts/local_runner.py --provider ollama --goal "Sort the parcels already in the intake area"
 
@@ -67,8 +81,14 @@ benchmark-startup:
 benchmark-resources:
 	$(PYTHON) tools/scripts/benchmark_resources.py --project workbench-startup-benchmark --output runs/performance/resources.json
 
+performance-regression-test:
+	$(PYTHON) -m pytest tests/unit/test_performance_regression.py -v
+
 dashboard-test:
 	$(PYTHON) -m unittest tests.unit.test_dashboard_backend -v
+
+offline-integration:
+	$(PYTHON) -m pytest tests/integration/test_offline_system.py -v
 
 dashboard:
 	$(PYTHON) -m workbench_backend.server --host 127.0.0.1 --port 8080

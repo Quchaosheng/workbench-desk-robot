@@ -1,0 +1,84 @@
+{
+  "issue": 60,
+  "human_owner": "TH3478",
+  "objective": "Implement the platform-independent MCU heartbeat watchdog and bounded STOP acknowledgement timing path with deterministic fake-clock and QEMU timer-interrupt evidence.",
+  "allowed_paths": [
+    "firmware/mcu/core/watchdog.h",
+    "firmware/mcu/core/watchdog.c",
+    "firmware/mcu/core/hal.h",
+    "firmware/mcu/hal/host/hal_host.c",
+    "firmware/mcu/hal/qemu/hal_qemu.c",
+    "firmware/mcu/hal/qemu/crt0.S",
+    "firmware/mcu/hal/qemu/main_qemu.c",
+    "firmware/mcu/tests/watchdog_tests.h",
+    "firmware/mcu/tests/watchdog_tests.c",
+    "firmware/mcu/tests/main_host.c",
+    "firmware/mcu/Makefile",
+    "firmware/mcu/README.md",
+    "docs/architecture/mcu-watchdog-v1.md",
+    "docs/task_packets/issue-60-mcu-watchdog-stop-timing.json"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "docs/architecture/mcu-protocol-v1.md",
+    "docs/architecture/mcu-wire-v1.md",
+    "interfaces/json_schema/mcu_protocol.schema.json",
+    "interfaces/examples/mcu-frame-stop-ack.json",
+    "firmware/mcu/core/state_machine.h",
+    "firmware/mcu/core/state_machine.c",
+    "firmware/mcu/core/frame_codec.h",
+    "firmware/mcu/core/frame_codec.c",
+    "firmware/virtual_mcu/**",
+    "docs/decisions/ADR-0003-mcu-riscv-qemu.md"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "firmware/mcu/hal/ch32v307/**",
+    "robot/control/**",
+    "hardware/**",
+    "services/**",
+    "firmware/virtual_mcu/**"
+  ],
+  "acceptance": [
+    "Heartbeat period, software link timeout, STOP acknowledgement deadline and hardware watchdog timeout are named controlled constants.",
+    "Only explicitly accepted new protocol activity refreshes the software link watchdog; malformed, duplicate, retry and stale traffic cannot feed it.",
+    "A link timeout observed while executing dispatches WATCHDOG_EXPIRED, forces safe outputs, latches the fault and emits exactly one correlated fault/telemetry record.",
+    "A valid STOP enters the safe state and retains its command correlation until a bounded STOP acknowledgement is handed to transport; a missed deadline emits a distinct stop-timeout outcome and never reports stopped confirmation.",
+    "A pending STOP accepts an equal retry_count as a link replay and only a strictly greater retry_count as a protocol retry; decreasing or wrapped retry counts are rejected without changing ACK correlation or deadline.",
+    "Reset cannot clear an active watchdog or STOP-timeout cause without the existing trusted state-machine transition.",
+    "Deadline comparisons and deadline arithmetic remain deterministic across uint64_t wraparound.",
+    "Host tests use an injected fake clock with no sleep or wall-clock flakiness and cover feed eligibility, link timeout, STOP acknowledgement bound, timeout fault and single-emission behavior.",
+    "QEMU runs the shared timing tests and exercises a real machine-timer interrupt plus the modeled hardware-watchdog start/feed path.",
+    "The core remains freestanding-compatible with no vendor headers, dynamic allocation, floating point or hardware register access."
+  ],
+  "commands": [
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/issue-60-mcu-watchdog-stop-timing.json",
+    "make -C firmware/mcu test-host",
+    "make -C firmware/mcu test-host-sanitize",
+    "make -C firmware/mcu test-qemu",
+    "make -C firmware/mcu verify-no-fp",
+    "make -C firmware/mcu size-check",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check"
+  ],
+  "evidence": [
+    "Issue #60 Task Packet validation output.",
+    "Host fake-clock watchdog test output with assertion and failure counts.",
+    "ASan/UBSan output for the shared timing corpus.",
+    "QEMU output proving timer-interrupt dispatch and watchdog feed evidence.",
+    "verify-no-fp and size-check output for the QEMU firmware image.",
+    "Repository test, contract, scenario and context-check output.",
+    "Final changed-path review and git diff --check proving the Task Packet boundary."
+  ],
+  "stop_conditions": [
+    "The implementation requires changing the frozen JSON Schema, Pydantic models or logical protocol semantics.",
+    "The implementation requires retry deduplication, host transport dispatch, vendor registers, motor control or physical CAN claims.",
+    "A new reset frame or reset opcode would be added to protocol v1.0.",
+    "The core cannot compile unchanged for Host and QEMU.",
+    "QEMU-only behavior would be presented as CH32V307 interrupt latency or physical E-stop evidence.",
+    "The implementation requires modifying .gitignore or unrelated local changes."
+  ]
+}

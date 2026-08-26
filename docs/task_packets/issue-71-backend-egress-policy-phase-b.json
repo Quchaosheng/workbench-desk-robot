@@ -1,0 +1,113 @@
+{
+  "issue": 71,
+  "human_owner": "kukuboring",
+  "objective": "Wire the approved Backend remote event-source allow-list through WORKBENCH_EVENT_SOURCE_ALLOWLIST and the controller Compose deployment, document the operator contract, and preserve the Phase A fail-closed egress policy without changing public interfaces or implementing Issue #74 recovery behavior.",
+  "allowed_paths": [
+    "services/backend/workbench_backend/server.py",
+    "deploy/multi-host/compose.controller.yaml",
+    "docs/deployment/multi-host.md",
+    "tests/unit/test_multi_host.py",
+    "tests/unit/test_multi_host_deployment.py",
+    "tests/fixtures/issue-71-controller.env",
+    "docs/task_packets/issue-71-backend-egress-policy-phase-b.json"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "CONTRIBUTING.md",
+    "Makefile",
+    "docs/architecture/system.md",
+    "docs/api-openapi-v1.json",
+    "services/backend/workbench_backend/api-openapi-v1.json",
+    "interfaces/json_schema/world_event.schema.json",
+    "apps/dashboard/data/run-confirmed.jsonl",
+    "apps/dashboard/data/run-uncertain.jsonl",
+    "services/backend/workbench_backend/remote_http.py",
+    "services/backend/workbench_backend/read_model.py",
+    "tests/unit/test_dashboard_backend.py",
+    "deploy/multi-host/compose.sim.yaml",
+    "docs/task_packets/issue-71-backend-egress-policy.json",
+    "docs/task_packets/example-001-world-reducer.json"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "services/world_model/**",
+    "services/agent_runtime/**",
+    "robot/control/**",
+    "firmware/**",
+    "sim/**",
+    ".github/**"
+  ],
+  "input_refs": [
+    "AGENTS.md",
+    "CONTRIBUTING.md",
+    "Makefile",
+    "docs/architecture/system.md",
+    "docs/api-openapi-v1.json",
+    "services/backend/workbench_backend/api-openapi-v1.json",
+    "interfaces/json_schema/world_event.schema.json",
+    "apps/dashboard/data/run-confirmed.jsonl",
+    "apps/dashboard/data/run-uncertain.jsonl",
+    "services/backend/workbench_backend/server.py",
+    "services/backend/workbench_backend/remote_http.py",
+    "services/backend/workbench_backend/read_model.py",
+    "tests/unit/test_multi_host.py",
+    "tests/unit/test_dashboard_backend.py",
+    "deploy/multi-host/compose.controller.yaml",
+    "deploy/multi-host/compose.sim.yaml",
+    "docs/deployment/multi-host.md",
+    "docs/task_packets/issue-71-backend-egress-policy.json",
+    "docs/task_packets/example-001-world-reducer.json"
+  ],
+  "acceptance": [
+    "When --event-source-allowlist is absent, the Backend CLI reads WORKBENCH_EVENT_SOURCE_ALLOWLIST as its default and passes the exact value to create_server.",
+    "An explicit --event-source-allowlist CLI value overrides WORKBENCH_EVENT_SOURCE_ALLOWLIST.",
+    "The controller Compose configuration requires non-empty WORKBENCH_EVENT_SOURCE_URL and WORKBENCH_EVENT_SOURCE_ALLOWLIST values and passes both values explicitly to the Backend command.",
+    "The controller Compose configuration contains no permissive allow-list default such as 0.0.0.0/0 or ::/0.",
+    "Missing, blank, or malformed allow-list configuration cannot make a non-loopback event source ready; existing Phase A fail-closed readiness behavior remains in force.",
+    "The deployment documentation defines WORKBENCH_EVENT_SOURCE_ALLOWLIST as a comma-separated list of literal IP addresses or CIDR ranges, shows controller and same-host examples, and does not describe hostnames as allow-list entries.",
+    "The rendered controller Compose configuration contains the expected event-source URL and allow-list arguments without granting write, robot-control, or additional filesystem capabilities.",
+    "Existing URL validation, prohibited-address checks, all-DNS-result validation, DNS pinning, redirect rejection, response limits, timeout limits, read-only API behavior, WorldEvent shape, and OpenAPI behavior remain unchanged.",
+    "This Packet does not implement total DNS timeout, multiple safe-IP failover, retries, or partition recovery behavior assigned to Issue #74."
+  ],
+  "commands": [
+    "python -m pytest tests/unit/test_multi_host.py tests/unit/test_multi_host_deployment.py tests/unit/test_dashboard_backend.py -v",
+    "docker compose --env-file tests/fixtures/issue-71-controller.env -f deploy/multi-host/compose.controller.yaml config",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "make demo-scripted",
+    "make check",
+    "git diff --check",
+    "python tools/scripts/check_task_packet.py docs/task_packets/issue-71-backend-egress-policy-phase-b.json --base fix/71-backend-egress-policy"
+  ],
+  "evidence": [
+    "Verbose CLI tests prove environment fallback and explicit CLI override while executing services/backend/workbench_backend/server.py.",
+    "Deployment tests prove both Compose variables are required, both CLI arguments are present, and no permissive allow-list default exists.",
+    "Deployment documentation tests prove the IP/CIDR-only operator contract and both deployment examples are present.",
+    "docker compose config renders the controller service successfully from the checked-in non-secret test environment fixture and shows the expected URL and allow-list arguments.",
+    "Existing Phase A security and Dashboard regression tests continue to pass.",
+    "make check completes successfully.",
+    "git diff --check produces no output.",
+    "Task Packet diff-boundary validation against fix/71-backend-egress-policy confirms every Phase B changed path is allowed."
+  ],
+  "stop_conditions": [
+    "A change to services/backend/workbench_backend/remote_http.py or services/backend/workbench_backend/read_model.py is required.",
+    "A change to interfaces, OpenAPI, Pydantic models, WorldEvent fields, Dashboard fixtures, or public response shapes is required.",
+    "The deployment requires credentials, tokens, or secrets in the event-source URL or allow-list.",
+    "The allow-list must accept hostnames instead of literal IP addresses or CIDR ranges.",
+    "The work requires total DNS timeout, multiple safe-IP failover, retries, or recovery behavior belonging to Issue #74.",
+    "The work expands into Issue #66 inbound exposure controls or changes robot, Motion, MCU, firmware, Simulation, or Agent Runtime behavior.",
+    "The Phase A branch changes so that its approved egress-policy assumptions no longer match this Packet.",
+    "The Compose configuration cannot be rendered and validated with deterministic local values.",
+    "Unrelated user changes overlap an allowed path.",
+    "The Task Packet has not received explicit approval for the Backend and deployment configuration scope."
+  ],
+  "risks_and_fallbacks": [
+    "Phase B is stacked on Phase A and must not be merged independently before the Phase A policy is present.",
+    "Fail closed when a non-loopback deployment omits or supplies an invalid allow-list; do not add a permissive default.",
+    "Keep IP/CIDR values non-secret and do not put credentials into Compose arguments or documentation examples.",
+    "If deployment wiring must be rolled back, disable the non-loopback remote event source rather than restoring unrestricted outbound access."
+  ]
+}

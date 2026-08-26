@@ -1,4 +1,10 @@
-# 55 kg system mechanical integration
+# Legacy 55 kg dual-arm workbench integration
+
+> **Scope note:** this document is retained for the earlier dual-arm workbench
+> planning case. It does not describe the Revision D Workbench Home Robot,
+> which is a dual 7R-arm mobile platform. Use `revision-d-architecture.md`,
+> `design-spec.json`, and the D verification matrix
+> for the current product direction.
 
 This document controls the issue 21 design case without replacing the existing
 6.42 kg enclosure model. The 55 kg value is the maximum configured system mass

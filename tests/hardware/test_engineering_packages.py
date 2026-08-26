@@ -5,6 +5,7 @@ import importlib.util
 import json
 import multiprocessing
 import re
+import sys
 import tempfile
 import threading
 import unittest
@@ -13,6 +14,7 @@ from pathlib import Path
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "libs" / "task_utils"))
 
 
 def load_module(name: str, path: Path):
@@ -46,6 +48,11 @@ class MechanicalPackageTests(unittest.TestCase):
         report = module.analyse()
         self.assertTrue(all(report["checks"].values()))
         self.assertGreaterEqual(report["static_tip_angle_deg"], 35)
+        self.assertGreater(report["arm_plus_payload_screen_moment_nm"], report["payload_only_moment_nm"])
+        self.assertGreater(
+            report["bimanual_shared_workspace_screen_moment_nm"], report["arm_plus_payload_screen_moment_nm"]
+        )
+        self.assertEqual(report["status"], "CONCEPT_PHYSICAL_VALIDATION_REQUIRED")
         self.assertIn("PHYSICAL_VALIDATION_REQUIRED", report["status"])
 
     def test_step_exchange_file_has_header_and_solid_body(self) -> None:
@@ -58,20 +65,75 @@ class MechanicalPackageTests(unittest.TestCase):
         generated = ROOT / "hardware/mechanical/generated"
         self.assertGreater((generated / "desk_robot_assembly.step").stat().st_size, 100_000)
         self.assertGreater((generated / "desk_robot_exploded.step").stat().st_size, 100_000)
-        self.assertEqual(len(list((generated / "parts").glob("*.step"))), 6)
+        self.assertEqual(len(list((generated / "parts").glob("*.step"))), 10)
+        mobile_base_step = (generated / "parts/mobile_base.step").read_text(encoding="ascii")
+        self.assertGreaterEqual(mobile_base_step.count("MANIFOLD_SOLID_BREP"), 17)
+        neck_step = (generated / "parts/neck_mount.step").read_text(encoding="ascii")
+        self.assertIn("MANIFOLD_SOLID_BREP", neck_step)
+        sequence = json.loads((generated / "assembly-sequence.json").read_text(encoding="utf-8"))
+        self.assertEqual([item["part"] for item in sequence[-3:]], ["neck_mount", "head_module", "tool_dock"])
         self.assertTrue((generated / "drawings/general-arrangement.svg").exists())
         screening = json.loads((generated / "drop-screening.json").read_text(encoding="utf-8"))
-        self.assertEqual(screening["acceptance"]["peak_deceleration_g"], 35)
+        self.assertEqual(screening["acceptance"]["peak_deceleration_g"], 20)
 
     def test_controller_board_fits_tray_and_mount_pattern_is_controlled(self) -> None:
         module = load_module("mechanical_generator_fit", ROOT / "hardware/mechanical/tools/generate_artifacts.py")
         report = module.analyse()
         self.assertTrue(report["checks"]["pcb_fits_electronics_tray"])
         self.assertTrue(report["checks"]["pcb_edge_service_margin_met"])
-        self.assertEqual(report["pcb_tray_margin_mm"], [60, 40])
-        self.assertEqual(report["pcb_edge_service_margin_mm"], [30, 20])
+        self.assertEqual(report["pcb_tray_margin_mm"], [140, 130])
+        self.assertEqual(report["pcb_edge_service_margin_mm"], [70, 65])
         spec = json.loads((ROOT / "hardware/mechanical/design-spec.json").read_text(encoding="utf-8"))
         self.assertEqual(spec["electronics_tray"]["pcb_mount_pattern"], [152, 122])
+
+    def test_revision_d_bimanual_home_robot_mechanics_are_explicit_and_aligned(self) -> None:
+        spec = json.loads((ROOT / "hardware/mechanical/design-spec.json").read_text(encoding="utf-8"))
+        self.assertEqual(spec["revision"], "D")
+        self.assertEqual(spec["enclosure"]["width"], 540)
+        self.assertEqual(spec["enclosure"]["depth"], 520)
+        self.assertEqual(spec["lifting_platform"]["travel"], 350)
+        self.assertEqual(spec["chassis"]["stabilizer_count"], 4)
+        self.assertEqual(spec["chassis"]["drive_architecture"], "four_module_independent_steer_and_drive")
+        self.assertTrue(spec["chassis"]["holonomic_motion"])
+        self.assertEqual(spec["chassis"]["drive_module_count"], 4)
+        self.assertEqual(spec["chassis"]["wheel_diameter_mm"], 140)
+        self.assertEqual(spec["chassis"]["suspension_travel_mm"], 30)
+        self.assertIn("SOFTWARE_AND_PHYSICAL_VALIDATION_REQUIRED", spec["chassis"]["autonomous_navigation_status"])
+        self.assertEqual(
+            set(spec["chassis"]["motion_modes"]), {"longitudinal", "lateral", "diagonal", "rotate_in_place"}
+        )
+        self.assertEqual(spec["manipulator"]["count"], 2)
+        self.assertEqual(spec["manipulator"]["total_revolute_axes"], 14)
+        self.assertEqual(spec["head"]["display_shape"], "rounded_rectangle")
+        self.assertEqual(spec["head"]["display_cutout"], [228, 92])
+        self.assertEqual(spec["head"]["display_corner_radius_mm"], 24)
+        neck_mount = spec["head"]["neck_mount"]
+        self.assertEqual(neck_mount["type"], "keyed_pedestal_with_hidden_bolted_flange")
+        self.assertEqual(neck_mount["fasteners"], "4x M6 captive from underside + 2x dowel pins")
+        self.assertEqual(neck_mount["cable_passage_mm"], 32)
+        self.assertEqual(len(spec["manipulator"]["joints"]), 7)
+        self.assertEqual([joint["id"] for joint in spec["manipulator"]["joints"]], [f"J{i}" for i in range(1, 8)])
+        arm_design = spec["manipulator"]["industrial_design"]
+        self.assertEqual(arm_design["shoulder_module"], "torso_recessed_three_axis_yoke")
+        self.assertEqual(arm_design["upper_arm_shell"], "tapered_rounded_rect_fairing")
+        self.assertEqual(arm_design["nominal_motion_gap_mm"], 6)
+        self.assertEqual(spec["tool_system"]["interface"], "kinematic_quick_change_with_mechanical_lock")
+        scad = (ROOT / "hardware/mechanical/cad/desk_robot.scad").read_text(encoding="utf-8")
+        self.assertIn("STABILIZERS_DEPLOYED = false", scad)
+        for feature in (
+            "mobile_base",
+            "lifting_platform",
+            "seven_axis_arm",
+            "dual_seven_axis_arms",
+            "head_and_face",
+            "neck_mount",
+            "tool_dock",
+        ):
+            self.assertIn(f"module {feature}", scad)
+        drawing = (ROOT / "hardware/mechanical/generated/drawings/general-arrangement.svg").read_text(encoding="utf-8")
+        self.assertIn("REV D", drawing)
+        self.assertIn("Dual seven-axis arms", drawing)
+        self.assertIn("keyed bolted neck mount", drawing)
 
 
 class PcbPackageTests(unittest.TestCase):
@@ -277,7 +339,7 @@ class ValidationPackageTests(unittest.TestCase):
 
     def test_concurrent_duplicate_evidence_id_has_one_process_winner(self) -> None:
         record = self._record("EVIDENCE-DUPLICATE")
-        context = multiprocessing.get_context("fork")
+        context = multiprocessing.get_context("spawn")
         barrier = context.Barrier(2)
         results = context.Queue()
         processes = [
@@ -328,6 +390,10 @@ class ValidationPackageTests(unittest.TestCase):
                 self.module.register(self.register, self._record("EVIDENCE-002"), **self.kwargs)
         self.assertEqual(self.register.read_bytes(), original)
         self.assertEqual(self.module.validate_register(self.register, **self.kwargs), [first])
+
+        third = self._record("EVIDENCE-003")
+        self.module.register(self.register, third, **self.kwargs)
+        self.assertEqual(self.module.validate_register(self.register, **self.kwargs), [first, third])
 
     def test_physical_result_requires_physical_pass_for_every_scenario(self) -> None:
         module = load_module("validation_result_derivation", ROOT / "hardware/validation/tools/validate_validation.py")

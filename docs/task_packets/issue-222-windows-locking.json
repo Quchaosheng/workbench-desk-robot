@@ -1,0 +1,71 @@
+{
+  "issue": 222,
+  "human_owner": "TH3478",
+  "objective": "Make schema-registry and hardware-evidence writer locking portable across Windows and POSIX without weakening conflict, atomicity, or rollback guarantees.",
+  "allowed_paths": [
+    "Dockerfile",
+    "docs/deployment/container.md",
+    "docs/task_packets/issue-222-windows-locking.json",
+    "hardware/validation/tools/evidence.py",
+    "libs/kernel/workbench/kernel/version_registry.py",
+    "libs/task_utils/**",
+    "pyproject.toml",
+    "tests/hardware/test_engineering_packages.py",
+    "tests/unit/test_container_baseline.py",
+    "tests/unit/test_file_lock.py",
+    "tests/unit/test_kernel_version_registry.py"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "docs/task_packets/hardware-validation-evidence.json",
+    "docs/task_packets/kernel-version-registry.json",
+    "tools/schemas/task-packet-v1.schema.json"
+  ],
+  "forbidden": [
+    ".github/workflows/**",
+    "firmware/**",
+    "interfaces/**",
+    "robot/control/**",
+    "services/**"
+  ],
+  "acceptance": [
+    "version registry and evidence modules import without an unconditional fcntl dependency",
+    "one standard-library lock adapter serializes threads and processes on Windows and POSIX",
+    "Windows locking uses a dedicated one-byte lock file and waits for conflicting writers",
+    "registry atomic persistence, idempotency, and conflict rejection remain unchanged",
+    "evidence duplicate detection, append durability, and short-write rollback remain unchanged",
+    "the runtime container copies every configured package source before installing the checkout",
+    "multiprocessing regressions use a context supported by Windows and POSIX",
+    "the Windows runbook installs the current checkout in an isolated environment and executes the complete pytest suite"
+  ],
+  "commands": [
+    "python tools/scripts/check_task_packet.py docs/task_packets/issue-222-windows-locking.json",
+    "python -m pytest tests/unit/test_file_lock.py tests/unit/test_kernel_version_registry.py -v",
+    "python -m pytest tests/hardware/test_engineering_packages.py -k ValidationPackageTests -v",
+    "python -m pytest tests/unit/test_container_baseline.py -v",
+    "make lint",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make golden-check",
+    "make context-check",
+    "make docs",
+    "make container-smoke",
+    "git diff --check"
+  ],
+  "evidence": [
+    "simulated Windows-backend import and byte-range locking regression output",
+    "portable registry and evidence multiprocessing regression output",
+    "failure-release and append-rollback regression output",
+    "container package-copy regression and smoke-build output",
+    "repository lint, test, contract, scenario, and context validation output",
+    "Task Packet validation and clean diff output"
+  ],
+  "stop_conditions": [
+    "a third-party runtime locking dependency is required",
+    "a Windows CI workflow change is required",
+    "an interface schema change is required",
+    "a write outside the allowed paths is required",
+    "robot-control or firmware changes are required"
+  ]
+}

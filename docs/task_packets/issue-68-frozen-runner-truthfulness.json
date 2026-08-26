@@ -1,0 +1,63 @@
+{
+  "issue": 68,
+  "human_owner": "Quchaosheng",
+  "objective": "Replace the frozen-scenario placeholder pass with a fail-closed simulation control surface that exposes doctor, list, and run workflows, preserves bounded runner evidence, and never presents scripted fixtures or missing Gazebo execution as release-eligible simulation success.",
+  "allowed_paths": [
+    "tools/scripts/sim_cli.py",
+    "tests/regression/run_frozen_scenarios.py",
+    "tests/unit/test_sim_cli.py",
+    ".github/workflows/ci.yml",
+    "docs/task_packets/issue-68-frozen-runner-truthfulness.json",
+    "sim/README.md",
+    "README.md",
+    "README.zh-CN.md",
+    "Makefile"
+  ],
+  "read_only_paths": [
+    "sim/scenarios/**",
+    "interfaces/**",
+    "libs/contracts/**",
+    "services/**",
+    "AGENTS.md"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "hardware/safety/**"
+  ],
+  "acceptance": [
+    "the frozen regression command has no placeholder success or hard-coded VTCR and exits non-zero when Gazebo or its runner is unavailable",
+    "doctor and list expose simulator readiness, scenario identity, task, fault, timeout, and deterministic scene hash without starting motion",
+    "scripted run output is explicitly marked SCRIPTED_FIXTURE and release_eligible false while remaining usable in the read-only dashboard",
+    "external execution uses each manifest timeout, captures stdout and stderr, records exit and timeout metadata, and terminates the whole launched process tree on timeout or interruption",
+    "each run preserves the source manifest, materialized scene, validated event log, metadata, and SHA-256 checksums using an atomic run directory publication",
+    "missing executables and zero executed scenarios are reported as NOT_EXECUTED and can never satisfy a regression threshold",
+    "same manifest and seed materialize to the same scene hash without claiming deterministic Gazebo event ordering",
+    "no interface, Motion, firmware, hardware safety, or dashboard write boundary changes are introduced"
+  ],
+  "commands": [
+    "python tools/scripts/check_task_packet.py docs/task_packets/issue-68-frozen-runner-truthfulness.json",
+    "python -m unittest tests.unit.test_sim_cli -v",
+    "python -m ruff check tools/scripts/sim_cli.py tests/regression/run_frozen_scenarios.py tests/unit/test_sim_cli.py",
+    "python -m ruff format --check tools/scripts/sim_cli.py tests/regression/run_frozen_scenarios.py tests/unit/test_sim_cli.py",
+    "python tools/scripts/validate_scenarios.py",
+    "python tools/scripts/sim_cli.py doctor",
+    "python tools/scripts/sim_cli.py list",
+    "python tools/scripts/sim_cli.py run normal-001 --runner scripted --output-dir runs/sim-smoke",
+    "python tests/regression/run_frozen_scenarios.py --version v0.1 --runner gazebo"
+  ],
+  "evidence": [
+    "unit tests covering missing runner, timeout cleanup, non-zero exit, malformed output, deterministic scripted artifacts, and zero-execution regression behavior",
+    "doctor and scenario catalog console output",
+    "a scripted fixture run directory with manifest, materialized scene, events, metadata, logs, and checksums",
+    "a Gazebo-unavailable regression summary showing NOT_EXECUTED and a non-zero command exit",
+    "scenario validation and focused Ruff output"
+  ],
+  "stop_conditions": [
+    "a truthful runner requires changing interfaces or contract models",
+    "a real Gazebo task requires unfinished semantic Motion, canonical WorldState, trajectory, or correlation dependencies",
+    "the implementation would need to publish robot, ROS, MCU, or emergency-stop commands from the dashboard",
+    "scripted fixtures or generic external runner output would be promoted to release-eligible evidence",
+    "the process tree cannot be bounded and terminated on timeout or interruption"
+  ]
+}

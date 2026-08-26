@@ -10,7 +10,7 @@ from types import SimpleNamespace
 
 import pytest
 from workbench_motion.arm_config import load_arm_config
-from workbench_motion.joint_limits import JointLimit
+from workbench_motion.joint_limits import JointLimit, ReasonCode, Violation
 from workbench_motion.phase2_probe import (
     FAIL_BEHAVIORS,
     FOLLOWERS,
@@ -18,6 +18,7 @@ from workbench_motion.phase2_probe import (
     ActionObservation,
     JointSnapshot,
     RosProbeIO,
+    _violation_dict,
     atomic_write_report,
     behavior_gate,
     classify_over_limit,
@@ -244,6 +245,28 @@ def valid_report():
         "validator_violation": {"kind": "position"},
         "all_passed": True,
     }
+
+
+def test_validator_violation_evidence_keeps_exact_legacy_shape():
+    payload = _violation_dict(
+        Violation(
+            kind=ReasonCode.POSITION,
+            message="outside",
+            joint="j1",
+            value=2.0,
+            bound=1.0,
+            point_index=3,
+        )
+    )
+    assert payload == {
+        "kind": "position",
+        "message": "outside",
+        "joint": "j1",
+        "value": 2.0,
+        "bound": 1.0,
+        "point_index": 3,
+    }
+    assert _violation_dict(None) is None
 
 
 def test_atomic_report_schema_and_replace(tmp_path):

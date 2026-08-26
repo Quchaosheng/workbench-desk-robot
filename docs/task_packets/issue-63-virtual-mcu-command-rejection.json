@@ -1,0 +1,50 @@
+{
+  "issue": "63",
+  "human_owner": "TH3478",
+  "objective": "Make the Python VirtualMcu reject unknown and malformed commands with an explicit typed result without mutating state.",
+  "allowed_paths": [
+    "firmware/virtual_mcu/workbench_virtual_mcu/state_machine.py",
+    "firmware/virtual_mcu/workbench_virtual_mcu/__init__.py",
+    "tests/unit/test_virtual_mcu.py",
+    "docs/task_packets/issue-63-virtual-mcu-command-rejection.json"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "firmware/mcu/README.md",
+    "docs/task_packets/issue-53-mcu-safety-state-machine.json"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "firmware/mcu/**",
+    "robot/control/**",
+    "libs/contracts/**"
+  ],
+  "acceptance": [
+    "Unknown, empty, non-string, whitespace-padded, and state-invalid commands return a typed rejected result.",
+    "Rejected commands preserve both the current state and fault code.",
+    "Accepted command/state transitions are explicit and tested for every state.",
+    "STOP remains accepted from every state and remains idempotent without clearing a watchdog fault.",
+    "Reset clears a fault only through the existing accepted SAFE_STOP or FAULT transition.",
+    "The Python model change does not claim parity with authoritative C firmware or physical MCU behavior."
+  ],
+  "commands": [
+    "python3 -m pytest tests/unit/test_virtual_mcu.py -v",
+    "python3 -m ruff check firmware/virtual_mcu/workbench_virtual_mcu tests/unit/test_virtual_mcu.py",
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/issue-63-virtual-mcu-command-rejection.json",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check"
+  ],
+  "evidence": [
+    "VirtualMcu focused tests cover malformed inputs, state preservation, STOP idempotence, and the complete command matrix.",
+    "Task Packet validation output.",
+    "Full repository test, contract, scenario, context, lint, and diff-check output."
+  ],
+  "stop_conditions": [
+    "C firmware or firmware/mcu changes are required.",
+    "A protocol schema or canonical Pydantic contract change is required.",
+    "The model would need to be presented as a safety reference or C parity oracle.",
+    "A write outside allowed_paths is required."
+  ]
+}

@@ -4,13 +4,14 @@
 import argparse
 import json
 import os
-import platform
 import subprocess
 import time
 import urllib.error
 import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
+
+from performance_tools import software_environment
 
 
 def command(args: list[str], environment: dict[str, str]) -> str:
@@ -74,7 +75,7 @@ def main() -> int:
         "compose_file": str(args.compose_file),
         "project": args.project,
         "cache_mode": "disabled" if args.no_cache else "standard",
-        "environment": {"platform": platform.platform(), "python": platform.python_version()},
+        "environment": software_environment(),
         "target_full_stack_s": 120,
         "phases_s": {
             "image_build": build_s,

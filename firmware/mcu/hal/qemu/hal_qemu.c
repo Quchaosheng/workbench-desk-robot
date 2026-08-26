@@ -114,6 +114,12 @@ void hal_timer_disarm(void)
     CLINT_MTIMECMP = (uint64_t)-1;
 }
 
+void hal_timer_enable(void)
+{
+    /* Enable global machine interrupts (MIE, bit 3) after mtvec is valid. */
+    __asm__ volatile("csrs mstatus, %0" :: "r"(1u << 3));
+}
+
 /* --- CAN: FW10 wires CTU CAN FD over PCI to the host vcan. Not yet. --------
  * Returning false rather than pretending to succeed: a stub that reports
  * success would let FW4's tests pass against nothing.
@@ -122,6 +128,50 @@ bool hal_can_init(void) { return false; }
 bool hal_can_send(const hal_can_frame *f) { (void)f; return false; }
 bool hal_can_recv(hal_can_frame *out) { (void)out; return false; }
 
-/* --- watchdog: FW5 uses the timer above; the hardware WDT model is FW20. --- */
-void hal_wdt_start(uint32_t timeout_ms) { (void)timeout_ms; }
-void hal_wdt_feed(void) { }
+/* QEMU virt has no CH32V307 IWDG. This bounded model records the same start,
+ * feed and expiry decisions so the core's feed policy is observable without
+ * presenting it as physical hardware evidence. */
+static bool qemu_wdt_running;
+static bool qemu_wdt_expired;
+static uint32_t qemu_wdt_timeout_ms;
+static uint32_t qemu_wdt_feeds;
+static uint64_t qemu_wdt_deadline_us;
+
+static bool qemu_deadline_reached(uint64_t now_us, uint64_t deadline_us)
+{
+    return (uint64_t)(now_us - deadline_us) < (UINT64_C(1) << 63);
+}
+
+void hal_wdt_start(uint32_t timeout_ms)
+{
+    qemu_wdt_running = true;
+    qemu_wdt_expired = false;
+    qemu_wdt_timeout_ms = timeout_ms;
+    qemu_wdt_feeds = 0u;
+    qemu_wdt_deadline_us = hal_now_us() + (uint64_t)timeout_ms * 1000u;
+}
+
+void hal_wdt_feed(void)
+{
+    if (!qemu_wdt_running || qemu_wdt_expired) {
+        return;
+    }
+    qemu_wdt_feeds++;
+    qemu_wdt_deadline_us = hal_now_us() + (uint64_t)qemu_wdt_timeout_ms * 1000u;
+}
+
+uint32_t hal_wdt_feed_count(void)
+{
+    return qemu_wdt_feeds;
+}
+
+bool hal_wdt_is_expired(void)
+{
+    if (!qemu_wdt_running) {
+        return false;
+    }
+    if (qemu_deadline_reached(hal_now_us(), qemu_wdt_deadline_us)) {
+        qemu_wdt_expired = true;
+    }
+    return qemu_wdt_expired;
+}

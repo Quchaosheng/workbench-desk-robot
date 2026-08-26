@@ -1,0 +1,53 @@
+{
+  "issue": "mechanical-revision-b",
+  "human_owner": "Quchaosheng",
+  "objective": "Refine the desk robot mechanical baseline into a more product-like Revision B while preserving the controlled envelope, PCB tray interface, stability gates, and explicit physical-validation boundaries.",
+  "allowed_paths": [
+    "hardware/mechanical/**",
+    "tests/hardware/test_engineering_packages.py",
+    "docs/task_packets/mechanical-visual-revision-b.json"
+  ],
+  "read_only_paths": [
+    "hardware/pcb/**",
+    "robot/**",
+    "interfaces/**",
+    "firmware/**"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "services/**",
+    "interfaces/**"
+  ],
+  "acceptance": [
+    "Revision B keeps the 280 x 240 x 330 mm envelope, 260 x 220 mm chassis, 18 mm ground clearance, 150 x 72 mm display opening, and PCB mount pattern",
+    "SCAD and the CadQuery generator describe the same product-level structure: low chassis, tapered shoulder shell, separate 8 degree head, recessed display bezel, wheel pods, corner bumpers, cable channel, and service panel",
+    "the analytical stability, tray-fit, drop-screening, and physical-validation status remain explicit and pass the existing mechanical checks",
+    "generated general-arrangement evidence names the Revision B geometry and does not claim physical validation",
+    "a product hero visual uses the Revision B silhouette and does not depict the old transparent-box geometry",
+    "mechanical package tests, artifact generation, Ruff, and Task Packet validation pass"
+  ],
+  "commands": [
+    "python hardware/mechanical/tools/generate_artifacts.py",
+    "python -m unittest tests.hardware.test_engineering_packages -v",
+    "python -m unittest tests.hardware.test_operations_readiness -v",
+    "python -m ruff check hardware/mechanical tests/hardware/test_engineering_packages.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/mechanical-visual-revision-b.json"
+  ],
+  "evidence": [
+    "hardware/mechanical/design-spec.json",
+    "hardware/mechanical/cad/desk_robot.scad",
+    "hardware/mechanical/tools/generate_artifacts.py",
+    "hardware/mechanical/generated/drawings/general-arrangement.svg",
+    "hardware/mechanical/generated/analysis.json",
+    "hardware/mechanical/generated/drop-screening.json",
+    "mechanical package unit-test output",
+    "Revision B product hero visual"
+  ],
+  "stop_conditions": [
+    "a change requires altering robot control, firmware, interfaces, or PCB ownership",
+    "a geometry change invalidates the PCB tray, stability, clearance, or impact gates",
+    "the resulting image would imply a physical prototype or test that does not exist",
+    "SolidWorks or CadQuery regeneration is unavailable; preserve the existing STEP and report the regeneration limitation rather than inventing a solid-model result"
+  ]
+}

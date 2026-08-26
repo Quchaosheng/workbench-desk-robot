@@ -18,7 +18,7 @@ import sys
 import tempfile
 import time
 from collections.abc import Mapping, Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from itertools import pairwise
 from pathlib import Path
 from typing import Any, Protocol
@@ -358,7 +358,16 @@ def _snapshot_dict(snapshot: JointSnapshot) -> dict[str, Any]:
 
 
 def _violation_dict(violation: Violation | None) -> dict[str, Any] | None:
-    return asdict(violation) if violation is not None else None
+    if violation is None:
+        return None
+    return {
+        "kind": violation.kind.value,
+        "message": violation.message,
+        "joint": violation.joint,
+        "value": violation.value,
+        "bound": violation.bound,
+        "point_index": violation.point_index,
+    }
 
 
 def _requested_limit_excess(

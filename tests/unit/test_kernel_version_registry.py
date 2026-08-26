@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "libs" / "task_utils"))
 sys.path.insert(0, str(ROOT / "libs" / "kernel"))
 
 from workbench.kernel.version_registry import VersionConflictError, VersionRegistry, VersionRegistryError
@@ -97,13 +98,17 @@ def test_failed_replace_keeps_original_and_removes_temporary_file(
     def fail_replace(source: str, destination: Path) -> None:
         raise OSError("injected replace failure")
 
-    monkeypatch.setattr("workbench.kernel.version_registry.os.replace", fail_replace)
-    with pytest.raises(VersionRegistryError, match="could not be persisted"):
-        registry.register_schema("result", "1.0.0", {"type": "object"})
+    with monkeypatch.context() as context:
+        context.setattr("workbench.kernel.version_registry.os.replace", fail_replace)
+        with pytest.raises(VersionRegistryError, match="could not be persisted"):
+            registry.register_schema("result", "1.0.0", {"type": "object"})
 
     assert path.read_bytes() == before
     assert registry.versions == {"action": {"1.0.0": {"required": ["id"]}}}
     assert list(tmp_path.glob(f".{path.name}.*.tmp")) == []
+
+    registry.register_schema("result", "1.0.0", {"type": "object"})
+    assert VersionRegistry(path).versions["result"] == {"1.0.0": {"type": "object"}}
 
 
 def test_stale_instances_merge_disjoint_schema_versions(tmp_path: Path) -> None:
@@ -134,7 +139,7 @@ def test_stale_instance_rechecks_conflicting_version(tmp_path: Path) -> None:
 
 def test_concurrent_process_registrations_are_not_lost(tmp_path: Path) -> None:
     path = tmp_path / "registry.json"
-    with multiprocessing.get_context("fork").Pool(4) as processes:
+    with multiprocessing.get_context("spawn").Pool(4) as processes:
         processes.starmap(_register_from_process, [(str(path), index) for index in range(8)])
 
     assert set(VersionRegistry(path).versions["process"]) == {str(index) for index in range(8)}

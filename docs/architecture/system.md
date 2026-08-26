@@ -30,6 +30,24 @@ emit the `TaskGraph`. A model response never becomes a joint, velocity, firmware
 5. World Model verifies the expected result. Only it emits `VerificationResult`.
 6. Backend/replay displays facts and evidence; it does not derive a second WorldState or accept control writes.
 
+## Hardware runtime boundary (planned)
+
+The physical path is intentionally a separate, owner-gated layer:
+
+```text
+device / Linux driver -> DeviceAdapter -> bounded DeviceRuntime
+  -> ROS 2 typed boundary -> selected RMW (Fast DDS deployment)
+  -> validation + provenance -> World Model / evidence -> read-only API
+```
+
+CAN, camera/touch, arm and safety adapters share lifecycle, cancellation,
+queue and provenance rules, but remain separate plugins. Fast DDS is a
+deployment transport choice, not a dependency of the adapter contract. E-stop,
+watchdog, safe-enable and direct motion authority remain outside DDS. This
+boundary is proposed in [ADR-0005](../decisions/ADR-0005-hardware-device-runtime.md);
+no Fast DDS or physical hardware implementation is present in this repository
+yet.
+
 ## Operational boundary
 
 - `/healthz` reports process health; `/readyz` checks that the event source is readable.

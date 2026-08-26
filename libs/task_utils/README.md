@@ -1,16 +1,20 @@
 # task_utils
 
-Shared utilities for task verifiers:
+Shared standard-library utilities used across Workbench task boundaries.
 
-- Spatial containment check (bounding box, convex hull)
-- Pose comparison with configurable tolerance
-- Confidence aggregation across multiple observations
-- Evidence ref builder
+Implemented today:
 
-Import in verifiers:
+- `exclusive_file_lock`: persistent sidecar-file locking backed by `flock` on
+  POSIX and one-byte `msvcrt` locking on Windows. It serializes both threads and
+  processes and does not remove the lock file after use.
+
 ```python
-from workbench_task_utils import contains, pose_close, aggregate_confidence
+from workbench_task_utils import exclusive_file_lock
+
+with exclusive_file_lock("state.json.lock"):
+    update_state()
 ```
 
-Not implemented yet — will be populated as repeated patterns emerge across
-task verifiers in v0.1 and v0.2.
+Spatial containment, pose comparison, confidence aggregation, and evidence-ref
+helpers remain planned and will be added only when repeated verifier patterns
+need them.

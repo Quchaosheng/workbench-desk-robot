@@ -18,7 +18,30 @@ from workbench_world_model import (
     verify_parcel_sorting,
     verify_workspace_clearance,
 )
+from workbench_world_model.event_payloads import WorldEventPayloadValidationError
 from workbench_world_model.reducer import WorldState
+
+
+def action_result_payload(**updates: object) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "result_id": "res-001",
+        "action_id": "act-001",
+        "run_id": "run-001",
+        "outcome": "completed",
+        "dispatch_state": "sent",
+        "device_state": "confirmed",
+        "error_code": None,
+        "error_reason": None,
+        "started_at": "2026-08-04T00:00:00Z",
+        "ended_at": "2026-08-04T00:00:01Z",
+        "clock_id": "monotonic",
+        "retry_count": 0,
+        "entity_id": "red_block",
+        "resulting_location": "in:tray",
+        "evidence_refs": ["act-001"],
+    }
+    payload.update(updates)
+    return payload
 
 
 def placed_event() -> WorldEvent:
@@ -28,7 +51,7 @@ def placed_event() -> WorldEvent:
         sequence_no=1,
         event_type=WorldEventType.ACTION_RESULT,
         occurred_at="2026-08-04T00:00:00Z",
-        payload={"outcome": "completed", "entity_id": "red_block", "resulting_location": "in:tray"},
+        payload=action_result_payload(),
         evidence_refs=["act-001"],
     )
 
@@ -39,7 +62,8 @@ def observation_event(
     *,
     run_id: str = "run-001",
     entity_id: str = "red_block",
-    location: str = "on:table",
+    location: object = "on:table",
+    confidence: object = 0.9,
 ) -> WorldEvent:
     return WorldEvent(
         event_id=event_id,
@@ -47,7 +71,7 @@ def observation_event(
         sequence_no=sequence_no,
         event_type=WorldEventType.OBSERVATION,
         occurred_at=f"2026-08-04T00:00:{sequence_no:02d}Z",
-        payload={"entity_id": entity_id, "location": location, "confidence": 0.9},
+        payload={"entity_id": entity_id, "location": location, "confidence": confidence},
         evidence_refs=[f"frame://{event_id}"],
     )
 
@@ -78,12 +102,28 @@ class WorldModelTests(unittest.TestCase):
             },
         )
 
-    def test_event_is_idempotent(self) -> None:
-        state = WorldState(run_id="run-001")
-        once = apply_event(state, placed_event())
-        twice = apply_event(once, placed_event())
+    def test_action_result_replay_is_deterministic_and_idempotent(self) -> None:
+        action = placed_event()
+        duplicate = action.model_copy(deep=True)
+        observation = observation_event("evt-tray", 2, location="in:tray")
+
+        states = [
+            reduce_events("run-001", events).model_dump(mode="json")
+            for events in (
+                [action, duplicate, observation],
+                [observation, action, duplicate],
+                [duplicate, observation, action],
+            )
+        ]
+
+        self.assertTrue(all(state == states[0] for state in states))
+        self.assertEqual(states[0]["applied_event_ids"], ["evt-place", "evt-tray"])
+        self.assertEqual(states[0]["evidence_refs"], ["act-001", "frame://evt-tray"])
+        self.assertEqual(states[0]["entity_evidence_refs"]["red_block"], ["frame://evt-tray"])
+
+        once = apply_event(WorldState(run_id="run-001"), action)
+        twice = apply_event(once, action)
         self.assertEqual(once.model_dump(), twice.model_dump())
-        self.assertEqual(once.entity_evidence_refs["red_block"], ["act-001"])
 
     def test_reduce_events_rejects_empty_run_id_before_apply(self) -> None:
         streams = [[], [observation_event("evt-001", 1, run_id="")]]
@@ -206,22 +246,196 @@ class WorldModelTests(unittest.TestCase):
                 reduce_events("run-001", events)
             apply_spy.assert_not_called()
 
+    def test_reduce_events_preflights_all_typed_payloads_before_apply(self) -> None:
+        events = [
+            observation_event("evt-valid", 1),
+            observation_event("evt-invalid", 2, confidence=float("nan")),
+        ]
+
+        with patch("workbench_world_model.reducer.apply_event", wraps=apply_event) as apply_spy:
+            with self.assertRaisesRegex(WorldEventPayloadValidationError, "confidence"):
+                reduce_events("run-001", events)
+            apply_spy.assert_not_called()
+
+    def test_direct_apply_rejects_invalid_payload_without_mutating_state(self) -> None:
+        state = WorldState(
+            run_id="run-001",
+            entity_locations={"existing": "on:table"},
+            evidence_refs=["frame://existing"],
+        )
+        original = state.model_dump_json()
+
+        with self.assertRaisesRegex(WorldEventPayloadValidationError, "location"):
+            apply_event(
+                state,
+                observation_event("evt-invalid", 2, location=["not", "a", "location"]),
+            )
+
+        self.assertEqual(state.model_dump_json(), original)
+
+    def test_nan_observation_cannot_reach_verifiers(self) -> None:
+        event = observation_event("evt-nan", 1, location="in:kit_tray", confidence=float("nan"))
+
+        with (
+            patch(f"{__name__}.verify_kit_contents") as kit_spy,
+            patch(f"{__name__}.verify_inspection_evidence") as inspection_spy,
+        ):
+            with self.assertRaisesRegex(WorldEventPayloadValidationError, "confidence"):
+                state = reduce_events("run-001", [event])
+                verify_kit_contents(state, "task-kit", ["red_block"])
+                verify_inspection_evidence(state, "task-inspection", ["red_block"])
+
+            kit_spy.assert_not_called()
+            inspection_spy.assert_not_called()
+
     def test_reduce_events_accepts_empty_stream_for_valid_run(self) -> None:
         state = reduce_events("run-001", [])
 
         self.assertEqual(state, WorldState(run_id="run-001"))
 
-    def test_verifier_uses_state_relation(self) -> None:
+    def test_completed_action_result_preserves_observed_state_and_entity_evidence(self) -> None:
+        state = WorldState(
+            run_id="run-001",
+            entity_locations={"red_block": "on:table"},
+            entity_confidence={"red_block": 0.91},
+            entity_attributes={"red_block": {"colour": "red"}},
+            entity_evidence_refs={"red_block": ["frame://before-action"]},
+            evidence_refs=["frame://before-action"],
+        )
+        observed_facts = {
+            "entity_locations": state.entity_locations,
+            "entity_confidence": state.entity_confidence,
+            "entity_attributes": state.entity_attributes,
+            "entity_evidence_refs": state.entity_evidence_refs,
+        }
+
+        without_spatial_claim = placed_event().model_copy(
+            update={
+                "event_id": "evt-completed-without-spatial-claim",
+                "payload": action_result_payload(
+                    result_id="res-completed-without-spatial-claim",
+                    entity_id=None,
+                    resulting_location=None,
+                    evidence_refs=["act-without-spatial-claim"],
+                ),
+                "evidence_refs": ["act-without-spatial-claim"],
+            }
+        )
+
+        for action, evidence_ref in (
+            (placed_event(), "act-001"),
+            (without_spatial_claim, "act-without-spatial-claim"),
+        ):
+            result = apply_event(state, action)
+
+            with self.subTest(event_id=action.event_id):
+                for field_name, expected in observed_facts.items():
+                    self.assertEqual(getattr(result, field_name), expected)
+                self.assertEqual(result.applied_event_ids, [action.event_id])
+                self.assertEqual(result.evidence_refs, ["frame://before-action", evidence_ref])
+                self.assertNotIn(evidence_ref, result.entity_evidence_refs["red_block"])
+
+    def test_failed_action_result_preserves_observed_state_and_entity_evidence(self) -> None:
+        observed = WorldState(
+            run_id="run-001",
+            entity_locations={"red_block": "on:table"},
+            entity_confidence={"red_block": 0.91},
+            entity_attributes={"red_block": {"colour": "red"}},
+            entity_evidence_refs={"red_block": ["frame://before-action"]},
+            evidence_refs=["frame://before-action"],
+        )
+        observed_facts = {
+            "entity_locations": observed.entity_locations,
+            "entity_confidence": observed.entity_confidence,
+            "entity_attributes": observed.entity_attributes,
+            "entity_evidence_refs": observed.entity_evidence_refs,
+        }
+
+        for outcome, device_state in (
+            ("failed", "rejected"),
+            ("canceled", "stopped"),
+            ("safe_stop", "stopped"),
+            ("timeout", "unconfirmed"),
+        ):
+            evidence_ref = f"execution://{outcome}"
+            action = placed_event().model_copy(
+                update={
+                    "event_id": f"evt-{outcome}",
+                    "payload": action_result_payload(
+                        result_id=f"res-{outcome}",
+                        outcome=outcome,
+                        device_state=device_state,
+                        resulting_location=None,
+                        evidence_refs=[evidence_ref],
+                    ),
+                    "evidence_refs": [evidence_ref],
+                }
+            )
+
+            result = apply_event(observed, action)
+
+            with self.subTest(outcome=outcome):
+                for field_name, expected in observed_facts.items():
+                    self.assertEqual(getattr(result, field_name), expected)
+                self.assertEqual(result.applied_event_ids, [f"evt-{outcome}"])
+                self.assertEqual(result.evidence_refs, ["frame://before-action", evidence_ref])
+                self.assertNotIn(evidence_ref, result.entity_evidence_refs["red_block"])
+
+    def test_action_result_without_spatial_observation_is_insufficient(self) -> None:
         state = reduce_events("run-001", [placed_event()])
         result = verify_object_in_tray(state, "task-001", "red_block", "tray")
-        self.assertTrue(result.completed)
-        state.evidence_refs.clear()
-        state.entity_evidence_refs.clear()
-        result = verify_object_in_tray(state, "task-001", "red_block", "tray")
-        self.assertFalse(result.completed)
+
+        self.assertEqual(state.entity_locations, {})
+        self.assertEqual(state.entity_evidence_refs, {})
+        self.assertEqual(state.evidence_refs, ["act-001"])
+        self.assertEqual(state.applied_event_ids, ["evt-place"])
         self.assertEqual(result.status, VerificationStatus.INSUFFICIENT_EVIDENCE)
-        self.assertEqual(result.reason_code, ReasonCode.EVIDENCE_MISSING)
-        self.assertIn("no evidence", result.claim)
+        self.assertEqual(result.reason_code, ReasonCode.TARGET_NOT_OBSERVED)
+        self.assertEqual(result.evidence_refs, ["system://world-state/no-evidence"])
+        self.assertNotIn("act-001", result.evidence_refs)
+
+    def test_post_action_supporting_observation_confirms_with_sensor_evidence(self) -> None:
+        state = reduce_events(
+            "run-001",
+            [placed_event(), observation_event("evt-tray", 2, location="in:tray")],
+        )
+        result = verify_object_in_tray(state, "task-001", "red_block", "tray")
+
+        self.assertEqual(result.status, VerificationStatus.CONFIRMED)
+        self.assertEqual(result.reason_code, ReasonCode.GOAL_SATISFIED)
+        self.assertEqual(result.evidence_refs, ["frame://evt-tray"])
+        self.assertEqual(state.entity_evidence_refs["red_block"], ["frame://evt-tray"])
+        self.assertEqual(state.evidence_refs, ["act-001", "frame://evt-tray"])
+        self.assertNotIn("act-001", result.evidence_refs)
+
+    def test_post_action_contradictory_observation_refutes_with_sensor_evidence(self) -> None:
+        state = reduce_events(
+            "run-001",
+            [placed_event(), observation_event("evt-table", 2, location="on:table")],
+        )
+        result = verify_object_in_tray(state, "task-001", "red_block", "tray")
+
+        self.assertEqual(result.status, VerificationStatus.REFUTED)
+        self.assertEqual(result.reason_code, ReasonCode.GOAL_NOT_SATISFIED)
+        self.assertEqual(result.evidence_refs, ["frame://evt-table"])
+        self.assertEqual(state.entity_evidence_refs["red_block"], ["frame://evt-table"])
+        self.assertEqual(state.evidence_refs, ["act-001", "frame://evt-table"])
+        self.assertNotIn("act-001", result.evidence_refs)
+
+    def test_same_location_evidence_accumulates_until_location_changes(self) -> None:
+        table_events = [observation_event("evt-table-1", 1), observation_event("evt-table-2", 2)]
+        same_location = reduce_events("run-001", table_events)
+        state = reduce_events("run-001", [*table_events, observation_event("evt-tray", 3, location="in:tray")])
+
+        self.assertEqual(
+            same_location.entity_evidence_refs["red_block"],
+            ["frame://evt-table-1", "frame://evt-table-2"],
+        )
+        self.assertEqual(state.entity_evidence_refs["red_block"], ["frame://evt-tray"])
+        self.assertEqual(
+            verify_object_in_tray(state, "task-001", "red_block", "tray").evidence_refs,
+            ["frame://evt-tray"],
+        )
 
     def test_kitting_verifier_checks_all_parts_extras_confidence_and_evidence(self) -> None:
         state = WorldState(

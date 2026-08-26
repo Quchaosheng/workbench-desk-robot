@@ -36,6 +36,7 @@
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 #include <linux/string.h>
+#include <linux/u64_stats_sync.h>
 #include <linux/can.h>
 #include <linux/can/dev.h>
 #include <linux/can/error.h>
@@ -87,6 +88,7 @@ struct wbcan_priv {
 	struct dentry		*dbg_dir;
 
 	spinlock_t		lock;	/* guards fault configuration and stats */
+	struct u64_stats_sync	stats_sync;	/* protects netdev stat snapshots */
 
 	enum wbcan_fault	fault;
 	u32			fault_count;	/* frames left to affect; 0 = off */
@@ -107,6 +109,44 @@ struct wbcan_priv {
 	u64			stat_restart_attempts;
 	u64			stat_stop_attempts;
 };
+
+static void wbcan_stats_add(struct wbcan_priv *priv, u64 tx_packets,
+			    u64 tx_bytes, u64 tx_errors, u64 tx_dropped,
+			    u64 rx_packets, u64 rx_bytes, u64 rx_dropped)
+{
+	struct net_device_stats *stats = &priv->dev->stats;
+	unsigned long flags;
+
+	spin_lock_irqsave(&priv->lock, flags);
+	u64_stats_update_begin(&priv->stats_sync);
+	stats->tx_packets += tx_packets;
+	stats->tx_bytes += tx_bytes;
+	stats->tx_errors += tx_errors;
+	stats->tx_dropped += tx_dropped;
+	stats->rx_packets += rx_packets;
+	stats->rx_bytes += rx_bytes;
+	stats->rx_dropped += rx_dropped;
+	u64_stats_update_end(&priv->stats_sync);
+	spin_unlock_irqrestore(&priv->lock, flags);
+}
+
+static void wbcan_get_stats64(struct net_device *dev,
+			      struct rtnl_link_stats64 *stats)
+{
+	struct wbcan_priv *priv = netdev_priv(dev);
+	unsigned int start;
+
+	do {
+		start = u64_stats_fetch_begin(&priv->stats_sync);
+		stats->tx_packets = dev->stats.tx_packets;
+		stats->tx_bytes = dev->stats.tx_bytes;
+		stats->tx_errors = dev->stats.tx_errors;
+		stats->tx_dropped = dev->stats.tx_dropped;
+		stats->rx_packets = dev->stats.rx_packets;
+		stats->rx_bytes = dev->stats.rx_bytes;
+		stats->rx_dropped = dev->stats.rx_dropped;
+	} while (u64_stats_fetch_retry(&priv->stats_sync, start));
+}
 
 struct wbcan_status_snapshot {
 	enum can_state		state;
@@ -261,8 +301,8 @@ static void wbcan_emit_error(struct net_device *dev, enum wbcan_fault fault)
 		break;
 	}
 
-	if (skb)
-		netif_rx(skb);
+	if (skb && netif_rx(skb) != NET_RX_SUCCESS)
+		wbcan_stats_add(priv, 0, 0, 0, 0, 0, 0, 1);
 }
 
 /* --------------------------------------------------------------- netdev ops */
@@ -340,7 +380,7 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 		 * rather than accepting traffic in a terminal controller state.
 		 */
 		netif_stop_queue(dev);
-		dev->stats.tx_dropped++;
+		wbcan_stats_add(priv, 0, 0, 0, 1, 0, 0, 0);
 		kfree_skb(skb);
 		return NETDEV_TX_OK;
 	}
@@ -381,7 +421,7 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 		priv->stat_tx++;
 		spin_unlock_irqrestore(&priv->lock, flags);
 		wbcan_emit_error(dev, fault);
-		dev->stats.tx_errors++;
+		wbcan_stats_add(priv, 0, 0, 1, 0, 0, 0, 0);
 		kfree_skb(skb);
 		return NETDEV_TX_OK;
 
@@ -393,8 +433,7 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 		spin_lock_irqsave(&priv->lock, flags);
 		priv->stat_tx++;
 		spin_unlock_irqrestore(&priv->lock, flags);
-		dev->stats.tx_packets++;
-		dev->stats.tx_bytes += len;
+		wbcan_stats_add(priv, 1, len, 0, 0, 0, 0, 0);
 		kfree_skb(skb);
 		return NETDEV_TX_OK;
 
@@ -411,8 +450,7 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 		can_change_state(dev, NULL, CAN_STATE_ERROR_ACTIVE,
 				 CAN_STATE_ERROR_ACTIVE);
 
-	dev->stats.tx_packets++;
-	dev->stats.tx_bytes += len;
+	wbcan_stats_add(priv, 1, len, 0, 0, 0, 0, 0);
 	loop = skb->pkt_type == PACKET_LOOPBACK;
 	if (!loop) {
 		consume_skb(skb);
@@ -433,7 +471,7 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 		rx_skb = can_create_echo_skb(skb);
 	}
 	if (!rx_skb) {
-		dev->stats.rx_dropped++;
+		wbcan_stats_add(priv, 0, 0, 0, 0, 0, 0, 1);
 		return NETDEV_TX_OK;
 	}
 
@@ -449,18 +487,20 @@ static netdev_tx_t wbcan_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
 	if (fault == WBCAN_FAULT_DROP_RX) {
 		kfree_skb(rx_skb);
+		wbcan_stats_add(priv, 0, 0, 0, 0, 0, 0, 1);
 	} else {
 		rx_skb->dev = dev;
 		rx_skb->ip_summed = CHECKSUM_UNNECESSARY;
 		rx_skb->pkt_type = PACKET_BROADCAST;
-		dev->stats.rx_packets++;
-		dev->stats.rx_bytes += len;
+		if (netif_rx(rx_skb) == NET_RX_SUCCESS) {
+			wbcan_stats_add(priv, 0, 0, 0, 0, 1, len, 0);
 
-		spin_lock_irqsave(&priv->lock, flags);
-		priv->stat_rx++;
-		spin_unlock_irqrestore(&priv->lock, flags);
-
-		netif_rx(rx_skb);
+			spin_lock_irqsave(&priv->lock, flags);
+			priv->stat_rx++;
+			spin_unlock_irqrestore(&priv->lock, flags);
+		} else {
+			wbcan_stats_add(priv, 0, 0, 0, 0, 0, 0, 1);
+		}
 	}
 
 	return NETDEV_TX_OK;
@@ -528,6 +568,7 @@ static const struct net_device_ops wbcan_netdev_ops = {
 	.ndo_stop	= wbcan_stop,
 	.ndo_start_xmit	= wbcan_start_xmit,
 	.ndo_change_mtu	= wbcan_change_mtu,
+	.ndo_get_stats64	= wbcan_get_stats64,
 };
 
 static const struct ethtool_ops wbcan_ethtool_ops = {
@@ -788,6 +829,7 @@ static int __init wbcan_init(void)
 	priv = netdev_priv(wbcan_dev);
 	priv->dev = wbcan_dev;
 	spin_lock_init(&priv->lock);
+	u64_stats_init(&priv->stats_sync);
 	priv->fault = WBCAN_FAULT_NONE;
 	priv->match_any = true;
 

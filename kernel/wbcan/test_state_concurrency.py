@@ -11,6 +11,7 @@ import sys
 import threading
 import time
 from collections.abc import Callable
+from itertools import pairwise
 from pathlib import Path
 
 FRAME = struct.Struct("=IB3x8s")
@@ -67,6 +68,11 @@ class Probe:
         if value is None:
             raise AssertionError(f"missing status counter: {name}")
         return int(value)
+
+    def netdev_stats(self) -> dict[str, int]:
+        root = Path("/sys/class/net") / self.interface / "statistics"
+        names = ("tx_packets", "tx_bytes", "tx_dropped", "rx_packets", "rx_bytes", "rx_dropped")
+        return {name: int((root / name).read_text(encoding="ascii")) for name in names}
 
     def wait_for_state(self, expected: str, timeout: float = 1.0) -> None:
         deadline = time.monotonic() + timeout
@@ -380,6 +386,36 @@ class Probe:
             sender.close()
             peer.close()
 
+    def exercise_stats_sampling(self) -> None:
+        self.arm("none 0")
+        stop = threading.Event()
+        samples: list[dict[str, int]] = []
+
+        def sample() -> None:
+            while not stop.is_set():
+                samples.append(self.netdev_stats())
+                time.sleep(0.0005)
+
+        sampler = threading.Thread(target=sample, name="stats-sampler", daemon=True)
+        sender = threading.Thread(
+            target=self.capture,
+            args=(self.send_frames, 600, 0x739),
+            name="stats-tx",
+            daemon=True,
+        )
+        sampler.start()
+        sender.start()
+        sender.join(timeout=3)
+        stop.set()
+        sampler.join(timeout=1)
+        self.finish_threads(sender, sampler)
+        if len(samples) < 2:
+            raise AssertionError("statistics sampler collected too few snapshots")
+        for previous, current in pairwise(samples):
+            for name in current:
+                if current[name] < previous[name]:
+                    raise AssertionError(f"netdev statistic regressed: {name}")
+
 
 def main() -> int:
     if len(sys.argv) != 3:
@@ -394,6 +430,7 @@ def main() -> int:
         probe.exercise_restart_cancellation()
         probe.exercise_restart_stop_race()
         probe.verify_queue_recovery()
+        probe.exercise_stats_sampling()
     except Exception as exc:  # noqa: BLE001 - preserve the probe failure through cleanup.
         failure = exc
     finally:

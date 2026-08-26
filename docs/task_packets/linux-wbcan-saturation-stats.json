@@ -1,0 +1,47 @@
+{
+  "issue": 157,
+  "human_owner": "TH3478",
+  "objective": "Make wbcan netdev statistics race-safe and account for RX backlog drops under bounded saturation.",
+  "allowed_paths": [
+    "kernel/wbcan/wbcan.c",
+    "kernel/wbcan/test_state_concurrency.py",
+    "docs/task_packets/linux-wbcan-saturation-stats.json"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    ".github/workflows/ci.yml"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "firmware/**",
+    "robot/control/**"
+  ],
+  "acceptance": [
+    "all netdev statistic writers are serialized by one IRQ-safe writer lock around u64_stats_sync updates",
+    "netdev statistics are exposed through ndo_get_stats64 with reader retry semantics",
+    "RX backlog rejection increments rx_dropped instead of claiming rx_packets",
+    "intentional drop-rx and allocation-failure paths remain observable in netdev statistics",
+    "concurrent TX and stats sampling never observes a counter regression",
+    "the existing seven fault modes and state lifecycle behavior remain unchanged",
+    "no physical CAN, MCU, actuator, or hard-real-time evidence is claimed"
+  ],
+  "commands": [
+    "make -C kernel/wbcan",
+    "make -C kernel/wbcan checkpatch",
+    "sudo make -C kernel/wbcan reload",
+    "sudo make -C kernel/wbcan test",
+    "python tools/scripts/check_task_packet.py docs/task_packets/linux-wbcan-saturation-stats.json",
+    "git diff --check origin/main...HEAD"
+  ],
+  "evidence": [
+    "kernel build and checkpatch output",
+    "privileged wbcan fault suite output",
+    "concurrent netdev statistics sampling output",
+    "marker-delimited dmesg without kernel warnings"
+  ],
+  "stop_conditions": [
+    "the target kernel lacks u64_stats_sync or ndo_get_stats64",
+    "a CAN core API change is required",
+    "physical hardware evidence is required"
+  ]
+}

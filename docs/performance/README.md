@@ -49,3 +49,9 @@ python tools/scripts/analyze_telemetry.py runs/hardware/run-001.jsonl \
 ```
 
 没有哈希匹配的操作员证明，分析器会拒绝 `source=hardware`，因此测试夹具不能被悄悄当作真实硬件证据。
+
+## 软件性能回归
+
+同环境基线比较、绝对预算和失败关闭规则见
+[`software-regression-gate.md`](software-regression-gate.md)。该门禁只适用于开发主机的
+软件性能，不替代目标板或物理机器人测量。

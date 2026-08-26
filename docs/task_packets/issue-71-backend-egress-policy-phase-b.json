@@ -67,12 +67,16 @@
     "Missing, blank, or malformed allow-list configuration cannot make a non-loopback event source ready; existing Phase A fail-closed readiness behavior remains in force.",
     "The deployment documentation defines WORKBENCH_EVENT_SOURCE_ALLOWLIST as a comma-separated list of literal IP addresses or CIDR ranges, shows controller and same-host examples, and does not describe hostnames as allow-list entries.",
     "The rendered controller Compose configuration contains the expected event-source URL and allow-list arguments without granting write, robot-control, or additional filesystem capabilities.",
+    "A real runtime smoke starts separate simulation and controller Compose projects, dynamically discovers the controller bridge gateway, and proves an explicitly allow-listed non-loopback event source makes the controller ready and exposes remote runs.",
+    "The same runtime smoke replaces the allow-list with a non-matching CIDR and proves the controller fails closed with HTTP 503 while the simulation peer remains ready.",
     "Existing URL validation, prohibited-address checks, all-DNS-result validation, DNS pinning, redirect rejection, response limits, timeout limits, read-only API behavior, WorldEvent shape, and OpenAPI behavior remain unchanged.",
     "This Packet does not implement total DNS timeout, multiple safe-IP failover, retries, or partition recovery behavior assigned to Issue #74."
   ],
   "commands": [
     "python -m pytest tests/unit/test_multi_host.py tests/unit/test_multi_host_deployment.py tests/unit/test_dashboard_backend.py -v",
     "docker compose --env-file tests/fixtures/issue-71-controller.env -f deploy/multi-host/compose.controller.yaml config",
+    "docker build --tag workbench-1:issue-71-smoke .",
+    "python -m pytest tests/unit/test_multi_host_deployment.py -k controller_compose_runtime -v -s",
     "make test",
     "make contract",
     "make scenario-check",
@@ -80,17 +84,18 @@
     "make demo-scripted",
     "make check",
     "git diff --check",
-    "python tools/scripts/check_task_packet.py docs/task_packets/issue-71-backend-egress-policy-phase-b.json --base fix/71-backend-egress-policy"
+    "python tools/scripts/check_task_packet.py docs/task_packets/issue-71-backend-egress-policy-phase-b.json --base f821f417b1e202f310d5bf208a5136fa408fd789"
   ],
   "evidence": [
     "Verbose CLI tests prove environment fallback and explicit CLI override while executing services/backend/workbench_backend/server.py.",
     "Deployment tests prove both Compose variables are required, both CLI arguments are present, and no permissive allow-list default exists.",
     "Deployment documentation tests prove the IP/CIDR-only operator contract and both deployment examples are present.",
     "docker compose config renders the controller service successfully from the checked-in non-secret test environment fixture and shows the expected URL and allow-list arguments.",
+    "The dedicated Docker runtime smoke prints the dynamically discovered non-loopback gateway and proves allowed_status=200, denied_status=503, and sim_status_after_denial=200 across separate Compose projects.",
     "Existing Phase A security and Dashboard regression tests continue to pass.",
     "make check completes successfully.",
     "git diff --check produces no output.",
-    "Task Packet diff-boundary validation against fix/71-backend-egress-policy confirms every Phase B changed path is allowed."
+    "Task Packet diff-boundary validation against fixed follow-up base f821f417b1e202f310d5bf208a5136fa408fd789 confirms every changed path is allowed."
   ],
   "stop_conditions": [
     "A change to services/backend/workbench_backend/remote_http.py or services/backend/workbench_backend/read_model.py is required.",
@@ -108,6 +113,7 @@
     "Phase B is stacked on Phase A and must not be merged independently before the Phase A policy is present.",
     "Fail closed when a non-loopback deployment omits or supplies an invalid allow-list; do not add a permissive default.",
     "Keep IP/CIDR values non-secret and do not put credentials into Compose arguments or documentation examples.",
+    "The runtime smoke discovers its bridge gateway and host ports dynamically; if the local Docker engine cannot publish ports between separate Compose projects, report the environment limitation instead of weakening the allow-list.",
     "If deployment wiring must be rolled back, disable the non-loopback remote event source rather than restoring unrestricted outbound access."
   ]
 }

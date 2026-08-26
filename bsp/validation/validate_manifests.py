@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 from pathlib import Path
 
 import yaml
@@ -50,6 +51,12 @@ def validate() -> list[str]:
         errors.append("rootfs must boot with motion inhibited")
     if any(service.get("safety_authority") is not False for service in services.get("services", {}).values()):
         errors.append("no Linux service may own safety authority")
+    with (ROOT / "bsp/procurement/selection-register.csv").open(newline="", encoding="utf-8") as handle:
+        selections = list(csv.DictReader(handle))
+    if len(selections) != 7 or len({selection["item_id"] for selection in selections}) != 7:
+        errors.append("procurement register must contain seven unique BSP selections")
+    if any(not selection["required_closure"].strip() for selection in selections):
+        errors.append("every BSP selection requires an explicit closure action")
     return errors
 
 

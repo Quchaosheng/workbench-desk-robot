@@ -42,5 +42,10 @@ gates:
     status: NOT_EXECUTED
     evidence: bsp/validation/bringup-plan.yaml
     requirement: guarded boot, reset, STOP, power, thermal and load tests are executed
+  - id: BSP-GATE-CAMERA
+    owner: Perception and Integration Owners
+    status: NOT_EXECUTED
+    evidence: bsp/sensors/camera-head.yaml
+    requirement: D435 USB bandwidth, mount, calibration, timestamps, dropout and observation integration are validated
 allowed_statuses: [PASS, REVIEW_REQUIRED, BLOCKED, NOT_EXECUTED, FAIL]
 physical_release_ready: false

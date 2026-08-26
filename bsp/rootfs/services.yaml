@@ -21,6 +21,13 @@ services:
     restart: on-failure
     restart_limit: bounded
     safety_authority: false
+  robot-camera-head:
+    after: [robot-device-manager]
+    requires: [workbench_camera_head, camera_calibration]
+    restart: on-failure
+    restart_limit: bounded
+    safety_authority: false
+    output: validated_observation_input
   robot-evidence-logger:
     after: [local-fs.target]
     requires: [writable_bounded_log_store]

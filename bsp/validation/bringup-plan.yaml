@@ -26,6 +26,10 @@ tests:
     name: cpu_gpu_thermal_power_and_can_load
     requires: [calibrated_instruments, sustained_workload]
     result: NOT_EXECUTED
+  - id: BSP-CAMERA-001
+    name: head_rgbd_usb_bandwidth_calibration_timestamp_and_dropout
+    requires: [D435, USB_3, camera_mount, calibration_target]
+    result: NOT_EXECUTED
 evidence:
   required_fields: [board_revision, kernel_version, firmware_versions, timestamp_utc, raw_capture_hash, result]
   allowed_results: [PASS, FAIL, NOT_EXECUTED]

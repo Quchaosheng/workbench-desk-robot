@@ -6,6 +6,7 @@
     "bsp/**",
     "README.md",
     "README.zh-CN.md",
+    "hardware/cameras/README.md",
     "docs/architecture/robot-bsp-*.md",
     "docs/architecture/robot-bsp-*.yaml",
     "docs/task_packets/robot-bsp-*.json",
@@ -20,7 +21,8 @@
     "all unexecuted physical tests are marked NOT_EXECUTED",
     "no service or Linux resource can bypass MCU-SAFETY",
     "manifest validation rejects domain drift and unsafe physical-status promotion",
-    "readiness gates require owners, controlled statuses and evidence before PASS"
+    "readiness gates require owners, controlled statuses and evidence before PASS",
+    "one D435 head camera uses USB 3, UVC/V4L2, librealsense and a fail-closed physical calibration gate"
   ],
   "commands": [
     "python -m json.tool docs/task_packets/robot-bsp-implementation-v0.1.json",

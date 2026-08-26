@@ -14,8 +14,8 @@ def check() -> list[str]:
     errors: list[str] = []
     gates = readiness.get("gates", [])
     allowed = set(readiness.get("allowed_statuses", []))
-    if len(gates) != 8 or len({gate.get("id") for gate in gates}) != 8:
-        errors.append("BSP readiness must contain eight unique gates")
+    if len(gates) != 9 or len({gate.get("id") for gate in gates}) != 9:
+        errors.append("BSP readiness must contain nine unique gates")
     if any(gate.get("status") not in allowed for gate in gates):
         errors.append("BSP readiness contains an uncontrolled status")
     if any(not gate.get("owner") or not gate.get("requirement") for gate in gates):

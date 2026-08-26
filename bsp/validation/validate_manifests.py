@@ -10,6 +10,17 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def validate_camera_manifest(camera: dict) -> list[str]:
+    errors: list[str] = []
+    if camera.get("quantity_per_robot") != 1 or camera.get("selection", {}).get("model") != "D435":
+        errors.append("prototype BSP requires exactly one D435 head camera")
+    if camera.get("selection", {}).get("interface") != "USB_3":
+        errors.append("head RGB-D camera must use the selected USB 3 boundary")
+    if camera.get("boundaries", {}).get("physical_evidence_ready") is not False:
+        errors.append("camera physical evidence must remain false before calibration and bring-up")
+    return errors
+
+
 def validate_manifests(manifest: dict, compatibility: dict, bringup: dict) -> list[str]:
     errors: list[str] = []
 
@@ -42,7 +53,16 @@ def validate() -> list[str]:
     bringup = yaml.safe_load((ROOT / "bsp/validation/bringup-plan.yaml").read_text(encoding="utf-8"))
     errors = validate_manifests(manifest, compatibility, bringup)
     kernel_config = (ROOT / "bsp/linux/robot_bsp.config").read_text(encoding="utf-8")
-    required_symbols = {"CONFIG_CAN=y", "CONFIG_CAN_RAW=y", "CONFIG_CAN_DEV=y", "CONFIG_WATCHDOG=y", "CONFIG_PSTORE=y"}
+    required_symbols = {
+        "CONFIG_CAN=y",
+        "CONFIG_CAN_RAW=y",
+        "CONFIG_CAN_DEV=y",
+        "CONFIG_WATCHDOG=y",
+        "CONFIG_PSTORE=y",
+        "CONFIG_VIDEO_DEV=y",
+        "CONFIG_VIDEO_V4L2=y",
+        "CONFIG_USB_VIDEO_CLASS=y",
+    }
     missing_symbols = sorted(symbol for symbol in required_symbols if symbol not in kernel_config.splitlines())
     if missing_symbols:
         errors.append(f"kernel config missing required symbols: {', '.join(missing_symbols)}")
@@ -53,10 +73,12 @@ def validate() -> list[str]:
         errors.append("no Linux service may own safety authority")
     with (ROOT / "bsp/procurement/selection-register.csv").open(newline="", encoding="utf-8") as handle:
         selections = list(csv.DictReader(handle))
-    if len(selections) != 7 or len({selection["item_id"] for selection in selections}) != 7:
-        errors.append("procurement register must contain seven unique BSP selections")
+    if len(selections) != 8 or len({selection["item_id"] for selection in selections}) != 8:
+        errors.append("procurement register must contain eight unique BSP selections")
     if any(not selection["required_closure"].strip() for selection in selections):
         errors.append("every BSP selection requires an explicit closure action")
+    camera = yaml.safe_load((ROOT / "bsp/sensors/camera-head.yaml").read_text(encoding="utf-8"))
+    errors.extend(validate_camera_manifest(camera))
     return errors
 
 

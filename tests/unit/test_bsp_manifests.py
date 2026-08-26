@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 
 from bsp.validation.check_readiness import check
-from bsp.validation.validate_manifests import validate, validate_manifests
+from bsp.validation.validate_manifests import validate, validate_camera_manifest, validate_manifests
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -43,3 +43,26 @@ def test_physical_pass_without_evidence_is_rejected() -> None:
     errors = validate_manifests(board, compatibility, changed)
 
     assert "physical bring-up results must remain NOT_EXECUTED" in errors
+
+
+def test_camera_selection_drift_is_rejected() -> None:
+    camera = yaml.safe_load((ROOT / "bsp/sensors/camera-head.yaml").read_text(encoding="utf-8"))
+    changed = deepcopy(camera)
+    changed["quantity_per_robot"] = 2
+    changed["selection"]["model"] = "UNREVIEWED_CAMERA"
+    changed["selection"]["interface"] = "USB_2"
+
+    errors = validate_camera_manifest(changed)
+
+    assert "prototype BSP requires exactly one D435 head camera" in errors
+    assert "head RGB-D camera must use the selected USB 3 boundary" in errors
+
+
+def test_camera_physical_evidence_cannot_be_claimed_before_bringup() -> None:
+    camera = yaml.safe_load((ROOT / "bsp/sensors/camera-head.yaml").read_text(encoding="utf-8"))
+    changed = deepcopy(camera)
+    changed["boundaries"]["physical_evidence_ready"] = True
+
+    errors = validate_camera_manifest(changed)
+
+    assert "camera physical evidence must remain false before calibration and bring-up" in errors

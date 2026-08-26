@@ -1,0 +1,44 @@
+version: "0.1"
+status: recommended_prototype_selection
+role: head_rgbd
+quantity_per_robot: 1
+selection:
+  manufacturer: Intel RealSense
+  model: D435
+  interface: USB_3
+  depth_method: active_stereo
+  imu: false
+linux_stack:
+  kernel_driver: uvcvideo
+  api: V4L2
+  userspace_sdk: librealsense2
+  ros2_driver: realsense2_camera
+  ros2_release: TBD_COMPATIBILITY_SELECTION
+device_identity:
+  serial_number: TBD_FROM_PURCHASED_UNIT
+  usb_path: TBD_FROM_INSTALLED_HARNESS
+  udev_symlink: /dev/workbench-camera-head
+frames:
+  body_frame: camera_body
+  optical_frame: camera_optical
+  convention: REP_103
+streams:
+  color:
+    required: true
+    mode: TBD_AFTER_BANDWIDTH_TEST
+  depth:
+    required: true
+    mode: TBD_AFTER_BANDWIDTH_TEST
+  aligned_depth_to_color: required
+calibration:
+  intrinsics: NOT_ATTACHED
+  extrinsics_to_robot: NOT_ATTACHED
+  timestamp_validation: NOT_EXECUTED
+  physical_mount_validation: NOT_EXECUTED
+boundaries:
+  camera_frame_is_observation_not_task_completion: true
+  simulated_intrinsics_are_not_physical_calibration: true
+  physical_evidence_ready: false
+cost_policy:
+  wrist_cameras_in_v0_1: false
+  add_wrist_camera_only_from_occlusion_evidence: true

@@ -212,3 +212,36 @@ publishing a new artifact.
 An arm swap must additionally update the joint list and names in
 `config/controllers.yaml`, review `config/joint_limits.hw_override.yaml`, and
 rerun this probe. Vendor hard limits remain dynamic; never copy them here.
+
+## Issue 57: deterministic trajectory preflight
+
+`workbench_motion.joint_limits.preflight_trajectory` is the single ROS-free
+trajectory gate. It takes an immutable `PreflightContext`, rejects malformed or
+unsafe input with a stable `ReasonCode`, and returns an `AcceptedTrajectory`
+containing a deep-frozen normalized snapshot, canonical bytes, and SHA-256
+evidence. `check_trajectory` remains the Phase-2-compatible
+`Violation | None` wrapper around that same implementation.
+
+The versioned thresholds live in `config/trajectory_preflight.yaml`. Expected
+joint order comes from `config/arm.yaml`; effective limits remain the
+intersection of controlled vendor limits and the hardware override. Missing or
+invalid policy/limit sources fail readiness with `invalid_policy` or
+`invalid_limits` and are not reported as ordinary trajectory violations.
+
+Run the pure gate tests without ROS, Gazebo, or network access:
+
+```bash
+uv run --directory robot/control pytest -q \
+  workbench_motion/test/test_joint_limits.py \
+  workbench_motion/test/test_trajectory_preflight.py \
+  workbench_motion/test/test_phase2_probe.py
+```
+
+Downstream Issue #52 must expose only `AcceptedTrajectory` to its execution
+port and materialize controller messages from `AcceptedTrajectory.snapshot`.
+It must also compare the accepted trajectory/context evidence with current
+readiness before dispatch. Runtime state/scene TOCTOU rechecks, controller
+materialization, zero-dispatch proof, #59 rejected-dispatch mapping, C3b sampled
+collision gating, execution monitoring, stopping evidence, and physical safety
+remain downstream work; Issue #57 makes no ROS, Gazebo, or physical execution
+claim.

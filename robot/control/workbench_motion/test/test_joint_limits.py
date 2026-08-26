@@ -132,7 +132,7 @@ def test_malformed_or_unsafe_trajectory_fails_closed(traj, current, kind):
         (trajectory(point(1.0, velocities=(1.0, 0.0))), "velocity", "j1"),
         (trajectory(point(1.0, effort=(10.0, 0.0))), "effort", "j1"),
         (trajectory(point(0.0, positions=(0.01, 0.0))), "initial_position", "j1"),
-        (trajectory(point(0.1, positions=(0.2, 0.0))), "segment_velocity", "j1"),
+        (trajectory(point(0.01, positions=(0.02, 0.0))), "segment_velocity", "j1"),
         (trajectory(point(0.0), point(0.1, positions=(0.2, 0.0))), "segment_velocity", "j1"),
     ],
 )
@@ -163,7 +163,7 @@ class Duration:
 
 
 class Point:
-    positions: ClassVar[list[float]] = [0.5, 1.0]
+    positions: ClassVar[list[float]] = [0.05, 0.05]
     velocities: ClassVar[list[float]] = []
     accelerations: ClassVar[list[float]] = []
     effort: ClassVar[list[float]] = []

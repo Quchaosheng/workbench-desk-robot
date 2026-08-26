@@ -5,7 +5,9 @@
   "allowed_paths": [
     "bsp/IMPLEMENTATION_PLAN.md",
     "bsp/linux/README.md",
+    "bsp/linux/robot_bsp.config",
     "bsp/rootfs/README.md",
+    "bsp/rootfs/services.yaml",
     "bsp/firmware/compatibility.yaml",
     "bsp/validation/bringup-plan.yaml",
     "bsp/validation/validate_manifests.py",

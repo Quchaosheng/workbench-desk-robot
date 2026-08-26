@@ -39,7 +39,18 @@ def validate() -> list[str]:
     manifest = yaml.safe_load((ROOT / "bsp/board-manifest.yaml").read_text(encoding="utf-8"))
     compatibility = yaml.safe_load((ROOT / "bsp/firmware/compatibility.yaml").read_text(encoding="utf-8"))
     bringup = yaml.safe_load((ROOT / "bsp/validation/bringup-plan.yaml").read_text(encoding="utf-8"))
-    return validate_manifests(manifest, compatibility, bringup)
+    errors = validate_manifests(manifest, compatibility, bringup)
+    kernel_config = (ROOT / "bsp/linux/robot_bsp.config").read_text(encoding="utf-8")
+    required_symbols = {"CONFIG_CAN=y", "CONFIG_CAN_RAW=y", "CONFIG_CAN_DEV=y", "CONFIG_WATCHDOG=y", "CONFIG_PSTORE=y"}
+    missing_symbols = sorted(symbol for symbol in required_symbols if symbol not in kernel_config.splitlines())
+    if missing_symbols:
+        errors.append(f"kernel config missing required symbols: {', '.join(missing_symbols)}")
+    services = yaml.safe_load((ROOT / "bsp/rootfs/services.yaml").read_text(encoding="utf-8"))
+    if services.get("default_motion_state") != "inhibited":
+        errors.append("rootfs must boot with motion inhibited")
+    if any(service.get("safety_authority") is not False for service in services.get("services", {}).values()):
+        errors.append("no Linux service may own safety authority")
+    return errors
 
 
 if __name__ == "__main__":

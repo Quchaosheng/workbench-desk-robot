@@ -228,7 +228,10 @@ def main() -> int:
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     parser.add_argument("--event-source-url", default=os.environ.get("WORKBENCH_EVENT_SOURCE_URL"))
-    parser.add_argument("--event-source-allowlist")
+    parser.add_argument(
+        "--event-source-allowlist",
+        default=os.environ.get("WORKBENCH_EVENT_SOURCE_ALLOWLIST"),
+    )
     args = parser.parse_args()
     server = create_server(
         args.host,

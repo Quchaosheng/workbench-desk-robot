@@ -61,7 +61,7 @@ def run_once(run_id: str, logger: StructuredLogger) -> dict:
             run_id,
             1,
             WorldEventType.OBSERVATION,
-            {"entity_id": "red_block", "location": "table", "confidence": 0.98},
+            {"entity_id": "red_block", "confidence": 0.98},
             ["camera-frame-001"],
         ),
         event(
@@ -91,6 +91,14 @@ def run_once(run_id: str, logger: StructuredLogger) -> dict:
                 evidence_refs=["action-result-003"],
             ).model_dump(mode="json"),
             ["action-result-003"],
+        ),
+        event(
+            "evt-004",
+            run_id,
+            4,
+            WorldEventType.OBSERVATION,
+            {"entity_id": "red_block", "location": "in:tray", "confidence": 0.97},
+            ["camera-frame-004"],
         ),
     ]
     started = time.perf_counter()

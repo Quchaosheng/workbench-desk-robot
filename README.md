@@ -91,9 +91,25 @@ It is deliberately labelled `SCRIPTED_FIXTURE` and `release_eligible: false`.
 event logs, read-only dashboard, local model routing, scenario validation, and
 fail-closed simulation controls.
 
-**Not built yet:** a complete Gazebo world, real camera bridge, MoveIt
-grasp/place adapter, Gazebo-backed task results, and physical hardware evidence.
-Committed fixtures are pipeline tests, not robot or Gazebo evidence.
+**Not built yet:** a complete Gazebo world, an executed physical camera bridge,
+MoveIt grasp/place adapter, Gazebo-backed task results, and physical hardware
+evidence. The camera BSP integration is specified, but package compatibility,
+calibration and real sensor data remain `NOT_EXECUTED`. Committed fixtures are
+pipeline tests, not robot or Gazebo evidence.
+
+**BSP baseline:** the prototype plan selects one Jetson Orin Nano Super 8 GB
+Linux board and six controller domains: base, left/right arm, left/right tool,
+and independent safety. The repository includes CAN identity, kernel/service
+requirements, firmware compatibility, cost review and fail-closed readiness
+checks under [`bsp/`](bsp/). Carrier-board pin/IRQ data, supplier protocols,
+boot images, AVL approval and physical bring-up remain blocked or
+`NOT_EXECUTED` until real evidence is attached.
+
+The camera baseline is one head-mounted Intel RealSense D435 over USB 3 using
+the Linux `uvcvideo`/V4L2 stack, `librealsense2`, and ROS 2
+`realsense2_camera`. Wrist cameras are intentionally deferred until a measured
+occlusion study justifies their cost. See the
+[camera BSP integration](docs/architecture/robot-bsp-camera-v0.1.md).
 
 The reproducibility guarantees are deliberately separate:
 
@@ -118,6 +134,7 @@ remain explicitly separate:
 | Containers | Runtime and devcontainer share one immutable Ubuntu digest | Reproducibility on an unpinned base image |
 | Dashboard backend | Bounded read-only HTTP API; write methods return `405` | Authentication for public deployment or any control authority |
 | `wbcan` | Linux kernel build, virtual SocketCAN fault tests, race-safe counters | Physical CAN timing, MCU behavior, or actuator safety |
+| Robot BSP | Selected topology, camera stack, manifests, kernel/service requirements and readiness checks | A bootable Jetson image, installed camera packages, calibration, physical CAN, E-stop or thermal evidence |
 | Scripted scenarios | Deterministic fixture artifacts with checksums | Physical or Gazebo execution |
 
 The complete portable check is `python -m pytest`. Linux CI additionally owns

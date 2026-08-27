@@ -1,0 +1,46 @@
+version: "0.1"
+status: prototype_selection_pending_carrier_and_electrical_freeze
+linux_board:
+  model: NVIDIA_JETSON_ORIN_NANO_SUPER_DEVELOPER_KIT_8GB
+  storage: NVME_512GB_MINIMUM
+  interfaces:
+    can: can0
+    ethernet: eth0
+    mcu_uart: ttyS-mcu
+    debug_uart: ttyS-debug
+    management_i2c: i2c-bmc
+    expansion_spi: spi-exp
+    watchdog: watchdog0
+    head_rgbd_camera: librealsense_serial:TBD_FROM_PURCHASED_UNIT
+  unresolved:
+    - carrier_board_power_input
+    - target_jetpack_and_kernel_release
+    - camera_connector_and_bandwidth
+    - physical_can_controller_or_usb_adapter
+    - pinctrl_and_irq_numbers
+controllers:
+  - id: MCU-BASE
+    part: STM32H563
+    node_id: 0x10
+  - id: ARM-L-CTRL
+    implementation: vendor_arm_controller
+    node_id: 0x11
+  - id: ARM-R-CTRL
+    implementation: vendor_arm_controller
+    node_id: 0x12
+  - id: TOOL-L-CTRL
+    implementation: vendor_tool_controller_or_can_rs485_node
+    node_id: 0x13
+  - id: TOOL-R-CTRL
+    implementation: vendor_tool_controller_or_can_rs485_node
+    node_id: 0x14
+  - id: MCU-SAFETY
+    part: STM32G0B1
+    node_id: 0x1F
+    independent_reset_domain: true
+can:
+  transport: SocketCAN
+  logical_bus: can0
+  bitrate: TBD_ELECTRICAL_SELECTION
+  arbitration_id_table: TBD_IMPLEMENTATION_GATE
+  termination: TBD_ELECTRICAL_SELECTION

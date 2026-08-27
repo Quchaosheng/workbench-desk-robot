@@ -1,0 +1,38 @@
+{
+  "issue": "robot-bsp-implementation-v0.1",
+  "human_owner": "Quchaosheng",
+  "objective": "Create the repository-side implementation register, Linux BSP inputs, rootfs service boundaries, firmware compatibility contract and guarded bring-up plan for the selected one-board six-domain robot architecture.",
+  "allowed_paths": [
+    "bsp/**",
+    "README.md",
+    "README.zh-CN.md",
+    "hardware/cameras/README.md",
+    "docs/architecture/robot-bsp-*.md",
+    "docs/architecture/robot-bsp-*.yaml",
+    "docs/task_packets/robot-bsp-*.json",
+    "tests/unit/test_bsp_manifests.py",
+    "docs/task_packets/robot-bsp-implementation-v0.1.json"
+  ],
+  "read_only_paths": ["interfaces/**", "firmware/**", "robot/control/**"],
+  "forbidden": ["interfaces/**", "firmware/**", "robot/control/**"],
+  "acceptance": [
+    "implementation stages and external evidence gates are explicit",
+    "Linux, rootfs, firmware compatibility and bring-up boundaries are documented",
+    "all unexecuted physical tests are marked NOT_EXECUTED",
+    "no service or Linux resource can bypass MCU-SAFETY",
+    "manifest validation rejects domain drift and unsafe physical-status promotion",
+    "readiness gates require owners, controlled statuses and evidence before PASS",
+    "one D435 head camera uses USB 3, UVC/V4L2, librealsense and a fail-closed physical calibration gate",
+    "the composite D435 binds by librealsense serial instead of a conflicting shared video-device symlink",
+    "camera deployment remains non-installable until JetPack, ROS, driver packages and purchased-unit identity are frozen"
+  ],
+  "commands": [
+    "python -m json.tool docs/task_packets/robot-bsp-implementation-v0.1.json",
+    "python bsp/validation/validate_manifests.py",
+    "python bsp/validation/check_readiness.py",
+    "python -m pytest tests/unit/test_bsp_manifests.py -q",
+    "python -c \"from pathlib import Path; import yaml; d=yaml.safe_load(Path('bsp/validation/bringup-plan.yaml').read_text()); assert d['status']=='plan_not_executed' and all(x['result']=='NOT_EXECUTED' for x in d['tests'])\""
+  ],
+  "evidence": ["document review", "manifest parse output"],
+  "stop_conditions": ["a physical bring-up result is invented", "a rootfs service is given safety authority"]
+}

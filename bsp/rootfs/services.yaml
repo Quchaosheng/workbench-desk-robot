@@ -1,0 +1,46 @@
+version: "0.1"
+status: service_topology_only
+default_motion_state: inhibited
+services:
+  robot-can-gateway:
+    after: [network.target]
+    requires: [can0]
+    restart: on-failure
+    restart_limit: bounded
+    safety_authority: false
+  robot-safety-monitor:
+    after: [robot-can-gateway]
+    requires: [MCU-SAFETY]
+    restart: on-failure
+    restart_limit: bounded
+    safety_authority: false
+    mode: read_only_mirror
+  robot-device-manager:
+    after: [robot-can-gateway, robot-safety-monitor]
+    requires: [firmware_compatibility_manifest]
+    restart: on-failure
+    restart_limit: bounded
+    safety_authority: false
+  robot-camera-head:
+    after: [robot-device-manager]
+    requires: [d435_serial_identity, vendor_udev_rules, camera_calibration]
+    restart: on-failure
+    restart_limit: bounded
+    safety_authority: false
+    output: validated_observation_input
+  robot-evidence-logger:
+    after: [local-fs.target]
+    requires: [writable_bounded_log_store]
+    restart: on-failure
+    restart_limit: bounded
+    safety_authority: false
+  robot-update-agent:
+    after: [network-online.target]
+    requires: [signed_update_bundle, rollback_slot]
+    restart: no
+    safety_authority: false
+gates:
+  incompatible_firmware_inhibits_motion: true
+  missing_safety_monitor_inhibits_motion: true
+  service_restart_never_clears_safety_latch: true
+  actuator_enable_during_boot: false

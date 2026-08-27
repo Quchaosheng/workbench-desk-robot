@@ -62,6 +62,7 @@ def observation_event(
     *,
     run_id: str = "run-001",
     entity_id: str = "red_block",
+    entity_type: object = "block",
     location: object = "on:table",
     confidence: object = 0.9,
 ) -> WorldEvent:
@@ -71,7 +72,12 @@ def observation_event(
         sequence_no=sequence_no,
         event_type=WorldEventType.OBSERVATION,
         occurred_at=f"2026-08-04T00:00:{sequence_no:02d}Z",
-        payload={"entity_id": entity_id, "location": location, "confidence": confidence},
+        payload={
+            "entity_id": entity_id,
+            "entity_type": entity_type,
+            "location": location,
+            "confidence": confidence,
+        },
         evidence_refs=[f"frame://{event_id}"],
     )
 
@@ -166,6 +172,7 @@ class WorldModelTests(unittest.TestCase):
                 update={
                     "payload": {
                         "entity_id": "red_block",
+                        "entity_type": "block",
                         "location": "in:tray",
                         "confidence": 0.9,
                     }
@@ -194,6 +201,7 @@ class WorldModelTests(unittest.TestCase):
                 "confidence": 0.9,
                 "location": "on:table",
                 "entity_id": "red_block",
+                "entity_type": "block",
             },
             evidence_refs=list(original.evidence_refs),
         )
@@ -254,6 +262,17 @@ class WorldModelTests(unittest.TestCase):
 
         with patch("workbench_world_model.reducer.apply_event", wraps=apply_event) as apply_spy:
             with self.assertRaisesRegex(WorldEventPayloadValidationError, "confidence"):
+                reduce_events("run-001", events)
+            apply_spy.assert_not_called()
+
+    def test_reduce_events_rejects_conflicting_entity_types_before_apply(self) -> None:
+        events = [
+            observation_event("evt-block", 1, entity_id="shared", entity_type="block"),
+            observation_event("evt-tray", 2, entity_id="shared", entity_type="tray"),
+        ]
+
+        with patch("workbench_world_model.reducer.apply_event", wraps=apply_event) as apply_spy:
+            with self.assertRaisesRegex(ValueError, "entity_type"):
                 reduce_events("run-001", events)
             apply_spy.assert_not_called()
 
@@ -1239,6 +1258,7 @@ class WorldModelTests(unittest.TestCase):
             occurred_at="2026-08-07T00:00:00Z",
             payload={
                 "entity_id": "parcel_damaged",
+                "entity_type": "parcel",
                 "location": "on:intake_table",
                 "confidence": 0.92,
                 "attributes": {"label_status": "verified", "condition": "damaged"},

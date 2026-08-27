@@ -31,6 +31,11 @@ from .models import (
     VerificationStatus,
     WorldEvent,
     WorldEventType,
+    WorldState,
+    WorldStateBelief,
+    WorldStateEntity,
+    WorldStateRelation,
+    WorldStateRelationPredicate,
 )
 
 __all__ = [
@@ -66,4 +71,9 @@ __all__ = [
     "VerificationStatus",
     "WorldEvent",
     "WorldEventType",
+    "WorldState",
+    "WorldStateBelief",
+    "WorldStateEntity",
+    "WorldStateRelation",
+    "WorldStateRelationPredicate",
 ]

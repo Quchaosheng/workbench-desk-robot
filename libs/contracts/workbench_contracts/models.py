@@ -1,7 +1,7 @@
 from enum import StrEnum
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel, StringConstraints, model_validator
+from pydantic import BaseModel, ConfigDict, Field, RootModel, StringConstraints, field_validator, model_validator
 
 
 class ActionType(StrEnum):
@@ -32,6 +32,20 @@ class WorldEventType(StrEnum):
 class ClockId(StrEnum):
     MONOTONIC = "monotonic"
     WALL = "wall"
+
+
+class WorldStateBelief(StrEnum):
+    OBSERVED = "observed"
+    INFERRED = "inferred"
+    STALE = "stale"
+    LOST = "lost"
+
+
+class WorldStateRelationPredicate(StrEnum):
+    INSIDE = "inside"
+    ON_TOP_OF = "on_top_of"
+    HELD_BY = "held_by"
+    ADJACENT_TO = "adjacent_to"
 
 
 class McuFrameKind(StrEnum):
@@ -184,6 +198,20 @@ class _CanonicalRuntimeModel(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
 
+class _OmitUnsetRuntimeModel(_CanonicalRuntimeModel):
+    """Keep optional-but-non-null fields absent in default JSON serialization."""
+
+    def model_dump(self, *args: Any, exclude_unset: bool = True, **kwargs: Any) -> dict[str, Any]:
+        return super().model_dump(*args, exclude_unset=exclude_unset, **kwargs)
+
+    def model_dump_json(self, *args: Any, exclude_unset: bool = True, **kwargs: Any) -> str:
+        return super().model_dump_json(*args, exclude_unset=exclude_unset, **kwargs)
+
+
+NonBlankString = Annotated[str, StringConstraints(min_length=1, pattern=r"\S")]
+StateHash = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+
+
 class Position(_CanonicalRuntimeModel):
     x: float
     y: float
@@ -225,6 +253,48 @@ class Observation(_CanonicalRuntimeModel):
     clock_id: ClockId = ClockId.MONOTONIC
     source: str = "sensor"
     evidence_refs: list[str] = Field(min_length=1)
+
+
+class WorldStateEntity(_OmitUnsetRuntimeModel):
+    entity_id: str
+    entity_type: NonBlankString
+    pose: Pose | None = None
+    belief: WorldStateBelief
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    last_observed_at: str | None = None
+    evidence_refs: list[str] = Field(default_factory=list)
+
+    @field_validator("pose", "confidence", mode="before")
+    @classmethod
+    def reject_explicit_null(cls, value: Any) -> Any:
+        if value is None:
+            raise ValueError("field may be omitted but cannot be null")
+        return value
+
+
+class WorldStateRelation(_CanonicalRuntimeModel):
+    subject_id: str
+    predicate: WorldStateRelationPredicate
+    object_id: str
+    belief: WorldStateBelief
+    evidence_refs: list[str] = Field(default_factory=list)
+
+
+class WorldState(_OmitUnsetRuntimeModel):
+    run_id: str
+    sequence_no: int = Field(ge=0)
+    state_hash: StateHash
+    entities: list[WorldStateEntity]
+    relations: list[WorldStateRelation] = Field(default_factory=list)
+    reduced_at: str
+    clock_id: ClockId | None = None
+
+    @field_validator("clock_id", mode="before")
+    @classmethod
+    def reject_explicit_null_clock_id(cls, value: Any) -> Any:
+        if value is None:
+            raise ValueError("clock_id may be omitted but cannot be null")
+        return value
 
 
 class SemanticAction(_CanonicalRuntimeModel):

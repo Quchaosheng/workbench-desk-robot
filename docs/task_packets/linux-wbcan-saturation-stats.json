@@ -6,12 +6,13 @@
     "kernel/wbcan/wbcan.c",
     "kernel/wbcan/test_state_concurrency.py",
     "kernel/wbcan/Makefile",
+    "kernel/wbcan/test_wbcan.sh",
+    ".github/workflows/ci.yml",
     "tests/unit/test_linux_driver_tests.py",
     "docs/task_packets/linux-wbcan-saturation-stats.json"
   ],
   "read_only_paths": [
-    "AGENTS.md",
-    ".github/workflows/ci.yml"
+    "AGENTS.md"
   ],
   "forbidden": [
     "interfaces/**",
@@ -26,6 +27,9 @@
     "concurrent TX and stats sampling never observes a counter regression",
     "bounded concurrent producers use disjoint CAN IDs and deterministic sequence payloads",
     "normal saturation evidence reports per-producer sent, received, lost, duplicate, reordered, unexpected, and longest no-progress values",
+    "repeated transient tx-full injections deliver every retried frame exactly once and leave the queue usable",
+    "slow-receiver evidence separates expected socket-buffer loss from unexplained netdev rx_dropped events",
+    "CI validates and uploads the raw stress JSON even when a later gate fails",
     "the bounded stress entrypoint emits a versioned JSON report with environment, stage timing, and PASS or FAIL status",
     "malformed, incomplete, failed, or non-virtual stress reports fail validation",
     "the existing seven fault modes and state lifecycle behavior remain unchanged",

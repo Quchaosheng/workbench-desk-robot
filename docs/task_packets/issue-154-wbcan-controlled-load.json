@@ -1,0 +1,62 @@
+{
+  "issue": 154,
+  "human_owner": "TH3478",
+  "objective": "Complete the virtual wbcan latency baseline with bounded CPU and I/O load, repeated same-environment runs, and strict observational comparison evidence.",
+  "allowed_paths": [
+    ".github/workflows/ci.yml",
+    "docs/task_packets/issue-154-wbcan-controlled-load.json",
+    "kernel/wbcan/LATENCY.md",
+    "kernel/wbcan/Makefile",
+    "kernel/wbcan/test_latency.py",
+    "kernel/wbcan/validate_latency_campaign.py",
+    "tests/unit/test_linux_driver_tests.py"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "docs/task_packets/linux-wbcan-latency-baseline.json",
+    "docs/task_packets/linux-wbcan-status-reader-latency.json",
+    "kernel/wbcan/wbcan.c"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "firmware/**",
+    "robot/control/**"
+  ],
+  "acceptance": [
+    "idle and controlled-load profiles use identical bounded warm-up, sample, repetition, CAN ID and hosted-kernel settings",
+    "controlled load performs observed CPU hashing and fixed-size write-plus-fsync I/O without unbounded file growth",
+    "every load worker stops within a bounded timeout and worker failures make the report fail closed",
+    "strict per-profile JSON preserves complete per-run latency, delivery, CPU, throughput and load-activity evidence",
+    "strict campaign JSON requires at least three complete same-environment repetitions for idle and controlled load",
+    "campaign aggregation preserves per-run outliers and reports an observational envelope without a latency pass threshold",
+    "CI validates and uploads idle, controlled-load, status-reader and campaign JSON and reports PASS, FAIL or NOT_EXECUTED",
+    "evidence remains virtual-wbcan-userspace and makes no physical CAN, MCU, actuator, PREEMPT_RT or hard-real-time claim"
+  ],
+  "commands": [
+    "python3 -m pytest tests/unit/test_linux_driver_tests.py -v",
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/issue-154-wbcan-controlled-load.json --base origin/main",
+    "make -C kernel/wbcan",
+    "make -C kernel/wbcan checkpatch",
+    "sudo make -C kernel/wbcan reload",
+    "sudo make -C kernel/wbcan latency-campaign",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "make lint",
+    "git diff --check origin/main...HEAD"
+  ],
+  "evidence": [
+    "portable latency and campaign contract test output",
+    "idle and controlled-load repeated-run JSON",
+    "strict observational campaign JSON",
+    "privileged hosted-kernel job output and uploaded raw artifacts",
+    "repository validation output"
+  ],
+  "stop_conditions": [
+    "physical CAN or PREEMPT_RT timing is required",
+    "a latency SLA or pass threshold would be inferred from hosted-runner observations",
+    "a benchmark framework or unbounded load generator is required",
+    "kernel driver synchronization semantics must change"
+  ]
+}

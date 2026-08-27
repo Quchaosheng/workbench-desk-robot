@@ -176,10 +176,11 @@ struct wbcan_status_snapshot {
  * - ndo_open()/ndo_stop() run under RTNL, and ndo_stop() disables TX before
  *   closing the CAN device.
  *
- * Debugfs takes the netdev TX lock only long enough to snapshot state and the
- * fault plane, then formats outside both locks. Keeping the private spinlock
- * out of CAN-core and netif calls preserves the locking rules needed by
- * PREEMPT_RT.
+ * Debugfs snapshots the fault plane under the private lock and reads the
+ * independently published CAN state/queue bits without taking the netdev TX
+ * lock. Formatting remains outside the private lock, so status observation
+ * cannot extend the TX critical path. The state and queue values may describe
+ * adjacent instants; they are diagnostic telemetry, not control authority.
  */
 
 /* ------------------------------------------------------------------ helpers */
@@ -717,7 +718,6 @@ static int wbcan_status_show(struct seq_file *s, void *unused)
 	struct wbcan_status_snapshot snapshot;
 	unsigned long flags;
 
-	netif_tx_lock_bh(priv->dev);
 	spin_lock_irqsave(&priv->lock, flags);
 	snapshot.state = READ_ONCE(priv->can.state);
 	snapshot.queue_stopped = netif_queue_stopped(priv->dev);
@@ -734,7 +734,6 @@ static int wbcan_status_show(struct seq_file *s, void *unused)
 	snapshot.stat_stop_attempts = priv->stat_stop_attempts;
 	snapshot.bus_errors = priv->can.can_stats.bus_error;
 	spin_unlock_irqrestore(&priv->lock, flags);
-	netif_tx_unlock_bh(priv->dev);
 
 	seq_printf(s, "state         %s\n",
 		   snapshot.state == CAN_STATE_ERROR_ACTIVE  ? "error-active"  :

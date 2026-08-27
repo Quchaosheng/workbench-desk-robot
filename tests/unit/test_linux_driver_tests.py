@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
+DRIVER_PATH = ROOT / "kernel" / "wbcan" / "wbcan.c"
 MODULE_PATH = ROOT / "kernel" / "wbcan" / "validate_test_report.py"
 TEST_SCRIPT = ROOT / "kernel" / "wbcan" / "test_wbcan.sh"
 STRESS_PATH = ROOT / "kernel" / "wbcan" / "test_state_concurrency.py"
@@ -288,3 +289,11 @@ def test_latency_report_rejects_unobserved_or_mismatched_load() -> None:
     report["load_activity"] = {"kind": "status-readers", "iterations": 0}
     with pytest.raises(ValueError, match="requires observed reads"):
         LATENCY.validate_report(report)
+
+
+def test_wbcan_status_snapshot_does_not_take_tx_lock_or_format_under_private_lock() -> None:
+    source = DRIVER_PATH.read_text(encoding="utf-8")
+    status_show = source.split("static int wbcan_status_show", 1)[1].split("static int wbcan_status_open", 1)[0]
+
+    assert "netif_tx_lock" not in status_show
+    assert status_show.index("spin_unlock_irqrestore") < status_show.index("seq_printf")

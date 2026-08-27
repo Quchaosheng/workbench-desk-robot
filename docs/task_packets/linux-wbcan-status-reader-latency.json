@@ -4,16 +4,19 @@
   "objective": "Measure virtual wbcan latency and CPU/throughput evidence with concurrent debugfs status readers using the same bounded probe as the idle baseline.",
   "allowed_paths": [
     "kernel/wbcan/test_latency.py",
+    "kernel/wbcan/wbcan.c",
     "kernel/wbcan/Makefile",
     ".github/workflows/ci.yml",
     "tests/unit/test_linux_driver_tests.py",
     "docs/task_packets/linux-wbcan-status-reader-latency.json"
   ],
-  "read_only_paths": ["kernel/wbcan/wbcan.c", "AGENTS.md"],
+  "read_only_paths": ["AGENTS.md"],
   "forbidden": ["interfaces/**", "firmware/**", "robot/control/**"],
   "acceptance": [
     "idle and status-reader profiles use the same warm-up, sample count, CAN ID and hosted kernel environment",
     "status-reader load records a positive bounded read count and propagates reader failures",
+    "debugfs status snapshots do not acquire the netdev TX lock or perform formatting under the private IRQ-safe lock",
+    "state and queue telemetry may describe adjacent instants and cannot make control decisions",
     "both profiles record wall time, process CPU time, throughput and complete latency distributions",
     "CI uploads both raw JSON reports and neither profile claims physical or PREEMPT_RT behavior",
     "no pass/fail performance threshold is invented from one hosted runner"

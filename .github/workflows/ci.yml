@@ -112,6 +112,12 @@ jobs:
           sudo ip link set wbcan0 up
           ip -details link show wbcan0
 
+      - name: Mark kernel diagnostic scope
+        run: |
+          marker="wbcan-diagnostics-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "WBCAN_DIAGNOSTIC_MARKER=$marker" >> "$GITHUB_ENV"
+          printf '<6>%s\n' "$marker" | sudo tee /dev/kmsg >/dev/null
+
       - name: Run the fault suite
         id: fault_suite
         env:
@@ -124,6 +130,34 @@ jobs:
       - name: Validate stress evidence
         if: always()
         run: python3 kernel/wbcan/test_state_concurrency.py --validate-report "$RUNNER_TEMP/wbcan-stress-report.json"
+
+      - name: Capture and validate kernel diagnostics
+        if: always()
+        env:
+          DMESG_LOG: ${{ runner.temp }}/wbcan-dmesg.log
+          SLABINFO_LOG: ${{ runner.temp }}/wbcan-slabinfo.txt
+          MEMINFO_LOG: ${{ runner.temp }}/wbcan-meminfo.txt
+          DIAGNOSTIC_REPORT: ${{ runner.temp }}/wbcan-kernel-diagnostics.json
+        run: |
+          sudo dmesg > "$DMESG_LOG"
+          sudo cat /proc/slabinfo > "$SLABINFO_LOG"
+          cat /proc/meminfo > "$MEMINFO_LOG"
+          python3 kernel/wbcan/validate_kernel_diagnostics.py \
+            --dmesg "$DMESG_LOG" --slabinfo "$SLABINFO_LOG" --meminfo "$MEMINFO_LOG" \
+            --kernel "$(uname -r)" --marker "$WBCAN_DIAGNOSTIC_MARKER" --report "$DIAGNOSTIC_REPORT"
+          python3 kernel/wbcan/validate_kernel_diagnostics.py --validate-report "$DIAGNOSTIC_REPORT"
+
+      - name: Upload kernel diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: wbcan-kernel-diagnostics
+          path: |
+            ${{ runner.temp }}/wbcan-dmesg.log
+            ${{ runner.temp }}/wbcan-slabinfo.txt
+            ${{ runner.temp }}/wbcan-meminfo.txt
+            ${{ runner.temp }}/wbcan-kernel-diagnostics.json
+          if-no-files-found: error
 
       - name: Upload stress evidence
         if: always()

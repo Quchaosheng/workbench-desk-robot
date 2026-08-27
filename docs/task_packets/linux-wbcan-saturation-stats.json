@@ -7,6 +7,7 @@
     "kernel/wbcan/test_state_concurrency.py",
     "kernel/wbcan/Makefile",
     "kernel/wbcan/test_wbcan.sh",
+    "kernel/wbcan/validate_kernel_diagnostics.py",
     ".github/workflows/ci.yml",
     "tests/unit/test_linux_driver_tests.py",
     "docs/task_packets/linux-wbcan-saturation-stats.json"
@@ -30,6 +31,7 @@
     "repeated transient tx-full injections deliver every retried frame exactly once and leave the queue usable",
     "slow-receiver evidence separates expected socket-buffer loss from unexplained netdev rx_dropped events",
     "CI validates and uploads the raw stress JSON even when a later gate fails",
+    "CI captures dmesg, slabinfo, and meminfo and fails closed on kernel warning signatures",
     "the bounded stress entrypoint emits a versioned JSON report with environment, stage timing, and PASS or FAIL status",
     "malformed, incomplete, failed, or non-virtual stress reports fail validation",
     "the existing seven fault modes and state lifecycle behavior remain unchanged",
@@ -50,6 +52,7 @@
     "privileged wbcan fault suite output",
     "concurrent netdev statistics sampling output",
     "per-producer bounded saturation accounting in the versioned JSON artifact",
+    "kernel diagnostic JSON and raw resource snapshots",
     "marker-delimited dmesg without kernel warnings"
   ],
   "stop_conditions": [

@@ -11,7 +11,7 @@ KDIR  ?= /lib/modules/$(shell uname -r)/build
 PWD   := $(shell pwd)
 IFACE ?= wbcan0
 
-.PHONY: all clean load unload reload test checkpatch help
+.PHONY: all clean load unload reload test stress checkpatch help
 
 all:
 	@if [ ! -d "$(KDIR)" ]; then \
@@ -47,6 +47,14 @@ reload: unload load
 test:
 	@sudo ./test_wbcan.sh $(IFACE)
 
+stress:
+	@if [ ! -d "/sys/kernel/debug/wbcan/$(IFACE)" ]; then \
+		echo "wbcan debugfs is unavailable at /sys/kernel/debug/wbcan/$(IFACE)"; \
+		echo "load the module and bring $(IFACE) up before running stress"; \
+		exit 1; \
+	fi
+	@sudo python3 ./test_state_concurrency.py $(IFACE) /sys/kernel/debug/wbcan/$(IFACE)
+
 # The kernel's own checker. Catches the style issues a maintainer would.
 checkpatch:
 	@if [ -x "$(KDIR)/scripts/checkpatch.pl" ]; then \
@@ -59,6 +67,7 @@ help:
 	@echo "make           build wbcan.ko against $(KDIR)"
 	@echo "make load      create and bring up the module-load singleton $(IFACE)"
 	@echo "make test      run the fault suite"
+	@echo "make stress    run the bounded concurrency and stats probe"
 	@echo "make checkpatch  kernel style check"
 	@echo "ip link add type wbcan is unsupported; unload before loading another"
 	@echo ""

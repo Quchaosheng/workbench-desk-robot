@@ -5,6 +5,7 @@
   "allowed_paths": [
     "kernel/wbcan/wbcan.c",
     "kernel/wbcan/test_state_concurrency.py",
+    "kernel/wbcan/Makefile",
     "docs/task_packets/linux-wbcan-saturation-stats.json"
   ],
   "read_only_paths": [

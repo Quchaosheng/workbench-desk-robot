@@ -1,0 +1,32 @@
+{
+  "issue": 155,
+  "human_owner": "TH3478",
+  "objective": "Measure virtual wbcan latency and CPU/throughput evidence with concurrent debugfs status readers using the same bounded probe as the idle baseline.",
+  "allowed_paths": [
+    "kernel/wbcan/test_latency.py",
+    "kernel/wbcan/Makefile",
+    ".github/workflows/ci.yml",
+    "tests/unit/test_linux_driver_tests.py",
+    "docs/task_packets/linux-wbcan-status-reader-latency.json"
+  ],
+  "read_only_paths": ["kernel/wbcan/wbcan.c", "AGENTS.md"],
+  "forbidden": ["interfaces/**", "firmware/**", "robot/control/**"],
+  "acceptance": [
+    "idle and status-reader profiles use the same warm-up, sample count, CAN ID and hosted kernel environment",
+    "status-reader load records a positive bounded read count and propagates reader failures",
+    "both profiles record wall time, process CPU time, throughput and complete latency distributions",
+    "CI uploads both raw JSON reports and neither profile claims physical or PREEMPT_RT behavior",
+    "no pass/fail performance threshold is invented from one hosted runner"
+  ],
+  "commands": [
+    "python -m pytest tests/unit/test_linux_driver_tests.py -v",
+    "python tools/scripts/check_task_packet.py docs/task_packets/linux-wbcan-status-reader-latency.json",
+    "git diff --check origin/main...HEAD"
+  ],
+  "evidence": ["idle latency JSON", "status-reader latency JSON", "kernel job output"],
+  "stop_conditions": [
+    "debugfs status reads cannot be bounded or stopped",
+    "physical or PREEMPT_RT performance would be inferred",
+    "driver synchronization semantics must change before measurement"
+  ]
+}

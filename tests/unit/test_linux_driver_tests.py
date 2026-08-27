@@ -211,6 +211,10 @@ def _latency_report() -> dict[str, object]:
         "cpu_count": 2,
         "cpu_affinity": [0, 1],
         "load_profile": "idle",
+        "load_activity": {"kind": "idle", "iterations": 0},
+        "elapsed_ns": 1_000_000,
+        "process_cpu_ns": 500_000,
+        "throughput_fps": 10_000,
         "clock": "monotonic_ns",
         "warmup_count": 10,
         "sample_count": 10,
@@ -265,3 +269,22 @@ def test_latency_summary_rejects_negative_or_empty_samples() -> None:
         LATENCY.summarize([], deadline_ns=None)
     with pytest.raises(ValueError):
         LATENCY.summarize([1, -1], deadline_ns=None)
+
+
+def test_latency_report_accepts_observed_status_reader_load() -> None:
+    report = _latency_report()
+    report["load_profile"] = "status-readers"
+    report["load_activity"] = {"kind": "status-readers", "iterations": 12}
+
+    LATENCY.validate_report(report)
+
+
+def test_latency_report_rejects_unobserved_or_mismatched_load() -> None:
+    report = _latency_report()
+    report["load_profile"] = "status-readers"
+    with pytest.raises(ValueError, match="load activity"):
+        LATENCY.validate_report(report)
+
+    report["load_activity"] = {"kind": "status-readers", "iterations": 0}
+    with pytest.raises(ValueError, match="requires observed reads"):
+        LATENCY.validate_report(report)

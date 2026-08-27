@@ -1,0 +1,23 @@
+[Unit]
+Description=Workbench head RGB-D camera
+After=robot-device-manager.service
+Requires=robot-device-manager.service
+StartLimitIntervalSec=60
+StartLimitBurst=3
+ConditionPathExists=/etc/workbench/camera-head.env
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/workbench/camera-head.env
+ExecStartPre=/usr/bin/test -n "${D435_SERIAL}"
+ExecStartPre=/usr/bin/test "${D435_SERIAL}" != "TBD_FROM_PURCHASED_UNIT"
+ExecStart=/usr/libexec/workbench/camera-head-launch
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+
+[Install]
+WantedBy=multi-user.target

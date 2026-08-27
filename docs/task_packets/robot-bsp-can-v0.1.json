@@ -1,0 +1,25 @@
+{
+  "issue": "robot-bsp-can-v0.1",
+  "human_owner": "Quchaosheng",
+  "objective": "Freeze the logical CAN contract and implementation workspace for one Linux board and six controller domains without claiming physical bus validation.",
+  "allowed_paths": [
+    "docs/architecture/robot-bsp-can-v0.1.md",
+    "docs/task_packets/robot-bsp-can-v0.1.json",
+    "bsp/README.md",
+    "bsp/board-manifest.yaml"
+  ],
+  "read_only_paths": ["interfaces/**", "firmware/**", "robot/control/**"],
+  "forbidden": ["interfaces/**", "firmware/**", "robot/control/**"],
+  "acceptance": [
+    "all six controller domains and the Linux gateway have unique logical node IDs",
+    "STOP, fault, command, acknowledgement, heartbeat and telemetry priority and failure behavior are explicit",
+    "the BSP workspace declares unresolved carrier, device-tree and physical CAN decisions",
+    "no physical throughput, EMC, latency or safety approval is claimed"
+  ],
+  "commands": [
+    "python -m json.tool docs/task_packets/robot-bsp-can-v0.1.json",
+    "python -c \"from pathlib import Path; import yaml; d=yaml.safe_load(Path('bsp/board-manifest.yaml').read_text()); assert len(d['controllers']) == 6 and d['can']['logical_bus'] == 'can0'\""
+  ],
+  "evidence": ["document review", "manifest parse output"],
+  "stop_conditions": ["a physical pin, IRQ, bitrate or power limit is invented", "Linux is allowed to bypass MCU-SAFETY"]
+}

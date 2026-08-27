@@ -10,8 +10,14 @@
 KDIR  ?= /lib/modules/$(shell uname -r)/build
 PWD   := $(shell pwd)
 IFACE ?= wbcan0
+STRESS_REPORT ?= /tmp/wbcan-stress-report.json
+STRESS_PRODUCERS ?= 4
+STRESS_FRAMES ?= 250
+LATENCY_REPORT ?= /tmp/wbcan-latency-report.json
+LATENCY_SAMPLES ?= 1000
+LATENCY_WARMUP ?= 50
 
-.PHONY: all clean load unload reload test checkpatch help
+.PHONY: all clean load unload reload test stress latency checkpatch help
 
 all:
 	@if [ ! -d "$(KDIR)" ]; then \
@@ -47,6 +53,25 @@ reload: unload load
 test:
 	@sudo ./test_wbcan.sh $(IFACE)
 
+stress:
+	@if [ ! -d "/sys/kernel/debug/wbcan/$(IFACE)" ]; then \
+		echo "wbcan debugfs is unavailable at /sys/kernel/debug/wbcan/$(IFACE)"; \
+		echo "load the module and bring $(IFACE) up before running stress"; \
+		exit 1; \
+	fi
+	@sudo python3 ./test_state_concurrency.py $(IFACE) /sys/kernel/debug/wbcan/$(IFACE) \
+		--report $(STRESS_REPORT) --producers $(STRESS_PRODUCERS) --frames-per-producer $(STRESS_FRAMES)
+	@python3 ./test_state_concurrency.py --validate-report $(STRESS_REPORT)
+	@echo "wbcan stress evidence: $(STRESS_REPORT)"
+
+latency:
+	@if [ ! -d "/sys/class/net/$(IFACE)" ]; then \
+		echo "wbcan interface $(IFACE) is unavailable"; exit 1; \
+	fi
+	@python3 ./test_latency.py $(IFACE) --warmup $(LATENCY_WARMUP) --samples $(LATENCY_SAMPLES) \
+		--report $(LATENCY_REPORT) --commit "$${GITHUB_SHA:-unknown}"
+	@python3 ./test_latency.py --validate-report $(LATENCY_REPORT)
+
 # The kernel's own checker. Catches the style issues a maintainer would.
 checkpatch:
 	@if [ -x "$(KDIR)/scripts/checkpatch.pl" ]; then \
@@ -59,6 +84,8 @@ help:
 	@echo "make           build wbcan.ko against $(KDIR)"
 	@echo "make load      create and bring up the module-load singleton $(IFACE)"
 	@echo "make test      run the fault suite"
+	@echo "make stress    run the bounded concurrency and stats probe"
+	@echo "make latency   record virtual SocketCAN TX-to-RX latency evidence"
 	@echo "make checkpatch  kernel style check"
 	@echo "ip link add type wbcan is unsupported; unload before loading another"
 	@echo ""

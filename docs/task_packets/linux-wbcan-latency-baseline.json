@@ -1,0 +1,35 @@
+{
+  "issue": 154,
+  "human_owner": "TH3478",
+  "objective": "Produce bounded, machine-readable userspace-observed TX-to-RX latency evidence for virtual wbcan without implying physical or hard-real-time timing.",
+  "allowed_paths": [
+    "kernel/wbcan/test_latency.py",
+    "kernel/wbcan/Makefile",
+    ".github/workflows/ci.yml",
+    "tests/unit/test_linux_driver_tests.py",
+    "docs/task_packets/linux-wbcan-latency-baseline.json"
+  ],
+  "read_only_paths": ["kernel/wbcan/wbcan.c", "AGENTS.md"],
+  "forbidden": ["interfaces/**", "firmware/**", "robot/control/**"],
+  "acceptance": [
+    "the probe uses native SocketCAN and monotonic_ns with bounded warm-up and sample counts",
+    "strict JSON records commit, kernel, config hash availability, CPU affinity, preemption model, load profile and clock",
+    "P50, P95, P99, max, population-standard-deviation jitter and optional deadline misses are recorded",
+    "partial, duplicate, unexpected, invalid or clock-regressing samples fail visibly",
+    "deterministic synthetic unit tests validate percentile, jitter and report integrity",
+    "evidence scope remains virtual-wbcan-userspace and makes no physical CAN, MCU, actuator or hard-real-time claim"
+  ],
+  "commands": [
+    "make -C kernel/wbcan latency",
+    "python kernel/wbcan/test_latency.py --validate-report /tmp/wbcan-latency-report.json",
+    "python -m pytest tests/unit/test_linux_driver_tests.py -v",
+    "python tools/scripts/check_task_packet.py docs/task_packets/linux-wbcan-latency-baseline.json",
+    "git diff --check origin/main...HEAD"
+  ],
+  "evidence": ["versioned latency JSON", "portable unit test output", "kernel job output"],
+  "stop_conditions": [
+    "physical CAN timing is required",
+    "a percentile threshold would be invented from one hosted runner",
+    "a benchmark framework dependency is required"
+  ]
+}

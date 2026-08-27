@@ -16,7 +16,8 @@ HOSTCC  ?= cc
 
 BUILD   := build
 CORE    := $(wildcard core/*.c)
-SHARED_TESTS := tests/state_machine_tests.c tests/frame_codec_tests.c tests/watchdog_tests.c
+SHARED_TESTS := tests/state_machine_tests.c tests/frame_codec_tests.c tests/watchdog_tests.c \
+                tests/command_dedup_tests.c
 HOST_TESTS := $(SHARED_TESTS) tests/main_host.c
 
 # rv32imac: no FPU. -mabi=ilp32 (not ilp32f/d) so a stray double is a link error

@@ -66,8 +66,9 @@ The platform-independent C safety state machine is implemented by Issue #53.
 Issue #54 adds the strict Classic CAN Wire V1 codec and shared Host/QEMU golden
 vectors. Issue #60 adds the allocation-free heartbeat watchdog, bounded STOP
 acknowledgement timing, fake-clock tests and QEMU machine-timer/watchdog
-evidence. The HAL CAN driver, command deduplication and physical CAN validation
-remain separate follow-up tasks.
+evidence. Issue #61 adds the fixed-memory ordinary-command replay window,
+trusted startup-session gate and shared Host/QEMU wraparound corpus. The HAL CAN
+driver and physical CAN validation remain separate follow-up tasks.
 
 ## Timing safety path
 
@@ -88,3 +89,20 @@ While the STOP handoff is pending, an equal `retry_count` is an exact
 link-level replay and a strictly greater count is a protocol-level retry.
 Decreasing or wrapped retry counts are stale and rejected without changing the
 pending ACK correlation.
+
+## Ordinary command replay protection
+
+`core/command_dedup.[ch]` is the platform-independent entry for decoded
+ordinary commands. It keeps eight cached semantic ACK records, applies the
+frozen 15-bit half-range comparison, clears pre-wrap records before accepting a
+new serial epoch, and never allocates. Exact duplicates and increasing
+protocol retries replay the original result without dispatching another safety
+event or refreshing the watchdog. Conflicting, decreasing, stale and evicted
+attempts fail closed with `duplicate_frame`.
+
+Boot starts with ordinary command dispatch closed. The transport must drain
+queued pre-session traffic before opening the trusted session gate; an ordinary
+safety reset does not erase replay history. STOP remains on the independent
+watchdog path and cannot be consumed by a full or closed ordinary window. The
+exact algorithm and evidence limits are documented in
+`docs/architecture/mcu-command-dedup-v1.md`.

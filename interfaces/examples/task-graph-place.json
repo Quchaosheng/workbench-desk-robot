@@ -1,0 +1,30 @@
+{
+  "task_id": "task-place-red-block",
+  "goal": "Place the red block in the tray",
+  "steps": [
+    {
+      "step_id": "observe-block",
+      "action": {
+        "action_id": "act-observe-red-block",
+        "action_type": "observe",
+        "target_id": "red_block",
+        "parameters": {}
+      },
+      "depends_on": []
+    },
+    {
+      "step_id": "place-block",
+      "action": {
+        "action_id": "act-place-red-block",
+        "action_type": "place",
+        "target_id": "red_block",
+        "parameters": {
+          "destination_id": "tray"
+        }
+      },
+      "depends_on": ["observe-block"]
+    }
+  ],
+  "planner": "template-v1",
+  "model_route": "template"
+}

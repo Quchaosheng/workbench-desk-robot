@@ -60,6 +60,7 @@ def sample_observation():
         detector=Detector.MOCK,
         observed_at="2026-08-04T10:00:00Z",
         clock_id=ClockId.MONOTONIC,
+        source="test_camera",
         evidence_refs=["camera-frame-001"],
     )
 

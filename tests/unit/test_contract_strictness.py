@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT / "libs" / "contracts"))
 from workbench_contracts import (
     ActionResult,
     ActionType,
+    EmotionIntent,
     Observation,
     Orientation,
     Pose,
@@ -22,12 +23,13 @@ from workbench_contracts import (
     TaskStep,
     VerificationResult,
     VerificationStatus,
+    WorldEntity,
     WorldEvent,
     WorldEventType,
+    WorldRelation,
     WorldState,
     WorldStateBelief,
     WorldStateEntity,
-    WorldStateRelation,
 )
 
 CANONICAL_MODELS = (
@@ -38,13 +40,14 @@ CANONICAL_MODELS = (
     SemanticAction,
     ActionResult,
     WorldEvent,
-    WorldStateEntity,
-    WorldStateRelation,
-    WorldState,
+    EmotionIntent,
     TaskStep,
     TaskGraph,
     VerificationResult,
     ScenarioManifest,
+    WorldEntity,
+    WorldRelation,
+    WorldState,
 )
 
 
@@ -65,6 +68,7 @@ def valid_observation(**updates: object) -> Observation:
         "pose": valid_pose(),
         "confidence": 0.98,
         "observed_at": "2026-08-25T00:00:00Z",
+        "source": "test_camera",
         "evidence_refs": ["camera-frame-001"],
     }
     return Observation(**(values | updates))
@@ -101,13 +105,16 @@ def test_unknown_fields_are_rejected_at_top_level_and_nested_boundaries() -> Non
             sequence_no=True,
             event_type=WorldEventType.OBSERVATION,
             occurred_at="2026-08-25T00:00:00Z",
+            payload={},
         ),
         lambda: ScenarioManifest(
             scenario_id="scenario-001",
             seed=True,
             task_id="task-001",
             world_version="v1",
+            fault_type="none",
             timeout_s=120,
+            oracle_allowed=False,
         ),
         lambda: SemanticAction.model_validate({"action_id": "act-001", "action_type": "observe"}),
     ],
@@ -120,7 +127,7 @@ def test_implicit_python_and_json_coercion_is_rejected(operation) -> None:
 
 def test_schema_declared_empty_collections_are_rejected() -> None:
     with pytest.raises(ValidationError, match="steps"):
-        TaskGraph(task_id="task-empty", goal="test", steps=[], planner="test")
+        TaskGraph(task_id="task-empty", goal="test", steps=[], planner="test", model_route="template")
 
     with pytest.raises(ValidationError, match="evidence_refs"):
         valid_observation(evidence_refs=[])
@@ -267,6 +274,7 @@ def test_valid_world_event_and_task_graph_json_round_trip() -> None:
                 }
             ],
             "planner": "template-v1",
+            "model_route": "template",
         }
     )
 

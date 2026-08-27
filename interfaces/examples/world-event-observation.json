@@ -1,0 +1,12 @@
+{
+  "event_id": "evt-observation-001",
+  "run_id": "run-2026-08-04-001",
+  "sequence_no": 0,
+  "event_type": "observation",
+  "occurred_at": "2026-08-04T00:00:00Z",
+  "payload": {
+    "entity_id": "red_block",
+    "confidence": 0.98
+  },
+  "evidence_refs": ["camera-frame-001"]
+}

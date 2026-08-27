@@ -16,6 +16,7 @@
  *   - mtime advances, so FW5's watchdog has a clock to trust
  */
 #include "hal.h"
+#include "command_dedup_tests.h"
 #include "frame_codec_tests.h"
 #include "state_machine_tests.h"
 #include "watchdog.h"
@@ -170,6 +171,21 @@ static int run_watchdog_tests(void)
     return report.failures == 0u ? 0 : 6;
 }
 
+static int run_command_dedup_tests(void)
+{
+    mcu_test_report_t report;
+
+    mcu_command_dedup_run_tests(&report);
+    hal_puts("[mcu] command-dedup assertions=");
+    hal_put_u32(report.assertions);
+    hal_puts(" failures=");
+    hal_put_u32(report.failures);
+    hal_puts(" first_failure=");
+    hal_put_u32(report.first_failure);
+    hal_putc('\n');
+    return report.failures == 0u ? 0 : 10;
+}
+
 static int run_qemu_timing_evidence(void)
 {
     mcu_event_t begin_move;
@@ -242,6 +258,7 @@ int main(void)
     rc |= run_state_machine_tests();
     rc |= run_frame_codec_tests();
     rc |= run_watchdog_tests();
+    rc |= run_command_dedup_tests();
     rc |= run_qemu_timing_evidence();
 
     /* CAN is deliberately not checked: hal_can_init returns false until FW10,

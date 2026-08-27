@@ -1,0 +1,36 @@
+version: "0.1"
+status: plan_not_executed
+target: NVIDIA_JETSON_ORIN_NANO_SUPER_DEVELOPER_KIT_8GB
+tests:
+  - id: BSP-BOOT-001
+    name: cold_boot_and_console
+    requires: [board, carrier, rootfs]
+    result: NOT_EXECUTED
+  - id: BSP-IF-001
+    name: enumerate_storage_ethernet_usb_uart_i2c_spi_watchdog
+    requires: [device_tree, kernel_image]
+    result: NOT_EXECUTED
+  - id: BSP-CAN-001
+    name: discover_six_controller_domains
+    requires: [physical_can, six_controller_domains]
+    result: NOT_EXECUTED
+  - id: BSP-SAFE-001
+    name: estop_and_safe_enable_remain_inhibited
+    requires: [MCU-SAFETY, guarded_fixture, safety_owner]
+    result: NOT_EXECUTED
+  - id: BSP-REC-001
+    name: linux_restart_and_mcu_reset
+    requires: [physical_can, reset_controls, evidence_capture]
+    result: NOT_EXECUTED
+  - id: BSP-PERF-001
+    name: cpu_gpu_thermal_power_and_can_load
+    requires: [calibrated_instruments, sustained_workload]
+    result: NOT_EXECUTED
+  - id: BSP-CAMERA-001
+    name: head_rgbd_usb_bandwidth_calibration_timestamp_and_dropout
+    requires: [D435, USB_3, camera_mount, calibration_target]
+    result: NOT_EXECUTED
+evidence:
+  required_fields: [board_revision, kernel_version, firmware_versions, timestamp_utc, raw_capture_hash, result]
+  allowed_results: [PASS, FAIL, NOT_EXECUTED]
+  physical_success_may_not_be_inferred: true

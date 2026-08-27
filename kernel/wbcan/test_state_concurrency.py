@@ -1,18 +1,39 @@
 #!/usr/bin/env python3
 """Bounded wbcan controller-state and queue concurrency probe."""
 
+import argparse
 import errno
+import json
+import platform
 import queue
 import select
 import socket
 import struct
 import subprocess
-import sys
 import threading
 import time
 from collections.abc import Callable
 from itertools import pairwise
 from pathlib import Path
+from typing import Any
+
+REPORT_SCHEMA_VERSION = "wbcan-stress-report-v1"
+REQUIRED_STAGES = (
+    "reconfiguration",
+    "link_lifecycle",
+    "stop_drain",
+    "bus_off_restart",
+    "restart_cancellation",
+    "restart_stop_race",
+    "queue_recovery",
+    "stats_sampling",
+    "multi_producer_saturation",
+    "cleanup",
+)
+MIN_PRODUCERS = 2
+MAX_PRODUCERS = 8
+MIN_FRAMES_PER_PRODUCER = 10
+MAX_FRAMES_PER_PRODUCER = 5000
 
 FRAME = struct.Struct("=IB3x8s")
 ALLOWED_STATES = {
@@ -416,24 +437,268 @@ class Probe:
                 if current[name] < previous[name]:
                     raise AssertionError(f"netdev statistic regressed: {name}")
 
+    def exercise_multi_producer_saturation(self, producer_count: int, frames_per_producer: int) -> dict[str, Any]:
+        self.arm("none 0")
+        can_ids = tuple(0x740 + index for index in range(producer_count))
+        sent: dict[int, list[int]] = {can_id: [] for can_id in can_ids}
+        received: dict[int, list[int]] = {can_id: [] for can_id in can_ids}
+        arrivals: dict[int, list[float]] = {can_id: [] for can_id in can_ids}
+        producers_done = threading.Event()
+        remaining = producer_count
+        remaining_lock = threading.Lock()
+        receiver = self.raw_socket()
+        receiver.setblocking(False)
 
-def main() -> int:
-    if len(sys.argv) != 3:
-        raise SystemExit(f"usage: {sys.argv[0]} INTERFACE DEBUGFS_DIRECTORY")
-    probe = Probe(sys.argv[1], Path(sys.argv[2]))
+        def produce(can_id: int) -> None:
+            nonlocal remaining
+            can_socket = self.raw_socket()
+            can_socket.setblocking(False)
+            try:
+                for sequence in range(frames_per_producer):
+                    if self.abort.is_set():
+                        return
+                    payload = sequence.to_bytes(4, "big") + b"\0" * 4
+                    try:
+                        can_socket.send(FRAME.pack(can_id, 8, payload))
+                    except OSError as exc:
+                        if exc.errno not in ALLOWED_SEND_ERRORS:
+                            raise
+                    else:
+                        sent[can_id].append(sequence)
+            finally:
+                can_socket.close()
+                with remaining_lock:
+                    remaining -= 1
+                    if remaining == 0:
+                        producers_done.set()
+
+        def receive() -> None:
+            deadline = time.monotonic() + 5
+            quiet_since: float | None = None
+            while time.monotonic() < deadline:
+                if self.abort.is_set():
+                    return
+                readable = select.select([receiver], [], [], 0.02)[0]
+                if readable:
+                    can_id, length, payload = FRAME.unpack(receiver.recv(FRAME.size))
+                    if can_id in received and length == 8:
+                        received[can_id].append(int.from_bytes(payload[:4], "big"))
+                        arrivals[can_id].append(time.monotonic())
+                    quiet_since = None
+                    continue
+                if producers_done.is_set():
+                    quiet_since = quiet_since or time.monotonic()
+                    if time.monotonic() - quiet_since >= 0.2:
+                        return
+            raise AssertionError("multi-producer receiver exceeded its five-second bound")
+
+        receiver_thread = threading.Thread(target=self.capture, args=(receive,), name="saturation-rx", daemon=True)
+        producer_threads = tuple(
+            threading.Thread(
+                target=self.capture,
+                args=(produce, can_id),
+                name=f"saturation-tx-{can_id:x}",
+                daemon=True,
+            )
+            for can_id in can_ids
+        )
+        try:
+            self.run_threads(receiver_thread, *producer_threads)
+        finally:
+            receiver.close()
+
+        metrics = analyze_delivery(sent, received, arrivals, frames_per_producer)
+        failures = [
+            producer
+            for producer in metrics
+            if producer["sent"] != frames_per_producer
+            or producer["received"] != frames_per_producer
+            or any(producer[name] for name in ("lost", "duplicate", "unexpected"))
+        ]
+        if failures:
+            raise AssertionError(f"multi-producer saturation accounting failed: {failures}")
+        return {
+            "producer_count": producer_count,
+            "frames_per_producer": frames_per_producer,
+            "producers": metrics,
+        }
+
+
+def analyze_delivery(
+    sent: dict[int, list[int]],
+    received: dict[int, list[int]],
+    arrivals: dict[int, list[float]],
+    requested: int,
+) -> list[dict[str, int | str]]:
+    metrics: list[dict[str, int | str]] = []
+    for can_id in sorted(sent):
+        sent_sequences = sent[can_id]
+        received_sequences = received.get(can_id, [])
+        sent_set = set(sent_sequences)
+        received_set = set(received_sequences)
+        timestamps = arrivals.get(can_id, [])
+        gaps = [current - previous for previous, current in pairwise(timestamps)]
+        metrics.append(
+            {
+                "can_id": f"0x{can_id:03x}",
+                "requested": requested,
+                "sent": len(sent_sequences),
+                "received": len(received_sequences),
+                "lost": len(sent_set - received_set),
+                "duplicate": len(received_sequences) - len(received_set),
+                "reordered": sum(current < previous for previous, current in pairwise(received_sequences)),
+                "unexpected": len(received_set - sent_set),
+                "longest_no_progress_ms": round(max(gaps, default=0) * 1000),
+            }
+        )
+    return metrics
+
+
+def validate_stress_report(report: object) -> None:
+    if not isinstance(report, dict):
+        raise ValueError("stress report must be a JSON object")
+    if report.get("schema_version") != REPORT_SCHEMA_VERSION:
+        raise ValueError("stress report has an unsupported schema_version")
+    if report.get("scope") != "virtual-wbcan-only":
+        raise ValueError("stress report must retain the virtual-wbcan-only scope")
+    if report.get("result") not in {"PASS", "FAIL"}:
+        raise ValueError("stress report result must be PASS or FAIL")
+    for name in ("interface", "kernel", "python", "started_at", "completed_at"):
+        if not isinstance(report.get(name), str) or not report[name].strip():
+            raise ValueError(f"stress report requires non-empty {name}")
+    stages = report.get("stages")
+    if not isinstance(stages, list):
+        raise ValueError("stress report stages must be a list")
+    stage_names: list[str] = []
+    failed = False
+    for stage in stages:
+        if not isinstance(stage, dict):
+            raise ValueError("stress report stage must be an object")
+        name = stage.get("name")
+        result = stage.get("result")
+        duration_ms = stage.get("duration_ms")
+        if not isinstance(name, str) or not name:
+            raise ValueError("stress report stage requires a name")
+        if result not in {"PASS", "FAIL"}:
+            raise ValueError(f"stress report stage {name!r} has an invalid result")
+        if not isinstance(duration_ms, int) or isinstance(duration_ms, bool) or duration_ms < 0:
+            raise ValueError(f"stress report stage {name!r} has an invalid duration_ms")
+        if result == "FAIL":
+            failed = True
+            if not isinstance(stage.get("error"), str) or not stage["error"]:
+                raise ValueError(f"failed stress report stage {name!r} requires an error")
+        if name == "multi_producer_saturation" and result == "PASS":
+            _validate_saturation_details(stage.get("details"))
+        stage_names.append(name)
+    if len(stage_names) != len(set(stage_names)):
+        raise ValueError("stress report contains duplicate stages")
+    if report["result"] == "PASS" and (failed or tuple(stage_names) != REQUIRED_STAGES):
+        raise ValueError("passing stress report must contain every required passing stage in order")
+    if report["result"] == "FAIL" and not failed:
+        raise ValueError("failed stress report must contain a failed stage")
+
+
+def _validate_saturation_details(details: object) -> None:
+    if not isinstance(details, dict):
+        raise ValueError("passing saturation stage requires details")
+    producer_count = details.get("producer_count")
+    frame_count = details.get("frames_per_producer")
+    producers = details.get("producers")
+    if not isinstance(producer_count, int) or not MIN_PRODUCERS <= producer_count <= MAX_PRODUCERS:
+        raise ValueError("saturation producer_count is outside the bounded range")
+    if not isinstance(frame_count, int) or not MIN_FRAMES_PER_PRODUCER <= frame_count <= MAX_FRAMES_PER_PRODUCER:
+        raise ValueError("saturation frames_per_producer is outside the bounded range")
+    if not isinstance(producers, list) or len(producers) != producer_count:
+        raise ValueError("saturation report must contain one result per producer")
+    can_ids: set[str] = set()
+    for producer in producers:
+        if not isinstance(producer, dict):
+            raise ValueError("saturation producer result must be an object")
+        can_id = producer.get("can_id")
+        if not isinstance(can_id, str) or not can_id.startswith("0x") or can_id in can_ids:
+            raise ValueError("saturation producer CAN IDs must be unique hexadecimal strings")
+        can_ids.add(can_id)
+        for name in (
+            "requested",
+            "sent",
+            "received",
+            "lost",
+            "duplicate",
+            "reordered",
+            "unexpected",
+            "longest_no_progress_ms",
+        ):
+            value = producer.get(name)
+            if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+                raise ValueError(f"saturation producer {can_id} has invalid {name}")
+        if producer["requested"] != frame_count or producer["sent"] != frame_count:
+            raise ValueError(f"saturation producer {can_id} did not send its bounded frame budget")
+        if producer["received"] != frame_count:
+            raise ValueError(f"saturation producer {can_id} did not receive its bounded frame budget")
+        if any(producer[name] for name in ("lost", "duplicate", "unexpected")):
+            raise ValueError(f"saturation producer {can_id} contains unexplained delivery anomalies")
+
+
+def write_stress_report(path: Path, report: dict[str, Any]) -> None:
+    validate_stress_report(report)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.tmp")
+    temporary.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temporary.replace(path)
+
+
+def _stage(name: str, operation: Callable[[], dict[str, Any] | None], stages: list[dict[str, Any]]) -> None:
+    started = time.monotonic()
+    try:
+        details = operation()
+    except Exception as exc:
+        stages.append(
+            {
+                "name": name,
+                "result": "FAIL",
+                "duration_ms": round((time.monotonic() - started) * 1000),
+                "error": f"{type(exc).__name__}: {exc}",
+            }
+        )
+        raise
+    stage = {"name": name, "result": "PASS", "duration_ms": round((time.monotonic() - started) * 1000)}
+    if details is not None:
+        stage["details"] = details
+    stages.append(stage)
+
+
+def run_probe(
+    interface: str,
+    debugfs: Path,
+    report_path: Path | None,
+    producer_count: int,
+    frames_per_producer: int,
+) -> int:
+    probe = Probe(interface, debugfs)
+    started_at = time.time_ns()
+    stages: list[dict[str, Any]] = []
     failure: Exception | None = None
     try:
-        probe.exercise_reconfiguration()
-        probe.exercise_link_lifecycle()
-        probe.exercise_stop_drain()
-        probe.exercise_bus_off_restart()
-        probe.exercise_restart_cancellation()
-        probe.exercise_restart_stop_race()
-        probe.verify_queue_recovery()
-        probe.exercise_stats_sampling()
+        operations = (
+            ("reconfiguration", probe.exercise_reconfiguration),
+            ("link_lifecycle", probe.exercise_link_lifecycle),
+            ("stop_drain", probe.exercise_stop_drain),
+            ("bus_off_restart", probe.exercise_bus_off_restart),
+            ("restart_cancellation", probe.exercise_restart_cancellation),
+            ("restart_stop_race", probe.exercise_restart_stop_race),
+            ("queue_recovery", probe.verify_queue_recovery),
+            ("stats_sampling", probe.exercise_stats_sampling),
+            (
+                "multi_producer_saturation",
+                lambda: probe.exercise_multi_producer_saturation(producer_count, frames_per_producer),
+            ),
+        )
+        for name, operation in operations:
+            _stage(name, operation, stages)
     except Exception as exc:  # noqa: BLE001 - preserve the probe failure through cleanup.
         failure = exc
     finally:
+        cleanup_started = time.monotonic()
         try:
             probe.restart_delay.write_text("0\n", encoding="ascii")
             probe.stop_delay.write_text("0\n", encoding="ascii")
@@ -442,13 +707,62 @@ def main() -> int:
             probe.command("ip", "link", "set", probe.interface, "type", "can", "restart-ms", "100")
             probe.command("ip", "link", "set", probe.interface, "up")
         except Exception as exc:  # noqa: BLE001 - report probe and cleanup failures together.
+            stages.append(
+                {
+                    "name": "cleanup",
+                    "result": "FAIL",
+                    "duration_ms": round((time.monotonic() - cleanup_started) * 1000),
+                    "error": f"{type(exc).__name__}: {exc}",
+                }
+            )
             if failure is None:
                 failure = exc
             else:
                 failure = ExceptionGroup("probe and cleanup failures", [failure, exc])
+        else:
+            stages.append(
+                {"name": "cleanup", "result": "PASS", "duration_ms": round((time.monotonic() - cleanup_started) * 1000)}
+            )
+    if report_path is not None:
+        report = {
+            "schema_version": REPORT_SCHEMA_VERSION,
+            "scope": "virtual-wbcan-only",
+            "result": "FAIL" if failure is not None else "PASS",
+            "interface": interface,
+            "kernel": platform.release(),
+            "python": platform.python_version(),
+            "started_at": str(started_at),
+            "completed_at": str(time.time_ns()),
+            "stages": stages,
+        }
+        write_stress_report(report_path, report)
     if failure is not None:
         raise failure
     return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("interface", nargs="?")
+    parser.add_argument("debugfs", nargs="?", type=Path)
+    parser.add_argument("--report", type=Path)
+    parser.add_argument("--validate-report", type=Path)
+    parser.add_argument("--producers", type=int, default=4)
+    parser.add_argument("--frames-per-producer", type=int, default=250)
+    args = parser.parse_args()
+    if args.validate_report is not None:
+        if args.interface is not None or args.debugfs is not None or args.report is not None:
+            parser.error("--validate-report cannot be combined with probe arguments")
+        validate_stress_report(json.loads(args.validate_report.read_text(encoding="utf-8")))
+        print(f"wbcan stress report valid: {args.validate_report}")
+        return 0
+    if args.interface is None or args.debugfs is None:
+        parser.error("INTERFACE and DEBUGFS_DIRECTORY are required")
+    if not MIN_PRODUCERS <= args.producers <= MAX_PRODUCERS:
+        parser.error(f"--producers must be between {MIN_PRODUCERS} and {MAX_PRODUCERS}")
+    if not MIN_FRAMES_PER_PRODUCER <= args.frames_per_producer <= MAX_FRAMES_PER_PRODUCER:
+        parser.error(f"--frames-per-producer must be between {MIN_FRAMES_PER_PRODUCER} and {MAX_FRAMES_PER_PRODUCER}")
+    return run_probe(args.interface, args.debugfs, args.report, args.producers, args.frames_per_producer)
 
 
 if __name__ == "__main__":

@@ -51,7 +51,7 @@ def _action(
 
 def _graph(*actions: SemanticAction) -> TaskGraph:
     steps = [TaskStep(step_id=f"step-{index}", action=action) for index, action in enumerate(actions, start=1)]
-    return TaskGraph(task_id="task-test", goal="test", steps=steps, planner="test")
+    return TaskGraph(task_id="task-test", goal="test", steps=steps, planner="test", model_route="template")
 
 
 # ---------------------------------------------------------------------------
@@ -364,7 +364,7 @@ class PolicyValidatorBoundaryTests(unittest.TestCase):
 
     def test_empty_task_graph_is_rejected_at_contract_boundary(self) -> None:
         with self.assertRaises(ValidationError):
-            TaskGraph(task_id="task-empty", goal="test", steps=[], planner="test")
+            TaskGraph(task_id="task-empty", goal="test", steps=[], planner="test", model_route="template")
 
     def test_validator_uses_injected_registry(self) -> None:
         """The validator must read its whitelist from the injected registry,

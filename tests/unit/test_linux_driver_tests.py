@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 MODULE_PATH = ROOT / "kernel" / "wbcan" / "validate_test_report.py"
 TEST_SCRIPT = ROOT / "kernel" / "wbcan" / "test_wbcan.sh"
 STRESS_PATH = ROOT / "kernel" / "wbcan" / "test_state_concurrency.py"
+LATENCY_PATH = ROOT / "kernel" / "wbcan" / "test_latency.py"
 SPEC = importlib.util.spec_from_file_location("validate_wbcan_report", MODULE_PATH)
 assert SPEC and SPEC.loader
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -16,6 +17,10 @@ STRESS_SPEC = importlib.util.spec_from_file_location("wbcan_stress", STRESS_PATH
 assert STRESS_SPEC and STRESS_SPEC.loader
 STRESS = importlib.util.module_from_spec(STRESS_SPEC)
 STRESS_SPEC.loader.exec_module(STRESS)
+LATENCY_SPEC = importlib.util.spec_from_file_location("wbcan_latency", LATENCY_PATH)
+assert LATENCY_SPEC and LATENCY_SPEC.loader
+LATENCY = importlib.util.module_from_spec(LATENCY_SPEC)
+LATENCY_SPEC.loader.exec_module(LATENCY)
 
 
 HEADER = "result\ttest_id\tname\texpected\tactual\n"
@@ -191,3 +196,72 @@ def test_stress_report_records_but_accepts_complete_reordered_delivery() -> None
     saturation["details"]["producers"][0]["reordered"] = 3
 
     STRESS.validate_stress_report(report)
+
+
+def _latency_report() -> dict[str, object]:
+    return {
+        "schema_version": LATENCY.SCHEMA_VERSION,
+        "scope": "virtual-wbcan-userspace",
+        "result": "PASS",
+        "interface": "wbcan0",
+        "commit": "test-commit",
+        "kernel": "test-kernel",
+        "kernel_config_sha256": "unavailable",
+        "preemption_model": "unknown",
+        "cpu_count": 2,
+        "cpu_affinity": [0, 1],
+        "load_profile": "idle",
+        "clock": "monotonic_ns",
+        "warmup_count": 10,
+        "sample_count": 10,
+        "message_size": 8,
+        "can_id": 0x760,
+        "loss": 0,
+        "duplicates": 0,
+        "reordered": 0,
+        "latency": LATENCY.summarize(list(range(1, 11)), deadline_ns=8),
+    }
+
+
+def test_latency_summary_uses_nearest_rank_and_population_jitter() -> None:
+    summary = LATENCY.summarize(list(range(1, 101)), deadline_ns=90)
+
+    assert summary["p50_ns"] == 50
+    assert summary["p95_ns"] == 95
+    assert summary["p99_ns"] == 99
+    assert summary["max_ns"] == 100
+    assert summary["jitter_ns"] == 29
+    assert summary["missed_deadline_count"] == 10
+
+
+def test_latency_report_accepts_complete_virtual_evidence(tmp_path: Path) -> None:
+    report = _latency_report()
+    path = tmp_path / "latency.json"
+
+    LATENCY.write_report(path, report)
+    LATENCY.validate_report(json.loads(path.read_text(encoding="utf-8")))
+
+
+@pytest.mark.parametrize("mutation", ["physical_scope", "loss", "percentile_order", "bad_clock", "partial"])
+def test_latency_report_rejects_invalid_or_untruthful_evidence(mutation: str) -> None:
+    report = _latency_report()
+    if mutation == "physical_scope":
+        report["scope"] = "physical-can"
+    elif mutation == "loss":
+        report["loss"] = 1
+    elif mutation == "percentile_order":
+        report["latency"]["p95_ns"] = 0
+    elif mutation == "bad_clock":
+        report["clock"] = "wall-clock"
+    else:
+        report["sample_count"] = 9
+
+    with pytest.raises(ValueError):
+        LATENCY.validate_report(report)
+
+
+def test_latency_summary_rejects_negative_or_empty_samples() -> None:
+    with pytest.raises(ValueError):
+        LATENCY.summarize([], deadline_ns=None)
+    with pytest.raises(ValueError):
+        LATENCY.summarize([1, -1], deadline_ns=None)

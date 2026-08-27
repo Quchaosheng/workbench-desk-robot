@@ -5,6 +5,7 @@
 import io
 import json
 import sys
+from datetime import datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -148,8 +149,9 @@ def test_scripted_demo_requires_post_action_observation(monkeypatch):
             return None
         return original_append(store, item)
 
-    def capture_verification(state, task_id, object_id, tray_id):
-        result = original_verify(state, task_id, object_id, tray_id)
+    def capture_verification(state, task_id, object_id, tray_id, *, context):
+        result = original_verify(state, task_id, object_id, tray_id, context=context)
+        captured["context"] = context
         captured["verification"] = result
         return result
 
@@ -165,15 +167,22 @@ def test_scripted_demo_requires_post_action_observation(monkeypatch):
         demo_scripted.StructuredLogger("scripted-test", io.StringIO()),
     )
     verification = captured["verification"]
+    context = captured["context"]
 
     assert output["verified_complete"] is False
     assert verification.status is VerificationStatus.INSUFFICIENT_EVIDENCE
     assert "action-result-003" not in verification.evidence_refs
+    assert context.verified_at != "1970-01-01T00:00:00Z"
+    assert context.clock_id.value == "wall"
+    assert len(context.state_hash) == 64
 
 
 def test_scripted_demo_replay_keeps_execution_and_sensor_evidence_separate(monkeypatch):
     captured = {}
     original_reduce = demo_scripted.reduce_events
+    original_snapshot = demo_scripted.create_world_state_snapshot
+    original_verify = demo_scripted.verify_object_in_tray
+    injected_verified_at = "2026-08-27T12:34:56.123456Z"
 
     def capture_reduction(run_id, events):
         state = original_reduce(run_id, events)
@@ -181,7 +190,22 @@ def test_scripted_demo_replay_keeps_execution_and_sensor_evidence_separate(monke
         captured["state"] = state
         return state
 
+    def capture_snapshot(run_id, events):
+        snapshot = original_snapshot(run_id, events)
+        captured["snapshot_events"] = list(events)
+        captured["snapshot"] = snapshot
+        return snapshot
+
+    def capture_verification(state, task_id, object_id, tray_id, *, context):
+        result = original_verify(state, task_id, object_id, tray_id, context=context)
+        captured["context"] = context
+        captured["verification"] = result
+        return result
+
     monkeypatch.setattr(demo_scripted, "reduce_events", capture_reduction)
+    monkeypatch.setattr(demo_scripted, "create_world_state_snapshot", capture_snapshot)
+    monkeypatch.setattr(demo_scripted, "verify_object_in_tray", capture_verification)
+    monkeypatch.setattr(demo_scripted, "_utc_wall_clock_now", lambda: injected_verified_at)
 
     output = demo_scripted.run_once(
         "scripted-with-post-observation",
@@ -189,6 +213,9 @@ def test_scripted_demo_replay_keeps_execution_and_sensor_evidence_separate(monke
     )
     replayed_events = captured["events"]
     state = captured["state"]
+    snapshot = captured["snapshot"]
+    context = captured["context"]
+    verification = captured["verification"]
 
     assert output["verified_complete"] is True
     assert output["evidence_refs"] == ["camera-frame-004"]
@@ -199,11 +226,49 @@ def test_scripted_demo_replay_keeps_execution_and_sensor_evidence_separate(monke
         "evt-003",
         "evt-004",
     ]
+    assert captured["snapshot_events"] == replayed_events
     assert any(item.event_type is WorldEventType.ACTION_RESULT for item in replayed_events)
     assert "action-result-003" in state.evidence_refs
     assert "action-result-003" not in state.entity_evidence_refs["red_block"]
     assert state.entity_evidence_refs["red_block"] == ["camera-frame-004"]
-    snapshot = create_world_state_snapshot(output["run_id"], replayed_events)
     assert len(snapshot.state_hash) == 64
     assert snapshot.state_hash.isascii()
     assert snapshot.state_hash.islower()
+    assert context.state_hash == snapshot.state_hash
+    assert context.verified_at == injected_verified_at
+    assert context.clock_id.value == "wall"
+    assert verification.verified_at == injected_verified_at
+
+
+def test_scripted_demo_wall_clock_boundary_is_real_utc():
+    verified_at = demo_scripted._utc_wall_clock_now()
+    parsed = datetime.fromisoformat(verified_at.replace("Z", "+00:00"))
+
+    assert verified_at != "1970-01-01T00:00:00Z"
+    assert parsed.utcoffset() == timedelta(0)
+
+
+def test_scripted_demo_verification_identity_excludes_wall_time(monkeypatch):
+    verified_times = iter(["2026-08-27T12:34:56Z", "2026-08-27T12:35:56Z"])
+    verifications = []
+    original_verify = demo_scripted.verify_object_in_tray
+
+    def capture_verification(state, task_id, object_id, tray_id, *, context):
+        result = original_verify(state, task_id, object_id, tray_id, context=context)
+        verifications.append(result)
+        return result
+
+    monkeypatch.setattr(demo_scripted, "_utc_wall_clock_now", lambda: next(verified_times))
+    monkeypatch.setattr(demo_scripted, "verify_object_in_tray", capture_verification)
+
+    outputs = [
+        demo_scripted.run_once(
+            "scripted-stable-identity",
+            demo_scripted.StructuredLogger("scripted-test", io.StringIO()),
+        )
+        for _ in range(2)
+    ]
+
+    assert all(output["verified_complete"] for output in outputs)
+    assert verifications[0].verified_at != verifications[1].verified_at
+    assert verifications[0].verification_id == verifications[1].verification_id

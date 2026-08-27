@@ -1,12 +1,64 @@
+import hashlib
+import json
 import math
 import re
 import unicodedata
-import uuid
 from collections.abc import Mapping
+from datetime import datetime, timedelta
 
-from workbench_contracts import ReasonCode, RecoveryHint, VerificationResult, VerificationStatus
+from pydantic import BaseModel, ConfigDict, field_validator
+from workbench_contracts import ClockId, ReasonCode, RecoveryHint, VerificationResult, VerificationStatus
 
 from .reducer import WorldState
+
+_CANONICAL_STATE_HASH_PATTERN = re.compile(r"[0-9a-f]{64}")
+_UTC_WALL_TIME_PATTERN = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|\+00:00)")
+
+
+def _validated_state_hash(value: object) -> str:
+    if not isinstance(value, str) or _CANONICAL_STATE_HASH_PATTERN.fullmatch(value) is None:
+        raise ValueError("state_hash must be a 64-character lowercase SHA-256 hex digest")
+    return value
+
+
+def _validated_utc_wall_time(value: object) -> str:
+    if not isinstance(value, str) or _UTC_WALL_TIME_PATTERN.fullmatch(value) is None:
+        raise ValueError("verified_at must be an RFC3339 UTC wall-clock timestamp")
+    try:
+        parsed = datetime.fromisoformat(value[:-1] + "+00:00" if value.endswith("Z") else value)
+    except ValueError as error:
+        raise ValueError("verified_at must be an RFC3339 UTC wall-clock timestamp") from error
+    if parsed.utcoffset() != timedelta(0):
+        raise ValueError("verified_at must use UTC")
+    return value
+
+
+class VerificationContext(BaseModel):
+    """Validated metadata injected at the World Model verification boundary."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    state_hash: str
+    verified_at: str
+    clock_id: ClockId
+
+    @field_validator("state_hash", mode="before")
+    @classmethod
+    def validate_state_hash(cls, value: object) -> str:
+        return _validated_state_hash(value)
+
+    @field_validator("verified_at", mode="before")
+    @classmethod
+    def validate_verified_at(cls, value: object) -> str:
+        return _validated_utc_wall_time(value)
+
+    @field_validator("clock_id", mode="before")
+    @classmethod
+    def require_wall_clock(cls, value: object) -> ClockId:
+        if value not in (ClockId.WALL, ClockId.WALL.value):
+            raise ValueError("VerificationContext requires clock_id=wall")
+        return ClockId.WALL
+
 
 NO_EVIDENCE_REF = "system://world-state/no-evidence"
 DEFAULT_PARCEL_ROUTES = {
@@ -20,6 +72,12 @@ DEFAULT_PARCEL_ATTRIBUTES = {
     "parcel_damaged": {"label_status": "verified", "condition": "damaged"},
 }
 PARCEL_IDENTITY_KEYS = ("tracking_id", "barcode", "parcel_uid")
+OBJECT_IN_TRAY_RULE_VERSION = "tray-membership-v1"
+KIT_CONTENTS_RULE_VERSION = "kit-contents-v1"
+INSPECTION_EVIDENCE_RULE_VERSION = "inspection-evidence-v1"
+WORKSPACE_CLEARANCE_RULE_VERSION = "workspace-clearance-v1"
+PARCEL_SORTING_RULE_VERSION = "parcel-sorting-v1"
+PARCEL_POLICY_RULE_VERSION = "parcel-policy-v2"
 
 
 def _entity_evidence(state: WorldState, entity_ids: set[str]) -> list[str]:
@@ -101,6 +159,84 @@ def _validate_parcel_manifest(
     return manifest_id.strip(), expected_identities
 
 
+def _normalized_request_value(value: object) -> object:
+    if isinstance(value, Mapping):
+        if any(not isinstance(key, str) for key in value):
+            raise TypeError("request semantics mappings require string keys")
+        return {key: _normalized_request_value(value[key]) for key in sorted(value)}
+    if isinstance(value, set | frozenset):
+        normalized_items = [_normalized_request_value(item) for item in value]
+        return sorted(
+            normalized_items,
+            key=lambda item: json.dumps(
+                item,
+                allow_nan=False,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+        )
+    if isinstance(value, list | tuple):
+        return [_normalized_request_value(item) for item in value]
+    if value is None or isinstance(value, str | bool | int):
+        return value
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise ValueError("request semantics numbers must be finite")
+        return value
+    raise TypeError(f"unsupported request semantics value: {type(value).__name__}")
+
+
+def _normalized_request_semantics(request_semantics: Mapping[str, object]) -> dict[str, object]:
+    if not isinstance(request_semantics, Mapping):
+        raise TypeError("request_semantics must be a mapping")
+    normalized = _normalized_request_value(request_semantics)
+    if not isinstance(normalized, dict):
+        raise TypeError("request_semantics must normalize to a mapping")
+    return normalized
+
+
+def _verification_id(
+    *,
+    run_id: str,
+    task_id: str,
+    state_hash: str,
+    claim: str,
+    status: VerificationStatus,
+    reason_code: ReasonCode | None,
+    completeness: float | None,
+    evidence_refs: list[str],
+    recovery_hint: RecoveryHint,
+    rule_version: str,
+    verifier_kind: str,
+    request_semantics: Mapping[str, object],
+) -> str:
+    if not isinstance(verifier_kind, str) or not verifier_kind.strip():
+        raise ValueError("verifier_kind must be a non-empty string")
+    material = {
+        "verifier_kind": verifier_kind,
+        "request_semantics": _normalized_request_semantics(request_semantics),
+        "run_id": run_id,
+        "task_id": task_id,
+        "state_hash": _validated_state_hash(state_hash),
+        "claim": claim,
+        "status": status.value,
+        "reason_code": None if reason_code is None else reason_code.value,
+        "completeness": completeness,
+        "evidence_refs": list(evidence_refs),
+        "recovery_hint": recovery_hint.value,
+        "rule_version": rule_version,
+    }
+    canonical_bytes = json.dumps(
+        material,
+        allow_nan=False,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return f"ver-{hashlib.sha256(canonical_bytes).hexdigest()}"
+
+
 def _result(
     state: WorldState,
     task_id: str,
@@ -108,25 +244,52 @@ def _result(
     status: VerificationStatus,
     reason_code: ReasonCode,
     recovery_hint: RecoveryHint,
+    verifier_kind: str,
+    request_semantics: Mapping[str, object],
     rule_version: str,
     supporting_entity_ids: set[str],
+    context: VerificationContext,
 ) -> VerificationResult:
-    evidence_refs = _entity_evidence(state, supporting_entity_ids)
+    if not isinstance(context, VerificationContext):
+        raise TypeError("context must be a VerificationContext")
+    evidence_refs = _entity_evidence(state, supporting_entity_ids) or [NO_EVIDENCE_REF]
+    verification_id = _verification_id(
+        verifier_kind=verifier_kind,
+        request_semantics=_normalized_request_semantics(request_semantics),
+        run_id=state.run_id,
+        task_id=task_id,
+        state_hash=context.state_hash,
+        claim=claim,
+        status=status,
+        reason_code=reason_code,
+        completeness=None,
+        evidence_refs=evidence_refs,
+        recovery_hint=recovery_hint,
+        rule_version=rule_version,
+    )
     return VerificationResult(
-        verification_id=f"ver-{uuid.uuid4().hex[:12]}",
+        verification_id=verification_id,
         run_id=state.run_id,
         task_id=task_id,
         claim=claim,
         status=status,
         reason_code=reason_code,
-        evidence_refs=evidence_refs or [NO_EVIDENCE_REF],
+        evidence_refs=evidence_refs,
         recovery_hint=recovery_hint,
-        verified_at="1970-01-01T00:00:00Z",
+        verified_at=context.verified_at,
+        clock_id=context.clock_id,
         rule_version=rule_version,
     )
 
 
-def verify_object_in_tray(state: WorldState, task_id: str, object_id: str, tray_id: str) -> VerificationResult:
+def verify_object_in_tray(
+    state: WorldState,
+    task_id: str,
+    object_id: str,
+    tray_id: str,
+    *,
+    context: VerificationContext,
+) -> VerificationResult:
     if not isinstance(object_id, str) or not object_id.strip() or not isinstance(tray_id, str) or not tray_id.strip():
         raise ValueError("object_id and tray_id must be non-empty")
     expected_location = f"in:{tray_id}"
@@ -151,7 +314,19 @@ def verify_object_in_tray(state: WorldState, task_id: str, object_id: str, tray_
         reason_code = ReasonCode.GOAL_NOT_SATISFIED
         recovery_hint = RecoveryHint.RETRY_ACTION
         claim = f"{object_id} inside {tray_id}: found at {actual_location}"
-    return _result(state, task_id, claim, status, reason_code, recovery_hint, "tray-membership-v1", {object_id})
+    return _result(
+        state,
+        task_id,
+        claim,
+        status,
+        reason_code,
+        recovery_hint,
+        verifier_kind="object_in_tray",
+        request_semantics={"object_id": object_id, "tray_id": tray_id},
+        rule_version=OBJECT_IN_TRAY_RULE_VERSION,
+        supporting_entity_ids={object_id},
+        context=context,
+    )
 
 
 def verify_kit_contents(
@@ -160,6 +335,8 @@ def verify_kit_contents(
     required_object_ids: list[str],
     tray_id: str = "kit_tray",
     confidence_threshold: float = 0.8,
+    *,
+    context: VerificationContext,
 ) -> VerificationResult:
     required = _required_entity_set(required_object_ids, "kitting")
     if not isinstance(tray_id, str) or not tray_id.strip():
@@ -204,7 +381,21 @@ def verify_kit_contents(
     else:
         outcome = (VerificationStatus.CONFIRMED, ReasonCode.GOAL_SATISFIED, RecoveryHint.NONE)
         supporting_entity_ids = required
-    return _result(state, task_id, claim, *outcome, "kit-contents-v1", supporting_entity_ids)
+    return _result(
+        state,
+        task_id,
+        claim,
+        *outcome,
+        verifier_kind="kit_contents",
+        request_semantics={
+            "required_object_ids": sorted(required),
+            "tray_id": tray_id,
+            "confidence_threshold": float(confidence_threshold),
+        },
+        rule_version=KIT_CONTENTS_RULE_VERSION,
+        supporting_entity_ids=supporting_entity_ids,
+        context=context,
+    )
 
 
 def verify_inspection_evidence(
@@ -212,6 +403,8 @@ def verify_inspection_evidence(
     task_id: str,
     required_entity_ids: list[str],
     confidence_threshold: float = 0.8,
+    *,
+    context: VerificationContext,
 ) -> VerificationResult:
     required = _required_entity_set(required_entity_ids, "inspection")
     _validate_confidence_threshold(confidence_threshold)
@@ -237,10 +430,28 @@ def verify_inspection_evidence(
     else:
         outcome = (VerificationStatus.CONFIRMED, ReasonCode.GOAL_SATISFIED, RecoveryHint.NONE)
         supporting_entity_ids = required
-    return _result(state, task_id, claim, *outcome, "inspection-evidence-v1", supporting_entity_ids)
+    return _result(
+        state,
+        task_id,
+        claim,
+        *outcome,
+        verifier_kind="inspection_evidence",
+        request_semantics={
+            "required_entity_ids": sorted(required),
+            "confidence_threshold": float(confidence_threshold),
+        },
+        rule_version=INSPECTION_EVIDENCE_RULE_VERSION,
+        supporting_entity_ids=supporting_entity_ids,
+        context=context,
+    )
 
 
-def verify_workspace_clearance(state: WorldState, task_id: str) -> VerificationResult:
+def verify_workspace_clearance(
+    state: WorldState,
+    task_id: str,
+    *,
+    context: VerificationContext,
+) -> VerificationResult:
     expected = {"blue_cylinder": "in:staging_bin", "red_block": "in:tray"}
     unobserved = sorted(entity_id for entity_id in expected if entity_id not in state.entity_locations)
     unmet_entity_ids = sorted(
@@ -263,7 +474,17 @@ def verify_workspace_clearance(state: WorldState, task_id: str) -> VerificationR
     else:
         outcome = (VerificationStatus.CONFIRMED, ReasonCode.GOAL_SATISFIED, RecoveryHint.NONE)
         supporting_entity_ids = set(expected)
-    return _result(state, task_id, claim, *outcome, "workspace-clearance-v1", supporting_entity_ids)
+    return _result(
+        state,
+        task_id,
+        claim,
+        *outcome,
+        verifier_kind="workspace_clearance",
+        request_semantics={},
+        rule_version=WORKSPACE_CLEARANCE_RULE_VERSION,
+        supporting_entity_ids=supporting_entity_ids,
+        context=context,
+    )
 
 
 def verify_parcel_sorting(
@@ -272,6 +493,8 @@ def verify_parcel_sorting(
     parcel_routes: dict[str, str] | None = None,
     expected_attributes: dict[str, dict[str, str]] | None = None,
     confidence_threshold: float = 0.8,
+    *,
+    context: VerificationContext,
 ) -> VerificationResult:
     route_input = DEFAULT_PARCEL_ROUTES if parcel_routes is None else parcel_routes
     if not isinstance(route_input, Mapping):
@@ -295,6 +518,11 @@ def verify_parcel_sorting(
         for requirements in attributes.values()
     ):
         raise ValueError("each parcel requires non-empty string attribute requirements")
+    routes = {parcel_id: routes[parcel_id] for parcel_id in sorted(routes)}
+    attributes = {
+        parcel_id: {key: attributes[parcel_id][key] for key in sorted(attributes[parcel_id])}
+        for parcel_id in sorted(required)
+    }
     _validate_confidence_threshold(confidence_threshold)
 
     unobserved = sorted(parcel_id for parcel_id in required if parcel_id not in state.entity_locations)
@@ -354,7 +582,21 @@ def verify_parcel_sorting(
     else:
         outcome = (VerificationStatus.CONFIRMED, ReasonCode.GOAL_SATISFIED, RecoveryHint.NONE)
         supporting_entity_ids = required
-    return _result(state, task_id, claim, *outcome, "parcel-sorting-v1", supporting_entity_ids)
+    return _result(
+        state,
+        task_id,
+        claim,
+        *outcome,
+        verifier_kind="parcel_sorting",
+        request_semantics={
+            "parcel_routes": routes,
+            "expected_attributes": attributes,
+            "confidence_threshold": float(confidence_threshold),
+        },
+        rule_version=PARCEL_SORTING_RULE_VERSION,
+        supporting_entity_ids=supporting_entity_ids,
+        context=context,
+    )
 
 
 def verify_parcel_policy(
@@ -366,6 +608,8 @@ def verify_parcel_policy(
     confidence_threshold: float = 0.8,
     parcel_manifest: Mapping[str, Mapping[str, str]] | None = None,
     manifest_id: str | None = None,
+    *,
+    context: VerificationContext,
 ) -> VerificationResult:
     """Verify routes derived from observed parcel attributes, never caller claims."""
     required = _required_entity_set(parcel_ids, "parcel policy")
@@ -500,4 +744,21 @@ def verify_parcel_policy(
     else:
         outcome = (VerificationStatus.CONFIRMED, ReasonCode.GOAL_SATISFIED, RecoveryHint.NONE)
         supporting_entity_ids = required
-    return _result(state, task_id, claim, *outcome, "parcel-policy-v2", supporting_entity_ids)
+    return _result(
+        state,
+        task_id,
+        claim,
+        *outcome,
+        verifier_kind="parcel_policy",
+        request_semantics={
+            "parcel_ids": sorted(required),
+            "pickup_shelf_id": pickup_shelf_id,
+            "quarantine_bin_id": quarantine_bin_id,
+            "confidence_threshold": float(confidence_threshold),
+            "parcel_manifest": (None if parcel_manifest is None else expected_identities),
+            "manifest_id": normalized_manifest_id,
+        },
+        rule_version=PARCEL_POLICY_RULE_VERSION,
+        supporting_entity_ids=supporting_entity_ids,
+        context=context,
+    )

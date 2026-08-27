@@ -8,6 +8,7 @@ from .reducer import (
     reduce_events,
 )
 from .verifier import (
+    VerificationContext,
     verify_inspection_evidence,
     verify_kit_contents,
     verify_object_in_tray,
@@ -18,6 +19,7 @@ from .verifier import (
 
 __all__ = [
     "SQLiteEventStore",
+    "VerificationContext",
     "WorldState",
     "apply_event",
     "canonical_world_state_bytes",

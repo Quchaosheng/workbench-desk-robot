@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>workbench_motion_provenance</name>
+  <version>0.1.0</version>
+  <description>One-shot RMW sample provenance collector for the C3a plan-only readiness gate.</description>
+  <maintainer email="motion-owner@workbench-1.invalid">Motion Owner</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>geometry_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>tf2_msgs</depend>
+  <build_depend>rapidjson-dev</build_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

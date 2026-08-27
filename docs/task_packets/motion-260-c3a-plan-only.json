@@ -1,0 +1,116 @@
+{
+  "issue": 260,
+  "human_owner": "cyathea152-bit",
+  "objective": "From the merged PR #259 baseline, implement a deep MoveIt/controller module that accepts only a closed pose goal, plans only, exposes only AcceptedTrajectory, materializes an immutable integer-nanosecond controller-facing snapshot, and proves zero C3a execution goals.",
+  "decision_supported": "Freeze the C3a plan-only seam and prevent C3a from becoming an execution, semantic-action, or dynamic-scene task.",
+  "allowed_paths": [
+    "robot/control/workbench_motion/workbench_motion/c3a_bridge.py",
+    "robot/control/workbench_motion/workbench_motion/c3a_ros_adapter.py",
+    "robot/control/workbench_motion/workbench_motion/c3a_types.py",
+    "robot/control/workbench_motion/workbench_motion/c3a_plan_probe.py",
+    "robot/control/workbench_motion/launch/c3a_plan_only.launch.py",
+    "robot/control/workbench_motion/test/test_c3a_bridge.py",
+    "robot/control/workbench_motion/test/test_c3a_ros_adapter.py",
+    "robot/control/workbench_motion/test/test_c3a_launch.py",
+    "robot/control/workbench_motion/launch/move_group.launch.py",
+    "robot/control/workbench_motion/package.xml",
+    "robot/control/workbench_motion/setup.py",
+    "robot/control/workbench_motion_provenance/CMakeLists.txt",
+    "robot/control/workbench_motion_provenance/package.xml",
+    "robot/control/workbench_motion_provenance/src/c3a_sample_provenance.cpp",
+    "robot/control/README.md",
+    "robot/control/PLAN.md",
+    "robot/control/PHASE3.md",
+    "docs/task_packets/motion-260-c3a-plan-only.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "services/**",
+    "firmware/**",
+    "robot/description/**",
+    "docs/context/**",
+    "AGENTS.md"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "services/**",
+    "firmware/**",
+    "robot/description/**",
+    "MoveIt ExecuteTrajectory action",
+    "ros2_control controller goal or topic dispatch",
+    "SemanticAction, ActionResult, EvidenceSink, or WorldState writes",
+    "dynamic CollisionObject or AttachedCollisionObject lifecycle",
+    "second trajectory validator, clamp, reorder, or repair",
+    "Gazebo, real-robot, or physical-success claims"
+  ],
+  "input_refs": [
+    "robot/control/ISSUE57.md",
+    "robot/control/README.md",
+    "robot/control/workbench_motion/workbench_motion/joint_limits.py",
+    "robot/control/workbench_motion/config/arm.yaml",
+    "robot/control/workbench_motion/config/controllers.yaml",
+    "robot/control/workbench_motion/launch/move_group.launch.py",
+    "interfaces/json_schema/semantic_action.schema.json",
+    "interfaces/json_schema/action_result.schema.json",
+    "docs/task_packets/motion-057-trajectory-preflight.json"
+  ],
+  "outputs": [
+    "deep plan-only bridge interface and implementation with internal planning/readiness seams",
+    "in-memory planning/readiness adapters for tests",
+    "bounded plan-only launch harness, sample-level RMW provenance collector, and machine-readable probe evidence",
+    "C3a README handoff and zero-dispatch evidence"
+  ],
+  "acceptance": [
+    "The implementation baseline contains PR #259 merge commit 4f892a7fe12a1474fd0e6c77205d862bef095856 and AcceptedTrajectory is the only trajectory exposed at the controller seam",
+    "The external interface accepts only a closed pose/frame/tolerance goal; arm identity, MoveIt constraints, and start state are constructed internally from controlled config/readiness, with generic MoveIt messages, JointConstraint, caller start state, raw joint fields, unknown fields, and caller execution/action-server controls rejected",
+    "PlanOnlyResult never exposes the raw MoveIt candidate trajectory and preserves MoveIt/preflight source reason codes on failure",
+    "MoveIt MotionPlanRequest uses arm.yaml identity, the fresh readiness start state, PlanningOptions.plan_only=true, and replan=false; the result trajectory_start must match that start state",
+    "The C3a MoveGroup launch fixes allow_trajectory_execution=false and disables move_group/MoveGroupExecuteTrajectoryAction without a caller override; the MoveGroup action endpoint is fixed at /move_action, and no C3a ExecuteTrajectory, FollowJointTrajectory, controller-topic, or gripper client is created or sent",
+    "Materialization revalidates accepted canonical bytes and hashes, preserves exact joint order and integer-nanosecond timestamps in a deeply immutable non-ROS snapshot, and rejects current context/config mismatch",
+    "Missing, incomplete, clock-incomparable, or stale joint-state/TF/controller-configuration readiness, non-empty multi-DOF trajectory, and hash mismatch fail closed with stable diagnostic codes",
+    "After the probe proves execution is disabled, a create-only request marker arms the provenance collector; the collector records its own marker observation time, discards joint-state and dynamic-TF samples whose DDS receive timestamps are not newer than that time, uses the next fresh samples for readiness, and removes the marker on success or failure",
+    "Clock proof evidence includes the canonical controlled publisher graph/use_sim_time proof and its independently reproducible hash plus the actual rmw_message_info publisher GID and middleware source/receive timestamps of each joint-state and TF sample used by readiness; each actual writer GID must match the collector callback-time endpoint and remain present in the probe's graph proof",
+    "Planning server unavailable, planning timeout, MoveIt rejection, adapter error, normal, boundary, malicious-bypass, and wrong-type tests pass through the public C3a interface",
+    "Versioned canonical planning-request, readiness, and config hashes cover the expanded robot description, arm/SRDF/kinematics/OMPL/MoveIt-limits/controller/preflight inputs and relevant ROS/MoveIt package versions without redefining #57 trajectory/context hashes",
+    "A bounded launch harness starts execution-disabled MoveGroup, runs one probe, confirms MoveGroup and both support-process exits before publishing evidence, shuts down without residual ROS processes, reports C3a execution_goal_count=0, and never publishes a Gazebo or physical success claim",
+    "C3b sampled collision gating and C3c dynamic scene lifecycle remain separate follow-up work"
+  ],
+  "commands": [
+    "make task-check PACKET=docs/task_packets/motion-260-c3a-plan-only.json",
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/motion-260-c3a-plan-only.json --base f821f417b1e202f310d5bf208a5136fa408fd789",
+    "uv run --directory robot/control pytest -q",
+    "source /opt/ros/jazzy/setup.bash && colcon --log-base /tmp/workbench-c3a-colcon-log build --base-paths robot/control/workbench_motion robot/control/workbench_motion_provenance --build-base /tmp/workbench-c3a-build --install-base install --packages-select workbench_motion_provenance workbench_motion --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3",
+    "source /opt/ros/jazzy/setup.bash && source install/setup.bash && ros2 launch workbench_motion c3a_plan_only.launch.py evidence_path:=/tmp/c3a-plan-only.json",
+    "make lint",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "make demo-scripted"
+  ],
+  "evidence": [
+    "Task Packet validation output",
+    "Motion focused tests and root required-check output",
+    "ROS build and bounded execution-disabled MoveGroup plan-only harness output",
+    "allow_trajectory_execution=false, C3a execution_goal_count=0, no residual ROS process, and stable diagnostic/source-reason evidence",
+    "baseline and C3a commits, versioned planning/readiness/config component hashes, ROS/package versions, and truthful git_dirty status"
+  ],
+  "stop_conditions": [
+    "the implementation baseline does not contain PR #259 merge commit 4f892a7fe12a1474fd0e6c77205d862bef095856 or its AcceptedTrajectory interface changes incompatibly",
+    "implementation requires public schema/model, service, firmware, robot-description, or WorldState changes",
+    "any C3a execution interface/goal/raw controller path, caller-controlled execute/action-server/start-state field, or raw joint constraint appears",
+    "C3a would duplicate #57 validation or add dynamic scene/semantic-action behavior",
+    "zero-dispatch evidence or clean-worktree evidence cannot be produced"
+  ],
+  "max_iterations": 4,
+  "data_classification": "repository-local planning and test evidence only",
+  "model_policy": "AI assistance is authorized only for this packet's repository-local allowed paths; the implemented code and tests must not call an external model, upload repository data, use a runtime cloud dependency, or perform physical execution.",
+  "risks_and_fallbacks": [
+    "C3a zero-dispatch evidence is scoped to the C3a module, adapters, and dedicated launch; it does not claim that the isolated Phase-2 diagnostic probe or arbitrary same-domain ROS nodes lack execution capability",
+    "C3a validates controller configuration identity only; active controller readiness and ROS-domain isolation remain C3b or later integration/security work",
+    "If the bounded ROS harness cannot start, finish, write complete evidence, and shut down deterministically, record NOT_EXECUTED and stop instead of substituting fake or unit-test evidence",
+    "Linux/Integration review is required before merging move_group launch, package.xml, setup.py, ROS dependency, or acceptance-harness changes"
+  ]
+}

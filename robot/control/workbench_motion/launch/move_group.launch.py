@@ -47,7 +47,13 @@ def _setup(context, *_args, **_kwargs) -> list[Node]:
         package="moveit_ros_move_group",
         executable="move_group",
         output="screen",
-        parameters=moveit_params,
+        parameters=[
+            *moveit_params,
+            {
+                "allow_trajectory_execution": False,
+                "disable_capabilities": "move_group/MoveGroupExecuteTrajectoryAction",
+            },
+        ],
     )
     rsp = Node(
         package="robot_state_publisher",

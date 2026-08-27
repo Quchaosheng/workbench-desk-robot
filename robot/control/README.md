@@ -245,3 +245,67 @@ materialization, zero-dispatch proof, #59 rejected-dispatch mapping, C3b sampled
 collision gating, execution monitoring, stopping evidence, and physical safety
 remain downstream work; Issue #57 makes no ROS, Gazebo, or physical execution
 claim.
+
+## C3a: MoveIt plan-only bridge
+
+Issue #260 adds a deep plan-only module whose external interface is limited to
+`plan(PosePlanGoal)` and `materialize(AcceptedTrajectory)`.  Arm identity,
+start state, tolerance values, MoveIt request construction, readiness, and
+controller configuration stay behind that interface.  The bridge sends only a
+`moveit_msgs/action/MoveGroup` goal with `plan_only=true` and `replan=false`;
+it creates no ExecuteTrajectory, FollowJointTrajectory, controller-topic, or
+gripper transport.
+
+The ordinary MoveGroup launch and the dedicated C3a harness both fix
+`allow_trajectory_execution=false` without a caller override.  Run the bounded
+harness from a sourced Jazzy workspace with a new absolute evidence path:
+
+```bash
+colcon --log-base /tmp/workbench-c3a-colcon-log build \
+  --base-paths robot/control/workbench_motion \
+    robot/control/workbench_motion_provenance \
+  --build-base /tmp/workbench-c3a-build \
+  --install-base install \
+  --packages-select workbench_motion_provenance workbench_motion \
+  --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3
+source install/setup.bash
+ros2 launch workbench_motion c3a_plan_only.launch.py \
+  evidence_path:=/tmp/c3a-plan-only.json
+```
+
+The C++ provenance collector and Python probe start concurrently. After the
+probe proves that MoveGroup execution is disabled, it atomically creates a
+request marker. The collector discards any joint-state or dynamic-TF sample
+whose DDS receive timestamp is not newer than the collector's own marker-arm
+observation time and captures the next samples; transient-local
+static TF may be retained. It then uses `rclcpp::MessageInfo` to bind the actual
+RMW writer GID and DDS source/receive timestamps to those joint-state,
+dynamic-TF, and static-TF samples, removes the marker, and publishes the closed
+artifact. The probe performs one controlled pose plan, rechecks current
+configuration without recapturing or aging the plan's immutable readiness
+sample, materializes an immutable
+integer-nanosecond controller-facing snapshot, and writes strict JSON to a
+staging path. After the probe succeeds, the harness uses a bounded SIGKILL for
+the known Jazzy `move_group` teardown crash, requests clean RSP/JSP shutdown,
+and atomically promotes staging only after all three process exits have been
+confirmed. It refuses to overwrite evidence and fails
+without a PASS artifact when readiness, MoveGroup, hashes, or the
+execution-disabled parameter cannot be proven. A fixed 30-second launch-wide
+watchdog also removes staged evidence and stops the harness if any phase hangs.
+For timestamp comparability, the harness restricts the current ROS graph to its
+exact `joint_state_publisher`/`robot_state_publisher` set and proves their
+`use_sim_time` domain. It also binds every actual joint/TF header timestamp to
+the Jazzy DDS `source_timestamp`/`received_timestamp` delivered with that
+sample and requires the sample's actual writer GID to match both the collector's
+callback-time endpoint and the probe's current graph proof. Both graph and
+sample records are included in `clock_proof_sha256` and the formal evidence;
+the canonical graph/use-sim-time proof is retained beside its hash so the
+inner and outer proof hashes can both be recomputed offline.
+`execution_goal_count=0`, `gazebo=NOT_EXECUTED`,
+and `physical=NOT_EXECUTED` apply only to the C3a module, adapters, and dedicated
+launch; they are not a claim about arbitrary nodes in the same ROS domain.
+
+C3b owns sampled collision gating and any gated Gazebo execution.  C3c owns
+dynamic CollisionObject and attach/detach lifecycle.  GRASP/PLACE/STOP,
+ActionResult, EvidenceSink, WorldState, and physical execution remain outside
+C3a.

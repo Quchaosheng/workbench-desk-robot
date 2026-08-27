@@ -16,6 +16,7 @@
 
   <!-- ROS 2 runtime deps are apt/rosdep-managed, not uv-managed. -->
   <exec_depend>rclpy</exec_depend>
+  <exec_depend>workbench_motion_provenance</exec_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
 
@@ -32,6 +33,7 @@
   <exec_depend>trac_ik_kinematics_plugin</exec_depend>
   <exec_depend>moveit_msgs</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>shape_msgs</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>gz_ros2_control</exec_depend>

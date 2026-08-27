@@ -7,6 +7,11 @@ from pathlib import Path
 
 import yaml
 
+try:
+    from bsp.validation.validate_image_inputs import validate as validate_image_inputs
+except ModuleNotFoundError:  # Direct script execution from bsp/validation.
+    from validate_image_inputs import validate as validate_image_inputs
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -117,6 +122,7 @@ def validate() -> list[str]:
     launcher = (ROOT / "bsp/rootfs/libexec/camera-head-launch").read_text(encoding="utf-8")
     environment_example = (ROOT / "bsp/rootfs/camera-head.env.example").read_text(encoding="utf-8")
     errors.extend(validate_camera_deployment(deployment, unit, launcher, environment_example))
+    errors.extend(validate_image_inputs())
     return errors
 
 

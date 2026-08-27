@@ -58,3 +58,10 @@ arbitration-ID table, bitrate/FD data phase, termination, transceiver part,
 device-tree nodes, and per-domain recovery tests. `wbcan` can validate the
 software semantics, but cannot provide bus-load, EMC, wire-latency or physical
 recovery evidence.
+
+The existing MCU Wire V1 contract uses five exact 11-bit frame-kind IDs and
+does not encode a node address. Issue #180's HAL bridge deliberately preserves
+those frozen values, so it proves one logical endpoint only. Six domains must
+not share those response IDs until an owner-approved versioned arbitration or
+bus-segmentation decision prevents ambiguous/colliding ACK and telemetry
+traffic. See `docs/architecture/mcu-can-hal-boundary-v1.md`.

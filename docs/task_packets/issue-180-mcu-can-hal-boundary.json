@@ -1,0 +1,92 @@
+{
+  "issue": 180,
+  "human_owner": "TH3478",
+  "objective": "Implement the bounded platform-independent MCU HAL/Wire V1 bridge: distinguish 11-bit arbitration IDs from payload command IDs, reject invalid raw envelopes before safety dispatch, route STOP before ordinary deduplication, and provide shared logic plus Host fake-HAL evidence without claiming a physical target.",
+  "allowed_paths": [
+    "firmware/mcu/core/hal.h",
+    "firmware/mcu/core/can_bridge.h",
+    "firmware/mcu/core/can_bridge.c",
+    "firmware/mcu/hal/host/hal_host.c",
+    "firmware/mcu/hal/host/hal_host_test.h",
+    "firmware/mcu/hal/qemu/main_qemu.c",
+    "firmware/mcu/tests/can_bridge_tests.h",
+    "firmware/mcu/tests/can_bridge_tests.c",
+    "firmware/mcu/tests/can_bridge_host_tests.h",
+    "firmware/mcu/tests/can_bridge_host_tests.c",
+    "firmware/mcu/tests/main_host.c",
+    "firmware/mcu/Makefile",
+    "firmware/mcu/README.md",
+    "docs/architecture/mcu-can-hal-boundary-v1.md",
+    "docs/architecture/mcu-wire-v1.md",
+    "docs/architecture/robot-bsp-can-v0.1.md",
+    "docs/task_packets/issue-180-mcu-can-hal-boundary.json"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "docs/architecture/mcu-protocol-v1.md",
+    "docs/architecture/mcu-watchdog-v1.md",
+    "docs/architecture/mcu-command-dedup-v1.md",
+    "interfaces/json_schema/mcu_protocol.schema.json",
+    "interfaces/examples/mcu-frame-stop-ack.json",
+    "firmware/mcu/core/frame_codec.h",
+    "firmware/mcu/core/frame_codec.c",
+    "firmware/mcu/core/state_machine.h",
+    "firmware/mcu/core/state_machine.c",
+    "firmware/mcu/core/watchdog.h",
+    "firmware/mcu/core/watchdog.c",
+    "firmware/mcu/core/command_dedup.h",
+    "firmware/mcu/core/command_dedup.c"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "firmware/mcu/hal/ch32v307/**",
+    "firmware/virtual_mcu/**",
+    "robot/control/**",
+    "hardware/**",
+    "services/**",
+    ".github/**"
+  ],
+  "acceptance": [
+    "The HAL names the standard 11-bit arbitration_id separately from the logical 16-bit command_id carried in Wire V1 payload bytes 1..2.",
+    "Raw extended-ID, RTR, error, CAN FD, unknown-flag, out-of-range-ID and wrong-DLC envelopes are rejected before codec publication or safety-state mutation.",
+    "The bridge uses mcu_frame_encode and mcu_frame_decode as its only frame-kind, arbitration-ID and payload mapping authority.",
+    "All five valid Wire V1 kinds round-trip through the HAL conversion, while unknown IDs, bad versions, nonzero reserved bytes and invalid cross-field payloads fail closed with unchanged decode output.",
+    "MCU ingress accepts only STOP and ordinary COMMAND directions; ACK, STOP_ACK and telemetry ingress cannot reach the state machine.",
+    "STOP arbitration ID 0x080 retains priority while its payload command ID remains at least 0x8000, and STOP bypasses the closed ordinary session gate plus a missing, corrupt or full replay window.",
+    "A successful STOP_ACK HAL handoff confirms the bounded watchdog slot; a failed handoff leaves it pending for the existing retry/timeout policy.",
+    "The fixed-capacity Host fake covers send and receive paths, all five frame kinds, malformed input, bounded send failure and STOP-before-command arbitration without allocation.",
+    "Shared bridge logic runs unchanged on Host and QEMU; QEMU and physical target CAN transport remain explicitly NOT_EXECUTED.",
+    "The documentation records that frozen Wire V1 has no six-domain node address and forbids inventing a multi-node mapping without a separately approved versioned decision."
+  ],
+  "commands": [
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/issue-180-mcu-can-hal-boundary.json",
+    "make -C firmware/mcu host-test",
+    "make -C firmware/mcu codec-sanitize",
+    "make -C firmware/mcu qemu-test",
+    "make -C firmware/mcu verify-no-fp",
+    "make -C firmware/mcu size-check",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check"
+  ],
+  "evidence": [
+    "Issue #180 Task Packet validation output and final changed-path audit.",
+    "Host shared bridge and fake-HAL assertion counts covering every Wire V1 kind, malformed envelopes and STOP priority.",
+    "ASan/UBSan output for the complete shared and Host fake MCU corpus.",
+    "QEMU shared bridge output together with its explicit CAN transport NOT_EXECUTED marker.",
+    "verify-no-fp and size-check output for the freestanding image.",
+    "Repository test, contract, scenario and context-check output.",
+    "Target evidence matrix and six-domain compatibility gate in docs/architecture/mcu-can-hal-boundary-v1.md."
+  ],
+  "stop_conditions": [
+    "The implementation requires changing frozen Wire V1 IDs, payload bytes, JSON Schema, Pydantic models or logical protocol semantics.",
+    "A six-domain mapping would require inventing an unapproved arbitration layout, node field or collision policy.",
+    "A real STM32 or legacy CH32 target would require unapproved pin, clock, transceiver, filter, IRQ, linker, startup or vendor-register data.",
+    "STOP would need to wait behind or consume the ordinary replay window.",
+    "The same platform-independent bridge and test source cannot compile unchanged for Host and QEMU.",
+    "Host/QEMU or fake evidence would be presented as physical controller, CAN bus, actuator, E-stop or hard-real-time proof.",
+    "The implementation requires modifying .gitignore or unrelated local changes."
+  ]
+}

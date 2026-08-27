@@ -10,6 +10,7 @@ MODULE_PATH = ROOT / "kernel" / "wbcan" / "validate_test_report.py"
 TEST_SCRIPT = ROOT / "kernel" / "wbcan" / "test_wbcan.sh"
 STRESS_PATH = ROOT / "kernel" / "wbcan" / "test_state_concurrency.py"
 LATENCY_PATH = ROOT / "kernel" / "wbcan" / "test_latency.py"
+DIAGNOSTICS_PATH = ROOT / "kernel" / "wbcan" / "validate_kernel_diagnostics.py"
 SPEC = importlib.util.spec_from_file_location("validate_wbcan_report", MODULE_PATH)
 assert SPEC and SPEC.loader
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -22,6 +23,10 @@ LATENCY_SPEC = importlib.util.spec_from_file_location("wbcan_latency", LATENCY_P
 assert LATENCY_SPEC and LATENCY_SPEC.loader
 LATENCY = importlib.util.module_from_spec(LATENCY_SPEC)
 LATENCY_SPEC.loader.exec_module(LATENCY)
+DIAGNOSTICS_SPEC = importlib.util.spec_from_file_location("wbcan_diagnostics", DIAGNOSTICS_PATH)
+assert DIAGNOSTICS_SPEC and DIAGNOSTICS_SPEC.loader
+DIAGNOSTICS = importlib.util.module_from_spec(DIAGNOSTICS_SPEC)
+DIAGNOSTICS_SPEC.loader.exec_module(DIAGNOSTICS)
 
 
 HEADER = "result\ttest_id\tname\texpected\tactual\n"
@@ -325,3 +330,53 @@ def test_wbcan_status_snapshot_does_not_take_tx_lock_or_format_under_private_loc
 
     assert "netif_tx_lock" not in status_show
     assert status_show.index("spin_unlock_irqrestore") < status_show.index("seq_printf")
+
+
+def test_kernel_diagnostics_pass_report_requires_empty_warning_matches(tmp_path: Path) -> None:
+    dmesg = tmp_path / "dmesg.log"
+    slabinfo = tmp_path / "slabinfo"
+    meminfo = tmp_path / "meminfo"
+    dmesg.write_text("boot WARNING: unrelated\ntest-marker\nwbcan: registered\n", encoding="ascii")
+    slabinfo.write_text("slabinfo - version: 2.1\n", encoding="ascii")
+    meminfo.write_text("MemTotal: 1 kB\n", encoding="ascii")
+
+    report = DIAGNOSTICS.build_report(dmesg, slabinfo, meminfo, "test-kernel", "test-marker")
+
+    assert report["result"] == "PASS"
+    DIAGNOSTICS.validate_report(report)
+
+
+def test_kernel_diagnostics_rejects_warning_signatures_and_malformed_pass() -> None:
+    assert DIAGNOSTICS.scan_dmesg("INFO ok\nBUG: bad\nlockdep: held\n") == ["BUG: bad", "lockdep: held"]
+    with pytest.raises(ValueError, match="cannot contain warnings"):
+        DIAGNOSTICS.validate_report(
+            {
+                "schema_version": DIAGNOSTICS.SCHEMA_VERSION,
+                "scope": "virtual-wbcan-kernel-job",
+                "result": "PASS",
+                "kernel": "test",
+                "marker": "marker",
+                "dmesg_path": "dmesg",
+                "slabinfo_path": "slab",
+                "meminfo_path": "mem",
+                "dmesg_bytes": 1,
+                "scoped_dmesg_bytes": 1,
+                "slabinfo_bytes": 1,
+                "meminfo_bytes": 1,
+                "warnings": ["BUG: bad"],
+            }
+        )
+
+
+def test_kernel_diagnostics_requires_marker_and_scans_only_scoped_log(tmp_path: Path) -> None:
+    dmesg = tmp_path / "dmesg.log"
+    slabinfo = tmp_path / "slabinfo"
+    meminfo = tmp_path / "meminfo"
+    dmesg.write_text("boot WARNING: unrelated\nmarker\nBUG: wbcan failure\n", encoding="ascii")
+    slabinfo.write_text("slab\n", encoding="ascii")
+    meminfo.write_text("mem\n", encoding="ascii")
+
+    report = DIAGNOSTICS.build_report(dmesg, slabinfo, meminfo, "test", "marker")
+    assert report["warnings"] == ["BUG: wbcan failure"]
+    with pytest.raises(ValueError, match="marker is missing"):
+        DIAGNOSTICS.build_report(dmesg, slabinfo, meminfo, "test", "absent-marker")

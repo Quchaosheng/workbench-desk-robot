@@ -91,6 +91,24 @@ def test_fault_suite_fails_if_report_append_fails() -> None:
 
 
 def _stress_report() -> dict[str, object]:
+    producer = {
+        "can_id": "0x740",
+        "requested": 10,
+        "sent": 10,
+        "received": 10,
+        "lost": 0,
+        "duplicate": 0,
+        "reordered": 0,
+        "unexpected": 0,
+        "longest_no_progress_ms": 1,
+    }
+    stages = [{"name": name, "result": "PASS", "duration_ms": 1} for name in STRESS.REQUIRED_STAGES]
+    saturation = next(stage for stage in stages if stage["name"] == "multi_producer_saturation")
+    saturation["details"] = {
+        "producer_count": 2,
+        "frames_per_producer": 10,
+        "producers": [producer, {**producer, "can_id": "0x741"}],
+    }
     return {
         "schema_version": STRESS.REPORT_SCHEMA_VERSION,
         "scope": "virtual-wbcan-only",
@@ -100,7 +118,7 @@ def _stress_report() -> dict[str, object]:
         "python": "3.12.0",
         "started_at": "1",
         "completed_at": "2",
-        "stages": [{"name": name, "result": "PASS", "duration_ms": 1} for name in STRESS.REQUIRED_STAGES],
+        "stages": stages,
     }
 
 
@@ -129,3 +147,47 @@ def test_stress_report_rejects_incomplete_or_untruthful_evidence(mutation: str) 
 
     with pytest.raises(ValueError):
         STRESS.validate_stress_report(report)
+
+
+def test_delivery_analysis_reports_loss_duplicate_reordering_and_progress() -> None:
+    metrics = STRESS.analyze_delivery(
+        {0x740: [0, 1, 2, 3]},
+        {0x740: [0, 2, 2, 1, 9]},
+        {0x740: [1.0, 1.01, 1.03, 1.04, 1.08]},
+        requested=4,
+    )
+
+    assert metrics == [
+        {
+            "can_id": "0x740",
+            "requested": 4,
+            "sent": 4,
+            "received": 5,
+            "lost": 1,
+            "duplicate": 1,
+            "reordered": 1,
+            "unexpected": 1,
+            "longest_no_progress_ms": 40,
+        }
+    ]
+
+
+def test_stress_report_rejects_saturation_delivery_anomaly() -> None:
+    report = _stress_report()
+    stages = report["stages"]
+    assert isinstance(stages, list)
+    saturation = next(stage for stage in stages if stage["name"] == "multi_producer_saturation")
+    saturation["details"]["producers"][0]["lost"] = 1
+
+    with pytest.raises(ValueError, match="delivery anomalies"):
+        STRESS.validate_stress_report(report)
+
+
+def test_stress_report_records_but_accepts_complete_reordered_delivery() -> None:
+    report = _stress_report()
+    stages = report["stages"]
+    assert isinstance(stages, list)
+    saturation = next(stage for stage in stages if stage["name"] == "multi_producer_saturation")
+    saturation["details"]["producers"][0]["reordered"] = 3
+
+    STRESS.validate_stress_report(report)

@@ -24,6 +24,8 @@
     "RX backlog rejection increments rx_dropped instead of claiming rx_packets",
     "intentional drop-rx and allocation-failure paths remain observable in netdev statistics",
     "concurrent TX and stats sampling never observes a counter regression",
+    "bounded concurrent producers use disjoint CAN IDs and deterministic sequence payloads",
+    "normal saturation evidence reports per-producer sent, received, lost, duplicate, reordered, unexpected, and longest no-progress values",
     "the bounded stress entrypoint emits a versioned JSON report with environment, stage timing, and PASS or FAIL status",
     "malformed, incomplete, failed, or non-virtual stress reports fail validation",
     "the existing seven fault modes and state lifecycle behavior remain unchanged",
@@ -43,6 +45,7 @@
     "kernel build and checkpatch output",
     "privileged wbcan fault suite output",
     "concurrent netdev statistics sampling output",
+    "per-producer bounded saturation accounting in the versioned JSON artifact",
     "marker-delimited dmesg without kernel warnings"
   ],
   "stop_conditions": [

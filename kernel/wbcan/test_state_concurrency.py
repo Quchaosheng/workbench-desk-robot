@@ -27,8 +27,13 @@ REQUIRED_STAGES = (
     "restart_stop_race",
     "queue_recovery",
     "stats_sampling",
+    "multi_producer_saturation",
     "cleanup",
 )
+MIN_PRODUCERS = 2
+MAX_PRODUCERS = 8
+MIN_FRAMES_PER_PRODUCER = 10
+MAX_FRAMES_PER_PRODUCER = 5000
 
 FRAME = struct.Struct("=IB3x8s")
 ALLOWED_STATES = {
@@ -432,6 +437,122 @@ class Probe:
                 if current[name] < previous[name]:
                     raise AssertionError(f"netdev statistic regressed: {name}")
 
+    def exercise_multi_producer_saturation(self, producer_count: int, frames_per_producer: int) -> dict[str, Any]:
+        self.arm("none 0")
+        can_ids = tuple(0x740 + index for index in range(producer_count))
+        sent: dict[int, list[int]] = {can_id: [] for can_id in can_ids}
+        received: dict[int, list[int]] = {can_id: [] for can_id in can_ids}
+        arrivals: dict[int, list[float]] = {can_id: [] for can_id in can_ids}
+        producers_done = threading.Event()
+        remaining = producer_count
+        remaining_lock = threading.Lock()
+        receiver = self.raw_socket()
+        receiver.setblocking(False)
+
+        def produce(can_id: int) -> None:
+            nonlocal remaining
+            can_socket = self.raw_socket()
+            can_socket.setblocking(False)
+            try:
+                for sequence in range(frames_per_producer):
+                    if self.abort.is_set():
+                        return
+                    payload = sequence.to_bytes(4, "big") + b"\0" * 4
+                    try:
+                        can_socket.send(FRAME.pack(can_id, 8, payload))
+                    except OSError as exc:
+                        if exc.errno not in ALLOWED_SEND_ERRORS:
+                            raise
+                    else:
+                        sent[can_id].append(sequence)
+            finally:
+                can_socket.close()
+                with remaining_lock:
+                    remaining -= 1
+                    if remaining == 0:
+                        producers_done.set()
+
+        def receive() -> None:
+            deadline = time.monotonic() + 5
+            quiet_since: float | None = None
+            while time.monotonic() < deadline:
+                if self.abort.is_set():
+                    return
+                readable = select.select([receiver], [], [], 0.02)[0]
+                if readable:
+                    can_id, length, payload = FRAME.unpack(receiver.recv(FRAME.size))
+                    if can_id in received and length == 8:
+                        received[can_id].append(int.from_bytes(payload[:4], "big"))
+                        arrivals[can_id].append(time.monotonic())
+                    quiet_since = None
+                    continue
+                if producers_done.is_set():
+                    quiet_since = quiet_since or time.monotonic()
+                    if time.monotonic() - quiet_since >= 0.2:
+                        return
+            raise AssertionError("multi-producer receiver exceeded its five-second bound")
+
+        receiver_thread = threading.Thread(target=self.capture, args=(receive,), name="saturation-rx", daemon=True)
+        producer_threads = tuple(
+            threading.Thread(
+                target=self.capture,
+                args=(produce, can_id),
+                name=f"saturation-tx-{can_id:x}",
+                daemon=True,
+            )
+            for can_id in can_ids
+        )
+        try:
+            self.run_threads(receiver_thread, *producer_threads)
+        finally:
+            receiver.close()
+
+        metrics = analyze_delivery(sent, received, arrivals, frames_per_producer)
+        failures = [
+            producer
+            for producer in metrics
+            if producer["sent"] != frames_per_producer
+            or producer["received"] != frames_per_producer
+            or any(producer[name] for name in ("lost", "duplicate", "unexpected"))
+        ]
+        if failures:
+            raise AssertionError(f"multi-producer saturation accounting failed: {failures}")
+        return {
+            "producer_count": producer_count,
+            "frames_per_producer": frames_per_producer,
+            "producers": metrics,
+        }
+
+
+def analyze_delivery(
+    sent: dict[int, list[int]],
+    received: dict[int, list[int]],
+    arrivals: dict[int, list[float]],
+    requested: int,
+) -> list[dict[str, int | str]]:
+    metrics: list[dict[str, int | str]] = []
+    for can_id in sorted(sent):
+        sent_sequences = sent[can_id]
+        received_sequences = received.get(can_id, [])
+        sent_set = set(sent_sequences)
+        received_set = set(received_sequences)
+        timestamps = arrivals.get(can_id, [])
+        gaps = [current - previous for previous, current in pairwise(timestamps)]
+        metrics.append(
+            {
+                "can_id": f"0x{can_id:03x}",
+                "requested": requested,
+                "sent": len(sent_sequences),
+                "received": len(received_sequences),
+                "lost": len(sent_set - received_set),
+                "duplicate": len(received_sequences) - len(received_set),
+                "reordered": sum(current < previous for previous, current in pairwise(received_sequences)),
+                "unexpected": len(received_set - sent_set),
+                "longest_no_progress_ms": round(max(gaps, default=0) * 1000),
+            }
+        )
+    return metrics
+
 
 def validate_stress_report(report: object) -> None:
     if not isinstance(report, dict):
@@ -466,6 +587,8 @@ def validate_stress_report(report: object) -> None:
             failed = True
             if not isinstance(stage.get("error"), str) or not stage["error"]:
                 raise ValueError(f"failed stress report stage {name!r} requires an error")
+        if name == "multi_producer_saturation" and result == "PASS":
+            _validate_saturation_details(stage.get("details"))
         stage_names.append(name)
     if len(stage_names) != len(set(stage_names)):
         raise ValueError("stress report contains duplicate stages")
@@ -473,6 +596,47 @@ def validate_stress_report(report: object) -> None:
         raise ValueError("passing stress report must contain every required passing stage in order")
     if report["result"] == "FAIL" and not failed:
         raise ValueError("failed stress report must contain a failed stage")
+
+
+def _validate_saturation_details(details: object) -> None:
+    if not isinstance(details, dict):
+        raise ValueError("passing saturation stage requires details")
+    producer_count = details.get("producer_count")
+    frame_count = details.get("frames_per_producer")
+    producers = details.get("producers")
+    if not isinstance(producer_count, int) or not MIN_PRODUCERS <= producer_count <= MAX_PRODUCERS:
+        raise ValueError("saturation producer_count is outside the bounded range")
+    if not isinstance(frame_count, int) or not MIN_FRAMES_PER_PRODUCER <= frame_count <= MAX_FRAMES_PER_PRODUCER:
+        raise ValueError("saturation frames_per_producer is outside the bounded range")
+    if not isinstance(producers, list) or len(producers) != producer_count:
+        raise ValueError("saturation report must contain one result per producer")
+    can_ids: set[str] = set()
+    for producer in producers:
+        if not isinstance(producer, dict):
+            raise ValueError("saturation producer result must be an object")
+        can_id = producer.get("can_id")
+        if not isinstance(can_id, str) or not can_id.startswith("0x") or can_id in can_ids:
+            raise ValueError("saturation producer CAN IDs must be unique hexadecimal strings")
+        can_ids.add(can_id)
+        for name in (
+            "requested",
+            "sent",
+            "received",
+            "lost",
+            "duplicate",
+            "reordered",
+            "unexpected",
+            "longest_no_progress_ms",
+        ):
+            value = producer.get(name)
+            if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+                raise ValueError(f"saturation producer {can_id} has invalid {name}")
+        if producer["requested"] != frame_count or producer["sent"] != frame_count:
+            raise ValueError(f"saturation producer {can_id} did not send its bounded frame budget")
+        if producer["received"] != frame_count:
+            raise ValueError(f"saturation producer {can_id} did not receive its bounded frame budget")
+        if any(producer[name] for name in ("lost", "duplicate", "unexpected")):
+            raise ValueError(f"saturation producer {can_id} contains unexplained delivery anomalies")
 
 
 def write_stress_report(path: Path, report: dict[str, Any]) -> None:
@@ -483,10 +647,10 @@ def write_stress_report(path: Path, report: dict[str, Any]) -> None:
     temporary.replace(path)
 
 
-def _stage(probe: Probe, name: str, operation: Callable[[], None], stages: list[dict[str, Any]]) -> None:
+def _stage(name: str, operation: Callable[[], dict[str, Any] | None], stages: list[dict[str, Any]]) -> None:
     started = time.monotonic()
     try:
-        operation()
+        details = operation()
     except Exception as exc:
         stages.append(
             {
@@ -497,10 +661,19 @@ def _stage(probe: Probe, name: str, operation: Callable[[], None], stages: list[
             }
         )
         raise
-    stages.append({"name": name, "result": "PASS", "duration_ms": round((time.monotonic() - started) * 1000)})
+    stage = {"name": name, "result": "PASS", "duration_ms": round((time.monotonic() - started) * 1000)}
+    if details is not None:
+        stage["details"] = details
+    stages.append(stage)
 
 
-def run_probe(interface: str, debugfs: Path, report_path: Path | None) -> int:
+def run_probe(
+    interface: str,
+    debugfs: Path,
+    report_path: Path | None,
+    producer_count: int,
+    frames_per_producer: int,
+) -> int:
     probe = Probe(interface, debugfs)
     started_at = time.time_ns()
     stages: list[dict[str, Any]] = []
@@ -515,9 +688,13 @@ def run_probe(interface: str, debugfs: Path, report_path: Path | None) -> int:
             ("restart_stop_race", probe.exercise_restart_stop_race),
             ("queue_recovery", probe.verify_queue_recovery),
             ("stats_sampling", probe.exercise_stats_sampling),
+            (
+                "multi_producer_saturation",
+                lambda: probe.exercise_multi_producer_saturation(producer_count, frames_per_producer),
+            ),
         )
         for name, operation in operations:
-            _stage(probe, name, operation, stages)
+            _stage(name, operation, stages)
     except Exception as exc:  # noqa: BLE001 - preserve the probe failure through cleanup.
         failure = exc
     finally:
@@ -570,6 +747,8 @@ def main() -> int:
     parser.add_argument("debugfs", nargs="?", type=Path)
     parser.add_argument("--report", type=Path)
     parser.add_argument("--validate-report", type=Path)
+    parser.add_argument("--producers", type=int, default=4)
+    parser.add_argument("--frames-per-producer", type=int, default=250)
     args = parser.parse_args()
     if args.validate_report is not None:
         if args.interface is not None or args.debugfs is not None or args.report is not None:
@@ -579,7 +758,11 @@ def main() -> int:
         return 0
     if args.interface is None or args.debugfs is None:
         parser.error("INTERFACE and DEBUGFS_DIRECTORY are required")
-    return run_probe(args.interface, args.debugfs, args.report)
+    if not MIN_PRODUCERS <= args.producers <= MAX_PRODUCERS:
+        parser.error(f"--producers must be between {MIN_PRODUCERS} and {MAX_PRODUCERS}")
+    if not MIN_FRAMES_PER_PRODUCER <= args.frames_per_producer <= MAX_FRAMES_PER_PRODUCER:
+        parser.error(f"--frames-per-producer must be between {MIN_FRAMES_PER_PRODUCER} and {MAX_FRAMES_PER_PRODUCER}")
+    return run_probe(args.interface, args.debugfs, args.report, args.producers, args.frames_per_producer)
 
 
 if __name__ == "__main__":

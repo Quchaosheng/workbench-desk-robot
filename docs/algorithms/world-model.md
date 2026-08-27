@@ -261,6 +261,71 @@ The 0.5 s on `gripper_tip` matters most: give it the tray's half-life and the
 verifier will use a several-second-old tip pose to decide whether something is
 currently being held.
 
+### Explicit Observation freshness boundary
+
+The reducer has no implicit current time. A caller that needs aged beliefs must
+supply both an immutable `ObservationAgingBoundary(as_of, clock_id)` and an
+`ObservationFreshnessPolicy`. Supplying only one fails. Omitting both still
+permits deterministic audit replay and snapshot projection, but every applied
+Observation marks the internal state as not freshness-evaluated. Such a state
+cannot support a verifier confirmation or refutation until explicit aging has
+been applied. Calling `apply_event()` with another Observation invalidates a
+previous freshness evaluation for the same reason. `verified_at` remains
+separate diagnostic metadata and is never used as the aging boundary.
+
+A policy contains finite rules keyed by the Observation `source` (the evidence
+class at this boundary) and `entity_type`:
+
+```python
+ObservationFreshnessPolicy(
+    rules={
+        ("fixture_camera", "block"): FreshnessThresholds(
+            stale_after_s=5,
+            lost_after_s=10,
+        )
+    }
+)
+```
+
+Those numbers are an example, not a production default. Wildcards and missing
+rules are rejected, and deployments may replace a bound only with an equal or
+smaller value. Every rule satisfies
+`0 < stale_after_s <= lost_after_s < infinity`.
+
+For comparable UTC wall timestamps, the transition is exact:
+
+```text
+age < stale_after          -> observed
+stale_after <= age < lost  -> stale
+lost_after <= age          -> lost
+```
+
+Missing or malformed Observation time, missing clock classification, a future
+Observation, an unknown policy tuple, or an incompatible clock fails closed as
+`lost`. Monotonic values are never subtracted during replay because the public
+events do not persist a common clock origin. There is no `now()`, sleep,
+background scheduler, database TTL, or event rewrite in this transition.
+
+A provably older wall-clock Observation at a later sequence remains in the
+global audit event stream but cannot overwrite the newer entity fact or refresh
+its evidence boundary. A newer comparable Observation replaces the boundary
+and can restore `observed`. `ActionResult` never changes Observation time,
+clock/source metadata, entity belief, or relation belief.
+
+Aging changes only belief labels. Pose, location, confidence, attributes,
+`last_observed_at`, and evidence references remain available for audit. A
+relation is no fresher than its location Observation, subject entity, and
+required object entity; a lost endpoint therefore makes the relation lost.
+Public snapshot hashes include the schema-visible aged beliefs, so the same log,
+policy, and boundary replay identically while crossing an exact threshold
+changes the hash deterministically.
+
+All public World Model verifiers share one gate. Stale or lost entity/location
+support produces `insufficient_evidence`, the existing
+`stale_observation` reason, and `re_observe`; it cannot confirm completion or
+safety. The public contract currently has no distinct lost reason, so no new
+enum value is invented here.
+
 ---
 
 ## 4. Conflicting evidence

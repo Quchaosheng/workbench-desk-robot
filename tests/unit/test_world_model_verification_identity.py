@@ -15,6 +15,9 @@ sys.path[:0] = [str(ROOT / "libs/contracts"), str(ROOT / "services/world_model")
 import workbench_world_model.verifier as verifier_module
 from workbench_contracts import ClockId, WorldEvent, WorldEventType
 from workbench_world_model import (
+    FreshnessThresholds,
+    ObservationAgingBoundary,
+    ObservationFreshnessPolicy,
     VerificationContext,
     create_world_state_snapshot,
     reduce_events,
@@ -666,6 +669,104 @@ def test_evidence_collection_order_is_deterministic_and_enters_identity() -> Non
         ["frame://shared", "frame://alpha", "frame://zeta"],
     ]
     assert results[0].verification_id == results[1].verification_id
+
+
+def test_verification_identity_uses_aged_snapshot_hash_and_not_verified_at() -> None:
+    events = [
+        WorldEvent(
+            event_id="evt-aged-tray",
+            run_id="run-aged-identity",
+            sequence_no=0,
+            event_type=WorldEventType.OBSERVATION,
+            occurred_at="2026-08-28T00:00:00Z",
+            payload={
+                "entity_id": "tray",
+                "entity_type": "tray",
+                "confidence": 0.99,
+                "observed_at": "2026-08-28T00:00:00Z",
+                "clock_id": "wall",
+                "source": "camera",
+            },
+            evidence_refs=["frame://aged/tray"],
+        ),
+        WorldEvent(
+            event_id="evt-aged-block",
+            run_id="run-aged-identity",
+            sequence_no=1,
+            event_type=WorldEventType.OBSERVATION,
+            occurred_at="2026-08-28T00:00:00Z",
+            payload={
+                "entity_id": "red_block",
+                "entity_type": "block",
+                "location": "in:tray",
+                "confidence": 0.98,
+                "observed_at": "2026-08-28T00:00:00Z",
+                "clock_id": "wall",
+                "source": "camera",
+            },
+            evidence_refs=["frame://aged/block"],
+        ),
+    ]
+    policy = ObservationFreshnessPolicy(
+        rules={
+            ("camera", "block"): FreshnessThresholds(stale_after_s=10, lost_after_s=20),
+            ("camera", "tray"): FreshnessThresholds(stale_after_s=10, lost_after_s=20),
+        }
+    )
+    fresh_boundary = ObservationAgingBoundary(as_of="2026-08-28T00:00:09Z", clock_id="wall")
+    stale_boundary = ObservationAgingBoundary(as_of="2026-08-28T00:00:10Z", clock_id="wall")
+    fresh_state = reduce_events(
+        "run-aged-identity",
+        events,
+        freshness_policy=policy,
+        aging_boundary=fresh_boundary,
+    )
+    stale_state = reduce_events(
+        "run-aged-identity",
+        events,
+        freshness_policy=policy,
+        aging_boundary=stale_boundary,
+    )
+    fresh_snapshot = create_world_state_snapshot(
+        "run-aged-identity",
+        events,
+        freshness_policy=policy,
+        aging_boundary=fresh_boundary,
+    )
+    stale_snapshot = create_world_state_snapshot(
+        "run-aged-identity",
+        events,
+        freshness_policy=policy,
+        aging_boundary=stale_boundary,
+    )
+    fresh_result = verify_object_in_tray(
+        fresh_state,
+        "task-aged-identity",
+        "red_block",
+        "tray",
+        context=request_context(state_hash=fresh_snapshot.state_hash),
+    )
+    stale_context_a = VerificationContext(
+        state_hash=stale_snapshot.state_hash,
+        verified_at="2026-08-28T12:00:00Z",
+        clock_id="wall",
+    )
+    stale_context_b = stale_context_a.model_copy(update={"verified_at": "2026-08-28T13:00:00Z"})
+    stale_results = [
+        verify_object_in_tray(
+            stale_state,
+            "task-aged-identity",
+            "red_block",
+            "tray",
+            context=context,
+        )
+        for context in (stale_context_a, stale_context_b)
+    ]
+
+    assert fresh_snapshot.state_hash != stale_snapshot.state_hash
+    assert fresh_result.verification_id != stale_results[0].verification_id
+    assert stale_results[0].verification_id == stale_results[1].verification_id
+    assert stale_results[0].verified_at != stale_results[1].verified_at
 
 
 @pytest.mark.parametrize(

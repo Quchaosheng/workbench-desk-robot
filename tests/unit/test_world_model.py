@@ -8,8 +8,18 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT / "libs/contracts"), str(ROOT / "services/world_model")]
 
-from workbench_contracts import ReasonCode, RecoveryHint, VerificationStatus, WorldEvent, WorldEventType
+from workbench_contracts import (
+    ReasonCode,
+    RecoveryHint,
+    VerificationStatus,
+    WorldBelief,
+    WorldEvent,
+    WorldEventType,
+)
 from workbench_world_model import (
+    FreshnessThresholds,
+    ObservationAgingBoundary,
+    ObservationFreshnessPolicy,
     VerificationContext,
     apply_event,
     reduce_events,
@@ -40,6 +50,13 @@ TEST_VERIFICATION_CONTEXT = VerificationContext(
     verified_at="2026-08-27T12:34:56Z",
     clock_id="wall",
 )
+TEST_FRESHNESS_POLICY = ObservationFreshnessPolicy(
+    rules={
+        ("test-camera", "block"): FreshnessThresholds(stale_after_s=60, lost_after_s=120),
+        ("test-camera", "fixture"): FreshnessThresholds(stale_after_s=60, lost_after_s=120),
+    }
+)
+TEST_AGING_BOUNDARY = ObservationAgingBoundary(as_of="2026-08-04T00:00:10Z", clock_id="wall")
 verify_inspection_evidence = partial(_verify_inspection_evidence, context=TEST_VERIFICATION_CONTEXT)
 verify_kit_contents = partial(_verify_kit_contents, context=TEST_VERIFICATION_CONTEXT)
 verify_object_in_tray = partial(_verify_object_in_tray, context=TEST_VERIFICATION_CONTEXT)
@@ -92,7 +109,7 @@ def observation_event(
     location: object = "on:table",
     confidence: object = 0.9,
 ) -> WorldEvent:
-    return WorldEvent(
+    event = WorldEvent(
         event_id=event_id,
         run_id=run_id,
         sequence_no=sequence_no,
@@ -101,10 +118,36 @@ def observation_event(
         payload={
             "entity_id": entity_id,
             "entity_type": entity_type,
-            "location": location,
             "confidence": confidence,
+            "observed_at": f"2026-08-04T00:00:{sequence_no:02d}Z",
+            "clock_id": "wall",
+            "source": "test-camera",
         },
         evidence_refs=[f"frame://{event_id}"],
+    )
+    if location is not None:
+        event = event.model_copy(update={"payload": {**event.payload, "location": location}})
+    return event
+
+
+def freshness_evaluated_state(
+    events: list[WorldEvent],
+    *,
+    endpoint_id: str,
+) -> WorldState:
+    next_sequence = max(event.sequence_no for event in events) + 1
+    endpoint = observation_event(
+        f"evt-fixture-{endpoint_id}",
+        next_sequence,
+        entity_id=endpoint_id,
+        entity_type="fixture",
+        location=None,
+    )
+    return reduce_events(
+        "run-001",
+        [*events, endpoint],
+        freshness_policy=TEST_FRESHNESS_POLICY,
+        aging_boundary=TEST_AGING_BOUNDARY,
     )
 
 
@@ -225,9 +268,12 @@ class WorldModelTests(unittest.TestCase):
             occurred_at=original.occurred_at,
             payload={
                 "confidence": 0.9,
+                "source": "test-camera",
                 "location": "on:table",
                 "entity_id": "red_block",
+                "observed_at": "2026-08-04T00:00:01Z",
                 "entity_type": "block",
+                "clock_id": "wall",
             },
             evidence_refs=list(original.evidence_refs),
         )
@@ -440,7 +486,10 @@ class WorldModelTests(unittest.TestCase):
         self.assertNotIn("act-001", result.evidence_refs)
 
     def test_old_observation_cannot_confirm_evidence_free_action_claim(self) -> None:
-        state = reduce_events("run-001", [observation_event("evt-table", 0), placed_event()])
+        state = freshness_evaluated_state(
+            [observation_event("evt-table", 0), placed_event()],
+            endpoint_id="table",
+        )
 
         result = verify_object_in_tray(state, "task-001", "red_block", "tray")
 
@@ -450,10 +499,25 @@ class WorldModelTests(unittest.TestCase):
         self.assertEqual(result.evidence_refs, ["frame://evt-table"])
         self.assertNotIn("act-001", result.evidence_refs)
 
+    def test_object_verifier_rejects_stale_observation(self) -> None:
+        state = WorldState(
+            run_id="run-stale-observation",
+            entity_locations={"red_block": "in:tray"},
+            entity_evidence_refs={"red_block": ["frame://stale-camera"]},
+            entity_beliefs={"red_block": WorldBelief.STALE},
+        )
+
+        result = verify_object_in_tray(state, "task-stale", "red_block", "tray")
+
+        self.assertEqual(result.status, VerificationStatus.INSUFFICIENT_EVIDENCE)
+        self.assertEqual(result.reason_code, ReasonCode.STALE_OBSERVATION)
+        self.assertEqual(result.recovery_hint, RecoveryHint.RE_OBSERVE)
+        self.assertEqual(result.evidence_refs, ["frame://stale-camera"])
+
     def test_post_action_supporting_observation_confirms_with_sensor_evidence(self) -> None:
-        state = reduce_events(
-            "run-001",
+        state = freshness_evaluated_state(
             [placed_event(), observation_event("evt-tray", 2, location="in:tray")],
+            endpoint_id="tray",
         )
         result = verify_object_in_tray(state, "task-001", "red_block", "tray")
 
@@ -461,13 +525,13 @@ class WorldModelTests(unittest.TestCase):
         self.assertEqual(result.reason_code, ReasonCode.GOAL_SATISFIED)
         self.assertEqual(result.evidence_refs, ["frame://evt-tray"])
         self.assertEqual(state.entity_evidence_refs["red_block"], ["frame://evt-tray"])
-        self.assertEqual(state.evidence_refs, ["act-001", "frame://evt-tray"])
+        self.assertEqual(state.evidence_refs, ["act-001", "frame://evt-tray", "frame://evt-fixture-tray"])
         self.assertNotIn("act-001", result.evidence_refs)
 
     def test_post_action_contradictory_observation_refutes_with_sensor_evidence(self) -> None:
-        state = reduce_events(
-            "run-001",
+        state = freshness_evaluated_state(
             [placed_event(), observation_event("evt-table", 2, location="on:table")],
+            endpoint_id="table",
         )
         result = verify_object_in_tray(state, "task-001", "red_block", "tray")
 
@@ -475,7 +539,7 @@ class WorldModelTests(unittest.TestCase):
         self.assertEqual(result.reason_code, ReasonCode.GOAL_NOT_SATISFIED)
         self.assertEqual(result.evidence_refs, ["frame://evt-table"])
         self.assertEqual(state.entity_evidence_refs["red_block"], ["frame://evt-table"])
-        self.assertEqual(state.evidence_refs, ["act-001", "frame://evt-table"])
+        self.assertEqual(state.evidence_refs, ["act-001", "frame://evt-table", "frame://evt-fixture-table"])
         self.assertNotIn("act-001", result.evidence_refs)
 
     def test_same_location_evidence_accumulates_until_location_changes(self) -> None:

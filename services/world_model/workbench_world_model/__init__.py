@@ -1,3 +1,8 @@
+from .aging import (
+    FreshnessThresholds,
+    ObservationAgingBoundary,
+    ObservationFreshnessPolicy,
+)
 from .event_store import SQLiteEventStore
 from .mock import mock_verification, mock_world_state
 from .reducer import (
@@ -18,6 +23,9 @@ from .verifier import (
 )
 
 __all__ = [
+    "FreshnessThresholds",
+    "ObservationAgingBoundary",
+    "ObservationFreshnessPolicy",
     "SQLiteEventStore",
     "VerificationContext",
     "WorldState",

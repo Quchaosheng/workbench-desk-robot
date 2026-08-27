@@ -184,16 +184,18 @@ def test_scripted_demo_replay_keeps_execution_and_sensor_evidence_separate(monke
     original_verify = demo_scripted.verify_object_in_tray
     injected_verified_at = "2026-08-27T12:34:56.123456Z"
 
-    def capture_reduction(run_id, events):
-        state = original_reduce(run_id, events)
+    def capture_reduction(run_id, events, **kwargs):
+        state = original_reduce(run_id, events, **kwargs)
         captured["events"] = events
         captured["state"] = state
+        captured["reduction_kwargs"] = kwargs
         return state
 
-    def capture_snapshot(run_id, events):
-        snapshot = original_snapshot(run_id, events)
+    def capture_snapshot(run_id, events, **kwargs):
+        snapshot = original_snapshot(run_id, events, **kwargs)
         captured["snapshot_events"] = list(events)
         captured["snapshot"] = snapshot
+        captured["snapshot_kwargs"] = kwargs
         return snapshot
 
     def capture_verification(state, task_id, object_id, tray_id, *, context):
@@ -272,3 +274,51 @@ def test_scripted_demo_verification_identity_excludes_wall_time(monkeypatch):
     assert all(output["verified_complete"] for output in outputs)
     assert verifications[0].verified_at != verifications[1].verified_at
     assert verifications[0].verification_id == verifications[1].verification_id
+
+
+def test_scripted_demo_uses_explicit_aging_boundary(monkeypatch):
+    captured = {}
+    original_reduce = demo_scripted.reduce_events
+    original_snapshot = demo_scripted.create_world_state_snapshot
+    original_verify = demo_scripted.verify_object_in_tray
+    injected_verified_at = "2026-08-28T12:34:56Z"
+
+    def capture_reduction(run_id, events, **kwargs):
+        captured["events"] = list(events)
+        captured["reduction_kwargs"] = kwargs
+        return original_reduce(run_id, events, **kwargs)
+
+    def capture_snapshot(run_id, events, **kwargs):
+        captured["snapshot_kwargs"] = kwargs
+        return original_snapshot(run_id, events, **kwargs)
+
+    def capture_verification(state, task_id, object_id, tray_id, *, context):
+        captured["verification_context"] = context
+        return original_verify(state, task_id, object_id, tray_id, context=context)
+
+    monkeypatch.setattr(demo_scripted, "reduce_events", capture_reduction)
+    monkeypatch.setattr(demo_scripted, "create_world_state_snapshot", capture_snapshot)
+    monkeypatch.setattr(demo_scripted, "verify_object_in_tray", capture_verification)
+    monkeypatch.setattr(demo_scripted, "_utc_wall_clock_now", lambda: injected_verified_at)
+
+    output = demo_scripted.run_once(
+        "scripted-explicit-aging",
+        demo_scripted.StructuredLogger("scripted-test", io.StringIO()),
+    )
+
+    reduction_kwargs = captured["reduction_kwargs"]
+    snapshot_kwargs = captured["snapshot_kwargs"]
+    assert set(reduction_kwargs) == {"freshness_policy", "aging_boundary"}
+    assert snapshot_kwargs == reduction_kwargs
+    assert reduction_kwargs["freshness_policy"] is demo_scripted.SCRIPTED_FIXTURE_FRESHNESS_POLICY
+    assert reduction_kwargs["aging_boundary"] is demo_scripted.SCRIPTED_FIXTURE_AGING_BOUNDARY
+    assert reduction_kwargs["aging_boundary"].as_of == "2026-08-04T00:00:02Z"
+    assert reduction_kwargs["aging_boundary"].clock_id.value == "wall"
+    observations = [item for item in captured["events"] if item.event_type is WorldEventType.OBSERVATION]
+    assert observations
+    assert all(item.payload["observed_at"].startswith("2026-08-04T00:00:") for item in observations)
+    assert all(item.payload["clock_id"] == "wall" for item in observations)
+    assert all(item.payload["source"] == "scripted_camera" for item in observations)
+    assert captured["verification_context"].verified_at == injected_verified_at
+    assert captured["verification_context"].verified_at != reduction_kwargs["aging_boundary"].as_of
+    assert output["verified_complete"] is True

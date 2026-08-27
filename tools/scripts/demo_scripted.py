@@ -16,11 +16,27 @@ from workbench_backend.logging import StructuredLogger
 from workbench_contracts import ActionOutcome, ActionResult, DeviceState, DispatchState, WorldEvent, WorldEventType
 from workbench_virtual_mcu import VirtualMcu
 from workbench_world_model import (
+    FreshnessThresholds,
+    ObservationAgingBoundary,
+    ObservationFreshnessPolicy,
     SQLiteEventStore,
     VerificationContext,
     create_world_state_snapshot,
     reduce_events,
     verify_object_in_tray,
+)
+
+# These bounds apply only to deterministic scripted-camera fixtures. Physical
+# deployments must inject their own approved policy and may only tighten it.
+SCRIPTED_FIXTURE_FRESHNESS_POLICY = ObservationFreshnessPolicy(
+    rules={
+        ("scripted_camera", "block"): FreshnessThresholds(stale_after_s=5, lost_after_s=10),
+        ("scripted_camera", "tray"): FreshnessThresholds(stale_after_s=5, lost_after_s=10),
+    }
+)
+SCRIPTED_FIXTURE_AGING_BOUNDARY = ObservationAgingBoundary(
+    as_of="2026-08-04T00:00:02Z",
+    clock_id="wall",
 )
 
 
@@ -72,7 +88,14 @@ def run_once(run_id: str, logger: StructuredLogger) -> dict:
             run_id,
             1,
             WorldEventType.OBSERVATION,
-            {"entity_id": "red_block", "entity_type": "block", "confidence": 0.98},
+            {
+                "entity_id": "red_block",
+                "entity_type": "block",
+                "confidence": 0.98,
+                "observed_at": "2026-08-04T00:00:00Z",
+                "clock_id": "wall",
+                "source": "scripted_camera",
+            },
             ["camera-frame-001"],
         ),
         event(
@@ -80,7 +103,15 @@ def run_once(run_id: str, logger: StructuredLogger) -> dict:
             run_id,
             2,
             WorldEventType.OBSERVATION,
-            {"entity_id": "tray", "entity_type": "tray", "location": "on:table", "confidence": 0.99},
+            {
+                "entity_id": "tray",
+                "entity_type": "tray",
+                "location": "on:table",
+                "confidence": 0.99,
+                "observed_at": "2026-08-04T00:00:00Z",
+                "clock_id": "wall",
+                "source": "scripted_camera",
+            },
             ["camera-frame-002"],
         ),
         event(
@@ -113,6 +144,9 @@ def run_once(run_id: str, logger: StructuredLogger) -> dict:
                 "entity_type": "block",
                 "location": "in:tray",
                 "confidence": 0.97,
+                "observed_at": "2026-08-04T00:00:01Z",
+                "clock_id": "wall",
+                "source": "scripted_camera",
             },
             ["camera-frame-004"],
         ),
@@ -130,8 +164,18 @@ def run_once(run_id: str, logger: StructuredLogger) -> dict:
             details={"stage": "event_store", "duration_ms": (time.perf_counter() - started) * 1000},
         )
         started = time.perf_counter()
-        state = reduce_events(run_id, stored_events)
-        snapshot = create_world_state_snapshot(run_id, stored_events)
+        state = reduce_events(
+            run_id,
+            stored_events,
+            freshness_policy=SCRIPTED_FIXTURE_FRESHNESS_POLICY,
+            aging_boundary=SCRIPTED_FIXTURE_AGING_BOUNDARY,
+        )
+        snapshot = create_world_state_snapshot(
+            run_id,
+            stored_events,
+            freshness_policy=SCRIPTED_FIXTURE_FRESHNESS_POLICY,
+            aging_boundary=SCRIPTED_FIXTURE_AGING_BOUNDARY,
+        )
         logger.emit(
             "stage_completed",
             "world state reduced",

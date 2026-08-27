@@ -4,6 +4,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 from workbench_contracts import (
+    ClockId,
     Pose,
     WorldEvent,
     WorldEventType,
@@ -14,6 +15,12 @@ from workbench_contracts import (
 )
 from workbench_contracts import WorldState as ContractWorldState
 
+from .aging import (
+    ObservationAgingBoundary,
+    ObservationFreshnessPolicy,
+    age_world_state,
+    comparable_wall_observation_is_older,
+)
 from .event_payloads import normalize_world_event
 
 
@@ -21,13 +28,21 @@ class WorldState(BaseModel):
     run_id: str
     entity_types: dict[str, str] = Field(default_factory=dict)
     entity_poses: dict[str, Any] = Field(default_factory=dict)
-    entity_last_observed_at: dict[str, str | None] = Field(default_factory=dict)
+    entity_last_observed_at: dict[str, str] = Field(default_factory=dict)
+    entity_observation_clock_ids: dict[str, str] = Field(default_factory=dict)
+    entity_observation_sources: dict[str, str] = Field(default_factory=dict)
+    entity_beliefs: dict[str, WorldStateBelief] = Field(default_factory=dict)
     entity_locations: dict[str, str] = Field(default_factory=dict)
     entity_location_evidence_refs: dict[str, list[str]] = Field(default_factory=dict)
+    entity_location_last_observed_at: dict[str, str] = Field(default_factory=dict)
+    entity_location_clock_ids: dict[str, str] = Field(default_factory=dict)
+    entity_location_sources: dict[str, str] = Field(default_factory=dict)
+    entity_location_beliefs: dict[str, WorldStateBelief] = Field(default_factory=dict)
     entity_confidence: dict[str, float] = Field(default_factory=dict)
     entity_attributes: dict[str, dict[str, str]] = Field(default_factory=dict)
     entity_evidence_refs: dict[str, list[str]] = Field(default_factory=dict)
     evidence_refs: list[str] = Field(default_factory=list)
+    freshness_evaluated: bool = Field(default=True, exclude=True, repr=False)
     applied_event_ids: list[str] = Field(default_factory=list)
 
 
@@ -45,6 +60,32 @@ def _update_location(state: WorldState, entity_id: str, location: str, evidence_
         location_evidence = state.entity_location_evidence_refs.setdefault(entity_id, [])
         location_evidence.extend(reference for reference in evidence_refs if reference not in location_evidence)
     state.entity_locations[entity_id] = location
+
+
+def _replace_observation_metadata(
+    values: dict[str, str],
+    entity_id: str,
+    payload: dict[str, Any],
+    field_name: str,
+) -> None:
+    value = payload.get(field_name)
+    if field_name == "clock_id" and isinstance(value, ClockId):
+        value = value.value
+    if type(value) is str and value.strip():
+        values[entity_id] = value
+    else:
+        values.pop(entity_id, None)
+
+
+def _observation_is_provably_older(state: WorldState, entity_id: str, payload: dict[str, Any]) -> bool:
+    if entity_id not in state.entity_last_observed_at:
+        return False
+    return comparable_wall_observation_is_older(
+        current_observed_at=state.entity_last_observed_at.get(entity_id),
+        current_clock_id=state.entity_observation_clock_ids.get(entity_id),
+        incoming_observed_at=payload.get("observed_at"),
+        incoming_clock_id=payload.get("clock_id"),
+    )
 
 
 def apply_event(state: WorldState, event: WorldEvent) -> WorldState:
@@ -68,15 +109,43 @@ def apply_event(state: WorldState, event: WorldEvent) -> WorldState:
     next_state.evidence_refs.extend(event.evidence_refs)
 
     if event.event_type is WorldEventType.OBSERVATION:
+        next_state.freshness_evaluated = False
         entity_id = event.payload["entity_id"]
+        if _observation_is_provably_older(state, entity_id, event.payload):
+            return next_state
+
         next_state.entity_types[entity_id] = event.payload["entity_type"]
         if "pose" in event.payload:
             next_state.entity_poses[entity_id] = event.payload["pose"]
-        if "observed_at" in event.payload:
-            next_state.entity_last_observed_at[entity_id] = event.payload["observed_at"]
+        _replace_observation_metadata(
+            next_state.entity_last_observed_at,
+            entity_id,
+            event.payload,
+            "observed_at",
+        )
+        _replace_observation_metadata(
+            next_state.entity_observation_clock_ids,
+            entity_id,
+            event.payload,
+            "clock_id",
+        )
+        _replace_observation_metadata(
+            next_state.entity_observation_sources,
+            entity_id,
+            event.payload,
+            "source",
+        )
+        next_state.entity_beliefs[entity_id] = WorldStateBelief.OBSERVED
         location = event.payload.get("location")
         if location is not None:
             _update_location(next_state, entity_id, location, event.evidence_refs)
+            for values, field_name in (
+                (next_state.entity_location_last_observed_at, "observed_at"),
+                (next_state.entity_location_clock_ids, "clock_id"),
+                (next_state.entity_location_sources, "source"),
+            ):
+                _replace_observation_metadata(values, entity_id, event.payload, field_name)
+            next_state.entity_location_beliefs[entity_id] = WorldStateBelief.OBSERVED
         next_state.entity_confidence[entity_id] = event.payload["confidence"]
         attributes = event.payload.get("attributes")
         if attributes is not None:
@@ -141,19 +210,42 @@ def _validated_event_stream(run_id: str, events: list[WorldEvent]) -> list[World
     return sorted(unique_events, key=lambda item: item.sequence_no)
 
 
-def reduce_events(run_id: str, events: list[WorldEvent]) -> WorldState:
+def _apply_aging_boundary(
+    state: WorldState,
+    freshness_policy: ObservationFreshnessPolicy | None,
+    aging_boundary: ObservationAgingBoundary | None,
+) -> WorldState:
+    if (freshness_policy is None) != (aging_boundary is None):
+        raise ValueError("freshness_policy and aging_boundary must be supplied together")
+    if freshness_policy is None or aging_boundary is None:
+        return state
+    return age_world_state(
+        state,
+        freshness_policy=freshness_policy,
+        aging_boundary=aging_boundary,
+    )
+
+
+def reduce_events(
+    run_id: str,
+    events: list[WorldEvent],
+    *,
+    freshness_policy: ObservationFreshnessPolicy | None = None,
+    aging_boundary: ObservationAgingBoundary | None = None,
+) -> WorldState:
     """Preflight the full stream, fold exact duplicates, then replay by ascending sequence_no."""
     ordered_events = _validated_event_stream(run_id, events)
     state = WorldState(run_id=run_id)
     for event in ordered_events:
         state = apply_event(state, event)
-    return state
+    return _apply_aging_boundary(state, freshness_policy, aging_boundary)
 
 
 def _relation_from_location(
     entity_id: str,
     location: str,
     evidence_refs: list[str],
+    belief: WorldStateBelief = WorldStateBelief.OBSERVED,
 ) -> WorldStateRelation:
     location_kind, separator, object_id = location.partition(":")
     if not separator or not object_id.strip():
@@ -168,7 +260,7 @@ def _relation_from_location(
         subject_id=entity_id,
         predicate=predicate,
         object_id=object_id,
-        belief=WorldStateBelief.OBSERVED,
+        belief=belief,
         evidence_refs=list(evidence_refs),
     )
 
@@ -203,7 +295,13 @@ def canonical_world_state_bytes(snapshot: ContractWorldState) -> bytes:
         raise ValueError("snapshot hash material must contain only finite UTF-8 JSON values") from error
 
 
-def create_world_state_snapshot(run_id: str, events: list[WorldEvent]) -> ContractWorldState:
+def create_world_state_snapshot(
+    run_id: str,
+    events: list[WorldEvent],
+    *,
+    freshness_policy: ObservationFreshnessPolicy | None = None,
+    aging_boundary: ObservationAgingBoundary | None = None,
+) -> ContractWorldState:
     """Project validated ordered events into the public WorldState contract."""
     ordered_events = _validated_event_stream(run_id, events)
     if not ordered_events:
@@ -216,13 +314,14 @@ def create_world_state_snapshot(run_id: str, events: list[WorldEvent]) -> Contra
     internal_state = WorldState(run_id=run_id)
     for event in ordered_events:
         internal_state = apply_event(internal_state, event)
+    internal_state = _apply_aging_boundary(internal_state, freshness_policy, aging_boundary)
 
     entities: list[WorldStateEntity] = []
     for entity_id in sorted(internal_state.entity_types):
         values: dict[str, Any] = {
             "entity_id": entity_id,
             "entity_type": internal_state.entity_types[entity_id],
-            "belief": WorldStateBelief.OBSERVED,
+            "belief": internal_state.entity_beliefs.get(entity_id, WorldStateBelief.OBSERVED),
             "confidence": internal_state.entity_confidence.get(entity_id),
             "evidence_refs": list(internal_state.entity_evidence_refs.get(entity_id, [])),
         }
@@ -238,6 +337,7 @@ def create_world_state_snapshot(run_id: str, events: list[WorldEvent]) -> Contra
                 entity_id,
                 location,
                 internal_state.entity_location_evidence_refs.get(entity_id, []),
+                internal_state.entity_location_beliefs.get(entity_id, WorldStateBelief.OBSERVED),
             )
             for entity_id, location in internal_state.entity_locations.items()
         ),
@@ -247,13 +347,17 @@ def create_world_state_snapshot(run_id: str, events: list[WorldEvent]) -> Contra
             relation.object_id,
         ),
     )
-    snapshot = ContractWorldState(
-        run_id=run_id,
-        sequence_no=ordered_events[-1].sequence_no,
-        state_hash="0" * 64,
-        entities=entities,
-        relations=relations,
-        reduced_at=reduced_at,
-    )
+    snapshot_values: dict[str, Any] = {
+        "run_id": run_id,
+        "sequence_no": ordered_events[-1].sequence_no,
+        "state_hash": "0" * 64,
+        "entities": entities,
+        "relations": relations,
+        "reduced_at": reduced_at,
+    }
+    if aging_boundary is not None:
+        snapshot_values["reduced_at"] = aging_boundary.as_of
+        snapshot_values["clock_id"] = aging_boundary.clock_id
+    snapshot = ContractWorldState.model_validate(snapshot_values)
     state_hash = hashlib.sha256(canonical_world_state_bytes(snapshot)).hexdigest()
     return snapshot.model_copy(update={"state_hash": state_hash})

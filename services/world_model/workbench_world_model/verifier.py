@@ -7,7 +7,14 @@ from collections.abc import Mapping
 from datetime import datetime, timedelta
 
 from pydantic import BaseModel, ConfigDict, field_validator
-from workbench_contracts import ClockId, ReasonCode, RecoveryHint, VerificationResult, VerificationStatus
+from workbench_contracts import (
+    ClockId,
+    ReasonCode,
+    RecoveryHint,
+    VerificationResult,
+    VerificationStatus,
+    WorldBelief,
+)
 
 from .reducer import WorldState
 
@@ -237,6 +244,19 @@ def _verification_id(
     return f"ver-{hashlib.sha256(canonical_bytes).hexdigest()}"
 
 
+def _expired_support(state: WorldState, entity_ids: set[str]) -> list[str]:
+    expired: list[str] = []
+    for entity_id in sorted(entity_ids):
+        entity_belief = state.entity_beliefs.get(entity_id)
+        location_belief = state.entity_location_beliefs.get(entity_id)
+        if entity_belief in {WorldBelief.STALE, WorldBelief.LOST} or location_belief in {
+            WorldBelief.STALE,
+            WorldBelief.LOST,
+        }:
+            expired.append(entity_id)
+    return expired
+
+
 def _result(
     state: WorldState,
     task_id: str,
@@ -252,6 +272,20 @@ def _result(
 ) -> VerificationResult:
     if not isinstance(context, VerificationContext):
         raise TypeError("context must be a VerificationContext")
+    if not state.freshness_evaluated and status in {
+        VerificationStatus.CONFIRMED,
+        VerificationStatus.REFUTED,
+    }:
+        status = VerificationStatus.INSUFFICIENT_EVIDENCE
+        reason_code = ReasonCode.STALE_OBSERVATION
+        recovery_hint = RecoveryHint.RE_OBSERVE
+        claim = f"{claim}; freshness_not_evaluated"
+    expired_support = _expired_support(state, supporting_entity_ids)
+    if expired_support:
+        status = VerificationStatus.INSUFFICIENT_EVIDENCE
+        reason_code = ReasonCode.STALE_OBSERVATION
+        recovery_hint = RecoveryHint.RE_OBSERVE
+        claim = f"{claim}; stale_or_lost={expired_support}"
     evidence_refs = _entity_evidence(state, supporting_entity_ids) or [NO_EVIDENCE_REF]
     verification_id = _verification_id(
         verifier_kind=verifier_kind,

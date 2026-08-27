@@ -112,6 +112,7 @@ INVALID_FRAMES = {
     "wall clock": changed("command lower bound", clock_id="wall"),
     "timestamp string": changed("command lower bound", sent_at_us="19310000"),
     "negative timestamp": changed("command lower bound", sent_at_us=-1),
+    "legacy sent_at field": changed("command lower bound", sent_at="2026-08-26T00:00:00Z"),
     "boolean command id": changed("command lower bound", command_id=True),
     "command in stop id range": changed("command lower bound", command_id=32768),
     "command uses stop opcode": changed("command lower bound", opcode="stop"),

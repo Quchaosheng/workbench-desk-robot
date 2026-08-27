@@ -1,7 +1,17 @@
 from enum import StrEnum
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel, StringConstraints, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    RootModel,
+    StringConstraints,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
+from pydantic.json_schema import SkipJsonSchema
 
 
 class ActionType(StrEnum):
@@ -27,6 +37,14 @@ class WorldEventType(StrEnum):
     ACTION_RESULT = "action_result"
     VERIFICATION = "verification"
     FAULT = "fault"
+    EMOTION = "emotion"
+    TASK_ACCEPTED = "task_accepted"
+    TASK_TERMINAL = "task_terminal"
+    TASK_START = "task_start"
+    TOOL_CALL = "tool_call"
+    POLICY_VIOLATION = "policy_violation"
+    RECOVERY_STARTED = "recovery_started"
+    RECOVERY_COMPLETE = "recovery_complete"
 
 
 class ClockId(StrEnum):
@@ -223,8 +241,37 @@ class Observation(_CanonicalRuntimeModel):
     decision_margin: float | None = None
     observed_at: str
     clock_id: ClockId = ClockId.MONOTONIC
-    source: str = "sensor"
+    source: str
     evidence_refs: list[str] = Field(min_length=1)
+
+
+class EmotionState(StrEnum):
+    IDLE = "idle"
+    THINKING = "thinking"
+    UNCERTAIN = "uncertain"
+    PLEASED = "pleased"
+
+
+class EmotionTrigger(StrEnum):
+    TASK_ACCEPTED = "task_accepted"
+    PLANNING_STARTED = "planning_started"
+    INSUFFICIENT_EVIDENCE = "insufficient_evidence"
+    AWAITING_CONFIRMATION = "awaiting_confirmation"
+    TASK_VERIFIED = "task_verified"
+    TASK_FAILED = "task_failed"
+    IDLE_TIMEOUT = "idle_timeout"
+
+
+class EmotionIntent(_CanonicalRuntimeModel):
+    """Display-only expression state; it never gates execution."""
+
+    intent_id: str
+    run_id: str
+    state: EmotionState
+    triggered_by: EmotionTrigger
+    verification_ref: str | None = None
+    issued_at: str
+    clock_id: ClockId = ClockId.MONOTONIC
 
 
 class SemanticAction(_CanonicalRuntimeModel):
@@ -292,8 +339,87 @@ class WorldEvent(_CanonicalRuntimeModel):
     sequence_no: int = Field(ge=0)
     event_type: WorldEventType
     occurred_at: str
-    payload: dict[str, Any] = Field(default_factory=dict)
+    payload: dict[str, Any]
+    recorded_at: str | SkipJsonSchema[None] = Field(
+        default_factory=lambda: None,
+        exclude_if=lambda value: value is None,
+    )
+    clock_id: ClockId | SkipJsonSchema[None] = Field(
+        default_factory=lambda: None,
+        exclude_if=lambda value: value is None,
+    )
     evidence_refs: list[str] = Field(default_factory=list)
+
+    @field_validator("recorded_at", "clock_id", mode="before")
+    @classmethod
+    def reject_explicit_null(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("optional WorldEvent fields must be omitted instead of null")
+        return value
+
+
+class WorldBelief(StrEnum):
+    OBSERVED = "observed"
+    INFERRED = "inferred"
+    STALE = "stale"
+    LOST = "lost"
+
+
+class WorldRelationPredicate(StrEnum):
+    INSIDE = "inside"
+    ON_TOP_OF = "on_top_of"
+    HELD_BY = "held_by"
+    ADJACENT_TO = "adjacent_to"
+
+
+WorldStateHash = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+
+
+class WorldEntity(_CanonicalRuntimeModel):
+    entity_id: str
+    entity_type: str
+    pose: Pose | SkipJsonSchema[None] = Field(
+        default_factory=lambda: None,
+        exclude_if=lambda value: value is None,
+    )
+    belief: WorldBelief
+    confidence: Annotated[float, Field(ge=0.0, le=1.0)] | SkipJsonSchema[None] = Field(
+        default_factory=lambda: None,
+        exclude_if=lambda value: value is None,
+    )
+    last_observed_at: str | None = None
+    evidence_refs: list[str] = Field(default_factory=list)
+
+    @field_validator("pose", "confidence", mode="before")
+    @classmethod
+    def reject_json_null(cls, value: object, info: ValidationInfo) -> object:
+        if info.mode == "json" and value is None:
+            raise ValueError("optional WorldEntity fields must be omitted instead of null")
+        return value
+
+
+class WorldRelation(_CanonicalRuntimeModel):
+    subject_id: str
+    predicate: WorldRelationPredicate
+    object_id: str
+    belief: WorldBelief
+    evidence_refs: list[str] = Field(default_factory=list)
+
+
+class WorldState(_CanonicalRuntimeModel):
+    """Public JSON-shaped WorldState contract.
+
+    The World Model reducer owns a separate internal state representation; this
+    model is only the versioned interface projection described by the schema.
+    """
+
+    run_id: str
+    sequence_no: int = Field(ge=0)
+    state_hash: WorldStateHash
+    entities: list[WorldEntity]
+    relations: list[WorldRelation] = Field(default_factory=list)
+    reduced_at: str
+    clock_id: ClockId = ClockId.MONOTONIC
 
 
 class TaskStep(_CanonicalRuntimeModel):
@@ -307,7 +433,7 @@ class TaskGraph(_CanonicalRuntimeModel):
     goal: str
     steps: list[TaskStep] = Field(min_length=1)
     planner: str
-    model_route: str = "template"
+    model_route: str
 
 
 class VerificationStatus(StrEnum):
@@ -343,13 +469,26 @@ class VerificationResult(_CanonicalRuntimeModel):
     task_id: str
     claim: str
     status: VerificationStatus
-    reason_code: ReasonCode | None = None
-    completeness: float | None = Field(default=None, ge=0.0, le=1.0)
+    reason_code: ReasonCode | SkipJsonSchema[None] = Field(
+        default_factory=lambda: None,
+        exclude_if=lambda value: value is None,
+    )
+    completeness: Annotated[float, Field(ge=0.0, le=1.0)] | SkipJsonSchema[None] = Field(
+        default_factory=lambda: None,
+        exclude_if=lambda value: value is None,
+    )
     evidence_refs: list[str] = Field(min_length=1)
     recovery_hint: RecoveryHint = RecoveryHint.NONE
     verified_at: str
     clock_id: ClockId = ClockId.MONOTONIC
     rule_version: str = "unversioned"
+
+    @field_validator("reason_code", "completeness", mode="before")
+    @classmethod
+    def reject_json_null(cls, value: object, info: ValidationInfo) -> object:
+        if info.mode == "json" and value is None:
+            raise ValueError("optional VerificationResult fields must be omitted instead of null")
+        return value
 
     @model_validator(mode="after")
     def validate_status_semantics(self) -> "VerificationResult":
@@ -381,6 +520,6 @@ class ScenarioManifest(_CanonicalRuntimeModel):
     seed: int
     task_id: str
     world_version: str
-    fault_type: str = "none"
+    fault_type: str
     timeout_s: int = Field(gt=0, le=600)
-    oracle_allowed: bool = False
+    oracle_allowed: bool

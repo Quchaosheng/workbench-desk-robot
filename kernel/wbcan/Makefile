@@ -10,6 +10,7 @@
 KDIR  ?= /lib/modules/$(shell uname -r)/build
 PWD   := $(shell pwd)
 IFACE ?= wbcan0
+STRESS_REPORT ?= /tmp/wbcan-stress-report.json
 
 .PHONY: all clean load unload reload test stress checkpatch help
 
@@ -53,7 +54,9 @@ stress:
 		echo "load the module and bring $(IFACE) up before running stress"; \
 		exit 1; \
 	fi
-	@sudo python3 ./test_state_concurrency.py $(IFACE) /sys/kernel/debug/wbcan/$(IFACE)
+	@sudo python3 ./test_state_concurrency.py $(IFACE) /sys/kernel/debug/wbcan/$(IFACE) --report $(STRESS_REPORT)
+	@python3 ./test_state_concurrency.py --validate-report $(STRESS_REPORT)
+	@echo "wbcan stress evidence: $(STRESS_REPORT)"
 
 # The kernel's own checker. Catches the style issues a maintainer would.
 checkpatch:

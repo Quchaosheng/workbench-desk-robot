@@ -1,4 +1,5 @@
 import importlib.util
+import json
 from pathlib import Path
 
 import pytest
@@ -6,10 +7,15 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 MODULE_PATH = ROOT / "kernel" / "wbcan" / "validate_test_report.py"
 TEST_SCRIPT = ROOT / "kernel" / "wbcan" / "test_wbcan.sh"
+STRESS_PATH = ROOT / "kernel" / "wbcan" / "test_state_concurrency.py"
 SPEC = importlib.util.spec_from_file_location("validate_wbcan_report", MODULE_PATH)
 assert SPEC and SPEC.loader
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
+STRESS_SPEC = importlib.util.spec_from_file_location("wbcan_stress", STRESS_PATH)
+assert STRESS_SPEC and STRESS_SPEC.loader
+STRESS = importlib.util.module_from_spec(STRESS_SPEC)
+STRESS_SPEC.loader.exec_module(STRESS)
 
 
 HEADER = "result\ttest_id\tname\texpected\tactual\n"
@@ -82,3 +88,44 @@ def test_fault_suite_fails_if_report_append_fails() -> None:
 
     assert '>> "$REPORT_FILE" || {' in script
     assert "cannot append to test report" in script
+
+
+def _stress_report() -> dict[str, object]:
+    return {
+        "schema_version": STRESS.REPORT_SCHEMA_VERSION,
+        "scope": "virtual-wbcan-only",
+        "result": "PASS",
+        "interface": "wbcan0",
+        "kernel": "test-kernel",
+        "python": "3.12.0",
+        "started_at": "1",
+        "completed_at": "2",
+        "stages": [{"name": name, "result": "PASS", "duration_ms": 1} for name in STRESS.REQUIRED_STAGES],
+    }
+
+
+def test_stress_report_accepts_complete_virtual_pass(tmp_path: Path) -> None:
+    report = _stress_report()
+    path = tmp_path / "stress.json"
+
+    STRESS.write_stress_report(path, report)
+    STRESS.validate_stress_report(json.loads(path.read_text(encoding="utf-8")))
+
+
+@pytest.mark.parametrize("mutation", ["missing_stage", "failed_without_error", "physical_scope", "duplicate_stage"])
+def test_stress_report_rejects_incomplete_or_untruthful_evidence(mutation: str) -> None:
+    report = _stress_report()
+    stages = report["stages"]
+    assert isinstance(stages, list)
+    if mutation == "missing_stage":
+        stages.pop()
+    elif mutation == "failed_without_error":
+        report["result"] = "FAIL"
+        stages[0]["result"] = "FAIL"
+    elif mutation == "physical_scope":
+        report["scope"] = "physical-can"
+    else:
+        stages.append(dict(stages[0]))
+
+    with pytest.raises(ValueError):
+        STRESS.validate_stress_report(report)

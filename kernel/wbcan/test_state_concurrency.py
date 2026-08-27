@@ -1,18 +1,34 @@
 #!/usr/bin/env python3
 """Bounded wbcan controller-state and queue concurrency probe."""
 
+import argparse
 import errno
+import json
+import platform
 import queue
 import select
 import socket
 import struct
 import subprocess
-import sys
 import threading
 import time
 from collections.abc import Callable
 from itertools import pairwise
 from pathlib import Path
+from typing import Any
+
+REPORT_SCHEMA_VERSION = "wbcan-stress-report-v1"
+REQUIRED_STAGES = (
+    "reconfiguration",
+    "link_lifecycle",
+    "stop_drain",
+    "bus_off_restart",
+    "restart_cancellation",
+    "restart_stop_race",
+    "queue_recovery",
+    "stats_sampling",
+    "cleanup",
+)
 
 FRAME = struct.Struct("=IB3x8s")
 ALLOWED_STATES = {
@@ -417,23 +433,95 @@ class Probe:
                     raise AssertionError(f"netdev statistic regressed: {name}")
 
 
-def main() -> int:
-    if len(sys.argv) != 3:
-        raise SystemExit(f"usage: {sys.argv[0]} INTERFACE DEBUGFS_DIRECTORY")
-    probe = Probe(sys.argv[1], Path(sys.argv[2]))
+def validate_stress_report(report: object) -> None:
+    if not isinstance(report, dict):
+        raise ValueError("stress report must be a JSON object")
+    if report.get("schema_version") != REPORT_SCHEMA_VERSION:
+        raise ValueError("stress report has an unsupported schema_version")
+    if report.get("scope") != "virtual-wbcan-only":
+        raise ValueError("stress report must retain the virtual-wbcan-only scope")
+    if report.get("result") not in {"PASS", "FAIL"}:
+        raise ValueError("stress report result must be PASS or FAIL")
+    for name in ("interface", "kernel", "python", "started_at", "completed_at"):
+        if not isinstance(report.get(name), str) or not report[name].strip():
+            raise ValueError(f"stress report requires non-empty {name}")
+    stages = report.get("stages")
+    if not isinstance(stages, list):
+        raise ValueError("stress report stages must be a list")
+    stage_names: list[str] = []
+    failed = False
+    for stage in stages:
+        if not isinstance(stage, dict):
+            raise ValueError("stress report stage must be an object")
+        name = stage.get("name")
+        result = stage.get("result")
+        duration_ms = stage.get("duration_ms")
+        if not isinstance(name, str) or not name:
+            raise ValueError("stress report stage requires a name")
+        if result not in {"PASS", "FAIL"}:
+            raise ValueError(f"stress report stage {name!r} has an invalid result")
+        if not isinstance(duration_ms, int) or isinstance(duration_ms, bool) or duration_ms < 0:
+            raise ValueError(f"stress report stage {name!r} has an invalid duration_ms")
+        if result == "FAIL":
+            failed = True
+            if not isinstance(stage.get("error"), str) or not stage["error"]:
+                raise ValueError(f"failed stress report stage {name!r} requires an error")
+        stage_names.append(name)
+    if len(stage_names) != len(set(stage_names)):
+        raise ValueError("stress report contains duplicate stages")
+    if report["result"] == "PASS" and (failed or tuple(stage_names) != REQUIRED_STAGES):
+        raise ValueError("passing stress report must contain every required passing stage in order")
+    if report["result"] == "FAIL" and not failed:
+        raise ValueError("failed stress report must contain a failed stage")
+
+
+def write_stress_report(path: Path, report: dict[str, Any]) -> None:
+    validate_stress_report(report)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.tmp")
+    temporary.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temporary.replace(path)
+
+
+def _stage(probe: Probe, name: str, operation: Callable[[], None], stages: list[dict[str, Any]]) -> None:
+    started = time.monotonic()
+    try:
+        operation()
+    except Exception as exc:
+        stages.append(
+            {
+                "name": name,
+                "result": "FAIL",
+                "duration_ms": round((time.monotonic() - started) * 1000),
+                "error": f"{type(exc).__name__}: {exc}",
+            }
+        )
+        raise
+    stages.append({"name": name, "result": "PASS", "duration_ms": round((time.monotonic() - started) * 1000)})
+
+
+def run_probe(interface: str, debugfs: Path, report_path: Path | None) -> int:
+    probe = Probe(interface, debugfs)
+    started_at = time.time_ns()
+    stages: list[dict[str, Any]] = []
     failure: Exception | None = None
     try:
-        probe.exercise_reconfiguration()
-        probe.exercise_link_lifecycle()
-        probe.exercise_stop_drain()
-        probe.exercise_bus_off_restart()
-        probe.exercise_restart_cancellation()
-        probe.exercise_restart_stop_race()
-        probe.verify_queue_recovery()
-        probe.exercise_stats_sampling()
+        operations = (
+            ("reconfiguration", probe.exercise_reconfiguration),
+            ("link_lifecycle", probe.exercise_link_lifecycle),
+            ("stop_drain", probe.exercise_stop_drain),
+            ("bus_off_restart", probe.exercise_bus_off_restart),
+            ("restart_cancellation", probe.exercise_restart_cancellation),
+            ("restart_stop_race", probe.exercise_restart_stop_race),
+            ("queue_recovery", probe.verify_queue_recovery),
+            ("stats_sampling", probe.exercise_stats_sampling),
+        )
+        for name, operation in operations:
+            _stage(probe, name, operation, stages)
     except Exception as exc:  # noqa: BLE001 - preserve the probe failure through cleanup.
         failure = exc
     finally:
+        cleanup_started = time.monotonic()
         try:
             probe.restart_delay.write_text("0\n", encoding="ascii")
             probe.stop_delay.write_text("0\n", encoding="ascii")
@@ -442,13 +530,56 @@ def main() -> int:
             probe.command("ip", "link", "set", probe.interface, "type", "can", "restart-ms", "100")
             probe.command("ip", "link", "set", probe.interface, "up")
         except Exception as exc:  # noqa: BLE001 - report probe and cleanup failures together.
+            stages.append(
+                {
+                    "name": "cleanup",
+                    "result": "FAIL",
+                    "duration_ms": round((time.monotonic() - cleanup_started) * 1000),
+                    "error": f"{type(exc).__name__}: {exc}",
+                }
+            )
             if failure is None:
                 failure = exc
             else:
                 failure = ExceptionGroup("probe and cleanup failures", [failure, exc])
+        else:
+            stages.append(
+                {"name": "cleanup", "result": "PASS", "duration_ms": round((time.monotonic() - cleanup_started) * 1000)}
+            )
+    if report_path is not None:
+        report = {
+            "schema_version": REPORT_SCHEMA_VERSION,
+            "scope": "virtual-wbcan-only",
+            "result": "FAIL" if failure is not None else "PASS",
+            "interface": interface,
+            "kernel": platform.release(),
+            "python": platform.python_version(),
+            "started_at": str(started_at),
+            "completed_at": str(time.time_ns()),
+            "stages": stages,
+        }
+        write_stress_report(report_path, report)
     if failure is not None:
         raise failure
     return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("interface", nargs="?")
+    parser.add_argument("debugfs", nargs="?", type=Path)
+    parser.add_argument("--report", type=Path)
+    parser.add_argument("--validate-report", type=Path)
+    args = parser.parse_args()
+    if args.validate_report is not None:
+        if args.interface is not None or args.debugfs is not None or args.report is not None:
+            parser.error("--validate-report cannot be combined with probe arguments")
+        validate_stress_report(json.loads(args.validate_report.read_text(encoding="utf-8")))
+        print(f"wbcan stress report valid: {args.validate_report}")
+        return 0
+    if args.interface is None or args.debugfs is None:
+        parser.error("INTERFACE and DEBUGFS_DIRECTORY are required")
+    return run_probe(args.interface, args.debugfs, args.report)
 
 
 if __name__ == "__main__":

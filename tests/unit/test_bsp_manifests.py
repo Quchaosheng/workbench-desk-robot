@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-from bsp.validation.check_readiness import check
+from bsp.validation.check_readiness import BLOCKED_STATUS, READY_STATUS, check, validate_readiness
 from bsp.validation.validate_manifests import (
     validate,
     validate_camera_deployment,
@@ -107,3 +107,55 @@ def test_camera_service_must_reject_placeholder_serial() -> None:
     )
 
     assert "camera systemd unit must reject the placeholder serial" in errors
+
+
+def load_readiness() -> dict:
+    return yaml.safe_load((ROOT / "bsp/readiness.yaml").read_text(encoding="utf-8"))
+
+
+def test_readiness_rejects_missing_or_unknown_controlled_gate() -> None:
+    changed = deepcopy(load_readiness())
+    changed["gates"].pop()
+    changed["gates"][0]["id"] = "BSP-GATE-UNCONTROLLED"
+
+    assert "BSP readiness must contain the exact nine controlled gates" in validate_readiness(changed)
+
+
+def test_readiness_rejects_evidence_outside_repository(tmp_path: Path) -> None:
+    changed = deepcopy(load_readiness())
+    changed["gates"][0]["evidence"] = "../outside.txt"
+
+    errors = validate_readiness(changed, tmp_path / "repo")
+
+    assert "BSP-GATE-ARCH claims PASS without repository evidence" in errors
+
+
+def test_readiness_rejects_directory_as_pass_evidence(tmp_path: Path) -> None:
+    changed = deepcopy(load_readiness())
+    root = tmp_path / "repo"
+    (root / "evidence").mkdir(parents=True)
+    changed["gates"][0]["evidence"] = "evidence"
+
+    errors = validate_readiness(changed, root)
+
+    assert "BSP-GATE-ARCH claims PASS without repository evidence" in errors
+
+
+def test_readiness_release_flag_and_package_status_follow_all_gates(tmp_path: Path) -> None:
+    changed = deepcopy(load_readiness())
+    root = tmp_path / "repo"
+    evidence = root / "evidence.txt"
+    evidence.parent.mkdir(parents=True)
+    evidence.write_text("controlled evidence\n", encoding="ascii")
+    for gate in changed["gates"]:
+        gate["status"] = "PASS"
+        gate["evidence"] = "evidence.txt"
+    changed["physical_release_ready"] = True
+    changed["status"] = READY_STATUS
+
+    assert validate_readiness(changed, root) == []
+
+    changed["gates"][0]["status"] = "BLOCKED"
+    assert "physical_release_ready must equal the all-gates-PASS result" in validate_readiness(changed, root)
+    changed["physical_release_ready"] = False
+    assert f"BSP package status must be {BLOCKED_STATUS}" in validate_readiness(changed, root)

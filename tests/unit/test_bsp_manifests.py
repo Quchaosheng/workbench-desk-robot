@@ -6,6 +6,7 @@ from pathlib import Path
 import yaml
 
 from bsp.validation.check_readiness import BLOCKED_STATUS, READY_STATUS, check, validate_readiness
+from bsp.validation.validate_image_inputs import validate_image_inputs
 from bsp.validation.validate_manifests import (
     validate,
     validate_camera_deployment,
@@ -159,3 +160,51 @@ def test_readiness_release_flag_and_package_status_follow_all_gates(tmp_path: Pa
     assert "physical_release_ready must equal the all-gates-PASS result" in validate_readiness(changed, root)
     changed["physical_release_ready"] = False
     assert f"BSP package status must be {BLOCKED_STATUS}" in validate_readiness(changed, root)
+
+
+def load_image_inputs() -> dict:
+    return yaml.safe_load((ROOT / "bsp/image/build-inputs.yaml").read_text(encoding="utf-8"))
+
+
+def test_unresolved_image_inputs_are_valid_but_not_build_ready() -> None:
+    manifest = load_image_inputs()
+
+    assert manifest["build_ready"] is False
+    assert manifest["status"] == "inputs_unresolved"
+    assert validate_image_inputs(manifest) == []
+
+
+def test_image_inputs_reject_premature_ready_or_insecure_source() -> None:
+    manifest = deepcopy(load_image_inputs())
+    manifest["build_ready"] = True
+    manifest["status"] = "inputs_locked"
+    manifest["inputs"]["jetpack"]["source"] = "http://vendor.invalid/jetpack"
+
+    errors = validate_image_inputs(manifest)
+
+    assert "jetpack source must use HTTPS" in errors
+    assert "unresolved image inputs must block build_ready" in errors
+
+
+def test_image_inputs_reject_path_escape_and_directory(tmp_path: Path) -> None:
+    manifest = deepcopy(load_image_inputs())
+    manifest["inputs"]["kernel"]["config"] = "../outside.config"
+    manifest["inputs"]["rootfs"]["services"] = "bsp"
+    (tmp_path / "repo/bsp").mkdir(parents=True)
+
+    errors = validate_image_inputs(manifest, tmp_path / "repo")
+
+    assert "kernel config must reference a repository file" in errors
+    assert "rootfs services must reference a repository file" in errors
+
+
+def test_image_outputs_cannot_exist_before_inputs_are_locked() -> None:
+    manifest = deepcopy(load_image_inputs())
+    digest = "a" * 64
+    manifest["outputs"] = {
+        "boot_image_sha256": digest,
+        "rootfs_image_sha256": digest,
+        "recovery_image_sha256": digest,
+    }
+
+    assert "built output hashes require build_ready inputs" in validate_image_inputs(manifest)

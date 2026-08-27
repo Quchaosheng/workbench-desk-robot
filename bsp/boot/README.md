@@ -12,6 +12,12 @@ manual and schematic.
 - rootfs manifest, systemd unit list and firmware bundle hash
 - recovery image, rollback procedure and serial-console transcript
 
+The machine-readable source of truth is `bsp/image/build-inputs.yaml`. Run
+`python bsp/validation/validate_image_inputs.py` before attempting a build.
+The committed manifest deliberately remains `inputs_unresolved` and
+`build_ready: false` until every version, source, repository input and digest
+is frozen. Generated hashes never prove that the image booted on hardware.
+
 ## Bring-up order
 
 1. Boot with motion power isolated; verify console, storage, Ethernet and USB.

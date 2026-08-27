@@ -12,12 +12,13 @@ import select
 import socket
 import statistics
 import struct
+import threading
 import time
 from pathlib import Path
 from typing import Any
 
 FRAME = struct.Struct("=IB3x8s")
-SCHEMA_VERSION = "wbcan-latency-report-v1"
+SCHEMA_VERSION = "wbcan-latency-report-v2"
 MIN_SAMPLES = 10
 MAX_SAMPLES = 100_000
 
@@ -83,6 +84,8 @@ def validate_report(report: object) -> None:
             raise ValueError(f"latency report requires {name}")
     if report.get("clock") != "monotonic_ns":
         raise ValueError("latency report clock must be monotonic_ns")
+    if report.get("load_profile") not in {"idle", "status-readers"}:
+        raise ValueError("latency report load_profile is invalid")
     for name in ("cpu_count", "warmup_count", "sample_count", "message_size", "can_id"):
         if not isinstance(report.get(name), int) or isinstance(report[name], bool) or report[name] < 0:
             raise ValueError(f"latency report has invalid {name}")
@@ -93,6 +96,19 @@ def validate_report(report: object) -> None:
         if not isinstance(report.get("error"), str) or not report["error"]:
             raise ValueError("non-passing latency report requires an error")
         return
+    for name in ("elapsed_ns", "process_cpu_ns", "throughput_fps"):
+        if not isinstance(report.get(name), int) or isinstance(report[name], bool) or report[name] < 0:
+            raise ValueError(f"passing latency report has invalid {name}")
+    activity = report.get("load_activity")
+    if not isinstance(activity, dict) or activity.get("kind") != report["load_profile"]:
+        raise ValueError("passing latency report load activity is invalid")
+    iterations = activity.get("iterations")
+    if not isinstance(iterations, int) or isinstance(iterations, bool) or iterations < 0:
+        raise ValueError("passing latency report load iterations are invalid")
+    if report["load_profile"] == "idle" and iterations != 0:
+        raise ValueError("idle latency report cannot contain load iterations")
+    if report["load_profile"] == "status-readers" and iterations < 1:
+        raise ValueError("status-reader latency report requires observed reads")
     if not MIN_SAMPLES <= report["sample_count"] <= MAX_SAMPLES:
         raise ValueError("passing latency report sample_count is outside the bounded range")
     if report.get("loss") or report.get("duplicates") or report.get("reordered"):
@@ -151,6 +167,52 @@ def measure(interface: str, warmup: int, sample_count: int, can_id: int, deadlin
         receiver.close()
 
 
+def measure_profile(
+    interface: str,
+    warmup: int,
+    sample_count: int,
+    can_id: int,
+    deadline_ns: int | None,
+    load_profile: str,
+    status_path: Path,
+) -> tuple[list[int], dict[str, int | str], int, int]:
+    stop = threading.Event()
+    errors: list[Exception] = []
+    iterations = 0
+
+    def read_status() -> None:
+        nonlocal iterations
+        try:
+            while not stop.is_set():
+                text = status_path.read_text(encoding="ascii")
+                if "state" not in text or "queue_stopped" not in text:
+                    raise AssertionError("debugfs status snapshot is incomplete")
+                iterations += 1
+        except Exception as exc:  # noqa: BLE001 - preserve load worker failure as evidence.
+            errors.append(exc)
+            stop.set()
+
+    worker: threading.Thread | None = None
+    if load_profile == "status-readers":
+        worker = threading.Thread(target=read_status, name="latency-status-reader", daemon=True)
+        worker.start()
+    started_wall = time.monotonic_ns()
+    started_cpu = time.process_time_ns()
+    try:
+        samples = measure(interface, warmup, sample_count, can_id, deadline_ns)
+    finally:
+        elapsed_ns = time.monotonic_ns() - started_wall
+        process_cpu_ns = time.process_time_ns() - started_cpu
+        stop.set()
+        if worker is not None:
+            worker.join(timeout=1)
+            if worker.is_alive():
+                errors.append(AssertionError("status reader did not stop within one second"))
+    if errors:
+        raise ExceptionGroup("latency load worker failed", errors)
+    return samples, {"kind": load_profile, "iterations": iterations}, elapsed_ns, process_cpu_ns
+
+
 def base_report(args: argparse.Namespace) -> dict[str, Any]:
     try:
         affinity = sorted(os.sched_getaffinity(0))
@@ -183,7 +245,8 @@ def main() -> int:
     parser.add_argument("--samples", type=int, default=1000)
     parser.add_argument("--can-id", type=lambda value: int(value, 0), default=0x760)
     parser.add_argument("--deadline-ns", type=int)
-    parser.add_argument("--load-profile", choices=("idle", "controlled-load"), default="idle")
+    parser.add_argument("--load-profile", choices=("idle", "status-readers"), default="idle")
+    parser.add_argument("--status-path", type=Path)
     parser.add_argument("--commit", default=os.environ.get("GITHUB_SHA", "unknown"))
     parser.add_argument("--report", type=Path, default=Path("/tmp/wbcan-latency-report.json"))
     parser.add_argument("--validate-report", type=Path)
@@ -200,15 +263,30 @@ def main() -> int:
         parser.error("--can-id must be a standard 11-bit CAN ID")
     if args.deadline_ns is not None and args.deadline_ns <= 0:
         parser.error("--deadline-ns must be positive")
+    if args.load_profile == "status-readers" and args.status_path is None:
+        parser.error("--status-path is required for status-readers")
     report = base_report(args)
     try:
-        samples = measure(args.interface, args.warmup, args.samples, args.can_id, args.deadline_ns)
+        status_path = args.status_path or Path("/dev/null")
+        samples, activity, elapsed_ns, process_cpu_ns = measure_profile(
+            args.interface,
+            args.warmup,
+            args.samples,
+            args.can_id,
+            args.deadline_ns,
+            args.load_profile,
+            status_path,
+        )
         report.update(
             {
                 "result": "PASS",
                 "loss": 0,
                 "duplicates": 0,
                 "reordered": 0,
+                "elapsed_ns": elapsed_ns,
+                "process_cpu_ns": process_cpu_ns,
+                "throughput_fps": round(args.samples * 1_000_000_000 / elapsed_ns),
+                "load_activity": activity,
                 "latency": summarize(samples, args.deadline_ns),
             }
         )

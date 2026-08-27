@@ -121,18 +121,23 @@ jobs:
       - name: Run and validate latency baseline
         id: latency_probe
         env:
-          LATENCY_REPORT: ${{ runner.temp }}/wbcan-latency-report.json
+          IDLE_REPORT: ${{ runner.temp }}/wbcan-latency-idle.json
+          STATUS_REPORT: ${{ runner.temp }}/wbcan-latency-status-readers.json
         run: |
           sudo python3 kernel/wbcan/test_latency.py wbcan0 --warmup 50 --samples 1000 \
-            --report "$LATENCY_REPORT" --commit "$GITHUB_SHA"
-          python3 kernel/wbcan/test_latency.py --validate-report "$LATENCY_REPORT"
+            --report "$IDLE_REPORT" --commit "$GITHUB_SHA" --load-profile idle
+          sudo python3 kernel/wbcan/test_latency.py wbcan0 --warmup 50 --samples 1000 \
+            --report "$STATUS_REPORT" --commit "$GITHUB_SHA" --load-profile status-readers \
+            --status-path /sys/kernel/debug/wbcan/wbcan0/status
+          python3 kernel/wbcan/test_latency.py --validate-report "$IDLE_REPORT"
+          python3 kernel/wbcan/test_latency.py --validate-report "$STATUS_REPORT"
 
       - name: Upload latency baseline
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: wbcan-latency-report
-          path: ${{ runner.temp }}/wbcan-latency-report.json
+          path: ${{ runner.temp }}/wbcan-latency-*.json
           if-no-files-found: error
 
       - name: Validate structured driver test report

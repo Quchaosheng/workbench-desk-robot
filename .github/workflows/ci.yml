@@ -116,7 +116,22 @@ jobs:
         id: fault_suite
         env:
           WBCAN_TEST_REPORT: ${{ runner.temp }}/wbcan-test-report.tsv
-        run: sudo env WBCAN_TEST_REPORT="$WBCAN_TEST_REPORT" ./kernel/wbcan/test_wbcan.sh wbcan0
+          WBCAN_STRESS_REPORT: ${{ runner.temp }}/wbcan-stress-report.json
+        run: |
+          sudo env WBCAN_TEST_REPORT="$WBCAN_TEST_REPORT" WBCAN_STRESS_REPORT="$WBCAN_STRESS_REPORT" \
+            ./kernel/wbcan/test_wbcan.sh wbcan0
+
+      - name: Validate stress evidence
+        if: always()
+        run: python3 kernel/wbcan/test_state_concurrency.py --validate-report "$RUNNER_TEMP/wbcan-stress-report.json"
+
+      - name: Upload stress evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: wbcan-stress-report
+          path: ${{ runner.temp }}/wbcan-stress-report.json
+          if-no-files-found: error
 
       - name: Run and validate latency baseline
         id: latency_probe

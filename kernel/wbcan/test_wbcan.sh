@@ -18,6 +18,7 @@ TEST_STOP_DELAY="/sys/module/wbcan/parameters/test_stop_delay_ms"
 PASS=0
 FAIL=0
 REPORT_FILE="${WBCAN_TEST_REPORT:-}"
+STRESS_REPORT_FILE="${WBCAN_STRESS_REPORT:-}"
 
 red()   { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
@@ -546,7 +547,11 @@ clear_fault
 restart_if_bus_off
 
 # --- 16. state, queue, and fault-plane concurrency stays bounded -----------
-if python3 "$(dirname "$0")/test_state_concurrency.py" "$IFACE" "$DBG"
+stress_args=()
+if [ -n "$STRESS_REPORT_FILE" ]; then
+	stress_args+=(--report "$STRESS_REPORT_FILE")
+fi
+if python3 "$(dirname "$0")/test_state_concurrency.py" "$IFACE" "$DBG" "${stress_args[@]}"
 then
 	green "PASS  concurrent state and queue transitions stay bounded"
 	PASS=$((PASS + 1))

@@ -27,6 +27,8 @@ REQUIRED_STAGES = (
     "restart_stop_race",
     "queue_recovery",
     "stats_sampling",
+    "repeated_tx_full",
+    "slow_receiver",
     "multi_producer_saturation",
     "cleanup",
 )
@@ -437,6 +439,71 @@ class Probe:
                 if current[name] < previous[name]:
                     raise AssertionError(f"netdev statistic regressed: {name}")
 
+    def exercise_repeated_tx_full(self, attempts: int = 16) -> dict[str, int]:
+        sender = self.raw_socket()
+        receiver = self.raw_socket()
+        delivered = 0
+        try:
+            for sequence in range(attempts):
+                self.arm("tx-full 1")
+                sender.send(FRAME.pack(0x73A, 8, sequence.to_bytes(8, "big")))
+                if not select.select([receiver], [], [], 1)[0]:
+                    raise AssertionError(f"tx-full retry {sequence} did not recover within one second")
+                can_id, length, payload = FRAME.unpack(receiver.recv(FRAME.size))
+                if can_id != 0x73A or length != 8 or int.from_bytes(payload, "big") != sequence:
+                    raise AssertionError(f"tx-full retry {sequence} delivered an unexpected frame")
+                if select.select([receiver], [], [], 0.01)[0]:
+                    raise AssertionError(f"tx-full retry {sequence} delivered a duplicate frame")
+                delivered += 1
+            self.verify_queue_recovery()
+        finally:
+            sender.close()
+            receiver.close()
+        return {"attempts": attempts, "delivered_once": delivered}
+
+    def exercise_slow_receiver(self, frame_count: int = 500) -> dict[str, int]:
+        self.arm("none 0")
+        sender = self.raw_socket()
+        receiver = self.raw_socket()
+        receiver.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1024)
+        receiver.setblocking(False)
+        before_dropped = self.netdev_stats()["rx_dropped"]
+        received: list[int] = []
+        try:
+            for sequence in range(frame_count):
+                sender.send(FRAME.pack(0x73B, 8, sequence.to_bytes(8, "big")))
+            time.sleep(0.05)
+            quiet_since = time.monotonic()
+            while time.monotonic() - quiet_since < 0.2:
+                if not select.select([receiver], [], [], 0.02)[0]:
+                    continue
+                can_id, length, payload = FRAME.unpack(receiver.recv(FRAME.size))
+                if can_id != 0x73B or length != 8:
+                    raise AssertionError("slow receiver observed an unexpected frame")
+                received.append(int.from_bytes(payload, "big"))
+                quiet_since = time.monotonic()
+            received_set = set(received)
+            duplicate = len(received) - len(received_set)
+            unexpected = len(received_set - set(range(frame_count)))
+            driver_dropped = self.netdev_stats()["rx_dropped"] - before_dropped
+            if duplicate or unexpected or driver_dropped:
+                raise AssertionError(
+                    "slow receiver produced unexplained delivery anomalies: "
+                    f"duplicate={duplicate} unexpected={unexpected} driver_rx_dropped={driver_dropped}"
+                )
+            self.verify_queue_recovery()
+            return {
+                "sent": frame_count,
+                "received": len(received),
+                "expected_socket_loss": frame_count - len(received_set),
+                "duplicate": duplicate,
+                "unexpected": unexpected,
+                "driver_rx_dropped": driver_dropped,
+            }
+        finally:
+            sender.close()
+            receiver.close()
+
     def exercise_multi_producer_saturation(self, producer_count: int, frames_per_producer: int) -> dict[str, Any]:
         self.arm("none 0")
         can_ids = tuple(0x740 + index for index in range(producer_count))
@@ -589,6 +656,10 @@ def validate_stress_report(report: object) -> None:
                 raise ValueError(f"failed stress report stage {name!r} requires an error")
         if name == "multi_producer_saturation" and result == "PASS":
             _validate_saturation_details(stage.get("details"))
+        if name == "repeated_tx_full" and result == "PASS":
+            _validate_tx_full_details(stage.get("details"))
+        if name == "slow_receiver" and result == "PASS":
+            _validate_slow_receiver_details(stage.get("details"))
         stage_names.append(name)
     if len(stage_names) != len(set(stage_names)):
         raise ValueError("stress report contains duplicate stages")
@@ -637,6 +708,30 @@ def _validate_saturation_details(details: object) -> None:
             raise ValueError(f"saturation producer {can_id} did not receive its bounded frame budget")
         if any(producer[name] for name in ("lost", "duplicate", "unexpected")):
             raise ValueError(f"saturation producer {can_id} contains unexplained delivery anomalies")
+
+
+def _validate_tx_full_details(details: object) -> None:
+    if not isinstance(details, dict):
+        raise ValueError("passing tx-full stage requires details")
+    attempts = details.get("attempts")
+    delivered = details.get("delivered_once")
+    if not isinstance(attempts, int) or isinstance(attempts, bool) or not 1 <= attempts <= 1000:
+        raise ValueError("tx-full attempts are outside the bounded range")
+    if delivered != attempts:
+        raise ValueError("every tx-full retry must deliver exactly once")
+
+
+def _validate_slow_receiver_details(details: object) -> None:
+    if not isinstance(details, dict):
+        raise ValueError("passing slow-receiver stage requires details")
+    for name in ("sent", "received", "expected_socket_loss", "duplicate", "unexpected", "driver_rx_dropped"):
+        value = details.get(name)
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            raise ValueError(f"slow-receiver evidence has invalid {name}")
+    if details["sent"] < 1 or details["received"] + details["expected_socket_loss"] != details["sent"]:
+        raise ValueError("slow-receiver delivery accounting is inconsistent")
+    if details["duplicate"] or details["unexpected"] or details["driver_rx_dropped"]:
+        raise ValueError("slow-receiver evidence contains unexplained driver anomalies")
 
 
 def write_stress_report(path: Path, report: dict[str, Any]) -> None:
@@ -688,6 +783,8 @@ def run_probe(
             ("restart_stop_race", probe.exercise_restart_stop_race),
             ("queue_recovery", probe.verify_queue_recovery),
             ("stats_sampling", probe.exercise_stats_sampling),
+            ("repeated_tx_full", probe.exercise_repeated_tx_full),
+            ("slow_receiver", probe.exercise_slow_receiver),
             (
                 "multi_producer_saturation",
                 lambda: probe.exercise_multi_producer_saturation(producer_count, frames_per_producer),

@@ -115,6 +115,17 @@ def _stress_report() -> dict[str, object]:
         "frames_per_producer": 10,
         "producers": [producer, {**producer, "can_id": "0x741"}],
     }
+    tx_full = next(stage for stage in stages if stage["name"] == "repeated_tx_full")
+    tx_full["details"] = {"attempts": 16, "delivered_once": 16}
+    slow_receiver = next(stage for stage in stages if stage["name"] == "slow_receiver")
+    slow_receiver["details"] = {
+        "sent": 500,
+        "received": 100,
+        "expected_socket_loss": 400,
+        "duplicate": 0,
+        "unexpected": 0,
+        "driver_rx_dropped": 0,
+    }
     return {
         "schema_version": STRESS.REPORT_SCHEMA_VERSION,
         "scope": "virtual-wbcan-only",
@@ -197,6 +208,23 @@ def test_stress_report_records_but_accepts_complete_reordered_delivery() -> None
     saturation["details"]["producers"][0]["reordered"] = 3
 
     STRESS.validate_stress_report(report)
+
+
+def test_stress_report_rejects_tx_full_or_slow_receiver_anomaly() -> None:
+    report = _stress_report()
+    stages = report["stages"]
+    assert isinstance(stages, list)
+    tx_full = next(stage for stage in stages if stage["name"] == "repeated_tx_full")
+    tx_full["details"]["delivered_once"] = 15
+    with pytest.raises(ValueError, match="exactly once"):
+        STRESS.validate_stress_report(report)
+
+    report = _stress_report()
+    stages = report["stages"]
+    slow_receiver = next(stage for stage in stages if stage["name"] == "slow_receiver")
+    slow_receiver["details"]["driver_rx_dropped"] = 1
+    with pytest.raises(ValueError, match="driver anomalies"):
+        STRESS.validate_stress_report(report)
 
 
 def _latency_report() -> dict[str, object]:

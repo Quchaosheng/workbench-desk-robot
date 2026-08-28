@@ -1,0 +1,28 @@
+{
+  "schema_version": "c3a-security-remediation-1",
+  "date": "2026-08-28",
+  "provider": "jihulab.com",
+  "exposed_credential_name": "GITLAB_TOKEN",
+  "secret_values_recorded": false,
+  "rotation_verification": {
+    "old_token_self_lookup_http": 401,
+    "new_token_self_lookup_http": 200,
+    "bashrc_active_token_export_count": 1
+  },
+  "local_cleanup": {
+    "scope": "/tmp files whose path contains c3a and whose contents exactly matched the revoked token",
+    "files_removed": 126,
+    "files_remaining_after_rescan": 0,
+    "codex_shell_snapshots_sanitized": 8,
+    "codex_shell_snapshots_remaining": 0,
+    "v5_unsafe_colcon_log_removed": true,
+    "v5_evidence_directory_removed": true
+  },
+  "v6_controls": {
+    "directory_mode": "0700",
+    "file_mode": "0600",
+    "validation_environment_removed_GITLAB_TOKEN": true,
+    "colcon_environment_capture_in_bundle": false,
+    "exact_old_and_new_token_scan": "passed"
+  }
+}

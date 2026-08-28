@@ -1,0 +1,20 @@
+python3 tools/scripts/demo_scripted.py
+{
+  "run_count": 1,
+  "runs": [
+    {
+      "run_id": "dry-run-001",
+      "task_id": "task-place-red-block",
+      "steps": [
+        "observe",
+        "grasp",
+        "place"
+      ],
+      "mcu_state": "idle",
+      "verified_complete": true,
+      "evidence_refs": [
+        "camera-frame-004"
+      ]
+    }
+  ]
+}

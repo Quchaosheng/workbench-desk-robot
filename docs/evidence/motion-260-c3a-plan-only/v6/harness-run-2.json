@@ -1,0 +1,350 @@
+{
+  "allow_trajectory_execution": false,
+  "clock_proof": {
+    "checked_at_ns": 1787887493094882065,
+    "domain_id": "ros:1:system",
+    "graph_proof": {
+      "domain_id": "ros:1:system",
+      "publisher_gids_by_topic": {
+        "/joint_states": [
+          "010f36ea1e00dcbc0000000000001403"
+        ],
+        "/tf": [
+          "010f36ea1d000b940000000000001403"
+        ],
+        "/tf_static": [
+          "010f36ea1d000b940000000000001503"
+        ]
+      },
+      "publisher_use_sim_time": {
+        "/joint_state_publisher": false,
+        "/robot_state_publisher": false
+      },
+      "publishers_by_topic": {
+        "/joint_states": [
+          "/joint_state_publisher"
+        ],
+        "/tf": [
+          "/robot_state_publisher"
+        ],
+        "/tf_static": [
+          "/robot_state_publisher"
+        ]
+      },
+      "schema_version": "c3a-clock-proof-1"
+    },
+    "graph_proof_sha256": "sha256:e227477b76dfc3bab03db1e7599bf03e15c0a64c231d858451471a10972cb46c",
+    "joint_sample": {
+      "header_timestamp_ns": 1787887492898332954,
+      "publisher_gid": "010f36ea1e00dcbc0000000000001403",
+      "received_timestamp_ns": 1787887492898502117,
+      "source_timestamp_ns": 1787887492898383685
+    },
+    "provenance_armed_at_ns": 1787887492798873894,
+    "schema_version": "c3a-sample-clock-proof-1",
+    "selected_transform_header_ns": 1787887492798494777,
+    "tf_samples": [
+      {
+        "header_timestamp_ns": 1787887492798494777,
+        "publisher_gid": "010f36ea1d000b940000000000001403",
+        "received_timestamp_ns": 1787887492798973138,
+        "source_timestamp_ns": 1787887492798915651,
+        "topic": "/tf"
+      },
+      {
+        "header_timestamp_ns": 1787887492798494777,
+        "publisher_gid": "010f36ea1d000b940000000000001403",
+        "received_timestamp_ns": 1787887492798973138,
+        "source_timestamp_ns": 1787887492798915651,
+        "topic": "/tf"
+      },
+      {
+        "header_timestamp_ns": 1787887492798494777,
+        "publisher_gid": "010f36ea1d000b940000000000001403",
+        "received_timestamp_ns": 1787887492798973138,
+        "source_timestamp_ns": 1787887492798915651,
+        "topic": "/tf"
+      },
+      {
+        "header_timestamp_ns": 1787887492798494777,
+        "publisher_gid": "010f36ea1d000b940000000000001403",
+        "received_timestamp_ns": 1787887492798973138,
+        "source_timestamp_ns": 1787887492798915651,
+        "topic": "/tf"
+      },
+      {
+        "header_timestamp_ns": 1787887492798494777,
+        "publisher_gid": "010f36ea1d000b940000000000001403",
+        "received_timestamp_ns": 1787887492798973138,
+        "source_timestamp_ns": 1787887492798915651,
+        "topic": "/tf"
+      },
+      {
+        "header_timestamp_ns": 1787887492798494777,
+        "publisher_gid": "010f36ea1d000b940000000000001403",
+        "received_timestamp_ns": 1787887492798973138,
+        "source_timestamp_ns": 1787887492798915651,
+        "topic": "/tf"
+      },
+      {
+        "header_timestamp_ns": 1787887492798494777,
+        "publisher_gid": "010f36ea1d000b940000000000001403",
+        "received_timestamp_ns": 1787887492798973138,
+        "source_timestamp_ns": 1787887492798915651,
+        "topic": "/tf"
+      },
+      {
+        "header_timestamp_ns": 1787887492798494777,
+        "publisher_gid": "010f36ea1d000b940000000000001403",
+        "received_timestamp_ns": 1787887492798973138,
+        "source_timestamp_ns": 1787887492798915651,
+        "topic": "/tf"
+      },
+      {
+        "header_timestamp_ns": 1787887492798494777,
+        "publisher_gid": "010f36ea1d000b940000000000001403",
+        "received_timestamp_ns": 1787887492798973138,
+        "source_timestamp_ns": 1787887492798915651,
+        "topic": "/tf"
+      },
+      {
+        "header_timestamp_ns": 1787887492798494777,
+        "publisher_gid": "010f36ea1d000b940000000000001403",
+        "received_timestamp_ns": 1787887492798973138,
+        "source_timestamp_ns": 1787887492798915651,
+        "topic": "/tf"
+      },
+      {
+        "header_timestamp_ns": 1787887492798494777,
+        "publisher_gid": "010f36ea1d000b940000000000001403",
+        "received_timestamp_ns": 1787887492798973138,
+        "source_timestamp_ns": 1787887492798915651,
+        "topic": "/tf"
+      },
+      {
+        "header_timestamp_ns": 1787887492798494777,
+        "publisher_gid": "010f36ea1d000b940000000000001403",
+        "received_timestamp_ns": 1787887492798973138,
+        "source_timestamp_ns": 1787887492798915651,
+        "topic": "/tf"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      },
+      {
+        "header_timestamp_ns": 1787887492306552523,
+        "publisher_gid": "010f36ea1d000b940000000000001503",
+        "received_timestamp_ns": 1787887492306633575,
+        "source_timestamp_ns": 1787887492306580075,
+        "topic": "/tf_static"
+      }
+    ]
+  },
+  "clock_proof_sha256": "sha256:ee376bdf1586e4998342030f65e094fbb45f95b0bd6af3414713f77810a2664a",
+  "component_hashes": {
+    "arm.yaml": "sha256:6542db9c1f694f7e5b7b279c273df1a0a8db371dfdffbf18dc6ecfe64b4a7b88",
+    "controllers.yaml": "sha256:d43ed0584b035dc7117dd6be8119bd3c7d582edf9bd89a1f5217f8012c3f76c4",
+    "joint_limits.hw_override.yaml": "sha256:1f0d6d97ff149265ba0bb9365fe4aedd023801f679379dc88c5a5f54178a812c",
+    "kinematics.yaml": "sha256:e454e3f677798672d45156e865bec5d64157c3c6c82023d9e232043d50e3b1f7",
+    "moveit_joint_limits.yaml": "sha256:47df519025c738c18258b0ea2a2b678d72fa9d017e8eb2866a8b1e140f82fc2b",
+    "ompl_planning.yaml": "sha256:3ae259ecbdb11c14cde5574b5530b23bcb71ed6d1d1db21ffdb79cad53460682",
+    "robot_description": "sha256:09ca32ee6608d3342609abdea1ee8efc7d53f602dfe6d4f64294da4dcc057b72",
+    "trajectory_preflight.yaml": "sha256:4845c4f2d7b82cf6d7e8f42be097ecdbc06a0257eed48e45f655e8cadfdbc1c6",
+    "workbench_arm.srdf": "sha256:74df45606d7184b7f409fa7bc0220053a5e30a0145c4c326840c994d72e5afb0"
+  },
+  "config_sha256": "sha256:92dcafdf41c3ef9dfed5d3a076f57d18f814d53a05797fee39f098cb905af4e2",
+  "context_sha256": "sha256:1765427261f0e2ad488708c66126799cbfb7d70b626c393f3831bc3337e1c559",
+  "controller_name": "arm_trajectory_controller",
+  "diagnostic_code": "ready",
+  "effective_limits_sha256": "sha256:4fff2d869fdb7701c43a1cd762963251e36f6a5381cfa38fee05374e0b58e4d0",
+  "execute_trajectory_capability": "DISABLED",
+  "execution_enabled": false,
+  "execution_goal_count": 0,
+  "gazebo": "NOT_EXECUTED",
+  "move_group_shutdown_policy": "BOUNDED_SIGKILL_AFTER_PLAN",
+  "package_versions": {
+    "joint_state_publisher": "2.4.1",
+    "moveit_core": "2.12.4",
+    "moveit_kinematics": "2.12.4",
+    "moveit_msgs": "2.6.0",
+    "moveit_planners_ompl": "2.12.4",
+    "moveit_ros_move_group": "2.12.4",
+    "moveit_ros_planning": "2.12.4",
+    "robot_state_publisher": "3.3.4",
+    "robotiq_description": "0.0.1",
+    "trac_ik_kinematics_plugin": "2.0.2",
+    "ur_description": "3.5.1",
+    "workbench_motion": "0.1.0"
+  },
+  "physical": "NOT_EXECUTED",
+  "planning_request_sha256": "sha256:ca8cb6a7919961ac0ffa91194f2c0f9e8b1f3d9e3e33fdfb7c6512c18eaae0d3",
+  "readiness_sha256": "sha256:fca5c16838a25621b11bbe757cada5b00dbeafa3bf6ecf380950780a19e88dbe",
+  "schema_version": "c3a-plan-only-1",
+  "status": "planned",
+  "trajectory_sha256": "sha256:620846e91dcfac2e454cbcbfd3e6c2f910912a51c742d37c24fbdcccd74899ca"
+}

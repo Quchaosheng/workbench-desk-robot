@@ -1,0 +1,79 @@
+{
+  "schema_version": "c3a-command-manifest-1",
+  "working_directory": "/tmp/workbench-c3a-acceptance-v5",
+  "commit": "c35c9ad0fec22caea2e22434ca6036d8f708395d",
+  "baseline_commit": "4f892a7fe12a1474fd0e6c77205d862bef095856",
+  "shell_prelude": "umask 077; unset GITLAB_TOKEN CI_API_V4_URL",
+  "commands": [
+    {
+      "name": "motion_focused_tests",
+      "command": "UV_CACHE_DIR=/tmp/c3a-uv-cache-v6 uv run --directory robot/control pytest -q",
+      "result": "exit 0; 345 passed",
+      "log": "motion-focused-tests.log"
+    },
+    {
+      "name": "colcon_build",
+      "command": "source /opt/ros/jazzy/setup.bash && colcon --log-base /tmp/workbench-c3a-colcon-log-v6 build --base-paths robot/control/workbench_motion robot/control/workbench_motion_provenance --build-base /tmp/workbench-c3a-build-v6 --install-base /tmp/workbench-c3a-install-v6 --packages-select workbench_motion_provenance workbench_motion --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3 --event-handlers console_direct+",
+      "result": "exit 0; 2 packages finished",
+      "log": "colcon-build.log",
+      "environment_capture": false
+    },
+    {
+      "name": "harness_run_1",
+      "command": "source /opt/ros/jazzy/setup.bash && source /tmp/workbench-c3a-install-v6/setup.bash && ROS_DOMAIN_ID=161 ROS_LOG_DIR=/tmp/c3a-v6-ros-log-1 timeout --signal=TERM --kill-after=15s 150s ros2 launch workbench_motion c3a_plan_only.launch.py evidence_path:=/tmp/c3a-acceptance-evidence-v6/harness-run-1.json",
+      "result": "exit 0; planned/ready; execution_goal_count=0",
+      "log": "harness-run-1.log",
+      "artifact": "harness-run-1.json"
+    },
+    {
+      "name": "harness_run_2",
+      "command": "source /opt/ros/jazzy/setup.bash && source /tmp/workbench-c3a-install-v6/setup.bash && ROS_DOMAIN_ID=162 ROS_LOG_DIR=/tmp/c3a-v6-ros-log-2 timeout --signal=TERM --kill-after=15s 150s ros2 launch workbench_motion c3a_plan_only.launch.py evidence_path:=/tmp/c3a-acceptance-evidence-v6/harness-run-2.json",
+      "result": "exit 0; planned/ready; execution_goal_count=0",
+      "log": "harness-run-2.log",
+      "artifact": "harness-run-2.json"
+    },
+    {
+      "name": "harness_run_3",
+      "command": "source /opt/ros/jazzy/setup.bash && source /tmp/workbench-c3a-install-v6/setup.bash && ROS_DOMAIN_ID=163 ROS_LOG_DIR=/tmp/c3a-v6-ros-log-3 timeout --signal=TERM --kill-after=15s 150s ros2 launch workbench_motion c3a_plan_only.launch.py evidence_path:=/tmp/c3a-acceptance-evidence-v6/harness-run-3.json",
+      "result": "exit 0; planned/ready; execution_goal_count=0",
+      "log": "harness-run-3.log",
+      "artifact": "harness-run-3.json"
+    },
+    {
+      "name": "root_tests",
+      "command": "make test PYTHON=/tmp/c3a-root-venv/bin/python",
+      "result": "exit 0; 824 passed, 260 subtests passed",
+      "log": "root-tests.log"
+    },
+    {
+      "name": "required_checks",
+      "commands": [
+        "make lint",
+        "make contract",
+        "make scenario-check",
+        "make context-check",
+        "make demo-scripted",
+        "make task-check PACKET=docs/task_packets/motion-260-c3a-plan-only.json",
+        "python3 tools/scripts/check_task_packet.py docs/task_packets/motion-260-c3a-plan-only.json --base f821f417b1e202f310d5bf208a5136fa408fd789"
+      ],
+      "result": "all exit 0"
+    },
+    {
+      "name": "harness_artifact_verification",
+      "command": "python3 /tmp/verify_c3a_v6.py",
+      "result": "exit 0; hashes and provenance ordering independently recomputed; no residual ROS processes",
+      "log": "harness-verification.log"
+    }
+  ],
+  "superseded_attempts": [
+    {
+      "command": "make test",
+      "result": "exit 2; 818 passed, 6 failed",
+      "reason": "The immediately preceding uv focused-test command created robot/control/.venv/lib64 and the inherited interpreter lacked kiutils. The generated venv was removed and the clean acceptance interpreter was used for the successful required run.",
+      "log": "root-tests-superseded-environment.log"
+    }
+  ],
+  "human_reviews": {
+    "linux_integration": "REQUIRED_NOT_PERFORMED"
+  }
+}

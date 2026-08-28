@@ -1,0 +1,151 @@
+Starting >>> workbench_motion_provenance
+-- The C compiler identification is GNU 13.3.0
+-- The CXX compiler identification is GNU 13.3.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found ament_cmake: 2.5.6 (/opt/ros/jazzy/share/ament_cmake/cmake)
+-- Found Python3: /usr/bin/python3 (found version "3.12.3") found components: Interpreter 
+-- Found rclcpp: 28.1.21 (/opt/ros/jazzy/share/rclcpp/cmake)
+-- Found rosidl_generator_c: 4.6.9 (/opt/ros/jazzy/share/rosidl_generator_c/cmake)
+-- Found rosidl_generator_cpp: 4.6.9 (/opt/ros/jazzy/share/rosidl_generator_cpp/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found rmw_implementation_cmake: 7.3.3 (/opt/ros/jazzy/share/rmw_implementation_cmake/cmake)
+-- Found rmw_fastrtps_cpp: 8.4.4 (/opt/ros/jazzy/share/rmw_fastrtps_cpp/cmake)
+-- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.13")  
+-- Found FastRTPS: /opt/ros/jazzy/include (Required is at least version "2.13") 
+-- Using RMW implementation 'rmw_fastrtps_cpp' as default
+-- Found geometry_msgs: 5.3.8 (/opt/ros/jazzy/share/geometry_msgs/cmake)
+-- Found sensor_msgs: 5.3.8 (/opt/ros/jazzy/share/sensor_msgs/cmake)
+-- Found tf2_msgs: 0.36.21 (/opt/ros/jazzy/share/tf2_msgs/cmake)
+-- RapidJSON found. Headers: /usr/include
+-- Configuring done (1.1s)
+-- Generating done (0.0s)
+-- Build files have been written to: /tmp/workbench-c3a-build-v6/workbench_motion_provenance
+[ 50%] Building CXX object CMakeFiles/c3a_sample_provenance.dir/src/c3a_sample_provenance.cpp.o
+[100%] Linking CXX executable c3a_sample_provenance
+[100%] Built target c3a_sample_provenance
+-- Install configuration: ""
+-- Installing: /tmp/workbench-c3a-install-v6/workbench_motion_provenance/lib/workbench_motion_provenance/c3a_sample_provenance
+-- Set non-toolchain portion of runtime path of "/tmp/workbench-c3a-install-v6/workbench_motion_provenance/lib/workbench_motion_provenance/c3a_sample_provenance" to ""
+-- Installing: /tmp/workbench-c3a-install-v6/workbench_motion_provenance/share/ament_index/resource_index/package_run_dependencies/workbench_motion_provenance
+-- Installing: /tmp/workbench-c3a-install-v6/workbench_motion_provenance/share/ament_index/resource_index/parent_prefix_path/workbench_motion_provenance
+-- Installing: /tmp/workbench-c3a-install-v6/workbench_motion_provenance/share/workbench_motion_provenance/environment/ament_prefix_path.sh
+-- Installing: /tmp/workbench-c3a-install-v6/workbench_motion_provenance/share/workbench_motion_provenance/environment/ament_prefix_path.dsv
+-- Installing: /tmp/workbench-c3a-install-v6/workbench_motion_provenance/share/workbench_motion_provenance/environment/path.sh
+-- Installing: /tmp/workbench-c3a-install-v6/workbench_motion_provenance/share/workbench_motion_provenance/environment/path.dsv
+-- Installing: /tmp/workbench-c3a-install-v6/workbench_motion_provenance/share/workbench_motion_provenance/local_setup.bash
+-- Installing: /tmp/workbench-c3a-install-v6/workbench_motion_provenance/share/workbench_motion_provenance/local_setup.sh
+-- Installing: /tmp/workbench-c3a-install-v6/workbench_motion_provenance/share/workbench_motion_provenance/local_setup.zsh
+-- Installing: /tmp/workbench-c3a-install-v6/workbench_motion_provenance/share/workbench_motion_provenance/local_setup.dsv
+-- Installing: /tmp/workbench-c3a-install-v6/workbench_motion_provenance/share/workbench_motion_provenance/package.dsv
+-- Installing: /tmp/workbench-c3a-install-v6/workbench_motion_provenance/share/ament_index/resource_index/packages/workbench_motion_provenance
+-- Installing: /tmp/workbench-c3a-install-v6/workbench_motion_provenance/share/workbench_motion_provenance/cmake/workbench_motion_provenanceConfig.cmake
+-- Installing: /tmp/workbench-c3a-install-v6/workbench_motion_provenance/share/workbench_motion_provenance/cmake/workbench_motion_provenanceConfig-version.cmake
+-- Installing: /tmp/workbench-c3a-install-v6/workbench_motion_provenance/share/workbench_motion_provenance/package.xml
+Finished <<< workbench_motion_provenance [7.51s]
+Starting >>> workbench_motion
+running egg_info
+creating ../../../../workbench-c3a-build-v6/workbench_motion/workbench_motion.egg-info
+writing ../../../../workbench-c3a-build-v6/workbench_motion/workbench_motion.egg-info/PKG-INFO
+writing dependency_links to ../../../../workbench-c3a-build-v6/workbench_motion/workbench_motion.egg-info/dependency_links.txt
+writing entry points to ../../../../workbench-c3a-build-v6/workbench_motion/workbench_motion.egg-info/entry_points.txt
+writing requirements to ../../../../workbench-c3a-build-v6/workbench_motion/workbench_motion.egg-info/requires.txt
+writing top-level names to ../../../../workbench-c3a-build-v6/workbench_motion/workbench_motion.egg-info/top_level.txt
+writing manifest file '../../../../workbench-c3a-build-v6/workbench_motion/workbench_motion.egg-info/SOURCES.txt'
+reading manifest file '../../../../workbench-c3a-build-v6/workbench_motion/workbench_motion.egg-info/SOURCES.txt'
+writing manifest file '../../../../workbench-c3a-build-v6/workbench_motion/workbench_motion.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /tmp/workbench-c3a-build-v6/workbench_motion/build
+creating /tmp/workbench-c3a-build-v6/workbench_motion/build/lib
+creating /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion
+copying workbench_motion/evidence.py -> /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion
+copying workbench_motion/logging_setup.py -> /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion
+copying workbench_motion/reachability_check.py -> /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion
+copying workbench_motion/c3a_ros_adapter.py -> /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion
+copying workbench_motion/c3a_types.py -> /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion
+copying workbench_motion/scaffold_node.py -> /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion
+copying workbench_motion/arm_config.py -> /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion
+copying workbench_motion/launch_utils.py -> /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion
+copying workbench_motion/phase2_probe.py -> /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion
+copying workbench_motion/__init__.py -> /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion
+copying workbench_motion/c3a_plan_probe.py -> /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion
+copying workbench_motion/c3a_bridge.py -> /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion
+copying workbench_motion/reachability.py -> /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion
+copying workbench_motion/joint_limits.py -> /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion
+running install
+running install_lib
+creating /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion
+copying /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion/evidence.py -> /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion
+copying /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion/logging_setup.py -> /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion
+copying /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion/reachability_check.py -> /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion
+copying /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion/c3a_ros_adapter.py -> /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion
+copying /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion/c3a_types.py -> /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion
+copying /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion/scaffold_node.py -> /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion
+copying /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion/arm_config.py -> /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion
+copying /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion/launch_utils.py -> /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion
+copying /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion/phase2_probe.py -> /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion
+copying /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion/__init__.py -> /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion
+copying /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion/c3a_plan_probe.py -> /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion
+copying /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion/c3a_bridge.py -> /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion
+copying /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion/reachability.py -> /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion
+copying /tmp/workbench-c3a-build-v6/workbench_motion/build/lib/workbench_motion/joint_limits.py -> /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion
+byte-compiling /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion/evidence.py to evidence.cpython-312.pyc
+byte-compiling /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion/logging_setup.py to logging_setup.cpython-312.pyc
+byte-compiling /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion/reachability_check.py to reachability_check.cpython-312.pyc
+byte-compiling /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion/c3a_ros_adapter.py to c3a_ros_adapter.cpython-312.pyc
+byte-compiling /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion/c3a_types.py to c3a_types.cpython-312.pyc
+byte-compiling /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion/scaffold_node.py to scaffold_node.cpython-312.pyc
+byte-compiling /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion/arm_config.py to arm_config.cpython-312.pyc
+byte-compiling /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion/launch_utils.py to launch_utils.cpython-312.pyc
+byte-compiling /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion/phase2_probe.py to phase2_probe.cpython-312.pyc
+byte-compiling /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion/__init__.py to __init__.cpython-312.pyc
+byte-compiling /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion/c3a_plan_probe.py to c3a_plan_probe.cpython-312.pyc
+byte-compiling /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion/c3a_bridge.py to c3a_bridge.cpython-312.pyc
+byte-compiling /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion/reachability.py to reachability.cpython-312.pyc
+byte-compiling /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion/joint_limits.py to joint_limits.cpython-312.pyc
+running install_data
+creating /tmp/workbench-c3a-install-v6/workbench_motion/share/ament_index
+creating /tmp/workbench-c3a-install-v6/workbench_motion/share/ament_index/resource_index
+creating /tmp/workbench-c3a-install-v6/workbench_motion/share/ament_index/resource_index/packages
+copying resource/workbench_motion -> /tmp/workbench-c3a-install-v6/workbench_motion/share/ament_index/resource_index/packages
+copying package.xml -> /tmp/workbench-c3a-install-v6/workbench_motion/share/workbench_motion
+creating /tmp/workbench-c3a-install-v6/workbench_motion/share/workbench_motion/launch
+copying launch/sim_control.launch.py -> /tmp/workbench-c3a-install-v6/workbench_motion/share/workbench_motion/launch
+copying launch/move_group.launch.py -> /tmp/workbench-c3a-install-v6/workbench_motion/share/workbench_motion/launch
+copying launch/c3a_plan_only.launch.py -> /tmp/workbench-c3a-install-v6/workbench_motion/share/workbench_motion/launch
+copying launch/scaffold.launch.py -> /tmp/workbench-c3a-install-v6/workbench_motion/share/workbench_motion/launch
+creating /tmp/workbench-c3a-install-v6/workbench_motion/share/workbench_motion/config
+copying config/arm.yaml -> /tmp/workbench-c3a-install-v6/workbench_motion/share/workbench_motion/config
+copying config/controllers.yaml -> /tmp/workbench-c3a-install-v6/workbench_motion/share/workbench_motion/config
+copying config/trajectory_preflight.yaml -> /tmp/workbench-c3a-install-v6/workbench_motion/share/workbench_motion/config
+copying config/joint_limits.hw_override.yaml -> /tmp/workbench-c3a-install-v6/workbench_motion/share/workbench_motion/config
+copying config/ros2_control.xacro -> /tmp/workbench-c3a-install-v6/workbench_motion/share/workbench_motion/config
+copying config/arm_on_workbench.urdf.xacro -> /tmp/workbench-c3a-install-v6/workbench_motion/share/workbench_motion/config
+creating /tmp/workbench-c3a-install-v6/workbench_motion/share/workbench_motion/config/moveit
+copying config/moveit/kinematics.yaml -> /tmp/workbench-c3a-install-v6/workbench_motion/share/workbench_motion/config/moveit
+copying config/moveit/ompl_planning.yaml -> /tmp/workbench-c3a-install-v6/workbench_motion/share/workbench_motion/config/moveit
+copying config/moveit/joint_limits.yaml -> /tmp/workbench-c3a-install-v6/workbench_motion/share/workbench_motion/config/moveit
+copying config/moveit/workbench_arm.srdf -> /tmp/workbench-c3a-install-v6/workbench_motion/share/workbench_motion/config/moveit
+creating /tmp/workbench-c3a-install-v6/workbench_motion/share/workbench_motion/description
+copying ../../description/workbench.urdf.xacro -> /tmp/workbench-c3a-install-v6/workbench_motion/share/workbench_motion/description
+running install_egg_info
+Copying ../../../../workbench-c3a-build-v6/workbench_motion/workbench_motion.egg-info to /tmp/workbench-c3a-install-v6/workbench_motion/lib/python3.12/site-packages/workbench_motion-0.1.0-py3.12.egg-info
+running install_scripts
+Installing c3a_plan_probe script to /tmp/workbench-c3a-install-v6/workbench_motion/lib/workbench_motion
+Installing phase2_probe script to /tmp/workbench-c3a-install-v6/workbench_motion/lib/workbench_motion
+Installing reachability_check script to /tmp/workbench-c3a-install-v6/workbench_motion/lib/workbench_motion
+Installing scaffold_node script to /tmp/workbench-c3a-install-v6/workbench_motion/lib/workbench_motion
+writing list of installed files to '/tmp/workbench-c3a-build-v6/workbench_motion/install.log'
+Finished <<< workbench_motion [0.92s]
+
+Summary: 2 packages finished [8.53s]

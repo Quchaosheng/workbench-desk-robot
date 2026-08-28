@@ -1,0 +1,86 @@
+{
+  "issue": 58,
+  "human_owner": "kukuboring",
+  "objective": "Complete the remaining A5 policy-validator scope after Issue #118/#119: fail closed on missing or invalid policy configuration, reject disguised raw-control parameters, require per-action confirmation for configured high-impact semantic actions, and emit immutable structured decisions carrying an auditable policy version while continuing to use ToolRegistry as the only action and parameter allow-list.",
+  "allowed_paths": [
+    "docs/task_packets/issue-58-a5-policy-validator.json",
+    "services/agent_runtime/workbench_agent_runtime/policy_validator.py",
+    "tests/unit/test_policy_validator.py"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "CONTRIBUTING.md",
+    "docs/architecture/system.md",
+    "docs/task_packets/example-001-world-reducer.json",
+    "docs/task_packets/agent-a5-policy-validator.json",
+    "interfaces/json_schema/semantic_action.schema.json",
+    "interfaces/json_schema/task_graph.schema.json",
+    "interfaces/examples/semantic-action-place.json",
+    "interfaces/examples/task-graph-place.json",
+    "libs/contracts/**",
+    "services/agent_runtime/workbench_agent_runtime/__init__.py",
+    "services/agent_runtime/workbench_agent_runtime/tool_registry.py",
+    "services/agent_runtime/workbench_agent_runtime/tool_schemas.py",
+    "services/agent_runtime/workbench_agent_runtime/planner.py",
+    "services/agent_runtime/workbench_agent_runtime/local_model.py",
+    "tests/unit/test_tool_registry.py",
+    "tools/scripts/check_task_packet.py",
+    "Makefile",
+    "pyproject.toml"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "services/world_model/**",
+    "services/backend/**",
+    "services/perception/**",
+    "sim/**",
+    "hardware/**",
+    "deploy/**",
+    ".github/**"
+  ],
+  "acceptance": [
+    "A valid explicit in-memory policy configuration contains a non-blank policy version and a bounded set of high-impact ActionType values; PolicyValidator with missing, malformed, or unknown-action configuration fails closed with stable structured reason codes. Tests: test_missing_policy_config_fails_closed, test_blank_policy_version_fails_closed, test_unknown_high_impact_action_fails_closed, and test_malformed_policy_config_fails_closed.",
+    "For a registry-valid non-high-impact action, check returns an immutable structured allow decision containing step_id, action_id, outcome, stable reason code, and the configured policy_version. The SemanticAction and TaskGraph model dumps are byte-for-byte equal before and after checking. Test: test_safe_action_is_allowed_with_versioned_structured_reason_without_mutation.",
+    "ToolRegistry remains the only action and parameter field allow-list: registry validation errors become structured deny decisions, an unregistered action is denied, and a custom injected registry schema change is immediately honored without editing policy-validator field lists. Tests: test_unknown_action_is_denied_structurally and test_injected_registry_change_propagates_without_second_allowlist.",
+    "The policy recursively rejects raw joint, velocity, torque, or firmware parameter identifiers found in nested mappings/lists or serialized key-value strings, including spaced or slash-delimited keys, compact uppercase identifiers, and JSON-escaped keys otherwise accepted by an injected ToolRegistry. Non-string mapping keys and bounded traversal-limit violations fail closed with policy_input_malformed rather than raising. Matching remains limited to parameter-like identifiers or key-value syntax so ordinary explanatory prose, including colon headings, is not rejected merely for mentioning a word. Tests: test_nested_raw_control_identifiers_are_denied, test_disguised_raw_control_identifiers_are_denied, test_non_string_mapping_key_fails_closed, test_excessive_payload_nesting_fails_closed_structurally, and test_plain_prose_is_not_misclassified_as_a_raw_parameter.",
+    "Each configured high-impact semantic action requires confirmation for that exact action_id. Missing confirmation returns confirmation_required, confirmation for a different action_id does not authorize it, malformed confirmation collections fail closed with confirmation_input_malformed, and confirmation for the matching action_id allows it only if ToolRegistry and raw-control checks also pass. Tests: test_high_impact_action_requires_confirmation, test_confirmation_is_scoped_to_exact_action_id, test_malformed_confirmation_ids_fail_closed_without_substring_matching, and test_matching_confirmation_allows_registry_valid_high_impact_action.",
+    "PolicyReport is valid only when every per-step outcome is allow; enforce raises PolicyViolation for both deny and confirmation_required outcomes and preserves structured location and reason information. Existing aggregation and fail-closed tests remain green after being migrated to explicit valid configuration. Tests: test_enforce_rejects_deny_and_confirmation_required and the existing policy-validator suite.",
+    "A policy allow decision is authorization evidence only. The module does not dispatch actions, obtain or persist operator confirmation, emit ActionResult or VerificationResult, write WorldState, or claim execution/completion. Test: test_policy_output_is_authorization_only.",
+    "All focused and repository-required checks pass, and the Git-visible diff relative to fixed base 19a24dc45293deb34425b8508afe7b3342c84e27 contains only the three allowed paths."
+  ],
+  "commands": [
+    "python3 -m pytest tests/unit/test_policy_validator.py -v",
+    "python3 -m pytest tests/unit -k policy_validator -v",
+    "python3 -m pytest tests/unit/test_tool_registry.py -v",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "make check",
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/issue-58-a5-policy-validator.json --base 19a24dc45293deb34425b8508afe7b3342c84e27"
+  ],
+  "evidence": [
+    "Pre-implementation baseline output showing 92 existing policy-validator and ToolRegistry tests pass while a serialized joint_velocity payload and an unconfirmed PLACE both produce is_valid=True, PolicyReport exposes only findings, and PolicyValidator accepts no policy configuration.",
+    "Focused red-test output proving the new tests fail before implementation because versioned decisions, explicit configuration, nested raw-control scanning, and per-action confirmation are absent.",
+    "Focused green-test output for every allow, deny, confirmation-required, malformed-config, unknown-action, non-mutation, and registry-propagation behavior named in acceptance.",
+    "Review-remediation red evidence: the focused five-test command produced 12 failures against the pre-fix implementation, reproducing confirmation substring/list acceptance, four disguised raw-control bypasses, non-string-key fail-open, RecursionError, and two colon-prose false positives.",
+    "Review-remediation green evidence: the same focused five-test command passed with 5 passed, 44 deselected, and 11 subtests passed after the bounded fixes.",
+    "Captured structured PolicyReport examples for allow, deny, and confirmation_required outcomes showing stable reason codes and the configured policy_version.",
+    "Before-and-after TaskGraph and SemanticAction model_dump equality from the non-mutation regression.",
+    "Injected-registry regression showing the policy follows a registry schema change while the nested raw-control guard remains non-bypassable.",
+    "Review-remediation full-gate evidence: make test and make check each completed with 897 passed, 1 skipped, and 280 subtests passed; Ruff check/format, contract validation, scenario validation for 12 frozen and 24 expanded manifests, golden-set validation, context validation, demo_scripted, and local_runner all passed.",
+    "Review-remediation boundary evidence: Task Packet validation passed against fixed base 19a24dc45293deb34425b8508afe7b3342c84e27; git diff --check passed; the final Git-visible paths are only policy_validator.py, test_policy_validator.py, and this Task Packet."
+  ],
+  "stop_conditions": [
+    "Implementation requires changing interfaces, libs/contracts, ToolRegistry, tool_schemas, planner, local_model, package exports, another Agent Runtime module, or any path outside allowed_paths.",
+    "Implementation requires adding a second action or parameter field allow-list instead of consuming the injected ToolRegistry.",
+    "Implementing confirmation requires asking the operator, persisting confirmation, changing TaskGraph or SemanticAction contracts, or wiring the execution controller; those responsibilities belong to Issue #59 or require a separately approved cross-module Task Packet.",
+    "The confirmation design would authorize all actions of a type instead of an explicitly confirmed action_id, or would treat the mere presence of ASK_CONFIRM as proof that confirmation was granted.",
+    "The raw-control guard cannot reject nested parameter-like joint, velocity, torque, and firmware identifiers without broadly rejecting ordinary prose or mutating input payloads.",
+    "The policy layer would dispatch Motion, emit ActionResult or VerificationResult, write WorldState, or claim execution or completion evidence.",
+    "Any interfaces, multiple-module, robot/control, firmware, safety-configuration, deployment, CI, simulation, hardware, Backend, Perception, or World Model change becomes necessary.",
+    "The fixed base 19a24dc45293deb34425b8508afe7b3342c84e27 is no longer the intended branch boundary, the worktree contains overlapping user changes, or the ownership delegation is withdrawn or disputed.",
+    "A required command fails for a reason that cannot be fixed within allowed_paths without changing the approved behavior."
+  ]
+}

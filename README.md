@@ -16,9 +16,14 @@ are separate quick-change concepts, not simultaneous performance claims.
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2ea44f)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/Quchaosheng/workbench-desk-robot?display_name=tag)](https://github.com/Quchaosheng/workbench-desk-robot/releases/latest)
 [![Status](https://img.shields.io/badge/status-software%20foundation-f0c36b)](#honest-status)
 
 [简体中文](README.zh-CN.md)
+
+**Current software release:** [v0.2.0](https://github.com/Quchaosheng/workbench-desk-robot/releases/tag/v0.2.0),
+covering the deterministic offline runtime, five task families, hardened replay
+and contract boundaries, and the software-only MCU, CAN, Motion, and BSP foundations.
 
 The project is built around one practical question: **did the robot actually
 complete the task, and can we prove it?**
@@ -26,7 +31,7 @@ complete the task, and can we prove it?**
 The current mechanical baseline is **Revision D**: a 540 x 520 mm stabilized
 mobile base, 350 mm braked liftable torso, two seven-axis arms, 18 L parcel bay,
 and locked quick-change tools. Bimanual parcel handling, cleaning, and induction-cooking assistance
-are target capabilities under physical validation; the visual is not a claim of
+are target capabilities awaiting end-to-end simulation and physical validation; the visual is not a claim of
 an assembled or certified product.
 
 ## Why It Matters
@@ -70,12 +75,14 @@ It is deliberately labelled `SCRIPTED_FIXTURE` and `release_eligible: false`.
 
 - 11 JSON schemas define module boundaries
 - Strict ingress validation and matching Pydantic models
-- Append-only event store with deterministic replay from checkpoints
+- Append-only SQLite event storage with integrity-checked replay, checkpoints,
+  and checksum-verified snapshot restore
 
 **Bounded agent behavior**
 
 - Model routes only to semantic actions such as `observe`, `grasp`, `place`,
   `ask_confirm`, `express`, and `stop`
+- Registry-backed exact field, type, and range validation plus fail-closed policy checks
 - Joint positions, velocities, and emergency stop remain outside model reach
 - Dangerous or mixed-boundary goals fail closed
 
@@ -87,23 +94,29 @@ It is deliberately labelled `SCRIPTED_FIXTURE` and `release_eligible: false`.
 
 ## Honest Status
 
-**Works today:** deterministic Python runtime, five task families, replayable
-event logs, read-only dashboard, local model routing, scenario validation, and
+**Works today:** deterministic Python runtime, five task families, integrity-checked
+SQLite replay, read-only dashboard, local model routing, scenario validation,
+strict MCU Wire V1 and virtual safety-state tests, ROS-free motion preflight, and
 fail-closed simulation controls.
 
-**Not built yet:** a complete Gazebo world, an executed physical camera bridge,
-MoveIt grasp/place adapter, Gazebo-backed task results, and physical hardware
-evidence. The camera BSP integration is specified, but package compatibility,
-calibration and real sensor data remain `NOT_EXECUTED`. Committed fixtures are
-pipeline tests, not robot or Gazebo evidence.
+**Not built yet:** an end-to-end Gazebo task world, a semantic MoveIt grasp/place
+adapter, an executed physical camera bridge, release-eligible Gazebo task results,
+and physical hardware evidence. The camera BSP integration is specified, but
+package compatibility, calibration and real sensor data remain `NOT_EXECUTED`.
+Scripted scenario fixtures are pipeline tests, not robot or Gazebo task evidence.
+The separate Phase 1/2 Motion artifacts are bounded evidence at their recorded
+commits; they do not prove an end-to-end task world or physical execution.
 
-**BSP baseline:** the prototype plan selects one Jetson Orin Nano Super 8 GB
+**BSP baseline:** the logical prototype baseline names one Jetson Orin Nano Super 8 GB
 Linux board and six controller domains: base, left/right arm, left/right tool,
 and independent safety. The repository includes CAN identity, kernel/service
 requirements, firmware compatibility, cost review and fail-closed readiness
 checks under [`bsp/`](bsp/). Carrier-board pin/IRQ data, supplier protocols,
 boot images, AVL approval and physical bring-up remain blocked or
 `NOT_EXECUTED` until real evidence is attached.
+JetPack, L4T, kernel, rootfs, recovery, and toolchain sources and hashes remain
+unresolved; `bsp/image/build-inputs.yaml` intentionally records
+`status: inputs_unresolved`, and no boot image has been built.
 
 The camera baseline is one head-mounted Intel RealSense D435 over USB 3 using
 the Linux `uvcvideo`/V4L2 stack, `librealsense2`, and ROS 2
@@ -132,9 +145,11 @@ remain explicitly separate:
 | --- | --- | --- |
 | Python runtime | Unit and integration tests on Linux and Windows | Gazebo, ROS 2, or robot motion |
 | Containers | Runtime and devcontainer share one immutable Ubuntu digest | Reproducibility on an unpinned base image |
-| Dashboard backend | Bounded read-only HTTP API; write methods return `405` | Authentication for public deployment or any control authority |
-| `wbcan` | Linux kernel build, virtual SocketCAN fault tests, race-safe counters | Physical CAN timing, MCU behavior, or actuator safety |
-| Robot BSP | Selected topology, camera stack, manifests, kernel/service requirements and readiness checks | A bootable Jetson image, installed camera packages, calibration, physical CAN, E-stop or thermal evidence |
+| Dashboard backend | Versioned read-only API and bounded allow-listed remote event source | Public authentication or control authority |
+| `wbcan` | Kernel build, virtual fault/recovery stress, diagnostics, and idle/status-reader latency reports | Physical CAN timing, hard real-time guarantees, MCU behavior, or actuator safety |
+| Safety MCU | Platform-independent C state machine, Wire V1 codec, watchdog/STOP timing, and replay protection tested on Host/QEMU | CH32V307 CAN HAL behavior, electrical timing, or physical safety evidence |
+| Motion foundation | ROS-free deterministic trajectory preflight plus recorded Phase 1/2 reachability/controller evidence | A merged semantic planning/execution adapter, complete Gazebo task loop, or physical motion safety |
+| Robot BSP | Logical topology, provisional board/camera manifests, fail-closed readiness and unresolved image-input gates | A bootable image, approved orderable SKUs, calibration, physical CAN, E-stop, or thermal evidence |
 | Scripted scenarios | Deterministic fixture artifacts with checksums | Physical or Gazebo execution |
 
 The complete portable check is `python -m pytest`. Linux CI additionally owns
@@ -197,8 +212,9 @@ does not publish ROS, motion, MCU, or emergency-stop commands.
 
 ## Roadmap
 
-- **v0.1** — frozen regression baseline and evidence contracts
-- **v0.2** — five scripted task families and recovery paths
+- **v0.1.0** — frozen regression baseline and evidence contracts
+- **v0.2.0 (current)** — five scripted task families, recovery paths, hardened
+  replay/contracts, and software-only MCU, CAN, Motion, and BSP foundations
 - **Next** — real Gazebo world, perception bridge, semantic motion adapter,
   and simulation fault injectors
 - **Later** — hardware validation without changing the evidence boundary
@@ -207,6 +223,9 @@ does not publish ROS, motion, MCU, or emergency-stop commands.
 
 - [User guide](docs/user-guide/index.md)
 - [System architecture](docs/architecture/system.md)
+- [Motion foundation](robot/control/README.md)
+- [Safety MCU](firmware/mcu/README.md)
+- [Robot BSP](bsp/README.md)
 - [Simulation boundary](sim/README.md)
 - [Deployment](docs/deployment/multi-host.md)
 - [Security policy](SECURITY.md)

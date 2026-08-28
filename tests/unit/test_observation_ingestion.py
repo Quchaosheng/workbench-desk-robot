@@ -119,10 +119,11 @@ class ObservationIngestionTests(unittest.TestCase):
         Draft202012Validator(schema).validate(event)
 
     def test_raw_provenance_is_preserved_and_detached(self) -> None:
-        record = observation_record(vendor_metadata={"exposure_us": 5000})
+        record = observation_record()
         original = deepcopy(record)
         event = ingest(adapter(), record)
         record["entity_id"] = "mutated"
+        record["pose"]["position"]["x"] = 99.0  # type: ignore[index]
         record["evidence_refs"].append("frame://mutated")  # type: ignore[union-attr]
 
         self.assertEqual(event.payload["raw_observation"], original)

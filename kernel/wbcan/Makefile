@@ -11,13 +11,18 @@ KDIR  ?= /lib/modules/$(shell uname -r)/build
 PWD   := $(shell pwd)
 IFACE ?= wbcan0
 STRESS_REPORT ?= /tmp/wbcan-stress-report.json
+STRESS_PROFILE ?= release
 STRESS_PRODUCERS ?= 4
 STRESS_FRAMES ?= 250
+STRESS_TX_FULL ?= 16
+STRESS_SLOW_RECEIVER_FRAMES ?= 500
+STRESS_RELOAD_CYCLES ?= 3
+STRESS_MODULE ?= ./wbcan.ko
 LATENCY_REPORT ?= /tmp/wbcan-latency-report.json
 LATENCY_SAMPLES ?= 1000
 LATENCY_WARMUP ?= 50
 
-.PHONY: all clean load unload reload test stress latency checkpatch help
+.PHONY: all clean load unload reload test stress stress-smoke stress-release latency checkpatch help
 
 all:
 	@if [ ! -d "$(KDIR)" ]; then \
@@ -60,9 +65,20 @@ stress:
 		exit 1; \
 	fi
 	@sudo python3 ./test_state_concurrency.py $(IFACE) /sys/kernel/debug/wbcan/$(IFACE) \
-		--report $(STRESS_REPORT) --producers $(STRESS_PRODUCERS) --frames-per-producer $(STRESS_FRAMES)
-	@python3 ./test_state_concurrency.py --validate-report $(STRESS_REPORT)
+		--profile $(STRESS_PROFILE) --module $(STRESS_MODULE) --report $(STRESS_REPORT) \
+		--producers $(STRESS_PRODUCERS) --frames-per-producer $(STRESS_FRAMES) \
+		--tx-full-attempts $(STRESS_TX_FULL) --slow-receiver-frames $(STRESS_SLOW_RECEIVER_FRAMES) \
+		--reload-cycles $(STRESS_RELOAD_CYCLES)
+	@python3 ./test_state_concurrency.py --validate-report $(STRESS_REPORT) --require-pass
 	@echo "wbcan stress evidence: $(STRESS_REPORT)"
+
+stress-smoke:
+	@$(MAKE) stress STRESS_PROFILE=developer-smoke STRESS_PRODUCERS=2 STRESS_FRAMES=25 \
+		STRESS_TX_FULL=4 STRESS_SLOW_RECEIVER_FRAMES=100 STRESS_RELOAD_CYCLES=1
+
+stress-release:
+	@$(MAKE) stress STRESS_PROFILE=release STRESS_PRODUCERS=4 STRESS_FRAMES=250 \
+		STRESS_TX_FULL=16 STRESS_SLOW_RECEIVER_FRAMES=500 STRESS_RELOAD_CYCLES=3
 
 latency:
 	@if [ ! -d "/sys/class/net/$(IFACE)" ]; then \
@@ -84,7 +100,9 @@ help:
 	@echo "make           build wbcan.ko against $(KDIR)"
 	@echo "make load      create and bring up the module-load singleton $(IFACE)"
 	@echo "make test      run the fault suite"
-	@echo "make stress    run the bounded concurrency and stats probe"
+	@echo "make stress    run the selected bounded stress profile (release by default)"
+	@echo "make stress-smoke  run the smaller developer profile"
+	@echo "make stress-release run the fixed release profile"
 	@echo "make latency   record virtual SocketCAN TX-to-RX latency evidence"
 	@echo "make checkpatch  kernel style check"
 	@echo "ip link add type wbcan is unsupported; unload before loading another"

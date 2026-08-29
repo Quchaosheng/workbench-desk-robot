@@ -615,6 +615,17 @@ def test_wbcan_status_snapshot_does_not_take_tx_lock_or_format_under_private_loc
     assert status_show.index("spin_unlock_irqrestore") < status_show.index("seq_printf")
 
 
+def test_wbcan_initializes_a_stopped_queue_before_registration() -> None:
+    source = DRIVER_PATH.read_text(encoding="utf-8")
+    init = source.split("static int __init wbcan_init", 1)[1].split("static void __exit wbcan_exit", 1)[0]
+
+    state_offset = init.index("WRITE_ONCE(priv->can.state, CAN_STATE_STOPPED);")
+    stop_offset = init.index("netif_stop_queue(wbcan_dev);")
+    register_offset = init.index("register_candev(wbcan_dev)")
+
+    assert state_offset < stop_offset < register_offset
+
+
 def test_kernel_diagnostics_pass_report_requires_empty_warning_matches(tmp_path: Path) -> None:
     dmesg = tmp_path / "dmesg.log"
     slabinfo = tmp_path / "slabinfo"

@@ -848,6 +848,12 @@ static int __init wbcan_init(void)
 				       CAN_CTRLMODE_BERR_REPORTING;
 	priv->can.do_set_mode = wbcan_set_mode;
 	WRITE_ONCE(priv->can.state, CAN_STATE_STOPPED);
+	/*
+	 * alloc_candev() leaves the TX queue runnable until ndo_open(). Keep
+	 * the queue stopped while the singleton is registered but down, so a
+	 * fresh load has one coherent stopped-state snapshot.
+	 */
+	netif_stop_queue(wbcan_dev);
 
 	err = register_candev(wbcan_dev);
 	if (err)

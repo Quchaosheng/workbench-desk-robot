@@ -1,3 +1,12 @@
+from .execution_controller import (
+    ActionAdapter,
+    ExecutionController,
+    ExecutionReasonCode,
+    ExecutionReport,
+    ExecutionState,
+    StepExecutionRecord,
+    StopRequestStatus,
+)
 from .local_model import (
     LocalModelError,
     ModelProvider,
@@ -18,10 +27,17 @@ from .planner import (
 )
 
 __all__ = [
+    "ActionAdapter",
+    "ExecutionController",
+    "ExecutionReasonCode",
+    "ExecutionReport",
+    "ExecutionState",
     "LocalModelError",
     "ModelProvider",
     "OllamaModelProvider",
     "RouteDecision",
+    "StepExecutionRecord",
+    "StopRequestStatus",
     "build_clear_workspace_plan",
     "build_inspection_plan",
     "build_kitting_plan",

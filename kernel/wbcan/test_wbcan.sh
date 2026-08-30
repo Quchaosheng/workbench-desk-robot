@@ -182,14 +182,18 @@ else
 	ethtool_ready=0
 fi
 check "ethtool statistics are available" "1" "$ethtool_ready"
+ethtool_fields_complete=1
+missing_ethtool_fields=""
 for ethtool_key in tx_frames rx_frames fault_candidates fault_injected bus_errors arbitration_lost restart_attempts stop_attempts; do
-	if grep -Eq "^[[:space:]]*$ethtool_key:[[:space:]]*[0-9]+$" <<<"$ethtool_stats"; then
-		stat_present=1
-	else
-		stat_present=0
+	if ! grep -Eq "^[[:space:]]*$ethtool_key:[[:space:]]*[0-9]+$" <<<"$ethtool_stats"; then
+		ethtool_fields_complete=0
+		missing_ethtool_fields="${missing_ethtool_fields}${missing_ethtool_fields:+,}$ethtool_key"
 	fi
-	check "ethtool exposes $ethtool_key" "1" "$stat_present"
 done
+check "ethtool exposes ethtool key" "1" "$ethtool_fields_complete"
+if [ "$ethtool_fields_complete" -eq 0 ]; then
+	red "missing ethtool fields: $missing_ethtool_fields"
+fi
 
 # wbcan is a module-load singleton, not an RTNL-created link kind.
 if ip link add dev wbcan-test type wbcan 2>/dev/null; then

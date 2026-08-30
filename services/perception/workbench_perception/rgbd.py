@@ -426,7 +426,7 @@ def _format_timestamp(value: datetime) -> str:
 def _pixel_index(value: float, limit: int, name: str) -> int:
     if not 0 <= value < limit:
         raise RgbdObservationRejected(f"{name} must be inside the image")
-    return min(limit - 1, int(math.floor(value + 0.5)))
+    return min(limit - 1, math.floor(value + 0.5))
 
 
 def _require_text(value: object, name: str, *, rejection: bool = False) -> None:

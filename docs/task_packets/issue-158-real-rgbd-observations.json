@@ -1,0 +1,96 @@
+{
+  "issue": 158,
+  "human_owner": "zhangjia-1111",
+  "objective": "Implement only the deterministic software portion of the known-target RGB-D producer on the Issue #72 branch, while keeping real-camera, calibration, ROS launch and physical metric evidence explicitly NOT_EXECUTED.",
+  "decision_supported": "Can synchronized local RGB, aligned-depth, camera metadata and configured AprilTag detections produce contract-valid, traceable Observations that pass the Issue #72 fail-closed ingestion boundary without guessing identity or fabricating hardware evidence?",
+  "allowed_paths": [
+    "docs/task_packets/issue-158-real-rgbd-observations.json",
+    "services/perception/README.md",
+    "services/perception/workbench_perception/__init__.py",
+    "services/perception/workbench_perception/rgbd.py",
+    "tests/unit/test_rgbd_producer.py",
+    "tests/integration/test_rgbd_producer.py"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "hardware/cameras/README.md",
+    "docs/task_packets/issue-72-observation-ingestion.json",
+    "interfaces/json_schema/observation.schema.json",
+    "interfaces/json_schema/pose.schema.json",
+    "interfaces/examples/observation-red-block.json",
+    "libs/contracts/workbench_contracts/models.py",
+    "services/perception/workbench_perception/ingestion.py",
+    "tests/unit/test_observation_ingestion.py",
+    "tests/integration/test_observation_ingestion.py"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "hardware/**",
+    "robot/control/**",
+    "firmware/**",
+    "services/world_model/**",
+    "sim/**",
+    "deploy/**",
+    ".github/**"
+  ],
+  "input_refs": [
+    "hardware/cameras/README.md",
+    "docs/task_packets/issue-72-observation-ingestion.json",
+    "interfaces/json_schema/observation.schema.json",
+    "interfaces/json_schema/pose.schema.json",
+    "interfaces/examples/observation-red-block.json",
+    "services/perception/workbench_perception/ingestion.py"
+  ],
+  "outputs": [
+    "typed known-target RGB-D software producer",
+    "bounded immutable frame metadata evidence store without raw event payloads",
+    "contract Observation output consumable by the Issue #72 ingestion adapter",
+    "explicit NOT_EXECUTED documentation for real camera and Issue #75 evidence"
+  ],
+  "acceptance": [
+    "Configured RGB, aligned-depth, intrinsics and AprilTag inputs produce current contract-valid Observations with deterministic identity, calibrated camera-frame pose, confidence, timestamp, clock, source and evidence reference.",
+    "Unknown tags are reported separately and never receive a guessed entity identity.",
+    "Dimension, sequence, timestamp or clock mismatch, stale/future frames, invalid depth, duplicate tags or frames, occlusion, low decision margin and excess hamming fail closed before Observation delivery.",
+    "Evidence references resolve to bounded immutable frame metadata and RGB/depth hashes; raw sensor bytes are not embedded in Observation or WorldEvent payloads.",
+    "Producer output passes the existing Issue #72 ObservationIngestionAdapter without contract or Pydantic changes.",
+    "Tests use only small local deterministic fixtures, perform no public network access and do not claim a connected camera, ROS launch, physical calibration, fixture accuracy or hardware performance.",
+    "README explicitly records the missing camera serial/firmware, calibration hash, clock measurement, ROS launch, fixture ground truth and target-hardware metrics as NOT_EXECUTED."
+  ],
+  "commands": [
+    "python tools/scripts/check_task_packet.py docs/task_packets/issue-158-real-rgbd-observations.json",
+    "python -m pytest tests/unit/test_rgbd_producer.py tests/integration/test_rgbd_producer.py -v",
+    "python -m pytest tests/unit tests/integration -k \"observation or rgbd\" -v",
+    "python -m ruff check services/perception/workbench_perception tests/unit/test_rgbd_producer.py tests/integration/test_rgbd_producer.py",
+    "python -m ruff format --check services/perception/workbench_perception tests/unit/test_rgbd_producer.py tests/integration/test_rgbd_producer.py",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "git diff --check"
+  ],
+  "evidence": [
+    "Repository audit showing only a planned D435 README and no serialized camera, calibration artifact/hash, clock measurement, real frames, ROS launch record or physical metrics.",
+    "Focused deterministic normal and fail-closed test output.",
+    "Integration evidence showing produced Observation output passes the Issue #72 ingestion boundary.",
+    "Evidence-store assertions proving bounded retention, stable hashes and absence of raw image/depth payloads.",
+    "Task Packet, full tests, contract, scenario, context, lint and diff-boundary output."
+  ],
+  "stop_conditions": [
+    "A detector enum or Observation/Pose/Pydantic contract change is required.",
+    "A write outside allowed_paths is required, including hardware, deployment, ROS packaging, CI, simulation, World Model, robot control or firmware.",
+    "Real camera, calibration, time-sync, ROS launch, fixture accuracy or target-hardware performance evidence is requested without connected and owner-approved hardware.",
+    "Implementation would add a GPU model, cloud API, vector database, open-vocabulary detector, public-network fixture or guessed entity identity.",
+    "Issue #72 ingestion behavior must change instead of being consumed as the stacked base.",
+    "The worktree contains overlapping user modifications in an allowed path."
+  ],
+  "max_iterations": 5,
+  "data_classification": "Small local synthetic RGB/depth metadata fixtures only; no personal data, captured household imagery or public network access.",
+  "model_policy": "Deterministic typed validation, pinhole projection and explicit AprilTag allow-list only; no model inference.",
+  "risks_and_fallbacks": [
+    "This change is software-only and cannot close Issue #158 until real ROS launch, calibration, ground-truth and hardware metric evidence exists.",
+    "In-memory duplicate suppression and evidence retention do not survive restart; persistent evidence ownership requires a separate approved design.",
+    "Tag orientation is identity in the optical frame because no approved physical tag-size/pose solver evidence exists; add a tested injected pose solver only with owner-approved calibration inputs.",
+    "Reject any frame pair whose timing, calibration, depth or identity cannot be proven instead of guessing."
+  ]
+}

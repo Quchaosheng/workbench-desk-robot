@@ -635,7 +635,7 @@ static void wbcan_get_ethtool_stats(struct net_device *dev,
 static const struct ethtool_ops wbcan_ethtool_ops = {
 	.get_ts_info		= ethtool_op_get_ts_info,
 	.get_strings		= wbcan_get_strings,
-	.get_ethtool_stats = wbcan_get_ethtool_stats,
+	.get_ethtool_stats	= wbcan_get_ethtool_stats,
 	.get_sset_count		= wbcan_get_sset_count,
 };
 

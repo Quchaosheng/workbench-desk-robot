@@ -43,10 +43,11 @@ report_check() {
 
 need() {
 	command -v "$1" >/dev/null 2>&1 || {
-		red "missing $1 (apt-get install can-utils)"; exit 1; }
+		red "missing $1 (apt-get install can-utils ethtool)"; exit 1; }
 }
 need cansend
 need candump
+need ethtool
 need python3
 
 if ! dmesg >/dev/null 2>&1; then
@@ -168,6 +169,28 @@ check() {
 	fi
 }
 
+ethtool_stat() {
+	ethtool -S "$IFACE" 2>/dev/null |
+		awk -v key="$1" '$1 == key ":" { print $2; found = 1; exit }
+		     END { if (!found) exit 1 }'
+}
+
+ethtool_stats=$(ethtool -S "$IFACE" 2>/dev/null || true)
+if [ -n "$ethtool_stats" ]; then
+	ethtool_ready=1
+else
+	ethtool_ready=0
+fi
+check "ethtool statistics are available" "1" "$ethtool_ready"
+for ethtool_key in tx_frames rx_frames fault_candidates fault_injected bus_errors arbitration_lost restart_attempts stop_attempts; do
+	if grep -Eq "^[[:space:]]*$ethtool_key:[[:space:]]*[0-9]+$" <<<"$ethtool_stats"; then
+		stat_present=1
+	else
+		stat_present=0
+	fi
+	check "ethtool exposes $ethtool_key" "1" "$stat_present"
+done
+
 # wbcan is a module-load singleton, not an RTNL-created link kind.
 if ip link add dev wbcan-test type wbcan 2>/dev/null; then
 	check "RTNL creation is rejected for singleton wbcan" "rejected" "accepted"
@@ -199,6 +222,10 @@ clear_fault
 out=$(capture 300 & sleep 0.1; cansend "$IFACE" 123#DEADBEEF; wait)
 check "baseline delivers frame" \
       "1" "$(grep -c 'DEADBEEF' <<<"$out")"
+before_ethtool_tx=$(ethtool_stat tx_frames)
+cansend "$IFACE" 124#0102
+after_ethtool_tx=$(ethtool_stat tx_frames)
+check "ethtool tx_frames advances" "1" "$((after_ethtool_tx - before_ethtool_tx))"
 
 # SocketCAN own-message and local-loopback options must keep their standard
 # meaning even though this driver performs the echo itself.

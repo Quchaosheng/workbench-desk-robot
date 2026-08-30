@@ -72,7 +72,7 @@ jobs:
             "linux-headers-$(uname -r)" \
             linux-headers-generic \
             "linux-modules-extra-$(uname -r)" \
-            can-utils build-essential
+            can-utils ethtool build-essential
       - name: Build and check wbcan.ko
         run: |
           for headers in /usr/src/linux-headers-*-generic; do

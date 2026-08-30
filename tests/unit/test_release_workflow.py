@@ -79,6 +79,29 @@ def test_kernel_module_builds_against_lts_and_runner_headers() -> None:
     assert "make -C kernel/wbcan checkpatch" in build_step
 
 
+def test_kernel_fault_suite_covers_ethtool_statistics() -> None:
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+    kernel_source = (ROOT / "kernel" / "wbcan" / "wbcan.c").read_text(encoding="utf-8")
+    fault_suite = (ROOT / "kernel" / "wbcan" / "test_wbcan.sh").read_text(encoding="utf-8")
+    kernel_job = workflow.split("  kernel-module:", maxsplit=1)[1].split("\n  mcu-qemu:", maxsplit=1)[0]
+
+    assert "can-utils ethtool build-essential" in kernel_job
+    assert "get_ethtool_stats" in kernel_source
+    assert "get_sset_count" in kernel_source
+    for name in (
+        "tx_frames",
+        "rx_frames",
+        "fault_candidates",
+        "fault_injected",
+        "bus_errors",
+        "arbitration_lost",
+        "restart_attempts",
+        "stop_attempts",
+    ):
+        assert f'"{name}"' in kernel_source
+    assert "ethtool tx_frames advances" in fault_suite
+
+
 def test_kernel_module_unload_verifies_singleton_cleanup() -> None:
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
     load_step = _step_block(workflow, "name: Load the module and bring the interface up")

@@ -614,7 +614,7 @@ static void wbcan_get_strings(struct net_device *dev, u32 stringset, u8 *data)
 }
 
 static void wbcan_get_ethtool_stats(struct net_device *dev,
-					struct ethtool_stats *stats, u64 *data)
+				    struct ethtool_stats *stats, u64 *data)
 {
 	struct wbcan_priv *priv = netdev_priv(dev);
 	unsigned long flags;

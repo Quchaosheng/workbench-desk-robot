@@ -31,9 +31,7 @@ def main() -> int:
     docker_rc, docker = command_output(["docker", "version", "--format", "{{.Client.Version}}"])
     compose_rc, compose = command_output(["docker", "compose", "version", "--short"])
     toolkit_rc, toolkit = command_output(["nvidia-ctk", "--version"])
-    gpu_rc, gpu = command_output(
-        ["nvidia-smi", "--query-gpu=name,driver_version,compute_cap", "--format=csv,noheader"]
-    )
+    gpu_rc, gpu = command_output(["nvidia-smi", "--query-gpu=name,driver_version,compute_cap", "--format=csv,noheader"])
     gpu_rows = [line for line in gpu.splitlines() if "," in line]
     core_checks = {
         "platform_linux_amd64": platform.system() == "Linux" and platform.machine() == "x86_64",
@@ -43,9 +41,9 @@ def main() -> int:
     }
     gpu_checks = {
         "container_toolkit_at_least_1_17": toolkit_rc == 0 and first_version(toolkit) >= (1, 17),
-        "nvidia_driver_at_least_570_26": gpu_rc == 0 and bool(gpu_rows) and all(
-            first_version(line.split(",")[1]) >= (570, 26) for line in gpu_rows
-        ),
+        "nvidia_driver_at_least_570_26": gpu_rc == 0
+        and bool(gpu_rows)
+        and all(first_version(line.split(",")[1]) >= (570, 26) for line in gpu_rows),
     }
     required_checks = {**core_checks, **gpu_checks} if args.require_gpu else core_checks
     report = {

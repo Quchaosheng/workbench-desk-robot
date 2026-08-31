@@ -8,9 +8,7 @@ except ModuleNotFoundError:  # pragma: no cover - host-only Python 3.10 fallback
 
 
 ROOT = Path(__file__).resolve().parents[2]
-IMMUTABLE_CUDA_BASE = re.compile(
-    r"^FROM nvidia/cuda:12\.8\.1-runtime-ubuntu24\.04@sha256:[0-9a-f]{64}$"
-)
+IMMUTABLE_CUDA_BASE = re.compile(r"^FROM nvidia/cuda:12\.8\.1-runtime-ubuntu24\.04@sha256:[0-9a-f]{64}$")
 
 
 def test_runtime_and_devcontainer_use_the_same_immutable_base() -> None:
@@ -19,9 +17,7 @@ def test_runtime_and_devcontainer_use_the_same_immutable_base() -> None:
 
     assert IMMUTABLE_CUDA_BASE.fullmatch(base)
     assert not (ROOT / ".devcontainer/Dockerfile").exists()
-    assert '"dockerfile": "../Dockerfile"' in (
-        ROOT / ".devcontainer/devcontainer.json"
-    ).read_text(encoding="utf-8")
+    assert '"dockerfile": "../Dockerfile"' in (ROOT / ".devcontainer/devcontainer.json").read_text(encoding="utf-8")
 
 
 def test_runtime_container_copies_installable_workbench_packages_before_install() -> None:

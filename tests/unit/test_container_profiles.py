@@ -191,8 +191,7 @@ def test_runtime_tmpfs_and_simulation_paths_are_writable_for_runtime_user() -> N
     compose_text = (ROOT / "compose.yaml").read_text(encoding="utf-8")
 
     assert (
-        "/home/workbench/.ros:size=64m,mode=700,uid=${WORKBENCH_UID:-10001},gid=${WORKBENCH_GID:-10001}"
-        in compose_text
+        "/home/workbench/.ros:size=64m,mode=700,uid=${WORKBENCH_UID:-10001},gid=${WORKBENCH_GID:-10001}" in compose_text
     )
     assert (
         "/home/workbench/.cache:size=256m,mode=700,uid=${WORKBENCH_UID:-10001},gid=${WORKBENCH_GID:-10001}"
@@ -245,7 +244,7 @@ def test_sim_smoke_waits_for_all_controllers_and_bounds_probe() -> None:
     assert "controllers_ready=false" in smoke
     for controller in ("joint_state_broadcaster", "arm_trajectory_controller", "gripper_controller"):
         assert f"^{controller}.*active" in smoke
-    assert 'WORKBENCH_PHASE2_TIMEOUT:-180' in smoke
+    assert "WORKBENCH_PHASE2_TIMEOUT:-180" in smoke
 
 
 def test_hardware_profile_keeps_devices_and_sros2_fail_closed() -> None:
@@ -327,11 +326,9 @@ def test_container_acceptance_targets_cover_health_contracts_and_independent_sim
     assert "mktemp -d /tmp/workbench-project-check.XXXXXX" in makefile
     assert "cp -a /workspace/src/." in makefile
     assert (
-        "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 "
-        "PYTEST_ADDOPTS=\"--ignore=tests/unit/test_multi_host_deployment.py\" make test"
-        in makefile
-    )
-    assert "PYTEST_ADDOPTS=\"--ignore=tests/unit/test_multi_host_deployment.py\"" in makefile
+        'PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTEST_ADDOPTS="--ignore=tests/unit/test_multi_host_deployment.py" make test'
+    ) in makefile
+    assert 'PYTEST_ADDOPTS="--ignore=tests/unit/test_multi_host_deployment.py"' in makefile
     sim_target = makefile.split("container-sim-check:\n", 1)[1].split("\n\n", 1)[0]
     assert "workbench-gazebo-render-smoke || status=$$?" in sim_target
     assert "workbench-sim-smoke || status=$$?" in sim_target

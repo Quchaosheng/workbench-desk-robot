@@ -2,229 +2,102 @@
 
 > **先验证，再说完成。**
 >
-> Workbench Home Robot 是一个面向移动家务作业机器人的证据优先基础：受限语义动作、
-> 可回放事件日志，以及能够明确说出**已确认、未满足、证据不足**的验证器。
-
-![Workbench Home Robot 高质感产品概念图](docs/assets/workbench-home-robot-premium.png)
-
-[查看可旋转的 3D 产品主视觉](docs/assets/premium-product-render.html)
-
-主视觉只展示双臂取件姿态；清洁和感应炉锅边工具是独立快换概念，不代表同时执行或已完成验证。
+> 面向移动家务机器人的证据优先基础：受限动作、可回放事件，以及能够明确说出
+> **已确认、未满足、证据不足** 的验证器。
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2ea44f)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/Quchaosheng/workbench-desk-robot?display_name=tag)](https://github.com/Quchaosheng/workbench-desk-robot/releases/latest)
-[![状态](https://img.shields.io/badge/status-软件基础-f0c36b)](#诚实状态)
+[![CI](https://github.com/Quchaosheng/workbench-desk-robot/actions/workflows/ci.yml/badge.svg)](https://github.com/Quchaosheng/workbench-desk-robot/actions)
 
-[English](README.md)
+![Workbench Home Robot](docs/assets/workbench-home-robot-premium.png)
 
-**当前软件版本：**[v0.2.0](https://github.com/Quchaosheng/workbench-desk-robot/releases/tag/v0.2.0)，
-覆盖确定性离线运行时、五类任务、强化后的回放与契约边界，以及仅限软件范围的 MCU、CAN、
-Motion 和 BSP 基础。
+[English](README.md) · [可旋转的 3D 产品视图](docs/assets/premium-product-render.html)
 
-这个项目只问一个很实际的问题：**机器人真的完成任务了吗？我们能证明吗？**
+## 为什么做 Workbench？
 
-当前机械基线是 **Revision D**：`540 × 520 mm` 稳定移动底座、`350 mm` 带刹车升降躯干、
-两只七轴机械臂、18 L 货舱和机械锁止快换工具。双臂取快递、清洁和感应炉锅边备餐是目标能力，
-仍需端到端仿真和样机验证；宣传图不是已装配或已认证产品的性能承诺。头部屏幕提供 `idle`、`happy`、
-`thinking`、`help_needed`、`task_complete`、`hot_zone_warning` 等状态。
-
-## 为什么值得做
-
-很多机器人 Demo 把“命令发送成功”当成“任务完成”。于是机器人可能报告“已放置”，
-但零件其实还在地上。
-
-Workbench 把容易混在一起的几层拆开：
-
-1. **意图**：模型只能选择受限的语义动作。
-2. **执行**：受信运行时负责下发，并记录真实结果。
-3. **验证**：动作之后检查证据，不静默报成功。
-4. **回放**：完整事件轨迹可以检查、重建和复盘。
-
-## 现在可以试什么
-
-仓库当前提供确定性的离线桌面运行时，覆盖放置、三件套齐套、工件检验、清障恢复和
-证据优先的快递入库分拣。
-
-```bash
-python tools/scripts/sim_cli.py doctor
-python tools/scripts/sim_cli.py list
-python tools/scripts/sim_cli.py run normal-001 --runner scripted --output-dir runs/demo
-python tools/scripts/demo_scripted.py
-```
-
-脚本 runner 会生成可检查的 artifact：源 manifest、物化场景、事件日志、stdout/stderr、
-metadata 和 checksums。它会明确标记为 `SCRIPTED_FIXTURE`，并保持
-`release_eligible: false`。
-
-## 核心能力
-
-**证据优先验证**
-
-- 三态任务结论：`confirmed`、`refuted`、`insufficient_evidence`
-- 结构化证据引用，而不是一个裸的通过/失败字段
-- 动作之后检查，并保留失败尝试和恢复历史
-
-**契约驱动运行时**
-
-- 11 个 JSON schema 定义模块边界
-- 入口严格校验，并配套 Pydantic 模型
-- 仅追加 SQLite 事件库，支持完整性校验回放、检查点和带 checksum 校验的 snapshot 恢复
-
-**受限的 Agent 行为**
-
-- 模型只能路由 `observe`、`grasp`、`place`、`ask_confirm`、`express`、`stop`
-- 基于 registry 的字段、类型和范围精确校验，以及失败关闭式策略检查
-- 关节位置、速度和硬件急停不在模型权限内
-- 危险目标和越界目标默认失败关闭
-
-**操作员可见性**
-
-- 只读看板展示任务状态、证据、恢复和回放
-- `doctor`、`list`、`run` 明确区分真实执行、fixture 和未执行
-- 原子运行 artifact 保存原始日志、metadata 和 SHA-256 checksums
-
-## 诚实状态
-
-**现在可用：**确定性 Python runtime、五类任务、带完整性校验的 SQLite 回放、只读 dashboard、
-本地模型路由、场景校验、严格的 MCU Wire V1 与虚拟安全状态测试、无 ROS 依赖的运动预检，
-以及失败关闭式仿真控制面。
-
-**还没有：**端到端 Gazebo 任务世界、语义 MoveIt 抓取放置适配器、真实相机桥接、
-可用于发布判定的 Gazebo 任务结果和真实硬件证据。脚本场景 fixture 是软件链路测试，
-不是机器人或 Gazebo 任务证据。独立的 Phase 1/2 Motion artifact 只证明其记录提交上的有界能力，
-不证明端到端任务世界或物理执行。
-
-**BSP 基线：**逻辑原型基线指定一块 Jetson Orin Nano Super 8 GB Linux 主控和六个控制域：
-底盘、左右机械臂、左右末端以及独立安全域。[`bsp/`](bsp/) 已包含 CAN 身份、kernel/服务
-要求、固件兼容、成本审查和失败关闭式 readiness 校验。载板 pin/IRQ、供应商协议、启动镜像、
-AVL 审批和实机 bring-up 在真实证据到位前仍保持 `BLOCKED` 或 `NOT_EXECUTED`。
-JetPack、L4T、kernel、rootfs、recovery 和工具链来源及 hash 仍未解析；
-`bsp/image/build-inputs.yaml` 有意保持 `status: inputs_unresolved`，当前没有构建启动镜像。
-
-仓库提供的确定性保证彼此独立：
-
-1. 同一冻结 manifest 和 seed 会得到同一物化场景 hash。
-2. 同一份合法且顺序一致的事件日志会归约为同一回放状态。
-3. 只有完整输入、版本和配置都一致时，脚本 fixture 生成器才保证输出同一有序事件序列。
-
-seed 本身不能决定事件顺序；这些保证也不代表 Gazebo 物理、传感器噪声、进程时序或真实
-机器人行为完全确定。
-
-## 验证与平台支持
-
-可移植 Python 运行时以 Python 3.12 为基线。原生 Windows 支持覆盖契约、事件处理、只读后端、
-监控、Task Packet 校验和确定性 fixture 流程；Linux 专属能力保持独立边界：
-
-| 边界 | 已支持的证据 | 不代表 |
-| --- | --- | --- |
-| Python runtime | Linux 和 Windows 上的单元、集成测试 | Gazebo、ROS 2 或机器人运动 |
-| 容器 | runtime 与 devcontainer 使用同一个不可变 Ubuntu digest | 未固定基础镜像也可复现 |
-| Dashboard 后端 | 版本化只读 API 和有界 allow-list 远程事件源 | 公网认证或任何控制权限 |
-| `wbcan` | 内核构建、虚拟故障/恢复压力测试、诊断及 idle/status-reader 延迟报告 | 真实 CAN 时序、硬实时保证、MCU 行为或执行器安全 |
-| 安全 MCU | 跨平台 C 状态机、Wire V1 codec、watchdog/STOP 时序和 Host/QEMU replay protection 测试 | CH32V307 CAN HAL 行为、电气时序或物理安全证据 |
-| Motion 基础 | 无 ROS 依赖的确定性轨迹预检，以及已记录的 Phase 1/2 可达性/控制器证据 | 已合并的语义规划执行适配器、完整 Gazebo 任务闭环或物理运动安全 |
-| 机器人 BSP | 逻辑拓扑、暂定板卡/相机 manifest、失败关闭式 readiness 和未解析镜像输入门禁 | 可启动镜像、获批可采购 SKU、标定、真实 CAN、急停或散热证据 |
-| 脚本场景 | 带 checksum 的确定性 fixture artifact | 真实机器人或 Gazebo 执行 |
-
-完整的可移植检查是 `python -m pytest`。Linux CI 另外负责容器、MCU-QEMU 和特权内核模块
-门禁。任何必需 job 失败或被跳过时，都不能把该次合并视为已经验证。
-
-## 快速开始
-
-Ubuntu 24.04、WSL2 或安装 Python 3.12 的 Windows 11 都可运行可移植 runtime，且不需要
-GPU。内核模块、ROS 2 和容器检查仍要求 Linux。
-
-```bash
-git clone https://github.com/Quchaosheng/workbench-desk-robot.git
-cd workbench-desk-robot
-make bootstrap
-make demo-scripted
-```
-
-原生 Windows 可直接安装开发依赖并运行可移植检查：
-
-```powershell
-py -3.12 -m pip install -e ".[dev]"
-py -3.12 -m pytest
-py -3.12 tools/scripts/demo_scripted.py
-```
-
-常用命令：
-
-```bash
-make test             # 单元和集成测试
-make lint             # Ruff 检查
-make scenario-check   # 场景 manifest 和确定性校验
-make sim-doctor       # 诊断仿真依赖
-make sim-list         # 列出场景和 scene hash
-make sim              # 配置的 Gazebo runner；缺失时为 NOT_EXECUTED
-make dashboard        # 启动只读本地看板
-```
-
-离线 fixture：
-
-```bash
-python tools/scripts/sim_cli.py run normal-001 --runner scripted --output-dir runs/demo
-```
-
-## 可选：接入 OmniLink 知识库
-
-[OmniLink AI](https://github.com/vivekmaru/omnilink-ai) 在 Workbench 中是独立的知识层，用于检索维修文档、ADR、Issue 和运行摘要，不参与任务规划、动作执行、验证器或急停链路。它不是 Python 三方库，请单独部署服务和它自己的 SQLite 数据库。
-
-```bash
-git clone https://github.com/vivekmaru/omnilink-ai.git
-cd omnilink-ai
-npm install
-npm run dev
-```
-
-OmniLink 通常监听 `http://127.0.0.1:3000`（以 OmniLink 项目当前配置为准）。Workbench 侧无需新增运行时依赖：
-
-```python
-from integrations.omnilink import OmniLinkClient, RunSummaryExporter
-
-client = OmniLinkClient("http://127.0.0.1:3000")
-docs = client.search("gripper calibration")
-answer = client.ask("Which calibration notes mention the gripper?")
-RunSummaryExporter(client, "http://127.0.0.1:8080").export(summary)
-```
-
-导出器只发送运行摘要，不发送原始 JSONL、`TaskGraph`、`SemanticAction`、动作结果、相机数据或安全状态。捕获 `OmniLinkError` 可保证服务不可用时离线流程继续运行。生产部署请使用私网绑定、认证/TLS、出站 URL allowlist、固定 commit/image digest，并确认许可证和 Gemini 数据处理策略。
-
-真实 runner 需要通过 `WORKBENCH_GAZEBO_COMMAND` 或 `--command` 提供 tokenized
-argv。runner 会使用每个 manifest 的 timeout，限制 stdout/stderr 大小，在超时时终止整棵
-进程树，并在发布 artifact 前校验事件日志。
-
-## 架构边界
+很多机器人 Demo 把“命令已接受”当成“任务已完成”。Workbench 把证据放回主链路：
 
 ```text
 目标 -> 受限规划器 -> 语义动作 -> 受信执行器
                          \-> 事件库 -> 验证器 -> 回放/看板
 ```
 
-Dashboard API 只读。所有 HTTP 写方法返回 `405`；服务不会发布 ROS、运动、MCU 或硬件急停命令。
+| 层 | 职责 |
+| --- | --- |
+| 意图 | 从小而严格的动作词表中选择 |
+| 执行 | 由受信运行时下发并记录 |
+| 验证 | 检查动作后的证据，不猜成功 |
+| 回放 | 从追加式事件流重建状态 |
 
-## 路线图
+## 3 分钟开始
 
-- **v0.1.0**：冻结回归基线和证据契约
-- **v0.2.0（当前）**：五类脚本任务、恢复路径、强化后的回放/契约，以及仅限软件范围的
-  MCU、CAN、Motion 和 BSP 基础
-- **下一步**：真实 Gazebo 世界、感知桥、语义运动适配器和仿真故障注入
-- **更远**：不改变证据边界的硬件验证
+要求：Python 3.12。离线运行时不需要 GPU。
+
+```bash
+git clone https://github.com/Quchaosheng/workbench-desk-robot.git
+cd workbench-desk-robot
+python -m pip install -e ".[dev]"
+python tools/scripts/sim_cli.py doctor
+python tools/scripts/sim_cli.py run normal-001 --runner scripted --output-dir runs/demo
+```
+
+运行完整的可移植检查：
+
+```bash
+python -m pytest -q
+python -m ruff check .
+```
+
+脚本 runner 会生成包含 manifest、场景、事件、日志、metadata 和 SHA-256 checksum 的可回放 artifact，并明确标记为 `SCRIPTED_FIXTURE`。
+
+## 当前包含
+
+- `confirmed`、`refuted`、`insufficient_evidence` 三态验证。
+- 严格 JSON schema 与对应的 Pydantic 契约。
+- 带完整性校验回放的追加式 SQLite 事件库。
+- 受限语义工具的失败关闭式策略校验。
+- 只读 dashboard 与确定性仿真 fixture。
+- MCU、CAN、Motion、BSP 的软件基础边界。
+
+## 可选：OmniLink 知识层
+
+[OmniLink AI](https://github.com/vivekmaru/omnilink-ai) 是独立运行的知识服务，用于检索维修笔记、ADR、Issue 和 Workbench 运行摘要。它不参与规划、执行、验证或机器人控制。
+
+```bash
+git clone https://github.com/vivekmaru/omnilink-ai.git
+cd omnilink-ai
+npm install
+npm run dev                 # 通常监听 http://127.0.0.1:3000
+```
+
+Workbench 通过 [`integrations/omnilink/`](integrations/omnilink/) 中的标准库适配器访问：
+
+```python
+from integrations.omnilink import OmniLinkClient
+
+client = OmniLinkClient("http://127.0.0.1:3000")
+results = client.search("gripper calibration")
+answer = client.ask("Which calibration notes mention the gripper?")
+```
+
+只能导出有界的运行摘要。原始 JSONL、`TaskGraph`、`SemanticAction`、动作结果、相机数据和安全状态始终留在 Workbench。捕获 `OmniLinkError` 可保证知识服务不可用时离线流程继续。部署和安全要求见[集成说明](integrations/omnilink/README.md)。
+
+## 诚实状态
+
+离线运行时和软件边界已有测试。端到端 Gazebo 世界、真实感知、语义运动执行和物理硬件证据尚不构成发布承诺。当前证据边界见 [`docs/architecture/`](docs/architecture/) 和 [`sim/README.md`](sim/README.md)。
 
 ## 文档
 
 - [用户指南](docs/user-guide/index.md)
 - [系统架构](docs/architecture/system.md)
+- [仿真边界](sim/README.md)
 - [Motion 基础](robot/control/README.md)
 - [安全 MCU](firmware/mcu/README.md)
 - [机器人 BSP](bsp/README.md)
-- [仿真边界](sim/README.md)
-- [分机部署](docs/deployment/multi-host.md)
+- [多主机部署](docs/deployment/multi-host.md)
 - [安全策略](SECURITY.md)
-- [贡献指南](CONTRIBUTING.md)
 
 ## 许可证
 
-Apache-2.0。详见 [LICENSE](LICENSE) 和 [NOTICE](NOTICE)。
+Apache-2.0，详见 [LICENSE](LICENSE)。

@@ -44,6 +44,8 @@
     "python3 -m ruff check tests/unit/test_container_baseline.py tests/unit/test_container_profiles.py",
     "docker compose config",
     "make container-check",
+    "make container-dashboard-check",
+    "make container-project-check",
     "make container-colcon-build",
     "make container-colcon-test",
     "make container-sim-check",

@@ -5,7 +5,7 @@ PYTHON ?= python3
 	benchmark-resources performance-regression-test offline-integration docs task-check check container-smoke \
 	sim sim-doctor sim-list sim-run container-build container-check container-colcon-build container-colcon-test \
 	container-image-verify container-python-test container-sim-check container-mujoco-check container-hardware-doctor \
-	container-gpu-matrix-check container-host-doctor
+	container-gpu-matrix-check container-host-doctor container-dashboard-check container-project-check
 
 bootstrap:
 	$(PYTHON) -m pip install --upgrade pip
@@ -117,6 +117,22 @@ container-image-verify:
 container-check:
 	docker compose config >/dev/null
 	docker compose run --rm dashboard python3 tools/scripts/local_runner.py --goal "Place the red block in the tray"
+	$(MAKE) container-dashboard-check
+	$(MAKE) container-project-check
+
+container-dashboard-check:
+	docker compose up -d --no-build dashboard
+	@for attempt in $$(seq 1 30); do \
+		if curl --fail --silent http://127.0.0.1:8080/healthz >/dev/null \
+			&& curl --fail --silent http://127.0.0.1:8080/readyz >/dev/null; then \
+			echo "dashboard healthz=200 readyz=200"; exit 0; \
+		fi; \
+		sleep 1; \
+	done; \
+	docker compose logs dashboard; exit 2
+
+container-project-check:
+	docker compose run --rm dashboard bash -lc 'cd /workspace/src && make contract && make scenario-check && make context-check'
 
 container-colcon-build:
 	docker compose run --rm dashboard colcon --log-base /workspace/log build --base-paths /workspace/src/robot/control --build-base /workspace/build --install-base /workspace/install --merge-install --packages-select workbench_motion
@@ -128,8 +144,10 @@ container-python-test:
 	docker compose run --rm dashboard bash -lc 'set -euo pipefail; test_root=$$(mktemp -d /tmp/workbench-python-test.XXXXXX); cp -a /workspace/src/. "$$test_root/"; cd "$$test_root"; PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -v --ignore=tests/unit/test_multi_host_deployment.py'
 
 container-sim-check:
-	docker compose run --rm ros-sim /usr/local/bin/workbench-gazebo-render-smoke
-	docker compose run --rm ros-sim /usr/local/bin/workbench-sim-smoke
+	@status=0; \
+		docker compose run --rm ros-sim /usr/local/bin/workbench-gazebo-render-smoke || status=$$?; \
+		docker compose run --rm ros-sim /usr/local/bin/workbench-sim-smoke || status=$$?; \
+		exit $$status
 
 container-mujoco-check:
 	docker compose run --rm mujoco-gpu /opt/workbench-mujoco-venv/bin/python /usr/local/bin/workbench-mujoco-smoke

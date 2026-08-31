@@ -3,7 +3,12 @@ import json
 import os
 import shutil
 import subprocess
+import sys
+from argparse import Namespace
 from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -11,6 +16,15 @@ ROOT = Path(__file__).resolve().parents[2]
 def _load_doctor():
     path = ROOT / "docker/container-doctor.py"
     spec = importlib.util.spec_from_file_location("workbench_container_doctor", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_script(filename: str):
+    path = ROOT / "docker" / filename
+    spec = importlib.util.spec_from_file_location(f"workbench_{path.stem.replace('-', '_')}", path)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -67,6 +81,68 @@ def test_gpu_detection_does_not_misclassify_datacenter_cards_by_compute_only() -
     assert doctor.detect_gpu_tier("NVIDIA GeForce RTX 5090", "12.0") == "rtx50"
     assert doctor.detect_gpu_tier("NVIDIA A10", "8.6") is None
     assert doctor.detect_gpu_tier("NVIDIA L40S", "8.9") is None
+
+
+def test_nvidia_query_reports_command_failure_and_parses_devices(monkeypatch: pytest.MonkeyPatch) -> None:
+    doctor = _load_doctor()
+    monkeypatch.setattr(doctor.shutil, "which", lambda command: "/usr/bin/nvidia-smi")
+    monkeypatch.setattr(
+        doctor.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(returncode=1, stdout="", stderr="driver unavailable"),
+    )
+    assert doctor._nvidia_query() == ([], "driver unavailable")
+
+    monkeypatch.setattr(
+        doctor.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            returncode=0,
+            stdout="0, GPU-1, NVIDIA GeForce RTX 4060, 570.195.03, 8.9\n",
+            stderr="",
+        ),
+    )
+    devices, error = doctor._nvidia_query()
+    assert error is None
+    assert devices == [
+        {
+            "index": "0",
+            "uuid": "GPU-1",
+            "name": "NVIDIA GeForce RTX 4060",
+            "driver": "570.195.03",
+            "compute_capability": "8.9",
+        }
+    ]
+
+
+def test_container_doctor_main_returns_two_for_fail_closed_profile(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    doctor = _load_doctor()
+    monkeypatch.setattr(doctor, "check_profile", lambda profile: {"profile": profile, "status": "NOT_EXECUTED"})
+    monkeypatch.setattr(sys, "argv", ["container-doctor", "--profile", "ros-sim"])
+
+    assert doctor.main() == 2
+    assert json.loads(capsys.readouterr().out) == {"profile": "ros-sim", "status": "NOT_EXECUTED"}
+
+
+def test_dds_config_validates_interface_and_writes_bounded_profile(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    dds = _load_script("dds_config.py")
+    output = tmp_path / "fastdds.xml"
+    monkeypatch.setenv("WORKBENCH_DDS_INTERFACE", "eth0")
+    monkeypatch.setattr(dds.socket, "if_nametoindex", lambda interface: 2 if interface == "eth0" else 0)
+    monkeypatch.setattr(dds.argparse.ArgumentParser, "parse_args", lambda self: Namespace(output=str(output)))
+
+    assert dds.main() == 0
+    rendered = output.read_text(encoding="utf-8")
+    assert "<interface>eth0</interface>" in rendered
+    assert "<useBuiltinTransports>false</useBuiltinTransports>" in rendered
+
+    monkeypatch.setenv("WORKBENCH_DDS_INTERFACE", "eth0;bad")
+    with pytest.raises(SystemExit, match="invalid characters"):
+        dds.main()
 
 
 def test_compose_keeps_dashboard_cpu_safe_and_gpu_profiles_explicit() -> None:
@@ -192,6 +268,32 @@ def test_host_doctor_requires_at_least_one_gpu_row_for_driver_pass() -> None:
     assert "bool(gpu_rows)" in doctor
 
 
+def test_host_doctor_keeps_gpu_optional_for_cpu_default(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    doctor = _load_script("host_doctor.py")
+    responses = {
+        "docker": (0, "27.0.0"),
+        "compose": (0, "2.30.0"),
+        "nvidia-ctk": (127, "not installed"),
+        "nvidia-smi": (127, "not installed"),
+    }
+    monkeypatch.setattr(doctor, "command_output", lambda command: responses[command[0]])
+    monkeypatch.setattr(doctor.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(doctor.platform, "machine", lambda: "x86_64")
+    monkeypatch.setattr(sys, "argv", ["host-doctor"])
+
+    assert doctor.main() == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["status"] == "PASS"
+    assert report["core_status"] == "PASS"
+    assert report["gpu_status"] == "NOT_EXECUTED"
+
+    monkeypatch.setattr(sys, "argv", ["host-doctor", "--require-gpu"])
+    assert doctor.main() == 2
+    assert json.loads(capsys.readouterr().out)["status"] == "NOT_EXECUTED"
+
+
 def test_gpu_doctor_requires_nvidia_egl_vendor_evidence() -> None:
     doctor = (ROOT / "docker/container-doctor.py").read_text(encoding="utf-8")
 
@@ -215,3 +317,28 @@ def test_colcon_test_and_result_logs_use_writable_volume() -> None:
 
     assert target.count("colcon --log-base /workspace/log") == 2
     assert "test-result --test-result-base /workspace/build" in target
+
+
+def test_container_acceptance_targets_cover_health_contracts_and_independent_sim_smokes() -> None:
+    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+
+    assert "http://127.0.0.1:8080/healthz" in makefile
+    assert "http://127.0.0.1:8080/readyz" in makefile
+    assert "make contract && make scenario-check && make context-check" in makefile
+    sim_target = makefile.split("container-sim-check:\n", 1)[1].split("\n\n", 1)[0]
+    assert "workbench-gazebo-render-smoke || status=$$?" in sim_target
+    assert "workbench-sim-smoke || status=$$?" in sim_target
+
+
+def test_ci_bare_image_smoke_uses_copied_source_workdir() -> None:
+    workflow = (ROOT / ".github/workflows/container-full-stack.yml").read_text(encoding="utf-8")
+
+    assert "--read-only --tmpfs /tmp:size=512m,mode=1777" in workflow
+    assert "--workdir /opt/workbench_source workbench-1:container-ci" in workflow
+    assert "docker compose up -d --no-build dashboard" in workflow
+    assert "http://127.0.0.1:8080/healthz" in workflow
+
+
+@pytest.mark.parametrize("script", ["entrypoint.sh", "gazebo_render_smoke.sh", "sim_smoke.sh"])
+def test_shell_entrypoints_are_syntax_valid(script: str) -> None:
+    subprocess.run(["bash", "-n", str(ROOT / "docker" / script)], check=True)

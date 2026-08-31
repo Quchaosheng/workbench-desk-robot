@@ -4,8 +4,10 @@
 `nvidia/cuda:12.8.1-runtime-ubuntu24.04@sha256:828c4d…ca2e`，容器内安装 ROS 2 Jazzy、Gazebo Harmonic、MoveIt 2、
 TRAC-IK、ros2_control 和 MuJoCo 3.3.7。默认服务仍是无 GPU、无设备权限的只读 dashboard。
 
-当前开发机没有可用的 NVIDIA 驱动，因此仓库中的 GPU、Gazebo、MuJoCo EGL 和 RTX 30/40/50 状态均为
-`NOT_EXECUTED`。配置目标不等于实卡验收结果。
+当前开发机的 NVIDIA 驱动和 Container Toolkit 能识别 RTX 4060 Laptop GPU；但容器只发现 Mesa EGL vendor，
+缺少 NVIDIA EGL vendor JSON。因此当前镜像的 Gazebo/MuJoCo GPU 验收为 `NOT_EXECUTED`。绕过 GPU 门禁进行的
+Gazebo server 诊断仍在 `gz::common::FileLogger::Init` 附近以退出码 139 崩溃。配置目标不等于实卡验收结果，
+也不能把 Mesa/llvmpipe 软件渲染描述成 GPU 成功。
 
 ## 宿主前提
 

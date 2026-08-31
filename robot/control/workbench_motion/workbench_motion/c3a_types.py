@@ -113,6 +113,20 @@ class TransformSnapshot:
 
 
 @dataclass(frozen=True, slots=True)
+class AcceptanceProof:
+    """Evidence binding runtime readiness to the controlled deployment.
+
+    The proof is kept as a separate value object so audit material (publisher
+    graph, component hashes and package versions) has an explicit seam from
+    the runtime state used to make a planning decision.
+    """
+
+    clock_proof_sha256: str
+    component_hashes: tuple[tuple[str, str], ...]
+    package_versions: tuple[tuple[str, str], ...]
+
+
+@dataclass(frozen=True, slots=True)
 class ReadinessSnapshot:
     model: str
     planning_group: str
@@ -140,6 +154,15 @@ class ReadinessSnapshot:
     package_versions: tuple[tuple[str, str], ...]
     config_sha256: str
     readiness_sha256: str
+
+    @property
+    def acceptance_proof(self) -> AcceptanceProof:
+        """Return the audit proof without exposing mutable internals."""
+        return AcceptanceProof(
+            clock_proof_sha256=self.clock_proof_sha256,
+            component_hashes=self.component_hashes,
+            package_versions=self.package_versions,
+        )
 
 
 @dataclass(frozen=True, slots=True)

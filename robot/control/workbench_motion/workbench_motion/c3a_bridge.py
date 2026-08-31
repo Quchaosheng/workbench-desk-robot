@@ -8,6 +8,7 @@ from dataclasses import replace
 from typing import Protocol
 
 from workbench_motion.c3a_types import (
+    AcceptanceProof,
     C3aError,
     ControllerIdentity,
     ControllerTrajectoryPoint,
@@ -29,7 +30,12 @@ from workbench_motion.c3a_types import (
     sha256_bytes,
     valid_sha256,
 )
-from workbench_motion.joint_limits import AcceptedTrajectory, Violation, preflight_trajectory
+from workbench_motion.joint_limits import (
+    AcceptedTrajectory,
+    Violation,
+    preflight_trajectory,
+    trajectory_canonical_bytes,
+)
 
 _TOLERANCE_PROFILES = {"standard": GoalTolerance(position_m=0.005, orientation_rad=0.05)}
 _MOVEIT_SUCCESS = 1
@@ -54,6 +60,17 @@ class ReadinessPort(Protocol):
     def snapshot(self) -> ReadinessSnapshot: ...
 
     def configuration_sha256(self) -> str: ...
+
+
+class AcceptanceProofPort(Protocol):
+    """Optional audit seam exposed by readiness adapters.
+
+    The proof remains part of the readiness decision today; naming this seam
+    makes it possible for a production adapter and an acceptance collector to
+    evolve independently without changing the plan-only interface.
+    """
+
+    def acceptance_proof(self) -> AcceptanceProof: ...
 
 
 class InMemoryPlanningAdapter:
@@ -88,6 +105,9 @@ class InMemoryReadinessAdapter:
     def configuration_sha256(self) -> str:
         return validate_readiness(self.snapshot()).config_sha256
 
+    def acceptance_proof(self) -> AcceptanceProof:
+        return validate_acceptance_proof(validate_readiness(self.snapshot()).acceptance_proof)
+
 
 def _float_hex(value: float) -> str:
     return float(value).hex()
@@ -101,6 +121,21 @@ def _ordered_pairs(values: tuple[tuple[str, object], ...], label: str) -> dict[s
     if len(result) != len(values):
         raise ReadinessError(DiagnosticCode.READINESS_UNAVAILABLE, f"{label} contains duplicates")
     return result
+
+
+def validate_acceptance_proof(proof: object) -> AcceptanceProof:
+    """Validate the audit portion of readiness as one explicit concern."""
+    if not isinstance(proof, AcceptanceProof):
+        raise ReadinessError(DiagnosticCode.READINESS_UNAVAILABLE, "acceptance proof has wrong type")
+    if not valid_sha256(proof.clock_proof_sha256):
+        raise ReadinessError(DiagnosticCode.READINESS_UNAVAILABLE, "readiness clock proof is missing")
+    components = _ordered_pairs(proof.component_hashes, "component hashes")
+    if set(components) != _REQUIRED_COMPONENT_HASHES or any(not valid_sha256(value) for value in components.values()):
+        raise ReadinessError(DiagnosticCode.READINESS_UNAVAILABLE, "component hashes are incomplete")
+    versions = _ordered_pairs(proof.package_versions, "package versions")
+    if not versions or any(not isinstance(value, str) or not value for value in versions.values()):
+        raise ReadinessError(DiagnosticCode.READINESS_UNAVAILABLE, "package versions are incomplete")
+    return proof
 
 
 def _config_payload(snapshot: ReadinessSnapshot) -> dict[str, object]:
@@ -182,6 +217,9 @@ def seal_readiness(snapshot: ReadinessSnapshot) -> ReadinessSnapshot:
 def validate_readiness(snapshot: object) -> ReadinessSnapshot:
     if not isinstance(snapshot, ReadinessSnapshot):
         raise ReadinessError(DiagnosticCode.READINESS_UNAVAILABLE, "readiness snapshot has wrong type")
+    # Keep audit evidence validation behind its own seam while retaining the
+    # fail-closed requirement for every planning readiness snapshot.
+    validate_acceptance_proof(snapshot.acceptance_proof)
     text_fields = (
         snapshot.model,
         snapshot.planning_group,
@@ -192,12 +230,9 @@ def validate_readiness(snapshot: object) -> ReadinessSnapshot:
         snapshot.joint_state_observation_clock_id,
         snapshot.transform_observation_clock_id,
         snapshot.checked_at_clock_id,
-        snapshot.clock_proof_sha256,
     )
     if any(not isinstance(value, str) or not value for value in text_fields):
         raise ReadinessError(DiagnosticCode.READINESS_UNAVAILABLE, "readiness identity is incomplete")
-    if not valid_sha256(snapshot.clock_proof_sha256):
-        raise ReadinessError(DiagnosticCode.READINESS_UNAVAILABLE, "readiness clock proof is missing")
     if not (
         snapshot.joint_state_timestamp_clock_id
         == snapshot.transform_timestamp_clock_id
@@ -246,12 +281,6 @@ def validate_readiness(snapshot: object) -> ReadinessSnapshot:
         or not 0 < profile.max_acceleration_scaling_factor <= 1
     ):
         raise ReadinessError(DiagnosticCode.READINESS_UNAVAILABLE, "planning profile is invalid")
-    components = _ordered_pairs(snapshot.component_hashes, "component hashes")
-    if set(components) != _REQUIRED_COMPONENT_HASHES or any(not valid_sha256(value) for value in components.values()):
-        raise ReadinessError(DiagnosticCode.READINESS_UNAVAILABLE, "component hashes are incomplete")
-    versions = _ordered_pairs(snapshot.package_versions, "package versions")
-    if not versions or any(not isinstance(value, str) or not value for value in versions.values()):
-        raise ReadinessError(DiagnosticCode.READINESS_UNAVAILABLE, "package versions are incomplete")
     if (
         snapshot.transform.parent_frame != snapshot.planning_frame
         or snapshot.transform.child_frame != snapshot.ik_tip_link
@@ -491,22 +520,10 @@ class C3aPlanOnlyBridge:
                 "accepted trajectory was not planned under the current C3a configuration",
             )
         snapshot = accepted.snapshot
-        canonical = canonical_json_bytes(
-            {
-                "schema_version": "1",
-                "joint_names": list(snapshot.joint_names),
-                "points": [
-                    {
-                        "positions": [value.hex() for value in point.positions],
-                        "velocities": [value.hex() for value in point.velocities],
-                        "accelerations": [value.hex() for value in point.accelerations],
-                        "effort": [value.hex() for value in point.effort],
-                        "time_from_start_ns": point.time_from_start_ns,
-                    }
-                    for point in snapshot.points
-                ],
-            }
-        )
+        # Canonicalization belongs to the trajectory preflight module.  The
+        # bridge verifies the sealed bytes but does not maintain a second
+        # serialization implementation that could drift from the validator.
+        canonical = trajectory_canonical_bytes(snapshot)
         if (
             canonical != accepted.canonical_bytes
             or sha256_bytes(canonical) != accepted.trajectory_sha256

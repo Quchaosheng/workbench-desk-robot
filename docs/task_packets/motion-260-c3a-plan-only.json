@@ -8,10 +8,12 @@
     "robot/control/workbench_motion/workbench_motion/c3a_ros_adapter.py",
     "robot/control/workbench_motion/workbench_motion/c3a_types.py",
     "robot/control/workbench_motion/workbench_motion/c3a_plan_probe.py",
+    "robot/control/workbench_motion/workbench_motion/joint_limits.py",
     "robot/control/workbench_motion/launch/c3a_plan_only.launch.py",
     "robot/control/workbench_motion/test/test_c3a_bridge.py",
     "robot/control/workbench_motion/test/test_c3a_ros_adapter.py",
     "robot/control/workbench_motion/test/test_c3a_launch.py",
+    "robot/control/workbench_motion/test/test_trajectory_preflight.py",
     "robot/control/workbench_motion/launch/move_group.launch.py",
     "robot/control/workbench_motion/package.xml",
     "robot/control/workbench_motion/setup.py",
@@ -58,7 +60,7 @@
     "docs/task_packets/motion-057-trajectory-preflight.json"
   ],
   "outputs": [
-    "deep plan-only bridge interface and implementation with internal planning/readiness seams",
+    "deep plan-only bridge interface and implementation with explicit runtime-readiness and acceptance-proof seams",
     "in-memory planning/readiness adapters for tests",
     "bounded plan-only launch harness, sample-level RMW provenance collector, and machine-readable probe evidence",
     "C3a README handoff and zero-dispatch evidence",

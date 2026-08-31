@@ -256,6 +256,16 @@ controller configuration stay behind that interface.  The bridge sends only a
 it creates no ExecuteTrajectory, FollowJointTrajectory, controller-topic, or
 gripper transport.
 
+The implementation keeps two explicit internal seams: runtime readiness
+(fresh joint/TF state, controller identity, planning configuration and the
+fail-closed decision) and acceptance proof (publisher identity, middleware
+timestamps, component hashes, package versions and offline evidence). The
+proof is still validated as part of readiness for C3a's controlled deployment;
+the separate `AcceptanceProof` value object prevents audit serialization from
+becoming a second runtime policy. Trajectory canonicalization remains owned
+by the Phase-2 preflight module and is reused by materialization, so the plan
+bridge has no duplicate hash implementation.
+
 The ordinary MoveGroup launch and the dedicated C3a harness both fix
 `allow_trajectory_execution=false` without a caller override.  Run the bounded
 harness from a sourced Jazzy workspace with a new absolute evidence path:

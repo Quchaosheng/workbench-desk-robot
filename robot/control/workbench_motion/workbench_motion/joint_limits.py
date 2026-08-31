@@ -599,7 +599,8 @@ def _seconds_for_violation(timestamp_ns: int) -> float | None:
         return None
 
 
-def _trajectory_bytes(snapshot: NormalizedTrajectory) -> bytes:
+def trajectory_canonical_bytes(snapshot: NormalizedTrajectory) -> bytes:
+    """Return the single canonical representation used by all Motion stages."""
     return _canonical_json_bytes(
         {
             "schema_version": "1",
@@ -619,7 +620,7 @@ def _trajectory_bytes(snapshot: NormalizedTrajectory) -> bytes:
 
 
 def _accept(snapshot: NormalizedTrajectory, context: PreflightContext) -> AcceptedTrajectory:
-    canonical = _trajectory_bytes(snapshot)
+    canonical = trajectory_canonical_bytes(snapshot)
     accepted = object.__new__(AcceptedTrajectory)
     object.__setattr__(accepted, "snapshot", snapshot)
     object.__setattr__(accepted, "canonical_bytes", canonical)

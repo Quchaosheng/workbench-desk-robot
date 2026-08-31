@@ -19,6 +19,7 @@ import yaml
 from workbench_motion.arm_config import load_arm_config
 from workbench_motion.c3a_bridge import seal_readiness, validate_readiness
 from workbench_motion.c3a_types import (
+    AcceptanceProof,
     ControllerIdentity,
     DiagnosticCode,
     PlanningAdapterError,
@@ -936,3 +937,10 @@ class RosReadinessAdapter:
             "component_hashes": dict(snapshot.component_hashes),
             "package_versions": dict(snapshot.package_versions),
         }
+
+    def acceptance_proof(self) -> AcceptanceProof:
+        """Expose audit proof separately from the runtime readiness snapshot."""
+        snapshot = self._last_readiness
+        if snapshot is None:
+            raise ReadinessError(DiagnosticCode.READINESS_UNAVAILABLE, "acceptance proof is unavailable")
+        return snapshot.acceptance_proof

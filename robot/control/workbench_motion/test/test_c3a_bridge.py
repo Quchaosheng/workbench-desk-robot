@@ -10,8 +10,10 @@ from workbench_motion.c3a_bridge import (
     InMemoryPlanningAdapter,
     InMemoryReadinessAdapter,
     seal_readiness,
+    validate_acceptance_proof,
 )
 from workbench_motion.c3a_types import (
+    AcceptanceProof,
     C3aError,
     ControllerIdentity,
     DiagnosticCode,
@@ -27,7 +29,12 @@ from workbench_motion.c3a_types import (
     TransformSnapshot,
     sha256_bytes,
 )
-from workbench_motion.joint_limits import JointLimit, PreflightPolicy, build_preflight_context
+from workbench_motion.joint_limits import (
+    JointLimit,
+    PreflightPolicy,
+    build_preflight_context,
+    trajectory_canonical_bytes,
+)
 
 NAMES = ("j1", "j2")
 CURRENT = (("j1", 0.0), ("j2", 0.0))
@@ -152,6 +159,26 @@ def test_plan_accepts_closed_pose_and_exposes_only_accepted_trajectory():
     assert request.start_positions == (0.0, 0.0)
     assert request.max_velocity_scaling_factor == 0.1
     assert request.max_acceleration_scaling_factor == 0.1
+
+
+def test_materialize_uses_the_preflight_canonicalization_seam():
+    module, _planner, _readiness = bridge()
+    result = module.plan(goal())
+
+    assert result.accepted_trajectory is not None
+    accepted = result.accepted_trajectory
+    assert accepted.canonical_bytes == trajectory_canonical_bytes(accepted.snapshot)
+
+
+def test_readiness_exposes_acceptance_proof_as_a_separate_immutable_value():
+    snapshot = readiness()
+    proof = snapshot.acceptance_proof
+
+    assert isinstance(proof, AcceptanceProof)
+    assert proof.clock_proof_sha256 == snapshot.clock_proof_sha256
+    assert proof.component_hashes == snapshot.component_hashes
+    assert proof.package_versions == snapshot.package_versions
+    assert validate_acceptance_proof(proof) is proof
 
 
 def test_plan_preserves_the_closed_pose_and_exact_standard_tolerance():

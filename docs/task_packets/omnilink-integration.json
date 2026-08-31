@@ -6,7 +6,7 @@
   "read_only_paths": ["interfaces/**", "services/world_model/**", "robot/control/**", "firmware/**"],
   "forbidden": ["TaskGraph generation", "SemanticAction execution", "raw event export", "shared SQLite database"],
   "acceptance": ["bounded HTTP client", "response schema checks", "safe one-way run summary export", "offline failures remain isolated"],
-  "commands": ["pytest tests/integration/test_omnilink_client.py", "ruff check integrations tests/integration/test_omnilink_client.py"],
+  "commands": ["python -m pytest tests/integration/test_omnilink_client.py", "python -m ruff check integrations tests/integration/test_omnilink_client.py"],
   "evidence": ["mock HTTP test output"],
   "stop_conditions": ["license or security review failure", "interface conflict", "safety implication"]
 }

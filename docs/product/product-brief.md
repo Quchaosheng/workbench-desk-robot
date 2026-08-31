@@ -21,6 +21,15 @@ The first users to validate are small robot teams and research labs that:
 These are hypotheses, not a final market definition. Do not expand the target
 audience until interviews show a repeated problem and a credible path to use.
 
+### Interview cohort rule
+
+Start with **8-10 effective interviews** across at least three of the groups
+above. The group counts are a sampling guide, not four mandatory quotas. An
+effective interview includes a recent concrete task or failure, current
+workaround, impact, and a willingness (or refusal) to test a bounded task.
+Record refusals and non-fit users; they are evidence about the boundary of the
+ICP rather than missing work.
+
 ## Personas to validate
 
 | Persona | Job to be understood | Evidence to collect |
@@ -70,14 +79,27 @@ general-purpose autonomous household operation until their evidence gates pass.
 
 Run a small, diverse set of interviews before committing to a new scenario:
 
-- 3-4 research-lab or university users;
-- 3-4 small robot-team members;
-- 2-3 integrators or field implementers;
-- 2-3 independent ROS/robot developers.
+- 2-4 research-lab or university users;
+- 2-4 small robot-team members;
+- 1-3 integrators or field implementers;
+- 1-3 independent ROS/robot developers.
 
 For each conversation, record a problem card rather than a feature wish list.
 Promote a problem only when multiple records show the same job, failure, or
 cost, and at least one participant is willing to test a bounded task.
+
+## Product decision gates
+
+| Gate | Minimum evidence | Decision allowed |
+|---|---|---|
+| Problem promotion | One concrete example, one source reference, and a falsification condition | Investigate or reject |
+| Roadmap promotion | Repeated pattern across independent participants or runs, measurable impact, and a named evaluator | Prototype or create a bounded Issue |
+| Scenario trial | Known starting state, semantic actions, measurable goal, failure matrix, and evidence owner | Schedule a Design Partner or simulation trial |
+| Release claim | Engineering gate plus eligible evidence class and reproducible artifact | Publish the scoped claim only |
+
+These are default decision gates. A lower sample size may be accepted only when
+the Project Owner records the reason, risk, and follow-up evidence in the
+decision log.
 
 ## Decision rule
 

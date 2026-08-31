@@ -10,6 +10,8 @@ screenshots, and videos privately; link them with an opaque evidence reference.
 - Product version / commit:
 - Scenario ID/version:
 - Environment class:
+- Evidence class: `user_report` / `software` / `scripted_fixture` / `gazebo` / `physical`
+- Reporter role:
 - OS and version:
 - Hardware/model summary (redacted):
 - Python / ROS version, if applicable:
@@ -24,12 +26,13 @@ screenshots, and videos privately; link them with an opaque evidence reference.
 - Minimal reproduction command or procedure:
 - Evidence reference:
 - Related Event Store run/replay ID:
+- Manifest/policy/verifier versions:
 
 ## Classification
 
 - Category: `installation` / `compatibility` / `documentation` / `runtime` / `perception` / `motion` / `evidence` / `network` / `hardware` / `new_problem`
 - Impact: `blocked` / `major` / `moderate` / `minor`
-- Evidence status: `confirmed` / `refuted` / `insufficient_evidence` / `not_executed`
+- Evidence status: `confirmed` / `refuted` / `insufficient_evidence` / `failed` / `not_executed` / `blocked`
 - Temporary workaround:
 - Suspected owner:
 - Next action and due date:
@@ -42,6 +45,7 @@ screenshots, and videos privately; link them with an opaque evidence reference.
 - User retest result:
 - Linked Issue/PR:
 - Follow-up decision:
+- Release eligibility: `false` / `true` (include the applicable gate reference)
 
 ## Quality check
 

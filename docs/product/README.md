@@ -25,6 +25,36 @@ Every proposed scenario should answer two separate questions:
 - [Feedback record template](feedback-record-template.md): make external installation and trial failures reproducible.
 - [Metrics and decision log](metrics-and-decision-log.md): distinguish activity metrics from product and evidence outcomes.
 
+## Evidence flow
+
+Use the lightest artifact that preserves the decision trail:
+
+1. **Problem card** records a user problem, quote, recent example, frequency, impact, and falsification condition.
+2. **Design Partner scenario** records one bounded real task, responsibilities, safety boundary, and evidence agreement.
+3. **Feedback record** records a reproducible installation, trial, or task result with version and run references.
+4. **Engineering artifact** records the Scenario Registry entry, Event Store run, verifier result, and replay hash.
+5. **Decision log** records whether to continue, change, defer, or stop, with links to the preceding evidence.
+
+Do not skip from a conversation directly to a feature Issue. A feature becomes
+ready only after its problem card, success condition, non-goals, and evidence
+owner are clear. A scenario becomes release-relevant only after the applicable
+engineering and evidence gates pass.
+
+## Shared status vocabulary
+
+| Status | Meaning | What it cannot mean |
+|---|---|---|
+| `hypothesis` | Team believes a problem or capability may matter | User validation |
+| `observed` | One concrete user or run example exists | Repeated demand or general success |
+| `repeated` | Independent evidence shows the same pattern | Physical safety or release readiness |
+| `confirmed` | The declared evidence rule is satisfied for this claim | A stronger evidence class, such as physical validation |
+| `insufficient_evidence` | Evidence is missing, stale, or conflicting | Success or failure by assumption |
+| `failed` / `refuted` | The declared outcome or hypothesis was not met | Permanent product rejection without a decision |
+| `not_executed` / `blocked` | The test did not run or cannot be completed | A successful result |
+
+The same word must keep the same meaning in product records, run artifacts,
+Dashboard views, and release reports. When in doubt, preserve the weaker status.
+
 ## Evidence and privacy boundary
 
 The repository may contain only anonymized participant IDs, organization type,

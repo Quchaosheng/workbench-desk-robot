@@ -4,6 +4,13 @@ This is an evidence-gated operating plan for Workbench. Dates are planning
 targets, not evidence that a capability is complete. Engineering and physical
 claims still follow the repository's release gates.
 
+## Operating rule
+
+Run one learning loop and one delivery loop in parallel. Do not start a new
+scenario implementation because a feature request sounds plausible; start it
+only when the Definition of Ready, problem evidence, success condition, and
+rollback path are present.
+
 ## Days 1-30: understand the user and problem
 
 ### Deliverables
@@ -18,6 +25,7 @@ claims still follow the repository's release gates.
 - Every promoted problem has a source reference and falsification condition.
 - At least one problem maps to an existing scenario and one is a candidate for a new scenario.
 - The three most dangerous onboarding or task-completion blockers are named.
+- The product decision log records which assumptions remain untested.
 
 ## Days 31-60: turn evidence into an executable slice
 
@@ -33,6 +41,7 @@ claims still follow the repository's release gates.
 - A user can identify the entry point and expected result without an engineer taking over the main steps.
 - P0 acceptance criteria are complete; unverified claims remain visible.
 - The slice resolves through the Scenario Registry and shared runtime boundaries.
+- The Task Packet and user-facing acceptance criteria agree on the same outcome.
 
 ## Days 61-90: external validation and decision
 
@@ -48,6 +57,7 @@ claims still follow the repository's release gates.
 - At least one external participant completes the declared task or produces a documented failure with sufficient evidence.
 - No fixture, interview, or marketing metric is represented as physical validation.
 - Every decision has an owner, next action, due date, and evidence reference.
+- A missing or conflicting artifact is reported as `UNKNOWN`, `insufficient_evidence`, or `blocked`, not silently scored as success.
 
 ## Mapping to engineering Issues
 
@@ -67,6 +77,19 @@ claims still follow the repository's release gates.
 - Tuesday-Wednesday: interviews, user observation, or trial follow-up.
 - Thursday: convert evidence into problem cards, acceptance criteria, or Issue updates.
 - Friday: review metrics, blockers, decisions, and next actions.
+
+## Weekly scorecard
+
+Every Friday, publish a short record containing:
+
+- learning goal and delivery goal;
+- new problem cards and independent participant count;
+- scenarios tested and evidence class/status;
+- completed, blocked, or deferred decisions;
+- one top risk, one owner, and one dated next action.
+
+The scorecard is a navigation aid. It cannot override a Task Packet, verifier,
+release gate, or human Go/No-Go decision.
 
 No activity metric (messages sent, meetings held, stars, or demos) substitutes
 for a documented user outcome or reproducible engineering evidence.

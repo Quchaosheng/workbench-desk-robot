@@ -14,6 +14,8 @@ authority over safety, release, or shared runtime contracts.
 - Test window:
 - Product and adapter versions:
 - Out of scope:
+- Consent/reference agreement: `private_only` / `anonymous_case_ok` / `public_case_approved`
+- Data retention location and owner:
 
 ## Real task
 
@@ -25,6 +27,7 @@ authority over safety, release, or shared runtime contracts.
 - Measurable success condition:
 - Evidence required to confirm success:
 - Failure and recovery cases:
+- Preflight and abort conditions:
 
 ## Responsibilities
 
@@ -44,7 +47,19 @@ authority over safety, release, or shared runtime contracts.
 - [ ] Task can be started from a known state.
 - [ ] Normal and failure paths are defined.
 - [ ] Evidence bundle and privacy handling are agreed.
+- [ ] Consent, retention, and publication status are recorded.
+- [ ] Safety preflight and abort conditions are reviewed by the site owner.
 - [ ] Continue, change, pause, or stop decision has an owner and date.
+
+## Evidence package
+
+- Run ID(s):
+- Scenario manifest hash:
+- Commit/configuration hash:
+- Verifier and policy versions:
+- Result: `confirmed` / `refuted` / `insufficient_evidence` / `failed` / `not_executed` / `blocked`
+- `release_eligible`: `false` by default
+- Private evidence reference:
 
 ## Guardrails
 
@@ -52,3 +67,4 @@ authority over safety, release, or shared runtime contracts.
 - Do not place partner-identifying data or private logs in Git.
 - Do not convert a partner's verbal approval into `confirmed` without the required observation evidence.
 - Do not let a scenario manifest contain joint-level, CAN, controller, or emergency-stop fields.
+- Do not publish a partner name, quote, image, or metric without the recorded consent status.

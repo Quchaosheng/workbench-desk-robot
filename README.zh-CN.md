@@ -90,6 +90,7 @@ answer = client.ask("Which calibration notes mention the gripper?")
 ## 文档
 
 - [用户指南](docs/user-guide/index.md)
+- [产品证据层](docs/product/README.md)
 - [系统架构](docs/architecture/system.md)
 - [仿真边界](sim/README.md)
 - [Motion 基础](robot/control/README.md)

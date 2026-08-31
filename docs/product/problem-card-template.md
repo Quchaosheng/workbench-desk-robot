@@ -12,6 +12,8 @@ of the repository; use an opaque participant reference.
 - Persona:
 - Scenario ID/version, if known:
 - Date observed:
+- Evidence class: `user_report` / `software` / `scripted_fixture` / `gazebo` / `physical`
+- Independent participant/run count:
 
 ## Evidence
 
@@ -22,6 +24,7 @@ of the repository; use an opaque participant reference.
 - Frequency:
 - Impact (time, cost, risk, or blocked work):
 - Current workaround:
+- Evidence references (opaque IDs only):
 
 ## Interpretation
 
@@ -31,6 +34,7 @@ of the repository; use an opaque participant reference.
 - Proposed success condition:
 - Candidate product or documentation response:
 - Non-goals:
+- Confidence: `low` / `medium` / `high` (explain why):
 
 ## Decision
 
@@ -40,6 +44,14 @@ of the repository; use an opaque participant reference.
 - Next action:
 - Due date:
 - Linked Issue/PR:
+
+## Promotion checklist
+
+- [ ] The problem is grounded in a recent concrete task or failure.
+- [ ] At least two independent records support `repeated`, unless an exception is recorded.
+- [ ] The proposed success condition is observable and measurable.
+- [ ] A falsification condition is explicit.
+- [ ] The proposed response has a bounded scope and named evaluator.
 
 ## Privacy and evidence check
 

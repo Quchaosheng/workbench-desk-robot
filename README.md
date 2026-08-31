@@ -102,6 +102,7 @@ not yet release claims. See [`docs/architecture/`](docs/architecture/) and
 ## Documentation
 
 - [User guide](docs/user-guide/index.md)
+- [Product evidence layer](docs/product/README.md)
 - [System architecture](docs/architecture/system.md)
 - [Simulation boundary](sim/README.md)
 - [Motion foundation](robot/control/README.md)

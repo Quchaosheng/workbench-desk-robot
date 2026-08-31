@@ -1,0 +1,4 @@
+run=1 status=planned diagnostic=ready execution_goals=0 joint_after_arm=True dynamic_tf_after_arm=True graph_hash=recomputed clock_hash=recomputed
+run=2 status=planned diagnostic=ready execution_goals=0 joint_after_arm=True dynamic_tf_after_arm=True graph_hash=recomputed clock_hash=recomputed
+run=3 status=planned diagnostic=ready execution_goals=0 joint_after_arm=True dynamic_tf_after_arm=True graph_hash=recomputed clock_hash=recomputed
+residual_ros_processes=false

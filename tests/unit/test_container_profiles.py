@@ -326,7 +326,11 @@ def test_container_acceptance_targets_cover_health_contracts_and_independent_sim
     assert "http://127.0.0.1:8080/readyz" in makefile
     assert "mktemp -d /tmp/workbench-project-check.XXXXXX" in makefile
     assert "cp -a /workspace/src/." in makefile
-    assert "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTEST_ADDOPTS=\"--ignore=tests/unit/test_multi_host_deployment.py\" make test" in makefile
+    assert (
+        "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 "
+        "PYTEST_ADDOPTS=\"--ignore=tests/unit/test_multi_host_deployment.py\" make test"
+        in makefile
+    )
     assert "PYTEST_ADDOPTS=\"--ignore=tests/unit/test_multi_host_deployment.py\"" in makefile
     sim_target = makefile.split("container-sim-check:\n", 1)[1].split("\n\n", 1)[0]
     assert "workbench-gazebo-render-smoke || status=$$?" in sim_target

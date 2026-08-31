@@ -72,7 +72,7 @@ jobs:
             "linux-headers-$(uname -r)" \
             linux-headers-generic \
             "linux-modules-extra-$(uname -r)" \
-            can-utils build-essential
+            can-utils ethtool build-essential
       - name: Build and check wbcan.ko
         run: |
           for headers in /usr/src/linux-headers-*-generic; do
@@ -118,23 +118,43 @@ jobs:
           echo "WBCAN_DIAGNOSTIC_MARKER=$marker" >> "$GITHUB_ENV"
           printf '<6>%s\n' "$marker" | sudo tee /dev/kmsg >/dev/null
 
+      - name: Capture pre-fault-suite resource snapshot
+        if: always()
+        run: |
+          sudo cat /proc/slabinfo > "$RUNNER_TEMP/wbcan-slabinfo-before.txt"
+          cat /proc/meminfo > "$RUNNER_TEMP/wbcan-meminfo-before.txt"
+
       - name: Run the fault suite
         id: fault_suite
         env:
           WBCAN_TEST_REPORT: ${{ runner.temp }}/wbcan-test-report.tsv
           WBCAN_STRESS_REPORT: ${{ runner.temp }}/wbcan-stress-report.json
+          WBCAN_STRESS_PROFILE: release
         run: |
           sudo env WBCAN_TEST_REPORT="$WBCAN_TEST_REPORT" WBCAN_STRESS_REPORT="$WBCAN_STRESS_REPORT" \
+            WBCAN_STRESS_PROFILE="$WBCAN_STRESS_PROFILE" \
             ./kernel/wbcan/test_wbcan.sh wbcan0
+
+      - name: Preserve a truthful stress result when execution was skipped
+        if: always()
+        run: |
+          if [ ! -f "$RUNNER_TEMP/wbcan-stress-report.json" ]; then
+            python3 kernel/wbcan/test_state_concurrency.py \
+              --write-not-executed-report "$RUNNER_TEMP/wbcan-stress-report.json" \
+              --profile release \
+              --not-executed-reason "the privileged fault/stress step did not execute"
+          fi
 
       - name: Validate stress evidence
         if: always()
-        run: python3 kernel/wbcan/test_state_concurrency.py --validate-report "$RUNNER_TEMP/wbcan-stress-report.json"
+        run: python3 kernel/wbcan/test_state_concurrency.py --validate-report "$RUNNER_TEMP/wbcan-stress-report.json" --require-pass
 
       - name: Capture and validate kernel diagnostics
         if: always()
         env:
           DMESG_LOG: ${{ runner.temp }}/wbcan-dmesg.log
+          BEFORE_SLABINFO_LOG: ${{ runner.temp }}/wbcan-slabinfo-before.txt
+          BEFORE_MEMINFO_LOG: ${{ runner.temp }}/wbcan-meminfo-before.txt
           SLABINFO_LOG: ${{ runner.temp }}/wbcan-slabinfo.txt
           MEMINFO_LOG: ${{ runner.temp }}/wbcan-meminfo.txt
           DIAGNOSTIC_REPORT: ${{ runner.temp }}/wbcan-kernel-diagnostics.json
@@ -144,6 +164,7 @@ jobs:
           cat /proc/meminfo > "$MEMINFO_LOG"
           python3 kernel/wbcan/validate_kernel_diagnostics.py \
             --dmesg "$DMESG_LOG" --slabinfo "$SLABINFO_LOG" --meminfo "$MEMINFO_LOG" \
+            --before-slabinfo "$BEFORE_SLABINFO_LOG" --before-meminfo "$BEFORE_MEMINFO_LOG" \
             --kernel "$(uname -r)" --marker "$WBCAN_DIAGNOSTIC_MARKER" --report "$DIAGNOSTIC_REPORT"
           python3 kernel/wbcan/validate_kernel_diagnostics.py --validate-report "$DIAGNOSTIC_REPORT"
 
@@ -154,6 +175,8 @@ jobs:
           name: wbcan-kernel-diagnostics
           path: |
             ${{ runner.temp }}/wbcan-dmesg.log
+            ${{ runner.temp }}/wbcan-slabinfo-before.txt
+            ${{ runner.temp }}/wbcan-meminfo-before.txt
             ${{ runner.temp }}/wbcan-slabinfo.txt
             ${{ runner.temp }}/wbcan-meminfo.txt
             ${{ runner.temp }}/wbcan-kernel-diagnostics.json

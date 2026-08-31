@@ -44,6 +44,29 @@
 
 #define WBCAN_ECHO_SKB_MAX	4
 
+enum wbcan_ethtool_stat_index {
+	WBCAN_ETHTOOL_TX_FRAMES,
+	WBCAN_ETHTOOL_RX_FRAMES,
+	WBCAN_ETHTOOL_FAULT_CANDIDATES,
+	WBCAN_ETHTOOL_FAULT_INJECTED,
+	WBCAN_ETHTOOL_BUS_ERRORS,
+	WBCAN_ETHTOOL_ARBITRATION_LOST,
+	WBCAN_ETHTOOL_RESTART_ATTEMPTS,
+	WBCAN_ETHTOOL_STOP_ATTEMPTS,
+	WBCAN_ETHTOOL_STAT_COUNT,
+};
+
+static const char *const wbcan_ethtool_stat_names[WBCAN_ETHTOOL_STAT_COUNT] = {
+	[WBCAN_ETHTOOL_TX_FRAMES]		= "tx_frames",
+	[WBCAN_ETHTOOL_RX_FRAMES]		= "rx_frames",
+	[WBCAN_ETHTOOL_FAULT_CANDIDATES]	= "fault_candidates",
+	[WBCAN_ETHTOOL_FAULT_INJECTED]	= "fault_injected",
+	[WBCAN_ETHTOOL_BUS_ERRORS]		= "bus_errors",
+	[WBCAN_ETHTOOL_ARBITRATION_LOST]	= "arbitration_lost",
+	[WBCAN_ETHTOOL_RESTART_ATTEMPTS]	= "restart_attempts",
+	[WBCAN_ETHTOOL_STOP_ATTEMPTS]	= "stop_attempts",
+};
+
 /* Fault modes. Values are the debugfs ABI; do not renumber. */
 enum wbcan_fault {
 	WBCAN_FAULT_NONE	= 0,
@@ -572,8 +595,48 @@ static const struct net_device_ops wbcan_netdev_ops = {
 	.ndo_get_stats64	= wbcan_get_stats64,
 };
 
+static int wbcan_get_sset_count(struct net_device *dev, int stringset)
+{
+	if (stringset == ETH_SS_STATS)
+		return WBCAN_ETHTOOL_STAT_COUNT;
+	return -EOPNOTSUPP;
+}
+
+static void wbcan_get_strings(struct net_device *dev, u32 stringset, u8 *data)
+{
+	unsigned int index;
+
+	if (stringset != ETH_SS_STATS)
+		return;
+	for (index = 0; index < WBCAN_ETHTOOL_STAT_COUNT; index++)
+		strscpy(data + index * ETH_GSTRING_LEN,
+			wbcan_ethtool_stat_names[index], ETH_GSTRING_LEN);
+}
+
+static void wbcan_get_ethtool_stats(struct net_device *dev,
+				    struct ethtool_stats *stats, u64 *data)
+{
+	struct wbcan_priv *priv = netdev_priv(dev);
+	unsigned long flags;
+
+	spin_lock_irqsave(&priv->lock, flags);
+	data[WBCAN_ETHTOOL_TX_FRAMES] = priv->stat_tx;
+	data[WBCAN_ETHTOOL_RX_FRAMES] = priv->stat_rx;
+	data[WBCAN_ETHTOOL_FAULT_CANDIDATES] = priv->stat_seen;
+	data[WBCAN_ETHTOOL_FAULT_INJECTED] = priv->stat_injected;
+	data[WBCAN_ETHTOOL_BUS_ERRORS] = priv->can.can_stats.bus_error;
+	data[WBCAN_ETHTOOL_ARBITRATION_LOST] =
+		priv->can.can_stats.arbitration_lost;
+	data[WBCAN_ETHTOOL_RESTART_ATTEMPTS] = priv->stat_restart_attempts;
+	data[WBCAN_ETHTOOL_STOP_ATTEMPTS] = priv->stat_stop_attempts;
+	spin_unlock_irqrestore(&priv->lock, flags);
+}
+
 static const struct ethtool_ops wbcan_ethtool_ops = {
-	.get_ts_info	= ethtool_op_get_ts_info,
+	.get_ts_info		= ethtool_op_get_ts_info,
+	.get_strings		= wbcan_get_strings,
+	.get_ethtool_stats	= wbcan_get_ethtool_stats,
+	.get_sset_count		= wbcan_get_sset_count,
 };
 
 /* --------------------------------------------------------------- debugfs ABI
@@ -848,6 +911,12 @@ static int __init wbcan_init(void)
 				       CAN_CTRLMODE_BERR_REPORTING;
 	priv->can.do_set_mode = wbcan_set_mode;
 	WRITE_ONCE(priv->can.state, CAN_STATE_STOPPED);
+	/*
+	 * alloc_candev() leaves the TX queue runnable until ndo_open(). Keep
+	 * the queue stopped while the singleton is registered but down, so a
+	 * fresh load has one coherent stopped-state snapshot.
+	 */
+	netif_stop_queue(wbcan_dev);
 
 	err = register_candev(wbcan_dev);
 	if (err)

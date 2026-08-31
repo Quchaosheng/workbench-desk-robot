@@ -1,0 +1,52 @@
+{
+  "issue": "RELEASE-v0.2.0",
+  "human_owner": "Quchaosheng",
+  "objective": "Prepare the human-requested v0.2.0 software release by synchronizing package metadata, documenting the merged main-branch capabilities, and preserving explicit simulation, hardware, and safety evidence boundaries.",
+  "allowed_paths": [
+    "README.md",
+    "README.zh-CN.md",
+    "pyproject.toml",
+    "libs/kernel/package.xml",
+    "libs/hardware/package.xml",
+    "robot/control/workbench_motion/package.xml",
+    "robot/control/workbench_motion/setup.py",
+    "services/backend/workbench_backend/server.py",
+    "docs/deployment/multi-host.md",
+    "docs/task_packets/release-v0.2.0.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "firmware/**",
+    "hardware/safety/**"
+  ],
+  "forbidden": [
+    "interface or protocol changes",
+    "runtime behavior changes beyond the reported software version",
+    "claims of Gazebo, physical robot, procurement, certification, or hardware release readiness"
+  ],
+  "acceptance": [
+    "all distributable package and health-endpoint version metadata reports 0.2.0",
+    "English and Chinese READMEs identify v0.2.0 as the current software release and describe only capabilities merged into main",
+    "README evidence boundaries keep scripted fixtures, Gazebo, MoveIt execution, camera, BSP image, and physical hardware claims separate",
+    "deployment examples reference the published v0.2.0 image tag",
+    "the release diff excludes every open pull request",
+    "repository required checks pass before tagging"
+  ],
+  "commands": [
+    "python tools/scripts/check_task_packet.py docs/task_packets/release-v0.2.0.json",
+    "make check",
+    "git diff --check"
+  ],
+  "evidence": [
+    "task packet validation output",
+    "required check output",
+    "GitHub release-image workflow run",
+    "published v0.2.0 tag and GitHub Release URL"
+  ],
+  "stop_conditions": [
+    "the human owner has not explicitly requested publication",
+    "main changes after release validation and before tagging",
+    "a required check or release-image job fails",
+    "release notes would require an unmerged or ineligible physical claim"
+  ]
+}

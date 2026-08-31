@@ -13,15 +13,20 @@
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2ea44f)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/Quchaosheng/workbench-desk-robot?display_name=tag)](https://github.com/Quchaosheng/workbench-desk-robot/releases/latest)
 [![状态](https://img.shields.io/badge/status-软件基础-f0c36b)](#诚实状态)
 
 [English](README.md)
+
+**当前软件版本：**[v0.2.0](https://github.com/Quchaosheng/workbench-desk-robot/releases/tag/v0.2.0)，
+覆盖确定性离线运行时、五类任务、强化后的回放与契约边界，以及仅限软件范围的 MCU、CAN、
+Motion 和 BSP 基础。
 
 这个项目只问一个很实际的问题：**机器人真的完成任务了吗？我们能证明吗？**
 
 当前机械基线是 **Revision D**：`540 × 520 mm` 稳定移动底座、`350 mm` 带刹车升降躯干、
 两只七轴机械臂、18 L 货舱和机械锁止快换工具。双臂取快递、清洁和感应炉锅边备餐是目标能力，
-仍需样机验证；宣传图不是已装配或已认证产品的性能承诺。头部屏幕提供 `idle`、`happy`、
+仍需端到端仿真和样机验证；宣传图不是已装配或已认证产品的性能承诺。头部屏幕提供 `idle`、`happy`、
 `thinking`、`help_needed`、`task_complete`、`hot_zone_warning` 等状态。
 
 ## 为什么值得做
@@ -64,11 +69,12 @@ metadata 和 checksums。它会明确标记为 `SCRIPTED_FIXTURE`，并保持
 
 - 11 个 JSON schema 定义模块边界
 - 入口严格校验，并配套 Pydantic 模型
-- 仅追加事件库，支持从检查点确定性回放
+- 仅追加 SQLite 事件库，支持完整性校验回放、检查点和带 checksum 校验的 snapshot 恢复
 
 **受限的 Agent 行为**
 
 - 模型只能路由 `observe`、`grasp`、`place`、`ask_confirm`、`express`、`stop`
+- 基于 registry 的字段、类型和范围精确校验，以及失败关闭式策略检查
 - 关节位置、速度和硬件急停不在模型权限内
 - 危险目标和越界目标默认失败关闭
 
@@ -80,16 +86,21 @@ metadata 和 checksums。它会明确标记为 `SCRIPTED_FIXTURE`，并保持
 
 ## 诚实状态
 
-**现在可用：**确定性 Python runtime、五类任务、可回放事件日志、只读 dashboard、
-本地模型路由、场景校验和失败关闭式仿真控制面。
+**现在可用：**确定性 Python runtime、五类任务、带完整性校验的 SQLite 回放、只读 dashboard、
+本地模型路由、场景校验、严格的 MCU Wire V1 与虚拟安全状态测试、无 ROS 依赖的运动预检，
+以及失败关闭式仿真控制面。
 
-**还没有：**完整 Gazebo 世界、真实相机桥接、MoveIt 抓取放置适配器、Gazebo 实测任务结果
-和真实硬件证据。仓库中的 fixture 是软件链路测试，不是机器人或 Gazebo 证据。
+**还没有：**端到端 Gazebo 任务世界、语义 MoveIt 抓取放置适配器、真实相机桥接、
+可用于发布判定的 Gazebo 任务结果和真实硬件证据。脚本场景 fixture 是软件链路测试，
+不是机器人或 Gazebo 任务证据。独立的 Phase 1/2 Motion artifact 只证明其记录提交上的有界能力，
+不证明端到端任务世界或物理执行。
 
-**BSP 基线：**原型方案已选定一块 Jetson Orin Nano Super 8 GB Linux 主控和六个控制域：
+**BSP 基线：**逻辑原型基线指定一块 Jetson Orin Nano Super 8 GB Linux 主控和六个控制域：
 底盘、左右机械臂、左右末端以及独立安全域。[`bsp/`](bsp/) 已包含 CAN 身份、kernel/服务
 要求、固件兼容、成本审查和失败关闭式 readiness 校验。载板 pin/IRQ、供应商协议、启动镜像、
 AVL 审批和实机 bring-up 在真实证据到位前仍保持 `BLOCKED` 或 `NOT_EXECUTED`。
+JetPack、L4T、kernel、rootfs、recovery 和工具链来源及 hash 仍未解析；
+`bsp/image/build-inputs.yaml` 有意保持 `status: inputs_unresolved`，当前没有构建启动镜像。
 
 仓库提供的确定性保证彼此独立：
 
@@ -109,9 +120,11 @@ seed 本身不能决定事件顺序；这些保证也不代表 Gazebo 物理、�
 | --- | --- | --- |
 | Python runtime | Linux 和 Windows 上的单元、集成测试 | Gazebo、ROS 2 或机器人运动 |
 | 容器 | runtime 与 devcontainer 使用同一个不可变 Ubuntu digest | 未固定基础镜像也可复现 |
-| Dashboard 后端 | 有界只读 HTTP API；写方法返回 `405` | 公网部署认证或任何控制权限 |
-| `wbcan` | Linux 内核构建、虚拟 SocketCAN 故障测试、并发安全计数 | 真实 CAN 时序、MCU 行为或执行器安全 |
-| 机器人 BSP | 已选原型拓扑、manifest、kernel/服务要求和 readiness 校验 | 可启动 Jetson 镜像、获批 AVL、真实 CAN、急停或散热证据 |
+| Dashboard 后端 | 版本化只读 API 和有界 allow-list 远程事件源 | 公网认证或任何控制权限 |
+| `wbcan` | 内核构建、虚拟故障/恢复压力测试、诊断及 idle/status-reader 延迟报告 | 真实 CAN 时序、硬实时保证、MCU 行为或执行器安全 |
+| 安全 MCU | 跨平台 C 状态机、Wire V1 codec、watchdog/STOP 时序和 Host/QEMU replay protection 测试 | CH32V307 CAN HAL 行为、电气时序或物理安全证据 |
+| Motion 基础 | 无 ROS 依赖的确定性轨迹预检，以及已记录的 Phase 1/2 可达性/控制器证据 | 已合并的语义规划执行适配器、完整 Gazebo 任务闭环或物理运动安全 |
+| 机器人 BSP | 逻辑拓扑、暂定板卡/相机 manifest、失败关闭式 readiness 和未解析镜像输入门禁 | 可启动镜像、获批可采购 SKU、标定、真实 CAN、急停或散热证据 |
 | 脚本场景 | 带 checksum 的确定性 fixture artifact | 真实机器人或 Gazebo 执行 |
 
 完整的可移植检查是 `python -m pytest`。Linux CI 另外负责容器、MCU-QEMU 和特权内核模块
@@ -170,8 +183,9 @@ Dashboard API 只读。所有 HTTP 写方法返回 `405`；服务不会发布 RO
 
 ## 路线图
 
-- **v0.1**：冻结回归基线和证据契约
-- **v0.2**：五类脚本任务和恢复路径
+- **v0.1.0**：冻结回归基线和证据契约
+- **v0.2.0（当前）**：五类脚本任务、恢复路径、强化后的回放/契约，以及仅限软件范围的
+  MCU、CAN、Motion 和 BSP 基础
 - **下一步**：真实 Gazebo 世界、感知桥、语义运动适配器和仿真故障注入
 - **更远**：不改变证据边界的硬件验证
 
@@ -179,6 +193,8 @@ Dashboard API 只读。所有 HTTP 写方法返回 `405`；服务不会发布 RO
 
 - [用户指南](docs/user-guide/index.md)
 - [系统架构](docs/architecture/system.md)
+- [Motion 基础](robot/control/README.md)
+- [安全 MCU](firmware/mcu/README.md)
 - [机器人 BSP](bsp/README.md)
 - [仿真边界](sim/README.md)
 - [分机部署](docs/deployment/multi-host.md)

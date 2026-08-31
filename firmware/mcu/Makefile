@@ -17,8 +17,8 @@ HOSTCC  ?= cc
 BUILD   := build
 CORE    := $(wildcard core/*.c)
 SHARED_TESTS := tests/state_machine_tests.c tests/frame_codec_tests.c tests/watchdog_tests.c \
-                tests/command_dedup_tests.c
-HOST_TESTS := $(SHARED_TESTS) tests/main_host.c
+                tests/command_dedup_tests.c tests/can_bridge_tests.c
+HOST_TESTS := $(SHARED_TESTS) tests/can_bridge_host_tests.c tests/main_host.c
 
 # rv32imac: no FPU. -mabi=ilp32 (not ilp32f/d) so a stray double is a link error
 # rather than silently pulling in soft-float.
@@ -34,7 +34,8 @@ HOSTSANFLAGS := $(HOSTFLAGS) -fsanitize=address,undefined -fno-omit-frame-pointe
 MAX_TEXT := 32768
 MAX_BSS  := 8192
 
-.PHONY: all host host-sanitize qemu board test-host test-host-sanitize test-qemu size-check verify-no-fp clean
+.PHONY: all host host-sanitize qemu board test-host test-host-sanitize test-qemu \
+        host-test codec-sanitize qemu-test size-check verify-no-fp clean
 
 all: host qemu
 
@@ -59,6 +60,10 @@ test-host-sanitize: host-sanitize
 	 UBSAN_OPTIONS=halt_on_error=1 \
 	 $(BUILD)/host/test-runner-sanitize
 
+# Issue-facing aliases retained alongside the established target names.
+host-test: test-host
+codec-sanitize: test-host-sanitize
+
 # ---------------------------------------------------------------- qemu target
 qemu: $(BUILD)/qemu/mcu.elf
 
@@ -82,6 +87,8 @@ test-qemu: qemu
 	@qemu-system-riscv32 -machine virt -nographic -bios none \
 	  -kernel $(BUILD)/qemu/mcu.elf \
 	  -no-reboot -semihosting-config enable=on,target=native
+
+qemu-test: test-qemu
 
 # --------------------------------------------------------------- board target
 board: $(BUILD)/board/mcu.elf

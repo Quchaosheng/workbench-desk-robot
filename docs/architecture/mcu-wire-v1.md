@@ -1,6 +1,7 @@
 # MCU CAN Wire V1
 
-Status: **firmware-owned binary contract** for Issue #54.
+Status: **firmware-owned binary contract** for Issue #54, connected to the raw
+HAL envelope by Issue #180.
 
 This document maps the frozen logical MCU protocol v1.0 into one Classic CAN
 data frame. The logical contract remains normative for frame meaning. Wire V1
@@ -17,6 +18,11 @@ models.
 - Byte 0 is the compact protocol version. Logical version `"1.0"` is `0x10`.
 - CAN's frame CRC is the transport integrity check; Wire V1 adds no payload
   checksum.
+
+The raw controller boundary and rejection order are defined in
+`docs/architecture/mcu-can-hal-boundary-v1.md`. In particular,
+`hal_can_frame.arbitration_id` is the 11-bit value in the table below, while
+the logical 16-bit `command_id` remains inside payload bytes 1..2.
 
 The logical `frame_id`, `sent_at_us` and `clock_id` fields are adapter/evidence
 metadata and are not transmitted in the eight-byte CAN payload. A bridge owns
@@ -143,5 +149,7 @@ semantics are invalid. The encoder validates the complete logical wire object
 and destination capacity before writing any output byte.
 
 Wire V1 does not implement command deduplication, watchdog scheduling, host
-transport dispatch, CAN controller registers, bus-off recovery or electrical
-validation. Those remain separate issues and hardware evidence gates.
+transport dispatch, CAN controller registers, bus-off recovery, multi-node
+addressing or electrical validation. The Issue #180 bridge validates the raw
+envelope and routes decoded frames, but real target drivers and physical
+evidence remain separate owner-gated work.

@@ -1,12 +1,22 @@
 {
+  "bms": {
+    "pass": true,
+    "physical_results": "NOT_EXECUTED",
+    "state_machine_sha256": "29072a498844f014412e58c80588601d71a4c95fe74405cdc3efe8c3537f6632",
+    "status": "DESIGN_BASELINE_ONLY",
+    "transition_table_sha256": "95704d7a78b06ba4eafac34b7dd3a0907ddde933c7a6de5202986ac002c85d1d"
+  },
   "checks": {
     "all_fmea_actions_are_above_rpn_threshold": true,
     "all_package_files_exist": true,
     "all_protection_levels_are_defined": true,
+    "bms_design_and_physical_status_are_preserved": true,
     "bms_fault_transitions_open_and_latch": true,
     "bms_has_fail_closed_states": true,
     "bms_run_entry_requires_precharge_or_derate_recovery": true,
+    "bms_state_machine_has_executable_validation": true,
     "bms_transition_graph_uses_known_states": true,
+    "bms_transition_table_hash_is_present": true,
     "certificates_block_po": true,
     "certification_is_not_claimed": true,
     "compliance_matrix_has_three_required_programs": true,

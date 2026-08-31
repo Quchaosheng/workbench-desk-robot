@@ -19,6 +19,7 @@ PASS=0
 FAIL=0
 REPORT_FILE="${WBCAN_TEST_REPORT:-}"
 STRESS_REPORT_FILE="${WBCAN_STRESS_REPORT:-}"
+STRESS_PROFILE="${WBCAN_STRESS_PROFILE:-developer-smoke}"
 
 red()   { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
@@ -43,10 +44,11 @@ report_check() {
 
 need() {
 	command -v "$1" >/dev/null 2>&1 || {
-		red "missing $1 (apt-get install can-utils)"; exit 1; }
+		red "missing $1 (apt-get install can-utils ethtool)"; exit 1; }
 }
 need cansend
 need candump
+need ethtool
 need python3
 
 if ! dmesg >/dev/null 2>&1; then
@@ -168,6 +170,32 @@ check() {
 	fi
 }
 
+ethtool_stat() {
+	ethtool -S "$IFACE" 2>/dev/null |
+		awk -v key="$1" '$1 == key ":" { print $2; found = 1; exit }
+		     END { if (!found) exit 1 }'
+}
+
+ethtool_stats=$(ethtool -S "$IFACE" 2>/dev/null || true)
+if [ -n "$ethtool_stats" ]; then
+	ethtool_ready=1
+else
+	ethtool_ready=0
+fi
+check "ethtool statistics are available" "1" "$ethtool_ready"
+ethtool_fields_complete=1
+missing_ethtool_fields=""
+for ethtool_key in tx_frames rx_frames fault_candidates fault_injected bus_errors arbitration_lost restart_attempts stop_attempts; do
+	if ! grep -Eq "^[[:space:]]*$ethtool_key:[[:space:]]*[0-9]+$" <<<"$ethtool_stats"; then
+		ethtool_fields_complete=0
+		missing_ethtool_fields="${missing_ethtool_fields}${missing_ethtool_fields:+,}$ethtool_key"
+	fi
+done
+check "ethtool exposes ethtool key" "1" "$ethtool_fields_complete"
+if [ "$ethtool_fields_complete" -eq 0 ]; then
+	red "missing ethtool fields: $missing_ethtool_fields"
+fi
+
 # wbcan is a module-load singleton, not an RTNL-created link kind.
 if ip link add dev wbcan-test type wbcan 2>/dev/null; then
 	check "RTNL creation is rejected for singleton wbcan" "rejected" "accepted"
@@ -199,6 +227,10 @@ clear_fault
 out=$(capture 300 & sleep 0.1; cansend "$IFACE" 123#DEADBEEF; wait)
 check "baseline delivers frame" \
       "1" "$(grep -c 'DEADBEEF' <<<"$out")"
+before_ethtool_tx=$(ethtool_stat tx_frames)
+cansend "$IFACE" 124#0102
+after_ethtool_tx=$(ethtool_stat tx_frames)
+check "ethtool tx_frames advances" "1" "$((after_ethtool_tx - before_ethtool_tx))"
 
 # SocketCAN own-message and local-loopback options must keep their standard
 # meaning even though this driver performs the echo itself.
@@ -551,6 +583,7 @@ stress_args=()
 if [ -n "$STRESS_REPORT_FILE" ]; then
 	stress_args+=(--report "$STRESS_REPORT_FILE")
 fi
+stress_args+=(--profile "$STRESS_PROFILE" --module "$(dirname "$0")/wbcan.ko")
 if python3 "$(dirname "$0")/test_state_concurrency.py" "$IFACE" "$DBG" "${stress_args[@]}"
 then
 	green "PASS  concurrent state and queue transitions stay bounded"

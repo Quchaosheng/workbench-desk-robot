@@ -7,7 +7,7 @@ Decision and rationale: `docs/decisions/ADR-0003-mcu-riscv-qemu.md`.
 
 ```
 core/           platform-independent C. State machine, frame codec,
-                watchdog timing, dedup, ring buffers.
+                HAL/Wire bridge, watchdog timing, dedup, ring buffers.
                 No peripheral registers. No vendor headers.
 hal/qemu/       QEMU target, CTU CAN FD over PCI. Used by CI.
 hal/ch32v307/   real board, CH32V307 CAN peripheral. P3.
@@ -46,6 +46,7 @@ QEMU models SJA1000 and CTU CAN FD, not the CH32V307 CAN peripheral.
 | Watchdog timing under a real timer interrupt | Bit timing (BRP/TSEG1/TSEG2/SJW) |
 | Dedup across sequence wraparound | Error frames, bus-off recovery |
 | Frame codec, ID partition enforcement | Electrical behaviour, EMI |
+| Raw-envelope rejection and STOP-first bridge logic | Controller FIFO/IRQ and wire arbitration |
 | Absence of malloc and FP instructions | Brownout, power-on reset |
 
 ## Build
@@ -67,8 +68,24 @@ Issue #54 adds the strict Classic CAN Wire V1 codec and shared Host/QEMU golden
 vectors. Issue #60 adds the allocation-free heartbeat watchdog, bounded STOP
 acknowledgement timing, fake-clock tests and QEMU machine-timer/watchdog
 evidence. Issue #61 adds the fixed-memory ordinary-command replay window,
-trusted startup-session gate and shared Host/QEMU wraparound corpus. The HAL CAN
-driver and physical CAN validation remain separate follow-up tasks.
+trusted startup-session gate and shared Host/QEMU wraparound corpus. Issue #180
+adds the strict raw HAL/Wire V1 bridge and bounded Host fake CAN transport. The
+QEMU and physical target CAN drivers, six-domain arbitration and physical CAN
+validation remain separate owner-gated follow-up work and are `NOT_EXECUTED`.
+
+## CAN HAL/Wire boundary
+
+`core/can_bridge.[ch]` is the only raw-envelope mapping. The HAL exposes an
+11-bit `arbitration_id`, DLC, explicit extended/RTR/error/FD flags and eight
+data bytes. The logical 16-bit `command_id` remains in Wire V1 payload bytes
+1..2. Only a flag-free, DLC-8 standard frame with a known Wire V1 ID can be
+decoded; malformed or wrong-direction traffic produces no state-machine event.
+
+MCU ingress checks STOP before ordinary command routing. A valid STOP bypasses
+the ordinary startup-session gate and dedup window, and its ACK is confirmed
+only after `hal_can_send()` accepts the transport handoff. The complete
+contract, fake evidence and physical/multi-node limits are documented in
+`docs/architecture/mcu-can-hal-boundary-v1.md`.
 
 ## Timing safety path
 

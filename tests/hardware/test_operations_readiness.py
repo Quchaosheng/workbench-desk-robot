@@ -21,6 +21,10 @@ def test_operations_baseline_has_all_quantitative_gates() -> None:
     assert report["pass"]
     assert report["status"] == "EXTERNAL_EVIDENCE_REQUIRED"
     assert all(report["checks"].values())
+    assert report["bms"]["pass"]
+    assert report["bms"]["status"] == "DESIGN_BASELINE_ONLY"
+    assert report["bms"]["physical_results"] == "NOT_EXECUTED"
+    assert len(report["bms"]["transition_table_sha256"]) == 64
 
 
 def test_planning_values_are_not_claimed_as_physical_evidence() -> None:
@@ -44,6 +48,14 @@ def test_task_packet_is_bounded_and_fail_closed() -> None:
     assert "firmware/**" in packet["forbidden"]
     assert "interfaces/**" in packet["forbidden"]
     assert any("invented" in condition for condition in packet["stop_conditions"])
+
+
+def test_bms_generated_report_preserves_design_and_physical_status() -> None:
+    report = json.loads((ROOT / "hardware/power/generated/bms_state_machine_report.json").read_text(encoding="utf-8"))
+    assert report["pass"]
+    assert report["status"] == "DESIGN_BASELINE_ONLY"
+    assert report["physical_results"] == "NOT_EXECUTED"
+    assert report["release_ready"] is False
 
 
 def test_structured_evidence_attachments_are_complete() -> None:

@@ -43,15 +43,33 @@ void hal_timer_disarm(void);
 void hal_timer_enable(void);
 
 /* ----------------------------------------------------------------------- CAN
- * Frame as it goes on the wire. Matches mcu_protocol.schema.json.
+ * Raw controller envelope, before Wire V1 decoding.  The arbitration ID is
+ * the standard 11-bit CAN identifier; it is not the logical 16-bit command
+ * ID stored in payload bytes 1..2.  Keeping those names distinct prevents a
+ * STOP command_id (>= 0x8000) from being written into an 11-bit controller
+ * register.
  *
- * QEMU gives us CTU CAN FD over PCI; the board gives us the CH32V307
- * peripheral. Neither detail appears above this line.
+ * flags is deliberately a byte rather than C bit-fields so every target maps
+ * controller metadata explicitly.  Wire V1 accepts only flags == NONE,
+ * DLC == 8 and arbitration_id <= 0x7ff.  The bridge rejects all other
+ * envelopes before decoding or safety-state mutation.
  */
+#define HAL_CAN_STANDARD_ID_MAX 0x07ffu
+#define HAL_CAN_CLASSIC_DLC_MAX 8u
+
+typedef enum {
+    HAL_CAN_FRAME_FLAG_NONE = 0u,
+    HAL_CAN_FRAME_FLAG_EXTENDED_ID = 1u << 0,
+    HAL_CAN_FRAME_FLAG_REMOTE = 1u << 1,
+    HAL_CAN_FRAME_FLAG_ERROR = 1u << 2,
+    HAL_CAN_FRAME_FLAG_FD = 1u << 3
+} hal_can_frame_flag_t;
+
 typedef struct {
-    uint16_t id;        /* <=32767 command, >=32768 stop. Enforced in FW4. */
-    uint8_t  len;       /* 0..8 */
-    uint8_t  data[8];
+    uint16_t arbitration_id;
+    uint8_t dlc;
+    uint8_t flags;
+    uint8_t data[HAL_CAN_CLASSIC_DLC_MAX];
 } hal_can_frame;
 
 bool hal_can_init(void);

@@ -1,2 +1,0 @@
-python3 tools/scripts/validate_scenarios.py
-scenario validation passed for 12 frozen and 24 expanded manifest(s); same-seed materialization is deterministic

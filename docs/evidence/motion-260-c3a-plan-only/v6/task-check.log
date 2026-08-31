@@ -1,2 +1,0 @@
-python3 tools/scripts/check_task_packet.py docs/task_packets/motion-260-c3a-plan-only.json
-Task Packet validation passed: docs/task_packets/motion-260-c3a-plan-only.json

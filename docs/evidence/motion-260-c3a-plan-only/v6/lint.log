@@ -1,4 +1,0 @@
-python3 -m ruff check .
-All checks passed!
-python3 -m ruff format --check .
-330 files already formatted

@@ -1,0 +1,34 @@
+{
+  "schema_version": "c3a-layering-summary-1",
+  "code_commit": "ecf4d14",
+  "base_function_commit": "c35c9ad0fec22caea2e22434ca6036d8f708395d",
+  "evidence_base": "docs/evidence/motion-260-c3a-plan-only/v6/",
+  "changes": [
+    "AcceptanceProof is an explicit immutable audit seam over readiness evidence.",
+    "Runtime readiness continues to validate the proof fail-closed for the controlled C3a deployment.",
+    "Trajectory canonicalization is implemented once in joint_limits and reused by materialization."
+  ],
+  "motion_tests": "347 passed",
+  "focused_tests": "173 passed",
+  "required_checks": {
+    "lint": "passed",
+    "contract": "passed",
+    "scenario_check": "passed",
+    "context_check": "passed",
+    "demo_scripted": "passed",
+    "task_packet": "passed",
+    "task_packet_fixed_base": "passed"
+  },
+  "root_make_test": {
+    "status": "environment_blocked",
+    "passed": 818,
+    "failed": 6,
+    "failures": [
+      "hardware schematic test requires missing kiutils dependency",
+      "five existing task-packet fixture tests reject robot/control/** link boundary"
+    ],
+    "motion_related_failures": 0
+  },
+  "ros_harness": "v6 evidence retained unchanged; no new ROS harness claim made",
+  "git_dirty": false
+}

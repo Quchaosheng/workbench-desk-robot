@@ -132,7 +132,7 @@ container-dashboard-check:
 	docker compose logs dashboard; exit 2
 
 container-project-check:
-	docker compose run --rm dashboard bash -lc 'cd /workspace/src && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 make test && make contract && make scenario-check && make context-check && make demo-scripted'
+	docker compose run --rm dashboard bash -lc 'set -euo pipefail; test_root=$$(mktemp -d /tmp/workbench-project-check.XXXXXX); cp -a /workspace/src/. "$$test_root/"; cd "$$test_root"; PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 make test && make contract && make scenario-check && make context-check && make demo-scripted'
 
 container-colcon-build:
 	docker compose run --rm dashboard colcon --log-base /workspace/log build --base-paths /workspace/src/robot/control --build-base /workspace/build --install-base /workspace/install --merge-install --packages-select workbench_motion

@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import struct
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Callable, Protocol
+from typing import Protocol
 
 MAGIC = b"WB"
 PROTOCOL_VERSION = 1
@@ -83,7 +84,7 @@ class UartSpiFrame:
         return body + CRC.pack(crc16_ccitt(body))
 
     @classmethod
-    def decode(cls, raw: bytes, *, expected_transport: TransportKind | None = None) -> "UartSpiFrame":
+    def decode(cls, raw: bytes, *, expected_transport: TransportKind | None = None) -> UartSpiFrame:
         if not isinstance(raw, bytes) or len(raw) < HEADER.size + CRC.size:
             raise FrameFormatError("frame is shorter than the minimum header and CRC")
         if len(raw) > MAX_FRAME_BYTES:

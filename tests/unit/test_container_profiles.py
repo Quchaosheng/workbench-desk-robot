@@ -324,7 +324,7 @@ def test_container_acceptance_targets_cover_health_contracts_and_independent_sim
 
     assert "http://127.0.0.1:8080/healthz" in makefile
     assert "http://127.0.0.1:8080/readyz" in makefile
-    assert "make test && make contract && make scenario-check && make context-check && make demo-scripted" in makefile
+    assert "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 make test && make contract && make scenario-check && make context-check && make demo-scripted" in makefile
     sim_target = makefile.split("container-sim-check:\n", 1)[1].split("\n\n", 1)[0]
     assert "workbench-gazebo-render-smoke || status=$$?" in sim_target
     assert "workbench-sim-smoke || status=$$?" in sim_target

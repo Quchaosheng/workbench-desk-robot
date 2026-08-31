@@ -3,7 +3,9 @@ PYTHON ?= python3
 .PHONY: bootstrap lint fmt test contract scenario-check golden-check evaluation-check evaluation-scripted context-check \
 	dashboard-test dashboard demo demo-scripted demo-offline demo-model model-provision performance-test benchmark-startup \
 	benchmark-resources performance-regression-test offline-integration docs task-check check container-smoke \
-	sim sim-doctor sim-list sim-run
+	sim sim-doctor sim-list sim-run container-build container-check container-colcon-build container-colcon-test \
+	container-image-verify container-python-test container-sim-check container-mujoco-check container-hardware-doctor \
+	container-gpu-matrix-check container-host-doctor
 
 bootstrap:
 	$(PYTHON) -m pip install --upgrade pip
@@ -97,8 +99,54 @@ docs:
 	$(PYTHON) -m mkdocs build --strict
 
 container-smoke:
-	docker build -t workbench-1:smoke .
-	docker run --rm workbench-1:smoke python tools/scripts/local_runner.py --goal "Place the red block in the tray"
+	$(MAKE) container-check
+
+container-build:
+	docker compose build dashboard
+
+container-image-verify:
+	@tag_id=$$(docker image inspect workbench-1:local --format '{{.Id}}'); \
+		test -n "$$tag_id"; \
+		running_id=$$(docker inspect workbench-desk-robot-dashboard-1 --format '{{.Image}}' 2>/dev/null || true); \
+		if test -n "$$running_id" && test "$$tag_id" != "$$running_id"; then \
+			echo "dashboard image $$running_id differs from workbench-1:local $$tag_id" >&2; exit 2; \
+		fi; \
+		echo "workbench-1:local=$$tag_id"; \
+		if test -n "$$running_id"; then echo "dashboard=$$running_id"; fi
+
+container-check:
+	docker compose config >/dev/null
+	docker compose run --rm dashboard python3 tools/scripts/local_runner.py --goal "Place the red block in the tray"
+
+container-colcon-build:
+	docker compose run --rm dashboard colcon --log-base /workspace/log build --base-paths /workspace/src/robot/control --build-base /workspace/build --install-base /workspace/install --merge-install --packages-select workbench_motion
+
+container-colcon-test:
+	docker compose run --rm dashboard bash -lc 'set +u; source /opt/ros/jazzy/setup.bash; source /workspace/install/setup.bash; set -u; colcon --log-base /workspace/log test --base-paths /workspace/src/robot/control --build-base /workspace/build --install-base /workspace/install --merge-install --packages-select workbench_motion && colcon --log-base /workspace/log test-result --test-result-base /workspace/build --verbose'
+
+container-python-test:
+	docker compose run --rm dashboard bash -lc 'set -euo pipefail; test_root=$$(mktemp -d /tmp/workbench-python-test.XXXXXX); cp -a /workspace/src/. "$$test_root/"; cd "$$test_root"; PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -v --ignore=tests/unit/test_multi_host_deployment.py'
+
+container-sim-check:
+	docker compose run --rm ros-sim /usr/local/bin/workbench-gazebo-render-smoke
+	docker compose run --rm ros-sim /usr/local/bin/workbench-sim-smoke
+
+container-mujoco-check:
+	docker compose run --rm mujoco-gpu /opt/workbench-mujoco-venv/bin/python /usr/local/bin/workbench-mujoco-smoke
+
+container-hardware-doctor:
+	docker compose run --rm hardware-shell /usr/local/bin/workbench-container-doctor --profile hardware-shell
+
+container-gpu-matrix-check:
+	@test "$(WORKBENCH_GPU_TIER)" = rtx30 -o "$(WORKBENCH_GPU_TIER)" = rtx40 -o "$(WORKBENCH_GPU_TIER)" = rtx50 || \
+		{ echo "Set WORKBENCH_GPU_TIER to rtx30, rtx40, or rtx50 for the physical card under test" >&2; exit 2; }
+	@test "$(WORKBENCH_IMAGE_DIGEST)" != "" -a "$(WORKBENCH_IMAGE_DIGEST)" != "local-unpinned" || \
+		{ echo "Set WORKBENCH_IMAGE_DIGEST to the immutable image digest shared by all RTX generations" >&2; exit 2; }
+	docker compose run --rm mujoco-gpu /usr/local/bin/workbench-container-doctor --profile gpu-validation --output /workspace/log/gpu-$(WORKBENCH_GPU_TIER).json
+	docker compose run --rm mujoco-gpu /opt/workbench-mujoco-venv/bin/python /usr/local/bin/workbench-mujoco-smoke
+
+container-host-doctor:
+	python3 docker/host_doctor.py
 
 task-check:
 	$(PYTHON) tools/scripts/check_task_packet.py $(PACKET)

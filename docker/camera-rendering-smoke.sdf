@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<sdf version="1.9">
+  <world name="workbench_render_smoke">
+    <physics name="1ms" type="ode"><max_step_size>0.001</max_step_size></physics>
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <light name="sun" type="directional"><direction>-0.5 0.2 -1</direction></light>
+    <model name="target">
+      <static>true</static><link name="link">
+        <visual name="visual"><geometry><box><size>0.2 0.2 0.2</size></box></geometry></visual>
+      </link>
+    </model>
+    <model name="camera">
+      <static>true</static><pose>1 0 0.5 0 0 3.14159</pose><link name="link">
+        <sensor name="camera" type="camera">
+          <always_on>true</always_on><update_rate>10</update_rate><topic>/workbench/camera/image</topic>
+          <camera><image><width>160</width><height>120</height><format>R8G8B8</format></image></camera>
+        </sensor>
+      </link>
+    </model>
+  </world>
+</sdf>

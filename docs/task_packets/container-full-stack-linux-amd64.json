@@ -1,0 +1,71 @@
+{
+  "issue": "container-full-stack-linux-amd64",
+  "human_owner": "Quchaosheng",
+  "objective": "Deliver one reproducible Linux/amd64 NVIDIA-capable development image with a safe dashboard default and explicit ROS/Gazebo, GUI, MuJoCo, DDS, and hardware-diagnostic Compose profiles.",
+  "allowed_paths": [
+    "Dockerfile",
+    "requirements-mujoco.txt",
+    ".dockerignore",
+    "docker/**",
+    "compose.yaml",
+    "Makefile",
+    ".devcontainer/**",
+    "tests/unit/test_container_baseline.py",
+    "tests/unit/test_container_profiles.py",
+    "docs/deployment/container.md",
+    ".github/workflows/container-full-stack.yml",
+    "docs/task_packets/container-full-stack-linux-amd64.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "robot/control/**",
+    "firmware/**"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "robot/control/**",
+    "firmware/**",
+    "hardware/safety/**"
+  ],
+  "acceptance": [
+    "runtime and Dev Container use the same CUDA 12.8.1 Ubuntu 24.04 digest",
+    "default dashboard starts without GPU, GUI, DDS LAN, USB, CAN, or privileged access",
+    "ros-sim, X11, Wayland, MuJoCo GPU, and hardware-shell profiles are explicit and fail closed",
+    "source is read-only and colcon build/install/log use named volumes",
+    "entrypoint sources Jazzy and workbench install then execs the user command",
+    "MuJoCo capability smoke is isolated from task, execution, WorldState, and verification contracts",
+    "APT/Python/MuJoCo versions, image digest, SBOM, vulnerability scan, and RTX 30/40/50 matrix evidence are recorded",
+    "container static tests and CPU dashboard smoke pass; unavailable host capabilities remain NOT_EXECUTED"
+  ],
+  "commands": [
+    "python3 -m pytest tests/unit/test_container_baseline.py tests/unit/test_container_profiles.py -v",
+    "python3 -m ruff check tests/unit/test_container_baseline.py tests/unit/test_container_profiles.py",
+    "docker compose config",
+    "make container-check",
+    "make container-colcon-build",
+    "make container-colcon-test",
+    "make container-sim-check",
+    "make container-mujoco-check",
+    "make container-hardware-doctor",
+    "make container-gpu-matrix-check"
+    ,"make container-host-doctor"
+  ],
+  "evidence": [
+    "Task Packet boundary validation",
+    "container static test output",
+    "CPU dashboard health and read-only smoke output",
+    "colcon build/test logs and installed workbench_motion evidence",
+    "SBOM, image digest, package manifest, and vulnerability scan report",
+    "profile-specific PASS or NOT_EXECUTED reports"
+  ],
+  "stop_conditions": [
+    "a frozen interface, JSON Schema, Pydantic contract, WorldState, replay, or event-log change is required",
+    "robot/control or firmware changes are required",
+    "host NVIDIA driver, Docker daemon, or real RTX hardware is unavailable for a claimed GPU result",
+    "required package or base digest cannot be obtained without silently changing versions",
+    "a profile requires privileged, NET_ADMIN, host IPC, xhost +, or automatic hardware motion",
+    "a scripted fixture or software renderer would be presented as Gazebo, GPU, or robot evidence"
+  ]
+}

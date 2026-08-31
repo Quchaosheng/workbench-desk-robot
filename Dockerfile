@@ -1,23 +1,76 @@
-FROM ubuntu@sha256:2260313b31c8c011cd2eebe728008efac1b3982be73eb71348ea2648d2c0e09b
+# syntax=docker/dockerfile:1.7
+# linux/amd64 manifest verified from Docker Hub on 2026-08-28.
+FROM nvidia/cuda:12.8.1-runtime-ubuntu24.04@sha256:828c4d878adcaa4265d80c95d8ec877149b49bb2419a4cf3bb6aa889bbb7ca2e
 
+ARG ROS_KEY_SHA256=4a91c49af0d6f0016108b93698782b596c27ccd836937e18e0e36c3347dc602f
+ARG WORKBENCH_VERSION=development
+ARG VCS_REF=unknown
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+ARG TARGETARCH
+
+RUN test "${TARGETARCH}" = "amd64" || { echo "linux/amd64 is the only supported image platform (got ${TARGETARCH})" >&2; exit 2; }
+
+LABEL org.opencontainers.image.title="workbench-1 full development runtime" \
+      org.opencontainers.image.version="${WORKBENCH_VERSION}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.base.name="nvidia/cuda:12.8.1-runtime-ubuntu24.04" \
+      org.opencontainers.image.base.digest="sha256:828c4d878adcaa4265d80c95d8ec877149b49bb2419a4cf3bb6aa889bbb7ca2e"
+
+# GPU dependency layers in this single image:
+#   gpu-runtime: CUDA 12.8 user-space runtime; the host owns the driver/toolkit.
+#   gpu-simulation: ROS 2 Jazzy, Gazebo Harmonic, EGL/OGRE and MuJoCo.
+#   gpu-validation: architecture, driver, EGL renderer and physical-card checks.
+# NVIDIA drivers, NVIDIA Container Toolkit, PyTorch/JAX and an RL training stack
+# are deliberately not installed here.
 ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    TZ=UTC \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     WORKBENCH_OFFLINE=1 \
-    PIP_DEFAULT_TIMEOUT=120 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_RETRIES=10 \
-    PATH=/opt/workbench-venv/bin:$PATH
+    RMW_IMPLEMENTATION=rmw_fastrtps_cpp \
+    ROS_DOMAIN_ID=42 \
+    ROS_LOCALHOST_ONLY=1 \
+    PATH=/opt/workbench-venv/bin:/opt/workbench-mujoco-venv/bin:$PATH
 
-RUN printf 'Acquire::Retries "10";\nAcquire::http::Timeout "120";\nAcquire::https::Timeout "120";\n' \
-        > /etc/apt/apt.conf.d/80-workbench-retries \
-    && sed -i 's/noble noble-updates noble-backports/noble noble-updates/' /etc/apt/sources.list.d/ubuntu.sources \
-    && apt-get -o Acquire::Retries=10 update \
-    && apt-get install -y --no-install-recommends ca-certificates curl python3 python3-pip python3-venv \
-    && rm -rf /var/lib/apt/lists/* \
-    && python3 -m venv /opt/workbench-venv
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+WORKDIR /opt/workbench_source
 
-WORKDIR /app
+COPY docker/apt-packages.txt /tmp/apt-packages.txt
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    set -eux; \
+    [[ "${ROS_KEY_SHA256}" =~ ^[0-9a-f]{64}$ ]]; \
+    printf '%s\n' \
+      'Acquire::Retries "10";' \
+      'Acquire::http::Timeout "120";' \
+      'Acquire::https::Timeout "120";' \
+      'Acquire::http::Proxy::archive.ubuntu.com "DIRECT";' \
+      'Acquire::http::Proxy::security.ubuntu.com "DIRECT";' \
+      'Acquire::http::Proxy::packages.ros.org "DIRECT";' \
+      'Acquire::https::Proxy::archive.ubuntu.com "DIRECT";' \
+      'Acquire::https::Proxy::security.ubuntu.com "DIRECT";' \
+      'Acquire::https::Proxy::packages.ros.org "DIRECT";' \
+      > /etc/apt/apt.conf.d/80-workbench-retries; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends ca-certificates curl gnupg; \
+    install -d -m 0755 /etc/apt/keyrings; \
+    curl --fail --silent --show-error --location \
+      https://raw.githubusercontent.com/ros/rosdistro/master/ros.key --output /tmp/ros.key; \
+    echo "${ROS_KEY_SHA256}  /tmp/ros.key" | sha256sum --check --strict; \
+    gpg --dearmor < /tmp/ros.key > /etc/apt/keyrings/ros-archive-keyring.gpg; \
+    echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu noble main" > /etc/apt/sources.list.d/ros2.list; \
+    apt-get update; \
+    xargs -r apt-get install -y --no-install-recommends < /tmp/apt-packages.txt; \
+    rm -f /tmp/ros.key
+
+RUN python3 -m venv --system-site-packages /opt/workbench-venv \
+    && python3 -m venv --system-site-packages /opt/workbench-mujoco-venv
+
+COPY requirements-mujoco.txt /tmp/requirements-mujoco.txt
 COPY pyproject.toml README.md README.zh-CN.md LICENSE NOTICE ./
 COPY libs/application ./libs/application
 COPY libs/contracts ./libs/contracts
@@ -28,15 +81,50 @@ COPY services/agent_runtime ./services/agent_runtime
 COPY services/backend ./services/backend
 COPY services/world_model ./services/world_model
 COPY firmware/virtual_mcu ./firmware/virtual_mcu
-RUN --mount=type=cache,target=/root/.cache/pip python -m pip install --no-compile . \
-    && useradd --create-home --uid 10001 workbench \
-    && chown -R workbench:workbench /app
-COPY . /app
-RUN chown -R workbench:workbench /app
+RUN --mount=type=cache,target=/root/.cache/pip \
+    /opt/workbench-venv/bin/python -m pip install --no-compile ".[dev]" \
+    && /opt/workbench-mujoco-venv/bin/python -m pip install --no-compile -r /tmp/requirements-mujoco.txt
+
+COPY . /opt/workbench_source
+RUN mkdir -p \
+      /opt/workbench_ws/src/robot/control \
+      /opt/workbench_ws/src/robot/description \
+      /usr/share/workbench/container \
+      /workspace/src /workspace/build /workspace/install /workspace/log \
+    && cp -a robot/control/workbench_motion /opt/workbench_ws/src/robot/control/ \
+    && cp -a robot/description/. /opt/workbench_ws/src/robot/description/ \
+    && source /opt/ros/jazzy/setup.bash \
+    && colcon --log-base /opt/workbench_ws/log build \
+      --base-paths /opt/workbench_ws/src/robot/control \
+      --build-base /opt/workbench_ws/build \
+      --install-base /opt/workbench_ws/install \
+      --merge-install --packages-select workbench_motion \
+    && dpkg-query -W -f='${binary:Package}\t${Version}\n' | sort > /usr/share/workbench/container/apt-packages.tsv \
+    && /opt/workbench-venv/bin/python -m pip freeze --all > /usr/share/workbench/container/python-packages.txt \
+    && /opt/workbench-mujoco-venv/bin/python -m pip freeze --all > /usr/share/workbench/container/mujoco-python-packages.txt \
+    && printf '%s\n' \
+      'base=nvidia/cuda:12.8.1-runtime-ubuntu24.04' \
+      'base_digest=sha256:828c4d878adcaa4265d80c95d8ec877149b49bb2419a4cf3bb6aa889bbb7ca2e' \
+      'platform=linux/amd64' 'ubuntu=24.04' 'ros=jazzy' 'cuda=12.8.1' 'mujoco=3.3.7' \
+      > /usr/share/workbench/container/build-versions.txt \
+    && useradd --create-home --uid 10001 --shell /bin/bash workbench \
+    && chown -R workbench:workbench /opt/workbench_source /opt/workbench_ws /workspace /home/workbench
+
+COPY docker/entrypoint.sh /usr/local/bin/workbench-entrypoint
+COPY docker/container-doctor.py /usr/local/bin/workbench-container-doctor
+COPY docker/dds_config.py /usr/local/bin/workbench-dds-config
+COPY docker/mujoco_smoke.py /usr/local/bin/workbench-mujoco-smoke
+COPY docker/sim_smoke.sh /usr/local/bin/workbench-sim-smoke
+COPY docker/gazebo_render_smoke.sh /usr/local/bin/workbench-gazebo-render-smoke
+COPY docker/camera-rendering-smoke.sdf /usr/share/workbench/container/camera-rendering-smoke.sdf
+COPY docker/gpu-arch-matrix.json /usr/share/workbench/container/gpu-arch-matrix.json
+RUN chmod 0755 /usr/local/bin/workbench-*
 
 USER workbench
+WORKDIR /workspace/src
 EXPOSE 8080
-HEALTHCHECK --interval=15s --timeout=3s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \
     CMD curl --fail --silent http://127.0.0.1:8080/healthz > /dev/null || exit 1
 
+ENTRYPOINT ["/usr/local/bin/workbench-entrypoint"]
 CMD ["python", "-m", "workbench_backend.server", "--host", "0.0.0.0", "--port", "8080"]

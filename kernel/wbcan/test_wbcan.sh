@@ -19,6 +19,7 @@ PASS=0
 FAIL=0
 REPORT_FILE="${WBCAN_TEST_REPORT:-}"
 STRESS_REPORT_FILE="${WBCAN_STRESS_REPORT:-}"
+STRESS_PROFILE="${WBCAN_STRESS_PROFILE:-developer-smoke}"
 
 red()   { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
@@ -551,6 +552,7 @@ stress_args=()
 if [ -n "$STRESS_REPORT_FILE" ]; then
 	stress_args+=(--report "$STRESS_REPORT_FILE")
 fi
+stress_args+=(--profile "$STRESS_PROFILE" --module "$(dirname "$0")/wbcan.ko")
 if python3 "$(dirname "$0")/test_state_concurrency.py" "$IFACE" "$DBG" "${stress_args[@]}"
 then
 	green "PASS  concurrent state and queue transitions stay bounded"

@@ -6,6 +6,7 @@ from dataclasses import FrozenInstanceError, replace
 
 import pytest
 from workbench_motion.c3a_bridge import (
+    _MAX_ACCEPTED_BINDINGS,
     C3aPlanOnlyBridge,
     InMemoryPlanningAdapter,
     InMemoryReadinessAdapter,
@@ -540,3 +541,18 @@ def test_repeated_materialization_is_stable_and_does_not_mutate_accepted_snapsho
 
     assert first == second
     assert accepted.canonical_bytes == before
+
+
+def test_accepted_binding_registry_is_bounded():
+    module, _planner, _readiness = bridge()
+
+    accepted = []
+    for _ in range(_MAX_ACCEPTED_BINDINGS + 3):
+        result = module.plan(goal())
+        assert result.accepted_trajectory is not None
+        accepted.append(result.accepted_trajectory)
+
+    assert len(module._accepted_bindings) == _MAX_ACCEPTED_BINDINGS
+    with pytest.raises(C3aError, match="not planned by"):
+        module.materialize(accepted[0])
+    assert module.materialize(accepted[-1]).joint_names == NAMES

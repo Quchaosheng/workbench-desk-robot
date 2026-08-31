@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from collections import OrderedDict
 from collections.abc import Callable
 from dataclasses import replace
 from typing import Protocol
@@ -39,6 +40,7 @@ from workbench_motion.joint_limits import (
 
 _TOLERANCE_PROFILES = {"standard": GoalTolerance(position_m=0.005, orientation_rad=0.05)}
 _MOVEIT_SUCCESS = 1
+_MAX_ACCEPTED_BINDINGS = 16
 _REQUIRED_COMPONENT_HASHES = {
     "robot_description",
     "arm.yaml",
@@ -429,7 +431,7 @@ class C3aPlanOnlyBridge:
     def __init__(self, planning: PlanningPort, readiness: ReadinessPort) -> None:
         self._planning = planning
         self._readiness = readiness
-        self._accepted_bindings: dict[int, tuple[AcceptedTrajectory, ReadinessSnapshot]] = {}
+        self._accepted_bindings: OrderedDict[int, tuple[AcceptedTrajectory, ReadinessSnapshot]] = OrderedDict()
 
     def plan(self, goal: PosePlanGoal) -> PlanOnlyResult:
         readiness: ReadinessSnapshot | None = None
@@ -474,7 +476,11 @@ class C3aPlanOnlyBridge:
                     request,
                     preflight_reason_code=accepted.kind.value,
                 )
-            self._accepted_bindings[id(accepted)] = (accepted, readiness)
+            key = id(accepted)
+            self._accepted_bindings[key] = (accepted, readiness)
+            self._accepted_bindings.move_to_end(key)
+            while len(self._accepted_bindings) > _MAX_ACCEPTED_BINDINGS:
+                self._accepted_bindings.popitem(last=False)
             return PlanOnlyResult(
                 status=PlanStatus.PLANNED,
                 diagnostic_code=DiagnosticCode.READY,

@@ -934,9 +934,10 @@ class FakeFuture:
 
 
 class FakeHandle:
-    def __init__(self, *, accepted=True, result_future=None):
+    def __init__(self, *, accepted=True, result_future=None, cancel_future=None):
         self.accepted = accepted
         self.result_future = result_future
+        self.cancel_future = cancel_future or FakeFuture(value=object())
         self.cancelled = False
 
     def get_result_async(self):
@@ -944,6 +945,7 @@ class FakeHandle:
 
     def cancel_goal_async(self):
         self.cancelled = True
+        return self.cancel_future
 
 
 class FakeActionClient:
@@ -1017,6 +1019,24 @@ def test_transport_cancels_and_reports_result_timeout(monkeypatch):
     with pytest.raises(PlanningTimedOut, match="planning timed out"):
         transport.send_goal(object(), 1.0)
     assert handle.cancelled is True
+
+
+def test_transport_rejects_unacknowledged_cancellation(monkeypatch):
+    transport = fake_transport(monkeypatch)
+    handle = FakeHandle(result_future=FakeFuture(done=False), cancel_future=FakeFuture(done=False))
+    FakeActionClient.instance.goal_future = FakeFuture(value=handle)
+
+    with pytest.raises(PlanningTimedOut, match="cancellation acknowledgement timed out"):
+        transport.send_goal(object(), 1.0)
+
+
+def test_transport_requires_terminal_state_after_cancellation(monkeypatch):
+    transport = fake_transport(monkeypatch)
+    handle = FakeHandle(result_future=FakeFuture(done=False))
+    FakeActionClient.instance.goal_future = FakeFuture(value=handle)
+
+    with pytest.raises(PlanningTimedOut, match="terminal state"):
+        transport.send_goal(object(), 1.0)
 
 
 def test_transport_reports_malformed_result_as_adapter_error(monkeypatch):

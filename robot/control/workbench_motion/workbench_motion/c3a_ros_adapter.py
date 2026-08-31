@@ -472,7 +472,7 @@ class RclpyMoveGroupTransport:
         result_future = handle.get_result_async()
         rclpy.spin_until_future_complete(self._node, result_future, timeout_sec=timeout_s)
         if not result_future.done():
-            handle.cancel_goal_async()
+            self._cancel_and_wait(handle, result_future, timeout_s, rclpy)
             raise PlanningTimedOut()
         try:
             wrapped = result_future.result()
@@ -481,6 +481,25 @@ class RclpyMoveGroupTransport:
             return wrapped.result
         except (AttributeError, RuntimeError, TypeError) as exc:
             raise PlanningAdapterError(f"MoveGroup result failed: {exc}") from exc
+
+    def _cancel_and_wait(self, handle: object, result_future: object, timeout_s: float, rclpy: object) -> None:
+        """Bound cancellation cleanup before reporting a planning timeout."""
+        try:
+            cancel_future = handle.cancel_goal_async()
+        except (AttributeError, RuntimeError, TypeError) as exc:
+            raise PlanningTimedOut(f"planning timed out; cancellation request failed: {exc}") from exc
+        if cancel_future is None or not hasattr(cancel_future, "done"):
+            raise PlanningTimedOut("planning timed out; cancellation acknowledgement unavailable")
+        rclpy.spin_until_future_complete(self._node, cancel_future, timeout_sec=timeout_s)
+        if not cancel_future.done():
+            raise PlanningTimedOut("planning timed out; cancellation acknowledgement timed out")
+        try:
+            cancel_future.result()
+        except (AttributeError, RuntimeError, TypeError) as exc:
+            raise PlanningTimedOut(f"planning timed out; cancellation acknowledgement failed: {exc}") from exc
+        rclpy.spin_until_future_complete(self._node, result_future, timeout_sec=timeout_s)
+        if not result_future.done():
+            raise PlanningTimedOut("planning timed out; cancelled goal did not reach a terminal state")
 
 
 def _stamp_ns(stamp: object) -> int:

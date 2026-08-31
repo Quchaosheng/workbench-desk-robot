@@ -31,10 +31,9 @@ coverage.xml
 .github/copilot-instructions.md
 docs/superpowers/
 
-# Internal planning: team structure, week gates, staffing and stop-loss decisions.
-# Kept local. The public repo describes the system and its contracts, not the
-# schedule or the org chart.
-docs/product/
+# Internal planning: team structure, staffing and stop-loss decisions remains
+# outside the repository. Public product evidence templates live under
+# docs/product/ and must not contain private participant data.
 
 # Local run artifacts
 data/raw/

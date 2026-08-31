@@ -13,6 +13,14 @@ nav:
   - 90-minute demo: user-guide/demo-runbook.md
   - Project status: project-management/status.md
   - Project plan: project-management/plan.md
+  - Product evidence layer:
+      - Overview: product/README.md
+      - Product brief: product/product-brief.md
+      - 90-day execution: product/90-day-plan.md
+      - Problem card template: product/problem-card-template.md
+      - Design Partner scenario template: product/design-partner-scenario-template.md
+      - External feedback template: product/feedback-record-template.md
+      - Metrics and decision log: product/metrics-and-decision-log.md
   - Risk management: project-management/risk-management.md
   - Dashboard design: design/dashboard-design-system.md
   - Dashboard usability test: design/dashboard-usability-test.md

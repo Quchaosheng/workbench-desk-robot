@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import csv
+import importlib.util
 import json
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 BASELINE = ROOT / "hardware/operations-readiness.json"
 OUTPUT = ROOT / "hardware/generated/operations_readiness_report.json"
+BMS_VALIDATOR = ROOT / "hardware/power/tools/validate_bms_state_machine.py"
 
 
 def read_csv(relative: str) -> list[dict[str, str]]:
@@ -14,8 +17,19 @@ def read_csv(relative: str) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
+def validate_bms_state_machine() -> dict[str, Any]:
+    """Run the power-package validator through the existing readiness gate."""
+    spec = importlib.util.spec_from_file_location("workbench_bms_state_machine_validator", BMS_VALIDATOR)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load BMS validator: {BMS_VALIDATOR}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.validate(write_report=True)
+
+
 def validate() -> dict[str, object]:
     baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
+    bms_report = validate_bms_state_machine()
     mass_rows = read_csv("hardware/mechanical/mass-ledger.csv")
     total_mass_kg = sum(float(row["mass_kg"]) for row in mass_rows)
     center_of_gravity_mm = [
@@ -93,6 +107,12 @@ def validate() -> dict[str, object]:
             for row in bms_transitions
             if row["target_state"] == "FAULT_LATCHED"
         ),
+        "bms_state_machine_has_executable_validation": bool(bms_report.get("pass")),
+        "bms_transition_table_hash_is_present": isinstance(bms_report.get("transition_table_sha256"), str)
+        and len(bms_report["transition_table_sha256"]) == 64,
+        "bms_design_and_physical_status_are_preserved": bms_report.get("status") == "DESIGN_BASELINE_ONLY"
+        and bms_report.get("physical_results") == "NOT_EXECUTED"
+        and bms_report.get("release_ready") is False,
         "all_protection_levels_are_defined": {
             row["level"] for row in read_csv("hardware/power/protection-thresholds.csv")
         }
@@ -137,6 +157,13 @@ def validate() -> dict[str, object]:
         "package": baseline["package"],
         "pass": all(checks.values()),
         "status": baseline["status"],
+        "bms": {
+            "pass": bms_report.get("pass"),
+            "status": bms_report.get("status"),
+            "physical_results": bms_report.get("physical_results"),
+            "transition_table_sha256": bms_report.get("transition_table_sha256"),
+            "state_machine_sha256": bms_report.get("state_machine_sha256"),
+        },
         "checks": checks,
         "metrics": {
             "mass_kg": total_mass_kg,

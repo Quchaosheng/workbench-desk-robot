@@ -1039,6 +1039,19 @@ def test_transport_requires_terminal_state_after_cancellation(monkeypatch):
         transport.send_goal(object(), 1.0)
 
 
+def test_transport_waits_for_cancel_acknowledgement_and_terminal_state(monkeypatch):
+    transport = fake_transport(monkeypatch)
+    handle = FakeHandle(
+        result_future=FakeFuture(done=False),
+        cancel_future=FakeFuture(done=True, value=namespace(return_code=0)),
+    )
+    FakeActionClient.instance.goal_future = FakeFuture(value=handle)
+
+    with pytest.raises(PlanningTimedOut, match="planning timed out"):
+        transport.send_goal(object(), 1.0)
+    assert handle.cancelled is True
+
+
 def test_transport_reports_malformed_result_as_adapter_error(monkeypatch):
     transport = fake_transport(monkeypatch)
     handle = FakeHandle(result_future=FakeFuture(value=None))

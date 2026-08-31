@@ -1,0 +1,75 @@
+{
+  "issue": 72,
+  "human_owner": "zhangjia-1111",
+  "objective": "Add a fail-closed perception-to-World-Model adapter that validates, calibrates and freshness-gates Observation records before emitting WorldEvents.",
+  "decision_supported": "Whether a raw camera observation is trustworthy enough to enter the canonical World Model event stream.",
+  "allowed_paths": [
+    "services/perception/README.md",
+    "services/perception/workbench_perception/__init__.py",
+    "services/perception/workbench_perception/ingestion.py",
+    "tests/unit/test_observation_ingestion.py",
+    "tests/integration/test_observation_ingestion.py",
+    "docs/task_packets/issue-72-observation-ingestion.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "services/world_model/**"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "sim/**"
+  ],
+  "input_refs": [
+    "interfaces/json_schema/observation.schema.json",
+    "interfaces/json_schema/pose.schema.json",
+    "interfaces/json_schema/world_event.schema.json",
+    "interfaces/examples/observation-red-block.json"
+  ],
+  "outputs": [
+    "fail-closed Observation ingestion adapter",
+    "deterministic calibration and freshness fixtures",
+    "accepted Observation WorldEvents consumable by the World Model reducer"
+  ],
+  "acceptance": [
+    "only contract-valid Observation records are accepted",
+    "camera ID calibration revision frame pose units confidence timestamp clock and evidence references are validated",
+    "stale future-skewed duplicate and coordinate-frame-mismatched observations are rejected",
+    "frame conversion requires a declared calibration revision",
+    "raw observation provenance is preserved without caller mutation",
+    "deterministic tests cover dropout malformed pose low confidence stale frames and calibration mismatch",
+    "the World Model sink receives only accepted observations"
+  ],
+  "commands": [
+    "python tools/scripts/check_task_packet.py docs/task_packets/issue-72-observation-ingestion.json",
+    "python -m pytest tests/unit tests/integration -k observation -v",
+    "python -m ruff check services/perception/workbench_perception tests/unit/test_observation_ingestion.py tests/integration/test_observation_ingestion.py",
+    "python -m ruff format --check services/perception/workbench_perception tests/unit/test_observation_ingestion.py tests/integration/test_observation_ingestion.py",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check"
+  ],
+  "evidence": [
+    "Task Packet validation output",
+    "focused observation unit and integration test output",
+    "full repository test output",
+    "contract scenario and context validation output"
+  ],
+  "stop_conditions": [
+    "an interface or Pydantic contract change is required",
+    "a write outside the allowed paths is required",
+    "a simulator oracle or raw image payload is required",
+    "a calibration cannot identify source and target frames",
+    "physical sensor evidence is requested without a connected bench"
+  ],
+  "max_iterations": 5,
+  "data_classification": "local synthetic observation fixtures only; no raw images or personal data",
+  "model_policy": "deterministic typed validation and rigid transforms only; no model inference",
+  "risks_and_fallbacks": [
+    "reject observations when their clock domain cannot be compared to an injected deterministic clock",
+    "reject unknown calibration revisions or frames instead of guessing a transform",
+    "preserve the current interfaces and open a separately approved contract issue if new fields are required"
+  ]
+}

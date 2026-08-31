@@ -1,0 +1,52 @@
+{
+  "issue": "LINUX7",
+  "human_owner": "Quchaosheng",
+  "objective": "Expose the wbcan driver's software-owned CAN counters through the standard ethtool statistics interface and verify their presence and movement in the privileged test suite.",
+  "allowed_paths": [
+    "kernel/wbcan/wbcan.c",
+    "kernel/wbcan/test_wbcan.sh",
+    ".github/workflows/ci.yml",
+    "tests/unit/test_release_workflow.py",
+    "docs/task_packets/linux-wbcan-ethtool-stats.json"
+  ],
+  "read_only_paths": [
+    "firmware/**",
+    "interfaces/**",
+    "robot/control/**",
+    "hardware/**",
+    "AGENTS.md"
+  ],
+  "forbidden": [
+    "firmware/**",
+    "interfaces/**",
+    "robot/control/**",
+    "hardware/**"
+  ],
+  "acceptance": [
+    "ethtool -S wbcan0 exposes stable tx, rx, fault and CAN error counters",
+    "ethtool counters are read under the driver's existing lock and do not invent physical hardware metrics",
+    "the privileged suite verifies all advertised fields and proves tx_frames advances after a frame",
+    "CI installs ethtool and keeps module build, checkpatch and runtime failures fail-closed",
+    "the PR is explicitly software-only and does not claim CAN FD throughput or physical latency evidence"
+  ],
+  "commands": [
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/linux-wbcan-ethtool-stats.json",
+    "python3 -m pytest tests/unit/test_release_workflow.py -v",
+    "make -C kernel/wbcan",
+    "make -C kernel/wbcan checkpatch",
+    "sudo make -C kernel/wbcan reload",
+    "sudo make -C kernel/wbcan test",
+    "git diff --check"
+  ],
+  "evidence": [
+    "module build and checkpatch output",
+    "ethtool -S field and counter-change assertions",
+    "privileged wbcan test report",
+    "release workflow regression output"
+  ],
+  "stop_conditions": [
+    "the target kernel lacks the documented ethtool statistics API",
+    "a physical controller, CAN FD data path or hardware performance measurement is required",
+    "firmware, interface, robot-control or hardware changes are required"
+  ]
+}

@@ -46,6 +46,8 @@
     "make container-check",
     "make container-dashboard-check",
     "make container-project-check",
+    "make test",
+    "make demo-scripted",
     "make container-colcon-build",
     "make container-colcon-test",
     "make container-sim-check",

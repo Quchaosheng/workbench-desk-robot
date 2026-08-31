@@ -5,9 +5,13 @@
 TRAC-IK、ros2_control 和 MuJoCo 3.3.7。默认服务仍是无 GPU、无设备权限的只读 dashboard。
 
 当前开发机的 NVIDIA 驱动和 Container Toolkit 能识别 RTX 4060 Laptop GPU；但容器只发现 Mesa EGL vendor，
-缺少 NVIDIA EGL vendor JSON。因此当前镜像的 Gazebo/MuJoCo GPU 验收为 `NOT_EXECUTED`。绕过 GPU 门禁进行的
-Gazebo server 诊断仍在 `gz::common::FileLogger::Init` 附近以退出码 139 崩溃。配置目标不等于实卡验收结果，
-也不能把 Mesa/llvmpipe 软件渲染描述成 GPU 成功。
+缺少 NVIDIA EGL vendor JSON。GPU 能力预检因此为 `NOT_EXECUTED`，不会把不可用主机能力误报为成功。已有的
+诊断证据必须分开记录：绕过 GPU 门禁的 Gazebo server smoke 在 `gz::common::FileLogger::Init` 附近以退出码
+139 (`FAIL`) 崩溃；MuJoCo 若退回 Mesa/llvmpipe 则为软件渲染 (`FAIL`，不是 NVIDIA GPU 验收)。配置目标不等于
+实卡验收结果，也不能把 Mesa/llvmpipe 软件渲染描述成 GPU 成功。
+
+集成审查范围包括 Dockerfile/Compose、entrypoint、ROS/Gazebo 启动脚本和 CI；合并前必须由集成负责人复核
+`docker compose config`、镜像构建、dashboard 健康检查、colcon 和 profile fail-closed 行为。此记录不替代人工审批。
 
 ## 宿主前提
 

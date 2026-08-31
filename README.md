@@ -195,6 +195,30 @@ For an offline fixture, run:
 python tools/scripts/sim_cli.py run normal-001 --runner scripted --output-dir runs/demo
 ```
 
+## Optional: Connect OmniLink Knowledge Search
+
+[OmniLink AI](https://github.com/vivekmaru/omnilink-ai) is a separate, optional knowledge layer for maintenance docs, ADRs, issues, and run summaries. It does not plan tasks, execute actions, verify robot state, or control an emergency stop. Run it as its own service with its own SQLite database.
+
+```bash
+git clone https://github.com/vivekmaru/omnilink-ai.git
+cd omnilink-ai
+npm install
+npm run dev
+```
+
+OmniLink normally listens on `http://127.0.0.1:3000` (check its current configuration). The Workbench adapter adds no runtime dependency:
+
+```python
+from integrations.omnilink import OmniLinkClient, RunSummaryExporter
+
+client = OmniLinkClient("http://127.0.0.1:3000")
+docs = client.search("gripper calibration")
+answer = client.ask("Which calibration notes mention the gripper?")
+RunSummaryExporter(client, "http://127.0.0.1:8080").export(summary)
+```
+
+The exporter sends only a bounded run summary, never raw JSONL, `TaskGraph`, `SemanticAction`, action results, camera data, or safety state. Catch `OmniLinkError` so an unavailable knowledge service cannot block offline operation. For production, use private binding, authentication/TLS, outbound URL allowlists, a pinned commit/image digest, and a reviewed license and Gemini data-handling policy.
+
 For a configured external runner, provide tokenized argv through
 `WORKBENCH_GAZEBO_COMMAND` or `--command`. The runner uses each manifest's
 timeout, captures bounded stdout/stderr, terminates the process tree on timeout,

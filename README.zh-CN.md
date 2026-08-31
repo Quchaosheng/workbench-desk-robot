@@ -168,6 +168,30 @@ make dashboard        # 启动只读本地看板
 python tools/scripts/sim_cli.py run normal-001 --runner scripted --output-dir runs/demo
 ```
 
+## 可选：接入 OmniLink 知识库
+
+[OmniLink AI](https://github.com/vivekmaru/omnilink-ai) 在 Workbench 中是独立的知识层，用于检索维修文档、ADR、Issue 和运行摘要，不参与任务规划、动作执行、验证器或急停链路。它不是 Python 三方库，请单独部署服务和它自己的 SQLite 数据库。
+
+```bash
+git clone https://github.com/vivekmaru/omnilink-ai.git
+cd omnilink-ai
+npm install
+npm run dev
+```
+
+OmniLink 通常监听 `http://127.0.0.1:3000`（以 OmniLink 项目当前配置为准）。Workbench 侧无需新增运行时依赖：
+
+```python
+from integrations.omnilink import OmniLinkClient, RunSummaryExporter
+
+client = OmniLinkClient("http://127.0.0.1:3000")
+docs = client.search("gripper calibration")
+answer = client.ask("Which calibration notes mention the gripper?")
+RunSummaryExporter(client, "http://127.0.0.1:8080").export(summary)
+```
+
+导出器只发送运行摘要，不发送原始 JSONL、`TaskGraph`、`SemanticAction`、动作结果、相机数据或安全状态。捕获 `OmniLinkError` 可保证服务不可用时离线流程继续运行。生产部署请使用私网绑定、认证/TLS、出站 URL allowlist、固定 commit/image digest，并确认许可证和 Gemini 数据处理策略。
+
 真实 runner 需要通过 `WORKBENCH_GAZEBO_COMMAND` 或 `--command` 提供 tokenized
 argv。runner 会使用每个 manifest 的 timeout，限制 stdout/stderr 大小，在超时时终止整棵
 进程树，并在发布 artifact 前校验事件日志。

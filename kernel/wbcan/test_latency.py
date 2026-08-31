@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import multiprocessing
 import os
 import platform
 import select
@@ -14,7 +15,6 @@ import statistics
 import struct
 import subprocess
 import tempfile
-import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -452,68 +452,264 @@ def measure(interface: str, warmup: int, sample_count: int, can_id: int) -> list
         receiver.close()
 
 
-def _record_worker_error(
-    errors: list[Exception], error_lock: threading.Lock, stop: threading.Event, error: Exception
-) -> None:
-    with error_lock:
-        errors.append(error)
-    stop.set()
+def _send_worker_error(connection: Any, error: BaseException) -> None:
+    """Send a child failure without allowing a broken report pipe to mask it.
+
+    The worker owns the connection lifetime and closes it from its ``finally``
+    block. Keeping that responsibility in one place avoids a second close when
+    the error path is taken.
+    """
+
+    try:
+        connection.send((type(error).__name__, str(error)))
+    except (BrokenPipeError, EOFError, OSError, ValueError):
+        pass
+
+
+def _close_worker_connection(connection: Any) -> None:
+    """Close a worker's error connection without masking the original result."""
+
+    try:
+        connection.close()
+    except (EOFError, OSError, ValueError):
+        pass
+
+
+def _wait_for_measurement(start: Any, stop: Any) -> bool:
+    """Wait interruptibly for the post-readiness measurement gate."""
+
+    while not start.wait(0.05):
+        if stop.is_set():
+            return False
+    return not stop.is_set()
 
 
 def _cpu_load_worker(
-    stop: threading.Event,
-    ready: threading.Event,
-    counts: list[int],
+    stop: Any,
+    start: Any,
+    ready: Any,
+    counts: Any,
+    cpu_times: Any,
     index: int,
-    errors: list[Exception],
-    error_lock: threading.Lock,
+    error_connection: Any,
 ) -> None:
     iterations = 0
+    cpu_start: int | None = None
     payload = bytes([index % 251]) * CPU_WORK_BYTES
     try:
+        # Complete first-use allocation/hash before ready is published. It is
+        # setup, not part of the timed comparison window.
+        hashlib.sha256(payload).digest()
+        ready.set()
+        if not _wait_for_measurement(start, stop):
+            return
+        cpu_start = time.process_time_ns()
         while not stop.is_set():
             hashlib.sha256(payload).digest()
             iterations += 1
-            if iterations == 1:
-                ready.set()
-    except Exception as exc:  # noqa: BLE001 - worker failures are preserved as evidence.
-        _record_worker_error(errors, error_lock, stop, exc)
+    except Exception as exc:  # noqa: BLE001 - preserve worker failures as evidence.
+        stop.set()
+        _send_worker_error(error_connection, exc)
     finally:
         counts[index] = iterations
+        if cpu_start is not None:
+            cpu_times[index] = max(0, time.process_time_ns() - cpu_start)
+        else:
+            cpu_times[index] = 0
+        _close_worker_connection(error_connection)
 
 
 def _io_load_worker(
     path: Path,
-    stop: threading.Event,
-    ready: threading.Event,
-    counts: list[int],
-    maximum_file_sizes: list[int],
+    stop: Any,
+    start: Any,
+    ready: Any,
+    counts: Any,
+    maximum_file_sizes: Any,
+    cpu_times: Any,
     index: int,
-    errors: list[Exception],
-    error_lock: threading.Lock,
+    cpu_time_index: int,
+    error_connection: Any,
 ) -> None:
     iterations = 0
     maximum_file_size = 0
+    cpu_start: int | None = None
     descriptor = -1
     payload = bytes([(index + 1) % 251]) * IO_WORK_BYTES
     try:
         descriptor = os.open(path, os.O_CREAT | os.O_RDWR | os.O_TRUNC, 0o600)
+        written = os.pwrite(descriptor, payload, 0)
+        if written != IO_WORK_BYTES:
+            raise OSError(f"controlled I/O worker short write during setup: {written}/{IO_WORK_BYTES}")
+        os.fsync(descriptor)
+        setup_size = os.fstat(descriptor).st_size
+        if setup_size != IO_WORK_BYTES:
+            raise OSError(f"controlled I/O worker setup size is {setup_size}, expected {IO_WORK_BYTES}")
+        ready.set()
+        if not _wait_for_measurement(start, stop):
+            return
+        cpu_start = time.process_time_ns()
         while not stop.is_set():
             written = os.pwrite(descriptor, payload, 0)
             if written != IO_WORK_BYTES:
                 raise OSError(f"controlled I/O worker short write: {written}/{IO_WORK_BYTES}")
             os.fsync(descriptor)
-            maximum_file_size = max(maximum_file_size, os.fstat(descriptor).st_size)
+            observed_size = os.fstat(descriptor).st_size
+            if observed_size != IO_WORK_BYTES:
+                raise OSError(f"controlled I/O worker size is {observed_size}, expected {IO_WORK_BYTES}")
+            maximum_file_size = max(maximum_file_size, observed_size)
             iterations += 1
-            if iterations == 1:
-                ready.set()
-    except Exception as exc:  # noqa: BLE001 - worker failures are preserved as evidence.
-        _record_worker_error(errors, error_lock, stop, exc)
+    except Exception as exc:  # noqa: BLE001 - preserve worker failures as evidence.
+        stop.set()
+        _send_worker_error(error_connection, exc)
     finally:
         if descriptor >= 0:
             os.close(descriptor)
         counts[index] = iterations
         maximum_file_sizes[index] = maximum_file_size
+        if cpu_start is not None:
+            cpu_times[cpu_time_index] = max(0, time.process_time_ns() - cpu_start)
+        else:
+            cpu_times[cpu_time_index] = 0
+        _close_worker_connection(error_connection)
+
+
+def _status_load_worker(
+    path: Path,
+    stop: Any,
+    start: Any,
+    ready: Any,
+    iterations: Any,
+    cpu_times: Any,
+    error_connection: Any,
+) -> None:
+    count = 0
+    cpu_start: int | None = None
+    try:
+        text = path.read_text(encoding="ascii")
+        if "state" not in text or "queue_stopped" not in text:
+            raise AssertionError("debugfs status snapshot is incomplete")
+        ready.set()
+        if not _wait_for_measurement(start, stop):
+            return
+        cpu_start = time.process_time_ns()
+        while not stop.is_set():
+            text = path.read_text(encoding="ascii")
+            if "state" not in text or "queue_stopped" not in text:
+                raise AssertionError("debugfs status snapshot is incomplete")
+            count += 1
+    except Exception as exc:  # noqa: BLE001 - preserve worker failures as evidence.
+        stop.set()
+        _send_worker_error(error_connection, exc)
+    finally:
+        iterations[0] = count
+        if cpu_start is not None:
+            cpu_times[0] = max(0, time.process_time_ns() - cpu_start)
+        else:
+            cpu_times[0] = 0
+        _close_worker_connection(error_connection)
+
+
+def _worker_context() -> Any:
+    """Use fork on Linux and retain a standard-library spawn fallback."""
+
+    methods = multiprocessing.get_all_start_methods()
+    return multiprocessing.get_context("fork" if "fork" in methods else "spawn")
+
+
+def _spawn_worker(context: Any, target: Any, args: tuple[Any, ...], name: str) -> tuple[Any, Any]:
+    receiver, sender = context.Pipe(duplex=False)
+    process = context.Process(target=target, args=(*args, sender), name=name)
+    try:
+        process.start()
+    except BaseException:
+        receiver.close()
+        sender.close()
+        raise
+    sender.close()
+    return process, receiver
+
+
+def _read_worker_errors(receivers: list[Any]) -> list[Exception]:
+    errors: list[Exception] = []
+    for receiver in receivers:
+        while receiver.poll():
+            try:
+                error_type, message = receiver.recv()
+            except (EOFError, OSError, ValueError):
+                break
+            errors.append(RuntimeError(f"{error_type}: {message}"))
+    return errors
+
+
+def _stop_workers(processes: list[Any], receivers: list[Any], stop: Any, start: Any, errors: list[Exception]) -> None:
+    """Stop workers cooperatively, then force and verify termination if needed."""
+
+    if not processes:
+        return
+
+    alive_before_stop = {id(process): process.is_alive() for process in processes}
+    stop.set()
+    start.set()
+    deadline = time.monotonic() + WORKER_JOIN_TIMEOUT_S
+    for process in processes:
+        process.join(timeout=max(0.0, deadline - time.monotonic()))
+
+    survivors = [process for process in processes if process.is_alive()]
+    terminated = survivors[:]
+    if terminated:
+        names = ", ".join(process.name for process in terminated)
+        errors.append(TimeoutError(f"workers did not stop cooperatively within the bounded timeout: {names}"))
+    for process in survivors:
+        try:
+            process.terminate()
+        except (AttributeError, OSError, ValueError) as exc:
+            errors.append(RuntimeError(f"{process.name} terminate failed: {exc}"))
+    terminate_deadline = time.monotonic() + min(0.25, WORKER_JOIN_TIMEOUT_S)
+    for process in survivors:
+        process.join(timeout=max(0.0, terminate_deadline - time.monotonic()))
+
+    survivors = [process for process in survivors if process.is_alive()]
+    killed = survivors[:]
+    if killed:
+        names = ", ".join(process.name for process in killed)
+        errors.append(TimeoutError(f"workers required kill after terminate: {names}"))
+    for process in survivors:
+        try:
+            process.kill()
+        except (AttributeError, OSError, ValueError) as exc:
+            errors.append(RuntimeError(f"{process.name} kill failed: {exc}"))
+    kill_deadline = time.monotonic() + 0.25
+    for process in survivors:
+        process.join(timeout=max(0.0, kill_deadline - time.monotonic()))
+
+    survivors = [process for process in processes if process.is_alive()]
+    if survivors:
+        names = ", ".join(process.name for process in survivors)
+        errors.append(TimeoutError(f"workers could not be verified stopped after terminate and kill: {names}"))
+
+    errors.extend(_read_worker_errors(receivers))
+    for process in processes:
+        if process.is_alive():
+            # Process.close() raises while a child is alive. Leaving the
+            # object open preserves the failure and avoids hiding it with a
+            # cleanup exception; the caller will fail closed below.
+            continue
+        if process.exitcode is None:
+            errors.append(RuntimeError(f"{process.name} has no verified exit code"))
+        elif process.exitcode != 0:
+            errors.append(RuntimeError(f"{process.name} exited with status {process.exitcode}"))
+        elif not alive_before_stop[id(process)]:
+            errors.append(RuntimeError(f"{process.name} exited before shutdown was requested"))
+        try:
+            process.close()
+        except (OSError, ValueError) as exc:
+            errors.append(RuntimeError(f"{process.name} close failed: {exc}"))
+    for receiver in receivers:
+        try:
+            receiver.close()
+        except (EOFError, OSError, ValueError):
+            pass
 
 
 def measure_profile(
@@ -527,115 +723,167 @@ def measure_profile(
     io_load_workers: int,
     load_directory: Path,
 ) -> tuple[list[int], dict[str, Any], int, int]:
-    stop = threading.Event()
+    if load_profile not in LOAD_PROFILES:
+        raise ValueError(f"unknown latency load profile: {load_profile}")
+    if load_profile == "controlled-load" and (
+        cpu_load_workers < 1 or io_load_workers < 1 or cpu_load_workers + io_load_workers > MAX_LOAD_WORKERS
+    ):
+        raise ValueError("controlled load worker count is outside the bounded range")
+
     errors: list[Exception] = []
-    error_lock = threading.Lock()
-    workers: list[threading.Thread] = []
-    ready_events: list[threading.Event] = []
-    status_iterations = [0]
-    cpu_iterations = [0] * cpu_load_workers
-    io_iterations = [0] * io_load_workers
-    io_maximum_file_sizes = [0] * io_load_workers
+    processes: list[Any] = []
+    receivers: list[Any] = []
+    ready_events: list[Any] = []
+    context: Any | None = None
+    stop: Any | None = None
+    start: Any | None = None
+    status_iterations: Any | None = None
+    cpu_iterations: Any | None = None
+    io_iterations: Any | None = None
+    io_maximum_file_sizes: Any | None = None
+    worker_cpu_times: Any | None = None
     temporary_directory: tempfile.TemporaryDirectory[str] | None = None
-
-    def read_status(ready: threading.Event) -> None:
-        iterations = 0
-        try:
-            if status_path is None:
-                raise AssertionError("status-reader profile has no debugfs status path")
-            while not stop.is_set():
-                text = status_path.read_text(encoding="ascii")
-                if "state" not in text or "queue_stopped" not in text:
-                    raise AssertionError("debugfs status snapshot is incomplete")
-                iterations += 1
-                if iterations == 1:
-                    ready.set()
-        except Exception as exc:  # noqa: BLE001 - worker failures are preserved as evidence.
-            _record_worker_error(errors, error_lock, stop, exc)
-        finally:
-            status_iterations[0] = iterations
-
-    if load_profile == "status-readers":
-        ready = threading.Event()
-        ready_events.append(ready)
-        workers.append(threading.Thread(target=read_status, args=(ready,), name="latency-status-reader", daemon=True))
-    elif load_profile == "controlled-load":
-        temporary_directory = tempfile.TemporaryDirectory(prefix="wbcan-latency-", dir=load_directory)
-        work_path = Path(temporary_directory.name)
-        for index in range(cpu_load_workers):
-            ready = threading.Event()
-            ready_events.append(ready)
-            workers.append(
-                threading.Thread(
-                    target=_cpu_load_worker,
-                    args=(stop, ready, cpu_iterations, index, errors, error_lock),
-                    name=f"latency-cpu-load-{index}",
-                    daemon=True,
-                )
-            )
-        for index in range(io_load_workers):
-            ready = threading.Event()
-            ready_events.append(ready)
-            workers.append(
-                threading.Thread(
-                    target=_io_load_worker,
-                    args=(
-                        work_path / f"io-{index}.bin",
-                        stop,
-                        ready,
-                        io_iterations,
-                        io_maximum_file_sizes,
-                        index,
-                        errors,
-                        error_lock,
-                    ),
-                    name=f"latency-io-load-{index}",
-                    daemon=True,
-                )
-            )
-
-    for worker in workers:
-        worker.start()
-    started_wall = time.monotonic_ns()
-    started_cpu = time.process_time_ns()
+    started_wall: int | None = None
+    started_cpu = 0
+    elapsed_ns = 0
+    parent_cpu_ns = 0
     samples: list[int] | None = None
+
     try:
+        if load_profile != "idle":
+            context = _worker_context()
+            stop = context.Event()
+            start = context.Event()
+            if load_profile == "status-readers":
+                status_iterations = context.Array("Q", [0], lock=False)
+                worker_cpu_times = context.Array("Q", [0], lock=False)
+                ready = context.Event()
+                ready_events.append(ready)
+                process, receiver = _spawn_worker(
+                    context,
+                    _status_load_worker,
+                    (status_path, stop, start, ready, status_iterations, worker_cpu_times),
+                    "latency-status-reader",
+                )
+                processes.append(process)
+                receivers.append(receiver)
+            else:
+                temporary_directory = tempfile.TemporaryDirectory(prefix="wbcan-latency-", dir=load_directory)
+                work_path = Path(temporary_directory.name)
+                cpu_iterations = context.Array("Q", [0] * cpu_load_workers, lock=False)
+                io_iterations = context.Array("Q", [0] * io_load_workers, lock=False)
+                io_maximum_file_sizes = context.Array("Q", [0] * io_load_workers, lock=False)
+                worker_cpu_times = context.Array("Q", [0] * (cpu_load_workers + io_load_workers), lock=False)
+                for index in range(cpu_load_workers):
+                    ready = context.Event()
+                    ready_events.append(ready)
+                    process, receiver = _spawn_worker(
+                        context,
+                        _cpu_load_worker,
+                        (stop, start, ready, cpu_iterations, worker_cpu_times, index),
+                        f"latency-cpu-load-{index}",
+                    )
+                    processes.append(process)
+                    receivers.append(receiver)
+                for index in range(io_load_workers):
+                    ready = context.Event()
+                    ready_events.append(ready)
+                    process, receiver = _spawn_worker(
+                        context,
+                        _io_load_worker,
+                        (
+                            work_path / f"io-{index}.bin",
+                            stop,
+                            start,
+                            ready,
+                            io_iterations,
+                            io_maximum_file_sizes,
+                            worker_cpu_times,
+                            index,
+                            cpu_load_workers + index,
+                        ),
+                        f"latency-io-load-{index}",
+                    )
+                    processes.append(process)
+                    receivers.append(receiver)
+
         ready_deadline = time.monotonic() + WORKER_READY_TIMEOUT_S
         for ready in ready_events:
-            if not ready.wait(max(0.0, ready_deadline - time.monotonic())):
-                raise TimeoutError("latency load worker did not become active within two seconds")
-        with error_lock:
-            worker_failed = bool(errors)
-        if not worker_failed:
-            samples = measure(interface, warmup, sample_count, can_id)
-    except Exception as exc:  # noqa: BLE001 - preserve measurement and worker failures together.
-        with error_lock:
-            errors.append(exc)
-    finally:
+            while not ready.is_set():
+                errors.extend(_read_worker_errors(receivers))
+                if errors:
+                    raise RuntimeError("latency load worker failed before readiness")
+                remaining = ready_deadline - time.monotonic()
+                if remaining <= 0:
+                    raise TimeoutError(
+                        f"latency load worker did not become ready within {WORKER_READY_TIMEOUT_S:g} seconds"
+                    )
+                ready.wait(min(0.05, remaining))
+        errors.extend(_read_worker_errors(receivers))
+        if errors:
+            raise RuntimeError("latency load worker failed before measurement")
+        if any(not process.is_alive() for process in processes):
+            raise RuntimeError("latency load worker exited before measurement")
+
+        # Readiness includes first-use setup. Only now do wall and CPU clocks
+        # start, so idle and controlled-load reports cover comparable windows.
+        started_wall = time.monotonic_ns()
+        started_cpu = time.process_time_ns()
+        if start is not None:
+            start.set()
+        samples = measure(interface, warmup, sample_count, can_id)
+        exited_during_measurement = [process.name for process in processes if not process.is_alive()]
+        if exited_during_measurement:
+            raise RuntimeError(
+                "latency load worker exited before measurement completed: " + ", ".join(exited_during_measurement)
+            )
         elapsed_ns = time.monotonic_ns() - started_wall
-        process_cpu_ns = time.process_time_ns() - started_cpu
-        stop.set()
-        join_deadline = time.monotonic() + WORKER_JOIN_TIMEOUT_S
-        for worker in workers:
-            worker.join(timeout=max(0.0, join_deadline - time.monotonic()))
-            if worker.is_alive():
-                with error_lock:
-                    errors.append(TimeoutError(f"{worker.name} did not stop within two seconds"))
+        parent_cpu_ns = time.process_time_ns() - started_cpu
+    except Exception as exc:  # noqa: BLE001 - preserve measurement and worker failures together.
+        errors.append(exc)
+    finally:
+        if processes and stop is not None and start is not None:
+            _stop_workers(processes, receivers, stop, start, errors)
+        if started_wall is not None and elapsed_ns == 0:
+            elapsed_ns = max(0, time.monotonic_ns() - started_wall)
+            parent_cpu_ns = max(0, time.process_time_ns() - started_cpu)
         if temporary_directory is not None:
-            temporary_directory.cleanup()
+            try:
+                temporary_directory.cleanup()
+            except OSError as exc:
+                errors.append(exc)
+
     if errors:
         details = "; ".join(f"{type(error).__name__}: {error}" for error in errors)
         raise RuntimeError(f"latency profile failed: {details}")
     if samples is None:
         raise AssertionError("latency profile produced no samples")
 
+    process_cpu_ns = parent_cpu_ns
+    if worker_cpu_times is not None:
+        process_cpu_ns += sum(worker_cpu_times)
     if load_profile == "idle":
         activity: dict[str, Any] = {"kind": "idle", "iterations": 0}
     elif load_profile == "status-readers":
+        assert status_iterations is not None
+        if status_iterations[0] < 1:
+            raise RuntimeError("status-reader worker produced no measured activity")
         activity = {"kind": "status-readers", "iterations": status_iterations[0]}
     else:
-        cpu_total = sum(cpu_iterations)
-        io_total = sum(io_iterations)
+        assert cpu_iterations is not None
+        assert io_iterations is not None
+        assert io_maximum_file_sizes is not None
+        cpu_counts = list(cpu_iterations)
+        io_counts = list(io_iterations)
+        maximum_file_sizes = list(io_maximum_file_sizes)
+        if any(count < 1 for count in cpu_counts):
+            raise RuntimeError("controlled-load CPU worker produced no measured activity")
+        if any(count < 1 for count in io_counts):
+            raise RuntimeError("controlled-load I/O worker produced no measured activity")
+        if any(size != IO_WORK_BYTES for size in maximum_file_sizes):
+            raise RuntimeError("controlled-load I/O worker produced no fixed-size observation")
+        cpu_total = sum(cpu_counts)
+        io_total = sum(io_counts)
         activity = {
             "kind": "controlled-load",
             "iterations": cpu_total + io_total,
@@ -643,15 +891,15 @@ def measure_profile(
                 "worker_count": cpu_load_workers,
                 "operation": CPU_OPERATION,
                 "iterations": cpu_total,
-                "worker_iterations": cpu_iterations,
+                "worker_iterations": cpu_counts,
             },
             "io": {
                 "worker_count": io_load_workers,
                 "operation": IO_OPERATION,
                 "iterations": io_total,
-                "worker_iterations": io_iterations,
+                "worker_iterations": io_counts,
                 "bytes_written": io_total * IO_WORK_BYTES,
-                "maximum_file_size_bytes": max(io_maximum_file_sizes),
+                "maximum_file_size_bytes": max(maximum_file_sizes),
             },
         }
     return samples, activity, elapsed_ns, process_cpu_ns

@@ -14,13 +14,22 @@ PREEMPT_RT, or hard-real-time evidence.
   zero, then uses `fstat` to verify its bounded size. The report records every
   worker's observed iterations, logical bytes written, and observed maximum file
   size. Temporary files are removed after each run, so the profile does not grow
-  disk use with run duration.
+  disk use with run duration. Each worker completes its first-use allocation,
+  file setup, and setup verification before publishing `ready`. The parent waits
+  for every worker, starts the monotonic and process-CPU clocks, and then opens
+  one common start gate. Consequently, setup is outside the controlled-load
+  measurement window and the idle and controlled-load windows are comparable.
 - `status-readers` is the separate Issue #155 comparison profile. It repeatedly
   reads the bounded debugfs status snapshot while using the same latency loop.
 
-Every worker must become active and stop within two seconds. A short write,
-worker exception, incomplete activity, stuck worker, partial frame run,
-duplicate, unexpected frame, or clock regression produces `FAIL` evidence.
+Every worker must become ready within two seconds and stop within the bounded
+shutdown deadline. Shutdown first requests cooperative stop and then uses
+bounded `terminate`/`kill` fallbacks. The parent verifies that every worker is
+no longer alive and has an exit status before closing its process handle. A
+readiness timeout, cooperative-stop timeout, forced termination, non-zero exit,
+unverified shutdown, short write, worker exception, incomplete activity, partial
+frame run, duplicate, unexpected frame, or clock regression produces `FAIL`
+evidence. A worker that does not produce measured activity is also rejected.
 
 ## Repeated campaign
 

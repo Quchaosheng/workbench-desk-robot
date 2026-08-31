@@ -1,0 +1,64 @@
+{
+  "issue": "product-evidence-layer",
+  "issues": [310, 311, 314],
+  "human_owner": "Quchaosheng",
+  "objective": "Adopt a privacy-preserving product evidence layer that connects user problems and Design Partner tasks to the existing scenario and engineering evidence contracts.",
+  "decision_supported": "Whether Workbench should adopt the product-management and Design Partner operating model as repository documentation.",
+  "allowed_paths": [
+    "docs/product/**",
+    "docs/task_packets/product-evidence-layer.json",
+    "mkdocs.yml"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "robot/control/**",
+    "firmware/**"
+  ],
+  "forbidden": [
+    "services/**",
+    "libs/**",
+    "sim/**",
+    "tasks/**"
+  ],
+  "acceptance": [
+    "User evidence is separated from engineering evidence and physical evidence.",
+    "Private participant data is referenced only by opaque identifiers.",
+    "Product documents cannot grant motion, MCU, emergency-stop, release, or completion authority.",
+    "Scripted fixture status remains release_eligible=false unless a release gate explicitly changes it.",
+    "No interfaces/ or public JSON schema changes are made."
+  ],
+  "commands": [
+    "python tools/scripts/check_task_packet.py docs/task_packets/product-evidence-layer.json",
+    "make context-check"
+  ],
+  "evidence": [
+    "docs/product/README.md",
+    "docs/product/product-brief.md",
+    "docs/product/90-day-plan.md",
+    "docs/product/problem-card-template.md",
+    "docs/product/design-partner-scenario-template.md",
+    "docs/product/feedback-record-template.md",
+    "docs/product/metrics-and-decision-log.md"
+  ],
+  "outputs": [
+    "docs/product/README.md",
+    "docs/product/product-brief.md",
+    "docs/product/90-day-plan.md",
+    "docs/product/problem-card-template.md",
+    "docs/product/design-partner-scenario-template.md",
+    "docs/product/feedback-record-template.md",
+    "docs/product/metrics-and-decision-log.md"
+  ],
+  "stop_conditions": [
+    "A requested change requires identifiable customer data in the repository.",
+    "A requested change modifies interfaces/ without matching Pydantic models and approvals.",
+    "A document would claim a physical or Gazebo result without an eligible artifact."
+  ],
+  "risks_and_fallbacks": [
+    "If product evidence conflicts with engineering evidence, preserve both and keep the decision UNKNOWN until reviewed.",
+    "If privacy handling is unclear, keep the source in private storage and commit only an opaque reference.",
+    "If MkDocs strict validation is unavailable on a contributor machine, run it in CI before merge."
+  ],
+  "data_classification": "Repository documentation is public; participant source data is private and must not be committed.",
+  "model_policy": "No model, product document, or Design Partner may grant runtime, motion, MCU, emergency-stop, release, or completion authority."
+}

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import sys
 import unittest
+from dataclasses import FrozenInstanceError
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -27,6 +28,7 @@ from workbench_agent_runtime.policy_validator import (
     PolicyViolation,
 )
 from workbench_agent_runtime.tool_registry import ToolRegistry
+from workbench_agent_runtime.tool_schemas import TOOL_SCHEMAS
 from workbench_contracts import ActionType, SemanticAction, TaskGraph, TaskStep
 
 # ---------------------------------------------------------------------------
@@ -54,6 +56,36 @@ def _graph(*actions: SemanticAction) -> TaskGraph:
     return TaskGraph(task_id="task-test", goal="test", steps=steps, planner="test", model_route="template")
 
 
+POLICY_VERSION = "test-policy-v1"
+
+
+def _policy_config(*, high_impact_actions: frozenset[ActionType] = frozenset()) -> dict[str, object]:
+    return {
+        "policy_version": POLICY_VERSION,
+        "high_impact_actions": high_impact_actions,
+    }
+
+
+def _validator(
+    registry: ToolRegistry | None = None,
+    *,
+    high_impact_actions: frozenset[ActionType] = frozenset(),
+) -> PolicyValidator:
+    return PolicyValidator(
+        registry=registry,
+        policy_config=_policy_config(high_impact_actions=high_impact_actions),
+    )
+
+
+def _registry_with_stop_parameter(name: str, parameter_type: type) -> ToolRegistry:
+    schema = dict(TOOL_SCHEMAS[ActionType.STOP])
+    schema["optional_params"] = schema["optional_params"] | frozenset({name})
+    schema["param_types"] = {**schema["param_types"], name: parameter_type}
+    registry = ToolRegistry(load_defaults=False)
+    registry.register(ActionType.STOP, schema)
+    return registry
+
+
 # ---------------------------------------------------------------------------
 # tests
 # ---------------------------------------------------------------------------
@@ -61,7 +93,7 @@ def _graph(*actions: SemanticAction) -> TaskGraph:
 
 class PolicyValidatorValidActionTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.validator = PolicyValidator()
+        self.validator = _validator()
 
     def test_observe_with_no_params_is_valid(self) -> None:
         report = self.validator.check(_graph(_action(ActionType.OBSERVE)))
@@ -100,7 +132,7 @@ class PolicyValidatorFieldSetTests(unittest.TestCase):
     """Exact field-set equality: reject extra AND missing."""
 
     def setUp(self) -> None:
-        self.validator = PolicyValidator()
+        self.validator = _validator()
 
     def test_extra_field_is_rejected(self) -> None:
         report = self.validator.check(_graph(_action(ActionType.OBSERVE, parameters={"joint_angle": 90})))
@@ -140,7 +172,7 @@ class PolicyValidatorBoolBeforeIntTests(unittest.TestCase):
     """bool must be rejected for integer slots, not coerced to 1/0."""
 
     def setUp(self) -> None:
-        self.validator = PolicyValidator()
+        self.validator = _validator()
 
     def test_duration_ms_bool_is_rejected(self) -> None:
         report = self.validator.check(
@@ -195,7 +227,7 @@ class PolicyValidatorSchemaConstraintTests(unittest.TestCase):
     """A5 consumes value and relational constraints from ToolRegistry."""
 
     def setUp(self) -> None:
-        self.validator = PolicyValidator()
+        self.validator = _validator()
 
     def test_non_finite_confidence_is_rejected(self) -> None:
         report = self.validator.check(
@@ -255,7 +287,7 @@ class PolicyValidatorSchemaConstraintTests(unittest.TestCase):
 
 class PolicyValidatorTypeMismatchTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.validator = PolicyValidator()
+        self.validator = _validator()
 
     def test_str_slot_with_int_is_rejected(self) -> None:
         report = self.validator.check(
@@ -285,7 +317,7 @@ class PolicyValidatorTypeMismatchTests(unittest.TestCase):
 
 class PolicyValidatorEnforcementTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.validator = PolicyValidator()
+        self.validator = _validator()
 
     def test_enforce_raises_on_invalid_graph(self) -> None:
         with self.assertRaises(PolicyViolation):
@@ -312,7 +344,7 @@ class PolicyValidatorEnforcementTests(unittest.TestCase):
 
 class PolicyValidatorAggregationTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.validator = PolicyValidator()
+        self.validator = _validator()
 
     def test_multiple_invalid_steps_aggregate_all_findings(self) -> None:
         graph = _graph(
@@ -345,7 +377,7 @@ class PolicyValidatorAggregationTests(unittest.TestCase):
 
 class PolicyValidatorBoundaryTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.validator = PolicyValidator()
+        self.validator = _validator()
 
     def test_non_action_type_input_is_rejected(self) -> None:
         action = SemanticAction.model_construct(
@@ -370,7 +402,7 @@ class PolicyValidatorBoundaryTests(unittest.TestCase):
         """The validator must read its whitelist from the injected registry,
         not a hardcoded second copy."""
         empty_registry = ToolRegistry(load_defaults=False)
-        validator = PolicyValidator(registry=empty_registry)
+        validator = _validator(registry=empty_registry)
         report = validator.check(_graph(_action(ActionType.OBSERVE)))
         self.assertFalse(report.is_valid)  # nothing registered -> reject
 
@@ -379,7 +411,7 @@ class PolicyValidatorRuleBoundaryTests(unittest.TestCase):
     def test_validator_does_not_emit_verification_result(self) -> None:
         """Rule 2: completion is judged only by the world-model verifier.
         The validator's output must be a PolicyReport, never a VerificationResult."""
-        validator = PolicyValidator()
+        validator = _validator()
         report = validator.check(_graph(_action(ActionType.OBSERVE)))
         self.assertIsInstance(report, PolicyReport)
         self.assertIsInstance(report.findings, tuple)
@@ -389,13 +421,334 @@ class PolicyValidatorRuleBoundaryTests(unittest.TestCase):
         self.assertNotIsInstance(report, VerificationResult)
 
     def test_report_findings_are_policy_findings(self) -> None:
-        validator = PolicyValidator()
+        validator = _validator()
         report = validator.check(_graph(_action(ActionType.GRASP)))
         for finding in report.findings:
             self.assertIsInstance(finding, PolicyFinding)
             self.assertIsInstance(finding.step_id, str)
             self.assertIsInstance(finding.field, str)
             self.assertIsInstance(finding.message, str)
+
+
+class PolicyValidatorConfigurationTests(unittest.TestCase):
+    def test_missing_policy_config_fails_closed(self) -> None:
+        report = PolicyValidator().check(_graph(_action(ActionType.OBSERVE)))
+
+        self.assertFalse(report.is_valid)
+        self.assertEqual(report.decisions[0].outcome, "deny")
+        self.assertEqual(report.decisions[0].reason_code, "policy_config_missing")
+        self.assertIsNone(report.decisions[0].policy_version)
+
+    def test_blank_policy_version_fails_closed(self) -> None:
+        validator = PolicyValidator(
+            policy_config={
+                "policy_version": "  ",
+                "high_impact_actions": frozenset(),
+            }
+        )
+
+        report = validator.check(_graph(_action(ActionType.OBSERVE)))
+
+        self.assertFalse(report.is_valid)
+        self.assertEqual(report.decisions[0].reason_code, "policy_version_blank")
+        self.assertIsNone(report.decisions[0].policy_version)
+
+    def test_unknown_high_impact_action_fails_closed(self) -> None:
+        validator = PolicyValidator(
+            policy_config={
+                "policy_version": POLICY_VERSION,
+                "high_impact_actions": frozenset({"joint_move"}),
+            }
+        )
+
+        report = validator.check(_graph(_action(ActionType.OBSERVE)))
+
+        self.assertFalse(report.is_valid)
+        self.assertEqual(report.decisions[0].reason_code, "policy_config_unknown_action")
+        self.assertEqual(report.decisions[0].policy_version, POLICY_VERSION)
+
+    def test_malformed_policy_config_fails_closed(self) -> None:
+        malformed_configs = (
+            object(),
+            {"policy_version": POLICY_VERSION},
+            {"policy_version": 1, "high_impact_actions": frozenset()},
+            {"policy_version": POLICY_VERSION, "high_impact_actions": [ActionType.PLACE]},
+            {
+                "policy_version": POLICY_VERSION,
+                "high_impact_actions": frozenset(),
+                "unexpected": True,
+            },
+        )
+        for config in malformed_configs:
+            with self.subTest(config=config):
+                report = PolicyValidator(policy_config=config).check(_graph(_action(ActionType.OBSERVE)))
+                self.assertFalse(report.is_valid)
+                self.assertEqual(report.decisions[0].reason_code, "policy_config_malformed")
+
+
+class PolicyValidatorStructuredDecisionTests(unittest.TestCase):
+    def test_safe_action_is_allowed_with_versioned_structured_reason_without_mutation(self) -> None:
+        action = _action(ActionType.OBSERVE, action_id="act-safe", parameters={"required_confidence": 0.9})
+        graph = _graph(action)
+        action_before = action.model_dump_json().encode()
+        graph_before = graph.model_dump_json().encode()
+
+        report = _validator().check(graph)
+
+        self.assertTrue(report.is_valid)
+        self.assertEqual(len(report.decisions), 1)
+        decision = report.decisions[0]
+        self.assertEqual(decision.step_id, "step-1")
+        self.assertEqual(decision.action_id, "act-safe")
+        self.assertEqual(decision.outcome, "allow")
+        self.assertEqual(decision.reason_code, "policy_allowed")
+        self.assertEqual(decision.policy_version, POLICY_VERSION)
+        self.assertEqual(action.model_dump_json().encode(), action_before)
+        self.assertEqual(graph.model_dump_json().encode(), graph_before)
+        self.assertIsInstance(report.decisions, tuple)
+        with self.assertRaises(FrozenInstanceError):
+            decision.outcome = "deny"
+
+    def test_unknown_action_is_denied_structurally(self) -> None:
+        registry = ToolRegistry(load_defaults=False)
+
+        report = _validator(registry=registry).check(_graph(_action(ActionType.OBSERVE, action_id="act-unknown")))
+
+        self.assertFalse(report.is_valid)
+        decision = report.decisions[0]
+        self.assertEqual(decision.step_id, "step-1")
+        self.assertEqual(decision.action_id, "act-unknown")
+        self.assertEqual(decision.outcome, "deny")
+        self.assertEqual(decision.reason_code, "tool_registry_denied")
+        self.assertEqual(decision.policy_version, POLICY_VERSION)
+        self.assertTrue(any(finding.field == "action_type" for finding in decision.findings))
+
+    def test_injected_registry_change_propagates_without_second_allowlist(self) -> None:
+        registry = _registry_with_stop_parameter("operator_note", str)
+        graph = _graph(
+            _action(
+                ActionType.STOP,
+                action_id="act-custom",
+                parameters={"operator_note": "approved semantic stop"},
+            )
+        )
+
+        report = _validator(registry=registry).check(graph)
+
+        self.assertTrue(report.is_valid, report.decisions)
+        self.assertEqual(report.decisions[0].outcome, "allow")
+        self.assertEqual(report.decisions[0].reason_code, "policy_allowed")
+
+
+class PolicyValidatorRawControlTests(unittest.TestCase):
+    def test_nested_raw_control_identifiers_are_denied(self) -> None:
+        registry = _registry_with_stop_parameter("payload", list)
+        payloads = (
+            [{"motion": {"joint_position": 0.25}}],
+            [{"profile": ["velocity_limit=0.25"]}],
+            [["torque=3.0"]],
+            [{"update": {"name": "firmware_mode"}}],
+        )
+        for index, payload in enumerate(payloads, start=1):
+            with self.subTest(payload=payload):
+                action_id = f"act-raw-{index}"
+                graph = _graph(_action(ActionType.STOP, action_id=action_id, parameters={"payload": payload}))
+                report = _validator(
+                    registry=registry,
+                    high_impact_actions=frozenset({ActionType.STOP}),
+                ).check(graph, confirmed_action_ids=frozenset({action_id}))
+                self.assertFalse(report.is_valid)
+                self.assertEqual(report.decisions[0].outcome, "deny")
+                self.assertEqual(report.decisions[0].reason_code, "raw_control_parameter")
+                self.assertTrue(report.decisions[0].findings)
+
+    def test_plain_prose_is_not_misclassified_as_a_raw_parameter(self) -> None:
+        registry = _registry_with_stop_parameter("note", str)
+        notes = (
+            (
+                "This explanation mentions joint behavior, velocity profiles, torque margins, "
+                "and firmware safety without encoding a control parameter."
+            ),
+            "Firmware: safety remains outside this policy.",
+            "Joint: a mechanical connection, not a command.",
+        )
+        for note in notes:
+            with self.subTest(note=note):
+                graph = _graph(_action(ActionType.STOP, parameters={"note": note}))
+                report = _validator(registry=registry).check(graph)
+
+                self.assertTrue(report.is_valid, report.decisions)
+
+    def test_disguised_raw_control_identifiers_are_denied(self) -> None:
+        registry = _registry_with_stop_parameter("payload", list)
+        payloads = (
+            [{"joint velocity": 1}],
+            [{"firmware/mode": "update"}],
+            [{"JOINTVELOCITY": 1}],
+            ['{"joint\\u005fvelocity":1}'],
+        )
+        for payload in payloads:
+            with self.subTest(payload=payload):
+                report = _validator(registry=registry).check(
+                    _graph(_action(ActionType.STOP, parameters={"payload": payload}))
+                )
+
+                self.assertFalse(report.is_valid)
+                self.assertEqual(report.decisions[0].reason_code, "raw_control_parameter")
+
+    def test_non_string_mapping_key_fails_closed(self) -> None:
+        registry = _registry_with_stop_parameter("payload", list)
+        payload = [{("torque_limit",): 1}]
+
+        report = _validator(registry=registry).check(_graph(_action(ActionType.STOP, parameters={"payload": payload})))
+
+        self.assertFalse(report.is_valid)
+        self.assertEqual(report.decisions[0].reason_code, "policy_input_malformed")
+
+    def test_excessive_payload_nesting_fails_closed_structurally(self) -> None:
+        registry = _registry_with_stop_parameter("payload", list)
+        payload: object = "safe"
+        for _ in range(1200):
+            payload = [payload]
+
+        report = _validator(registry=registry).check(_graph(_action(ActionType.STOP, parameters={"payload": payload})))
+
+        self.assertFalse(report.is_valid)
+        self.assertEqual(report.decisions[0].reason_code, "policy_input_malformed")
+        self.assertTrue(any("scan limit" in finding.message for finding in report.findings))
+
+
+class PolicyValidatorConfirmationTests(unittest.TestCase):
+    def test_high_impact_action_requires_confirmation(self) -> None:
+        graph = _graph(
+            _action(ActionType.ASK_CONFIRM, parameters={"question": "place it?"}),
+            _action(
+                ActionType.PLACE,
+                action_id="act-place",
+                target_id="red_block",
+                parameters={"destination_id": "tray"},
+            ),
+        )
+
+        report = _validator(high_impact_actions=frozenset({ActionType.PLACE})).check(graph)
+
+        self.assertFalse(report.is_valid)
+        self.assertEqual(report.decisions[0].outcome, "allow")
+        self.assertEqual(report.decisions[1].outcome, "confirmation_required")
+        self.assertEqual(report.decisions[1].reason_code, "action_confirmation_required")
+        self.assertEqual(report.decisions[1].policy_version, POLICY_VERSION)
+
+    def test_confirmation_is_scoped_to_exact_action_id(self) -> None:
+        graph = _graph(
+            _action(
+                ActionType.PLACE,
+                action_id="act-place",
+                target_id="red_block",
+                parameters={"destination_id": "tray"},
+            )
+        )
+        validator = _validator(high_impact_actions=frozenset({ActionType.PLACE}))
+
+        report = validator.check(graph, confirmed_action_ids=frozenset({"act-other"}))
+
+        self.assertFalse(report.is_valid)
+        self.assertEqual(report.decisions[0].action_id, "act-place")
+        self.assertEqual(report.decisions[0].outcome, "confirmation_required")
+
+    def test_malformed_confirmation_ids_fail_closed_without_substring_matching(self) -> None:
+        graph = _graph(
+            _action(
+                ActionType.PLACE,
+                action_id="act-place",
+                target_id="red_block",
+                parameters={"destination_id": "tray"},
+            )
+        )
+        validator = _validator(high_impact_actions=frozenset({ActionType.PLACE}))
+        malformed_values = (
+            "act-place-other",
+            ["act-place"],
+            frozenset({" "}),
+            frozenset({1}),
+        )
+
+        for confirmed_action_ids in malformed_values:
+            with self.subTest(confirmed_action_ids=confirmed_action_ids):
+                report = validator.check(
+                    graph,
+                    confirmed_action_ids=confirmed_action_ids,  # type: ignore[arg-type]
+                )
+
+                self.assertFalse(report.is_valid)
+                self.assertEqual(report.decisions[0].outcome, "deny")
+                self.assertEqual(report.decisions[0].reason_code, "confirmation_input_malformed")
+
+    def test_matching_confirmation_allows_registry_valid_high_impact_action(self) -> None:
+        valid_graph = _graph(
+            _action(
+                ActionType.PLACE,
+                action_id="act-place",
+                target_id="red_block",
+                parameters={"destination_id": "tray"},
+            )
+        )
+        invalid_graph = _graph(
+            _action(ActionType.PLACE, action_id="act-place-invalid", target_id="red_block", parameters={})
+        )
+        validator = _validator(high_impact_actions=frozenset({ActionType.PLACE}))
+
+        valid_report = validator.check(valid_graph, confirmed_action_ids=frozenset({"act-place"}))
+        invalid_report = validator.check(
+            invalid_graph,
+            confirmed_action_ids=frozenset({"act-place-invalid"}),
+        )
+
+        self.assertTrue(valid_report.is_valid, valid_report.decisions)
+        self.assertEqual(valid_report.decisions[0].outcome, "allow")
+        self.assertEqual(invalid_report.decisions[0].outcome, "deny")
+        self.assertEqual(invalid_report.decisions[0].reason_code, "tool_registry_denied")
+
+
+class PolicyValidatorIssue58EnforcementTests(unittest.TestCase):
+    def test_enforce_rejects_deny_and_confirmation_required(self) -> None:
+        denied_graph = _graph(_action(ActionType.OBSERVE, action_id="act-denied"))
+        confirmation_graph = _graph(
+            _action(
+                ActionType.PLACE,
+                action_id="act-confirm",
+                target_id="red_block",
+                parameters={"destination_id": "tray"},
+            )
+        )
+
+        with self.assertRaises(PolicyViolation) as denied:
+            _validator(registry=ToolRegistry(load_defaults=False)).enforce(denied_graph)
+        with self.assertRaises(PolicyViolation) as confirmation:
+            _validator(high_impact_actions=frozenset({ActionType.PLACE})).enforce(confirmation_graph)
+
+        self.assertEqual(denied.exception.report.decisions[0].step_id, "step-1")
+        self.assertEqual(denied.exception.report.decisions[0].reason_code, "tool_registry_denied")
+        self.assertEqual(confirmation.exception.report.decisions[0].action_id, "act-confirm")
+        self.assertEqual(confirmation.exception.report.decisions[0].outcome, "confirmation_required")
+
+    def test_policy_output_is_authorization_only(self) -> None:
+        from workbench_contracts import ActionResult, VerificationResult
+
+        report = _validator().check(_graph(_action(ActionType.OBSERVE)))
+        decision = report.decisions[0]
+
+        self.assertIsInstance(report, PolicyReport)
+        self.assertNotIsInstance(report, (ActionResult, VerificationResult))
+        self.assertNotIsInstance(decision, (ActionResult, VerificationResult))
+        for forbidden_attribute in (
+            "dispatch_state",
+            "device_state",
+            "evidence_refs",
+            "verification_id",
+            "completed",
+        ):
+            self.assertFalse(hasattr(report, forbidden_attribute))
+            self.assertFalse(hasattr(decision, forbidden_attribute))
 
 
 if __name__ == "__main__":

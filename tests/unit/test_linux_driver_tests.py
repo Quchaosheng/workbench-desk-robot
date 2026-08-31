@@ -1,16 +1,19 @@
 import importlib.util
 import json
+import sys
 import threading
+import time
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 DRIVER_PATH = ROOT / "kernel" / "wbcan" / "wbcan.c"
-CI_PATH = ROOT / ".github" / "workflows" / "ci.yml"
 MODULE_PATH = ROOT / "kernel" / "wbcan" / "validate_test_report.py"
 TEST_SCRIPT = ROOT / "kernel" / "wbcan" / "test_wbcan.sh"
 STRESS_PATH = ROOT / "kernel" / "wbcan" / "test_state_concurrency.py"
+STRESS_MAKEFILE = ROOT / "kernel" / "wbcan" / "Makefile"
+CI_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
 LATENCY_PATH = ROOT / "kernel" / "wbcan" / "test_latency.py"
 LATENCY_CAMPAIGN_PATH = ROOT / "kernel" / "wbcan" / "validate_latency_campaign.py"
 DIAGNOSTICS_PATH = ROOT / "kernel" / "wbcan" / "validate_kernel_diagnostics.py"
@@ -22,9 +25,11 @@ STRESS_SPEC = importlib.util.spec_from_file_location("wbcan_stress", STRESS_PATH
 assert STRESS_SPEC and STRESS_SPEC.loader
 STRESS = importlib.util.module_from_spec(STRESS_SPEC)
 STRESS_SPEC.loader.exec_module(STRESS)
-LATENCY_SPEC = importlib.util.spec_from_file_location("wbcan_latency", LATENCY_PATH)
+LATENCY_SPEC = importlib.util.spec_from_file_location("test_latency", LATENCY_PATH)
 assert LATENCY_SPEC and LATENCY_SPEC.loader
 LATENCY = importlib.util.module_from_spec(LATENCY_SPEC)
+sys.path.insert(0, str(LATENCY_PATH.parent))
+sys.modules[LATENCY_SPEC.name] = LATENCY
 LATENCY_SPEC.loader.exec_module(LATENCY)
 LATENCY_CAMPAIGN_SPEC = importlib.util.spec_from_file_location("wbcan_latency_campaign", LATENCY_CAMPAIGN_PATH)
 assert LATENCY_CAMPAIGN_SPEC and LATENCY_CAMPAIGN_SPEC.loader
@@ -37,6 +42,43 @@ DIAGNOSTICS_SPEC.loader.exec_module(DIAGNOSTICS)
 
 
 HEADER = "result\ttest_id\tname\texpected\tactual\n"
+
+
+def _ready_then_sleeping_latency_worker(_stop: object, _start: object, ready: object, *_args: object) -> None:
+    """Become ready, then keep a worker alive long enough to force cleanup."""
+
+    ready.set()
+    time.sleep(10)
+
+
+def _nonzero_latency_worker(*_args: object) -> None:
+    """Exit abnormally so cleanup must reject the worker's exit status."""
+
+    raise SystemExit(7)
+
+
+def _delayed_ready_cpu_worker(
+    stop: object,
+    start: object,
+    ready: object,
+    counts: object,
+    cpu_times: object,
+    index: int,
+    error_connection: object,
+) -> None:
+    """Delay setup so the parent timing window can be tested independently."""
+
+    time.sleep(0.2)
+    ready.set()
+    try:
+        if not start.wait(1):
+            return
+        while not stop.is_set():
+            counts[index] = 1
+            cpu_times[index] = 1
+            time.sleep(0.005)
+    finally:
+        error_connection.close()
 
 
 def _write_report(path: Path, rows: list[str]) -> None:
@@ -108,12 +150,13 @@ def test_fault_suite_fails_if_report_append_fails() -> None:
     assert "cannot append to test report" in script
 
 
-def _stress_report() -> dict[str, object]:
+def _stress_report(profile_name: str = "developer-smoke") -> dict[str, object]:
+    profile = STRESS.profile_config(profile_name)
     producer = {
         "can_id": "0x740",
-        "requested": 10,
-        "sent": 10,
-        "received": 10,
+        "requested": profile.frames_per_producer,
+        "sent": profile.frames_per_producer,
+        "received": profile.frames_per_producer,
         "lost": 0,
         "duplicate": 0,
         "reordered": 0,
@@ -121,34 +164,73 @@ def _stress_report() -> dict[str, object]:
         "longest_no_progress_ms": 1,
     }
     stages = [{"name": name, "result": "PASS", "duration_ms": 1} for name in STRESS.REQUIRED_STAGES]
+    reconfiguration = next(stage for stage in stages if stage["name"] == "reconfiguration")
+    reconfiguration["details"] = {"frames_requested": 400, "status_reads": 600, "fault_rearms": 150}
+    drops = next(stage for stage in stages if stage["name"] == "drop_fault_accounting")
+    drops["details"] = {
+        "drop_tx_expected": 2,
+        "drop_rx_expected": 2,
+        "intentional_loss": 4,
+        "unexplained_loss": 0,
+        "recovery_frames": 1,
+        "driver_rx_dropped": 2,
+    }
+    lifecycle = next(stage for stage in stages if stage["name"] == "link_lifecycle")
+    lifecycle["details"] = {"cycles": 8, "frames_requested": 500, "status_reads": 800}
+    stats = next(stage for stage in stages if stage["name"] == "stats_sampling")
+    stats["details"] = {"samples": 10, "regressions": 0}
     saturation = next(stage for stage in stages if stage["name"] == "multi_producer_saturation")
     saturation["details"] = {
-        "producer_count": 2,
-        "frames_per_producer": 10,
-        "producers": [producer, {**producer, "can_id": "0x741"}],
+        "producer_count": profile.producer_count,
+        "frames_per_producer": profile.frames_per_producer,
+        "max_no_progress_ms": profile.max_no_progress_ms,
+        "unexpected_frames": 0,
+        "producers": [{**producer, "can_id": f"0x{0x740 + index:03x}"} for index in range(profile.producer_count)],
     }
     tx_full = next(stage for stage in stages if stage["name"] == "repeated_tx_full")
-    tx_full["details"] = {"attempts": 16, "delivered_once": 16}
+    tx_full["details"] = {"attempts": profile.tx_full_attempts, "delivered_once": profile.tx_full_attempts}
     slow_receiver = next(stage for stage in stages if stage["name"] == "slow_receiver")
     slow_receiver["details"] = {
-        "sent": 500,
-        "received": 100,
-        "expected_socket_loss": 400,
+        "sent": profile.slow_receiver_frames,
+        "received": 1,
+        "expected_socket_loss": profile.slow_receiver_frames - 1,
         "duplicate": 0,
         "unexpected": 0,
         "driver_rx_dropped": 0,
     }
-    return {
-        "schema_version": STRESS.REPORT_SCHEMA_VERSION,
-        "scope": "virtual-wbcan-only",
-        "result": "PASS",
-        "interface": "wbcan0",
-        "kernel": "test-kernel",
-        "python": "3.12.0",
-        "started_at": "1",
-        "completed_at": "2",
-        "stages": stages,
+    reload_stage = next(stage for stage in stages if stage["name"] == "unload_reload")
+    reload_stage["details"] = {
+        "requested_cycles": profile.reload_cycles,
+        "completed_cycles": profile.reload_cycles,
+        "module_absence_checks": profile.reload_cycles,
+        "interface_absence_checks": profile.reload_cycles,
+        "debugfs_absence_checks": profile.reload_cycles,
+        "post_reload_frames": profile.reload_cycles,
+        "stale_frames": 0,
+        "open_socket_count": 0,
+        "live_thread_count": 0,
     }
+    cleanup = next(stage for stage in stages if stage["name"] == "cleanup")
+    cleanup["details"] = {
+        "open_socket_count": 0,
+        "live_thread_count": 0,
+        "module_loaded": True,
+        "interface_present": True,
+        "debugfs_present": True,
+        "link_active": True,
+        "fault_cleared": True,
+        "subprocesses_reaped": True,
+    }
+    return STRESS._build_report(
+        interface="wbcan0",
+        module_path=STRESS_PATH.with_name("wbcan.ko"),
+        profile=profile,
+        started_at=1,
+        completed_at=2,
+        elapsed_ms=1,
+        result="PASS",
+        stages=stages,
+    )
 
 
 def test_stress_report_accepts_complete_virtual_pass(tmp_path: Path) -> None:
@@ -178,6 +260,22 @@ def test_stress_report_rejects_incomplete_or_untruthful_evidence(mutation: str) 
         STRESS.validate_stress_report(report)
 
 
+def test_failed_stress_report_rejects_mixed_not_executed_stage() -> None:
+    report = _stress_report()
+    report["result"] = "FAIL"
+    stages = report["stages"]
+    assert isinstance(stages, list)
+    stages[0]["result"] = "FAIL"
+    stages[0]["error"] = "injected failure"
+    cleanup = stages[-1]
+    cleanup["result"] = "NOT_EXECUTED"
+    cleanup["error"] = "cleanup was not run"
+    stages[:] = [stages[0], cleanup]
+
+    with pytest.raises(ValueError, match="cannot contain a NOT_EXECUTED stage"):
+        STRESS.validate_stress_report(report)
+
+
 def test_delivery_analysis_reports_loss_duplicate_reordering_and_progress() -> None:
     metrics = STRESS.analyze_delivery(
         {0x740: [0, 1, 2, 3]},
@@ -200,6 +298,36 @@ def test_delivery_analysis_reports_loss_duplicate_reordering_and_progress() -> N
         }
     ]
 
+    metrics = STRESS.analyze_delivery(
+        {0x740: [0]},
+        {0x740: [0]},
+        {0x740: [10.25]},
+        requested=1,
+        producer_started={0x740: 10.0},
+    )
+    assert metrics[0]["longest_no_progress_ms"] == 250
+
+
+def test_saturation_decoder_requires_the_complete_reserved_payload() -> None:
+    expected_ids = {0x740}
+    valid = STRESS.FRAME.pack(0x740, 8, (7).to_bytes(4, "big") + b"\0" * 4)
+
+    assert STRESS.decode_saturation_frame(valid, expected_ids) == (0x740, 7)
+    assert (
+        STRESS.decode_saturation_frame(
+            STRESS.FRAME.pack(0x740, 8, (7).to_bytes(4, "big") + b"bad!"),
+            expected_ids,
+        )
+        is None
+    )
+    assert (
+        STRESS.decode_saturation_frame(
+            STRESS.FRAME.pack(0x740, 7, (7).to_bytes(4, "big") + b"\0" * 4),
+            expected_ids,
+        )
+        is None
+    )
+
 
 def test_stress_report_rejects_saturation_delivery_anomaly() -> None:
     report = _stress_report()
@@ -209,6 +337,15 @@ def test_stress_report_rejects_saturation_delivery_anomaly() -> None:
     saturation["details"]["producers"][0]["lost"] = 1
 
     with pytest.raises(ValueError, match="delivery anomalies"):
+        STRESS.validate_stress_report(report)
+
+    report = _stress_report()
+    stages = report["stages"]
+    assert isinstance(stages, list)
+    saturation = next(stage for stage in stages if stage["name"] == "multi_producer_saturation")
+    saturation["details"]["unexpected_frames"] = 1
+
+    with pytest.raises(ValueError, match="unexpected frames"):
         STRESS.validate_stress_report(report)
 
 
@@ -237,6 +374,191 @@ def test_stress_report_rejects_tx_full_or_slow_receiver_anomaly() -> None:
     slow_receiver["details"]["driver_rx_dropped"] = 1
     with pytest.raises(ValueError, match="driver anomalies"):
         STRESS.validate_stress_report(report)
+
+
+def test_release_profile_is_fixed_and_has_repeated_baseline_provenance() -> None:
+    report = _stress_report("release")
+
+    STRESS.validate_stress_report(report)
+    assert report["budget"]["baseline"]["run_count"] >= 3
+    assert report["budget"]["baseline"]["duration_ms"] == STRESS.profile_config("release").baseline_duration_ms
+    with pytest.raises(ValueError, match="release profile is fixed"):
+        STRESS.resolve_profile("release", reload_cycles=1)
+
+    report["budget"]["baseline"]["duration_ms"] += 1
+    with pytest.raises(ValueError, match="baseline duration"):
+        STRESS.validate_stress_report(report)
+
+    report = _stress_report("release")
+    report["budget"]["baseline"]["runs"][0]["observed_duration_ms"] += 1
+    with pytest.raises(ValueError, match=r"observed maximum|fixed evidence"):
+        STRESS.validate_stress_report(report)
+
+
+def test_stress_report_rejects_over_budget_or_incomplete_reload_evidence() -> None:
+    report = _stress_report()
+    report["elapsed_ms"] = STRESS.profile_config("developer-smoke").max_duration_ms + 1
+    report["budget"]["elapsed_ms"] = report["elapsed_ms"]
+    report["budget"]["within_budget"] = False
+    with pytest.raises(ValueError, match="exceeded its wall-clock budget"):
+        STRESS.validate_stress_report(report)
+
+    report = _stress_report()
+    stages = report["stages"]
+    assert isinstance(stages, list)
+    stages.pop(-2)  # remove unload_reload while retaining the cleanup suffix
+    with pytest.raises(ValueError, match=r"ordered execution prefix|every required"):
+        STRESS.validate_stress_report(report)
+
+
+def test_stress_report_rejects_resource_leak_and_profile_inconsistency() -> None:
+    report = _stress_report()
+    cleanup = next(stage for stage in report["stages"] if stage["name"] == "cleanup")
+    cleanup["details"]["open_socket_count"] = 1
+    with pytest.raises(ValueError, match="live resources"):
+        STRESS.validate_stress_report(report)
+
+    report = _stress_report()
+    report["profile_config"]["max_no_progress_ms"] = 1
+    with pytest.raises(ValueError, match=r"fixed release|profile_config changed"):
+        STRESS.validate_stress_report(report)
+
+    for field in ("fault_cleared", "subprocesses_reaped"):
+        report = _stress_report()
+        cleanup = next(stage for stage in report["stages"] if stage["name"] == "cleanup")
+        cleanup["details"][field] = False
+        with pytest.raises(ValueError, match=f"did not verify {field}"):
+            STRESS.validate_stress_report(report)
+
+
+def test_probe_command_can_restore_after_an_expired_workload_budget(monkeypatch: pytest.MonkeyPatch) -> None:
+    probe = STRESS.Probe("wbcan0", Path("/tmp/wbcan-debugfs"), max_duration_ms=1)
+    probe.deadline = 0
+    calls: list[tuple[object, ...]] = []
+
+    def fake_run(*arguments: object, **kwargs: object) -> None:
+        calls.append(arguments)
+
+    monkeypatch.setattr(STRESS.subprocess, "run", fake_run)
+    probe.command("true", enforce_budget=False)
+    assert calls
+    with pytest.raises(STRESS.BudgetExceededError):
+        probe.command("true")
+
+
+def test_concurrent_worker_failure_is_reported_and_aborts_siblings() -> None:
+    probe = STRESS.Probe("wbcan0", Path("/tmp/wbcan-debugfs"))
+
+    def fail() -> None:
+        raise RuntimeError("worker failed")
+
+    worker = threading.Thread(target=probe.capture, args=(fail,), name="failing-worker")
+    worker.start()
+    worker.join(timeout=1)
+
+    with pytest.raises(ExceptionGroup, match="worker failures"):
+        probe.finish_threads(worker)
+    assert probe.abort.is_set()
+
+
+def test_cleanup_restore_retries_but_reports_recovery_after_first_failure() -> None:
+    probe = STRESS.Probe("wbcan0", Path("/tmp/wbcan-debugfs"))
+    attempts: list[int] = []
+
+    def restore() -> None:
+        attempts.append(len(attempts) + 1)
+        if len(attempts) == 1:
+            raise RuntimeError("transient restoration failure")
+
+    probe._restore_device = restore  # type: ignore[method-assign]
+    with pytest.raises(RuntimeError, match="second attempt"):
+        probe._restore_for_cleanup()
+    assert attempts == [1, 2]
+
+
+def test_stress_preflight_converts_debugfs_permission_errors_to_not_executed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    protected = Path("/tmp/wbcan-protected-debugfs")
+    original_is_dir = Path.is_dir
+
+    def deny_protected(path: Path) -> bool:
+        if path == protected:
+            raise PermissionError("debugfs access denied")
+        return original_is_dir(path)
+
+    monkeypatch.setattr(Path, "is_dir", deny_protected)
+    with pytest.raises(STRESS.NotExecutedError, match="debugfs directory is unavailable"):
+        STRESS._preflight("wbcan0", protected, Path("/tmp/missing-wbcan.ko"))
+
+
+def test_failed_probe_persists_a_valid_fail_report(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(STRESS, "_preflight", lambda interface, debugfs, module_path: None)
+
+    def fail_reconfiguration(self: object) -> None:
+        raise RuntimeError("synthetic stage failure")
+
+    def clean(self: object) -> dict[str, int | bool]:
+        return {
+            "open_socket_count": 0,
+            "live_thread_count": 0,
+            "module_loaded": True,
+            "interface_present": True,
+            "debugfs_present": True,
+            "link_active": True,
+            "fault_cleared": True,
+            "subprocesses_reaped": True,
+        }
+
+    monkeypatch.setattr(STRESS.Probe, "exercise_reconfiguration", fail_reconfiguration)
+    monkeypatch.setattr(STRESS.Probe, "cleanup", clean)
+    report_path = tmp_path / "failed-stress.json"
+
+    with pytest.raises(RuntimeError, match="synthetic stage failure"):
+        STRESS.run_probe("wbcan0", Path("/tmp/wbcan-debugfs"), report_path)
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    STRESS.validate_stress_report(report)
+    assert report["result"] == "FAIL"
+
+
+def test_stress_report_accepts_truthful_not_executed_result() -> None:
+    profile = STRESS.profile_config("developer-smoke")
+    report = STRESS._build_report(
+        interface="wbcan0",
+        module_path=STRESS_PATH.with_name("wbcan.ko"),
+        profile=profile,
+        started_at=1,
+        completed_at=2,
+        elapsed_ms=1,
+        result="NOT_EXECUTED",
+        stages=[],
+        reason="matching kernel headers are unavailable",
+    )
+
+    STRESS.validate_stress_report(report)
+    report.pop("not_executed_reason")
+    with pytest.raises(ValueError, match="requires a reason"):
+        STRESS.validate_stress_report(report)
+
+
+def test_stress_entrypoints_select_release_and_preserve_before_after_diagnostics() -> None:
+    makefile = STRESS_MAKEFILE.read_text(encoding="utf-8")
+    script = TEST_SCRIPT.read_text(encoding="utf-8")
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+
+    assert "STRESS_PROFILE ?= release" in makefile
+    assert "stress-smoke:" in makefile
+    assert "stress-release:" in makefile
+    assert "--require-pass" in makefile
+    assert '--profile "$STRESS_PROFILE"' in script
+    assert "WBCAN_STRESS_PROFILE: release" in workflow
+    assert "Capture pre-fault-suite resource snapshot" in workflow
+    assert "--before-slabinfo" in workflow
+    assert "wbcan-slabinfo-before.txt" in workflow
 
 
 def _latency_activity(profile: str) -> dict[str, object]:
@@ -470,7 +792,11 @@ def test_latency_report_rejects_unobserved_or_unbounded_controlled_load(mutation
 def test_controlled_load_workers_are_observed_and_leave_no_files(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(LATENCY, "measure", lambda *_args: list(range(1, 11)))
+    def fake_measure(*_args: object) -> list[int]:
+        time.sleep(0.05)
+        return list(range(1, 11))
+
+    monkeypatch.setattr(LATENCY, "measure", fake_measure)
 
     samples, activity, elapsed_ns, process_cpu_ns = LATENCY.measure_profile(
         "wbcan0",
@@ -491,7 +817,48 @@ def test_controlled_load_workers_are_observed_and_leave_no_files(
     assert activity["io"]["worker_iterations"][0] > 0
     assert activity["io"]["maximum_file_size_bytes"] == LATENCY.IO_WORK_BYTES
     assert not list(tmp_path.iterdir())
-    assert not any(thread.name.startswith("latency-") for thread in threading.enumerate())
+    assert not any(
+        process.name.startswith("latency-") and process.is_alive()
+        for process in LATENCY.multiprocessing.active_children()
+    )
+
+
+def test_controlled_load_supports_the_spawn_context(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(LATENCY, "_worker_context", lambda: LATENCY.multiprocessing.get_context("spawn"))
+
+    def fake_measure(*_args: object) -> list[int]:
+        time.sleep(0.05)
+        return list(range(1, 11))
+
+    monkeypatch.setattr(LATENCY, "measure", fake_measure)
+
+    samples, activity, _elapsed_ns, _process_cpu_ns = LATENCY.measure_profile(
+        "wbcan0", 0, 10, 0x760, "controlled-load", None, 1, 1, tmp_path
+    )
+
+    assert samples == list(range(1, 11))
+    assert activity["cpu"]["worker_iterations"][0] > 0
+    assert activity["io"]["worker_iterations"][0] > 0
+    assert not list(tmp_path.iterdir())
+
+
+def test_controlled_load_setup_is_outside_the_timed_window(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(LATENCY, "_cpu_load_worker", _delayed_ready_cpu_worker)
+
+    def fake_measure(*_args: object) -> list[int]:
+        time.sleep(0.03)
+        return list(range(1, 11))
+
+    monkeypatch.setattr(LATENCY, "measure", fake_measure)
+    started = time.monotonic()
+
+    _samples, _activity, elapsed_ns, _process_cpu_ns = LATENCY.measure_profile(
+        "wbcan0", 0, 10, 0x760, "controlled-load", None, 1, 1, tmp_path
+    )
+
+    total_elapsed = time.monotonic() - started
+    assert total_elapsed >= 0.15
+    assert total_elapsed - (elapsed_ns / 1_000_000_000) >= 0.1
 
 
 def test_controlled_load_worker_failure_is_visible_and_cleanup_is_bounded(
@@ -513,7 +880,42 @@ def test_controlled_load_worker_failure_is_visible_and_cleanup_is_bounded(
 
     assert not measurement_called
     assert not list(tmp_path.iterdir())
-    assert not any(thread.name.startswith("latency-") for thread in threading.enumerate())
+    assert not any(
+        process.name.startswith("latency-") and process.is_alive()
+        for process in LATENCY.multiprocessing.active_children()
+    )
+
+
+def test_controlled_load_stops_and_verifies_a_timed_out_worker(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(LATENCY, "WORKER_READY_TIMEOUT_S", 0.1)
+    monkeypatch.setattr(LATENCY, "WORKER_JOIN_TIMEOUT_S", 0.01)
+    monkeypatch.setattr(LATENCY, "_cpu_load_worker", _ready_then_sleeping_latency_worker)
+
+    def fake_measure(*_args: object) -> list[int]:
+        return list(range(1, 11))
+
+    monkeypatch.setattr(LATENCY, "measure", fake_measure)
+
+    with pytest.raises(RuntimeError, match="did not stop cooperatively"):
+        LATENCY.measure_profile("wbcan0", 0, 10, 0x760, "controlled-load", None, 1, 1, tmp_path)
+
+    assert not any(
+        process.name.startswith("latency-") and process.is_alive()
+        for process in LATENCY.multiprocessing.active_children()
+    )
+
+
+def test_controlled_load_rejects_a_nonzero_worker_exit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(LATENCY, "WORKER_READY_TIMEOUT_S", 0.1)
+    monkeypatch.setattr(LATENCY, "_cpu_load_worker", _nonzero_latency_worker)
+
+    with pytest.raises(RuntimeError, match="exited with status 7"):
+        LATENCY.measure_profile("wbcan0", 0, 10, 0x760, "controlled-load", None, 1, 1, tmp_path)
+
+    assert not any(
+        process.name.startswith("latency-") and process.is_alive()
+        for process in LATENCY.multiprocessing.active_children()
+    )
 
 
 def test_latency_campaign_accepts_comparable_repeated_profiles(tmp_path: Path) -> None:
@@ -547,7 +949,7 @@ def test_latency_campaign_rejects_incomplete_or_unsupported_evidence(mutation: s
         with pytest.raises(ValueError, match="not comparable"):
             LATENCY_CAMPAIGN.build_campaign(idle, controlled)
         return
-    elif mutation == "digest_mismatch":
+    if mutation == "digest_mismatch":
         campaign["profiles"]["idle"]["source_sha256"] = "0" * 64
     elif mutation == "invented_threshold":
         campaign["threshold_policy"] = "p99-under-100us"
@@ -561,7 +963,7 @@ def test_latency_campaign_rejects_incomplete_or_unsupported_evidence(mutation: s
 
 
 def test_kernel_job_records_repeated_idle_and_controlled_load_campaign() -> None:
-    workflow = CI_PATH.read_text(encoding="utf-8")
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
 
     assert '--repetitions 3 --report "$IDLE_REPORT"' in workflow
     assert '--repetitions 3 --report "$CONTROLLED_REPORT"' in workflow
@@ -579,15 +981,38 @@ def test_wbcan_status_snapshot_does_not_take_tx_lock_or_format_under_private_loc
     assert status_show.index("spin_unlock_irqrestore") < status_show.index("seq_printf")
 
 
+def test_wbcan_initializes_a_stopped_queue_before_registration() -> None:
+    source = DRIVER_PATH.read_text(encoding="utf-8")
+    init = source.split("static int __init wbcan_init", 1)[1].split("static void __exit wbcan_exit", 1)[0]
+
+    state_offset = init.index("WRITE_ONCE(priv->can.state, CAN_STATE_STOPPED);")
+    stop_offset = init.index("netif_stop_queue(wbcan_dev);")
+    register_offset = init.index("register_candev(wbcan_dev)")
+
+    assert state_offset < stop_offset < register_offset
+
+
 def test_kernel_diagnostics_pass_report_requires_empty_warning_matches(tmp_path: Path) -> None:
     dmesg = tmp_path / "dmesg.log"
     slabinfo = tmp_path / "slabinfo"
     meminfo = tmp_path / "meminfo"
+    before_slabinfo = tmp_path / "slabinfo-before"
+    before_meminfo = tmp_path / "meminfo-before"
     dmesg.write_text("boot WARNING: unrelated\ntest-marker\nwbcan: registered\n", encoding="ascii")
     slabinfo.write_text("slabinfo - version: 2.1\n", encoding="ascii")
     meminfo.write_text("MemTotal: 1 kB\n", encoding="ascii")
+    before_slabinfo.write_text("slabinfo - version: 2.1\n", encoding="ascii")
+    before_meminfo.write_text("MemTotal: 1 kB\n", encoding="ascii")
 
-    report = DIAGNOSTICS.build_report(dmesg, slabinfo, meminfo, "test-kernel", "test-marker")
+    report = DIAGNOSTICS.build_report(
+        dmesg,
+        slabinfo,
+        meminfo,
+        "test-kernel",
+        "test-marker",
+        before_slabinfo=before_slabinfo,
+        before_meminfo=before_meminfo,
+    )
 
     assert report["result"] == "PASS"
     DIAGNOSTICS.validate_report(report)
@@ -610,6 +1035,20 @@ def test_kernel_diagnostics_rejects_warning_signatures_and_malformed_pass() -> N
                 "scoped_dmesg_bytes": 1,
                 "slabinfo_bytes": 1,
                 "meminfo_bytes": 1,
+                "resource_snapshots": {
+                    "before": {
+                        "slabinfo_path": "before-slab",
+                        "meminfo_path": "before-mem",
+                        "slabinfo_bytes": 1,
+                        "meminfo_bytes": 1,
+                    },
+                    "after": {
+                        "slabinfo_path": "slab",
+                        "meminfo_path": "mem",
+                        "slabinfo_bytes": 1,
+                        "meminfo_bytes": 1,
+                    },
+                },
                 "warnings": ["BUG: bad"],
             }
         )
@@ -619,11 +1058,92 @@ def test_kernel_diagnostics_requires_marker_and_scans_only_scoped_log(tmp_path: 
     dmesg = tmp_path / "dmesg.log"
     slabinfo = tmp_path / "slabinfo"
     meminfo = tmp_path / "meminfo"
+    before_slabinfo = tmp_path / "slabinfo-before"
+    before_meminfo = tmp_path / "meminfo-before"
     dmesg.write_text("boot WARNING: unrelated\nmarker\nBUG: wbcan failure\n", encoding="ascii")
     slabinfo.write_text("slab\n", encoding="ascii")
     meminfo.write_text("mem\n", encoding="ascii")
+    before_slabinfo.write_text("slab\n", encoding="ascii")
+    before_meminfo.write_text("mem\n", encoding="ascii")
 
-    report = DIAGNOSTICS.build_report(dmesg, slabinfo, meminfo, "test", "marker")
+    report = DIAGNOSTICS.build_report(
+        dmesg,
+        slabinfo,
+        meminfo,
+        "test",
+        "marker",
+        before_slabinfo=before_slabinfo,
+        before_meminfo=before_meminfo,
+    )
     assert report["warnings"] == ["BUG: wbcan failure"]
     with pytest.raises(ValueError, match="marker is missing"):
-        DIAGNOSTICS.build_report(dmesg, slabinfo, meminfo, "test", "absent-marker")
+        DIAGNOSTICS.build_report(
+            dmesg,
+            slabinfo,
+            meminfo,
+            "test",
+            "absent-marker",
+            before_slabinfo=before_slabinfo,
+            before_meminfo=before_meminfo,
+        )
+
+
+def test_kernel_diagnostics_requires_consistent_before_after_snapshots(tmp_path: Path) -> None:
+    dmesg = tmp_path / "dmesg.log"
+    slabinfo = tmp_path / "slabinfo"
+    meminfo = tmp_path / "meminfo"
+    before_slabinfo = tmp_path / "slabinfo-before"
+    before_meminfo = tmp_path / "meminfo-before"
+    dmesg.write_text("marker\nwbcan: clean\n", encoding="ascii")
+    for path in (slabinfo, meminfo, before_slabinfo, before_meminfo):
+        path.write_text("resource snapshot\n", encoding="ascii")
+
+    report = DIAGNOSTICS.build_report(
+        dmesg,
+        slabinfo,
+        meminfo,
+        "test",
+        "marker",
+        before_slabinfo=before_slabinfo,
+        before_meminfo=before_meminfo,
+    )
+    report["resource_snapshots"]["after"]["slabinfo_bytes"] += 1
+    with pytest.raises(ValueError, match="disagrees"):
+        DIAGNOSTICS.validate_report(report)
+
+    report = DIAGNOSTICS.build_report(
+        dmesg,
+        slabinfo,
+        meminfo,
+        "test",
+        "marker",
+        before_slabinfo=before_slabinfo,
+        before_meminfo=before_meminfo,
+    )
+    report["resource_snapshots"]["before"]["meminfo_bytes"] = 0
+    with pytest.raises(ValueError, match="invalid meminfo_bytes"):
+        DIAGNOSTICS.validate_report(report)
+
+    report = DIAGNOSTICS.build_report(
+        dmesg,
+        slabinfo,
+        meminfo,
+        "test",
+        "marker",
+        before_slabinfo=slabinfo,
+        before_meminfo=before_meminfo,
+    )
+    with pytest.raises(ValueError, match="snapshots must be distinct"):
+        DIAGNOSTICS.validate_report(report)
+
+
+def test_kernel_diagnostics_builder_requires_before_snapshots(tmp_path: Path) -> None:
+    dmesg = tmp_path / "dmesg.log"
+    slabinfo = tmp_path / "slabinfo"
+    meminfo = tmp_path / "meminfo"
+    dmesg.write_text("marker\n", encoding="ascii")
+    slabinfo.write_text("slab\n", encoding="ascii")
+    meminfo.write_text("mem\n", encoding="ascii")
+
+    with pytest.raises(ValueError, match="before slabinfo and meminfo"):
+        DIAGNOSTICS.build_report(dmesg, slabinfo, meminfo, "test", "marker")

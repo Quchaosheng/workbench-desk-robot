@@ -25,7 +25,7 @@
   "acceptance": [
     "idle and controlled-load profiles use identical bounded warm-up, sample, repetition, CAN ID and hosted-kernel settings",
     "controlled load performs observed CPU hashing and fixed-size write-plus-fsync I/O without unbounded file growth",
-    "every load worker stops within a bounded timeout and worker failures make the report fail closed",
+    "every load worker completes setup before the common timed gate, stops within a bounded timeout, and any cooperative timeout, forced termination, non-zero exit, or unverified shutdown makes the report fail closed",
     "strict per-profile JSON preserves complete per-run latency, delivery, CPU, throughput and load-activity evidence",
     "strict campaign JSON requires at least three complete same-environment repetitions for idle and controlled load",
     "campaign aggregation preserves per-run outliers and reports an observational envelope without a latency pass threshold",
@@ -34,6 +34,7 @@
   ],
   "commands": [
     "python3 -m pytest tests/unit/test_linux_driver_tests.py -v",
+    "python3 -m py_compile kernel/wbcan/test_latency.py kernel/wbcan/validate_latency_campaign.py",
     "python3 tools/scripts/check_task_packet.py docs/task_packets/issue-154-wbcan-controlled-load.json --base origin/main",
     "make -C kernel/wbcan",
     "make -C kernel/wbcan checkpatch",

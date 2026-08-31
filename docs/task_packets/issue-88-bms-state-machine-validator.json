@@ -1,0 +1,94 @@
+{
+  "issue": 88,
+  "human_owner": "TH3478",
+  "objective": "Turn the controlled BMS state and transition CSV baseline into an executable fail-closed validator and deterministic engineering report without claiming physical battery safety evidence.",
+  "decision_supported": "Can CI reject missing, duplicated, reordered, or illegal BMS protection paths while preserving DESIGN_BASELINE_ONLY and NOT_EXECUTED release truth?",
+  "allowed_paths": [
+    "hardware/power/README.md",
+    "hardware/power/tools/validate_bms_state_machine.py",
+    "hardware/power/generated/bms_state_machine_report.json",
+    "hardware/tools/validate_operations_readiness.py",
+    "hardware/generated/operations_readiness_report.json",
+    "tests/hardware/test_bms_state_machine.py",
+    "tests/hardware/test_operations_readiness.py",
+    "docs/task_packets/issue-88-bms-state-machine-validator.json"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "hardware/operations-readiness.json",
+    "hardware/power/bms-state-machine.csv",
+    "hardware/power/bms-transitions.csv",
+    "hardware/power/protection-thresholds.csv",
+    "tools/schemas/task-packet-v1.schema.json",
+    "tools/scripts/check_task_packet.py"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "firmware/**",
+    "robot/control/**",
+    "kernel/**",
+    "services/**",
+    "apps/**",
+    ".github/**",
+    ".devcontainer/**"
+  ],
+  "input_refs": [
+    "AGENTS.md",
+    "hardware/operations-readiness.json",
+    "hardware/power/README.md",
+    "hardware/power/bms-state-machine.csv",
+    "hardware/power/bms-transitions.csv",
+    "hardware/power/protection-thresholds.csv",
+    "hardware/tools/validate_operations_readiness.py",
+    "tools/schemas/task-packet-v1.schema.json",
+    "tools/scripts/check_task_packet.py"
+  ],
+  "outputs": [
+    "hardware/power/tools/validate_bms_state_machine.py",
+    "hardware/power/generated/bms_state_machine_report.json",
+    "hardware/generated/operations_readiness_report.json",
+    "tests/hardware/test_bms_state_machine.py",
+    "tests/hardware/test_operations_readiness.py",
+    "hardware/power/README.md",
+    "docs/task_packets/issue-88-bms-state-machine-validator.json"
+  ],
+  "acceptance": [
+    "The parser rejects duplicate state names and duplicate source-state/event keys, and accepts only the declared CSV headers and fields.",
+    "Every source and target is a known state; contactor actions, latch values, reset authorities, and guards are controlled and non-empty.",
+    "Every state has an explicit fault/default behavior and the complete controlled state policy is checked.",
+    "The legal transition graph is complete and deterministic; deleting any required safety transition or adding an illegal edge fails validation.",
+    "FAULT_LATCHED can recover only through an explicit guarded local_reset to SELF_TEST; automatic recovery and unsafe RUN entry are rejected.",
+    "The generated report includes a deterministic transition-table SHA-256 and preserves DESIGN_BASELINE_ONLY, NOT_EXECUTED, release_ready=false, and physical_results=NOT_EXECUTED.",
+    "The existing operations-readiness validator consumes the strict BMS report while retaining the broader EXTERNAL_EVIDENCE_REQUIRED status.",
+    "No firmware, robot-control, MCU protocol, public interface, supplier, certification, or physical HIL claim is added."
+  ],
+  "commands": [
+    "python hardware/power/tools/validate_bms_state_machine.py",
+    "python hardware/tools/validate_operations_readiness.py",
+    "python -m pytest tests/hardware/test_bms_state_machine.py tests/hardware/test_operations_readiness.py -v",
+    "python -m pytest tests/hardware -k power -v",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "git diff --check"
+  ],
+  "evidence": [
+    "Generated BMS report with structural checks, stable state/transition hashes, and explicit release blockers.",
+    "Focused hardware tests covering malformed tables, illegal edges, deleted transitions, fault-latch recovery, deterministic ordering, and status truthfulness.",
+    "Operations-readiness, full test, contract, scenario, context, and whitespace-check output."
+  ],
+  "stop_conditions": [
+    "A firmware, MCU, robot-control, public interface, or safety-authority behavior change is required.",
+    "Supplier thresholds, pack identity, certification, or physical HIL evidence would need to be invented.",
+    "The controlled CSV baseline itself needs semantic changes rather than executable validation.",
+    "A generated result would promote NOT_EXECUTED or DESIGN_BASELINE_ONLY to a physical or production PASS.",
+    "Task Packet validation reports a changed path outside allowed_paths."
+  ],
+  "max_iterations": 3,
+  "risks_and_fallbacks": [
+    "The validator intentionally encodes the current reviewed baseline; any future transition change requires an explicit owner-reviewed update to the validator and its mutation tests.",
+    "A structural pass proves table integrity only. Electrical/Safety Owner approval, supplier data, calibrated measurements, and physical fault injection remain release gates.",
+    "If privileged hardware evidence is unavailable, retain NOT_EXECUTED and ship only the repository-side report."
+  ]
+}

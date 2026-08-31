@@ -69,3 +69,26 @@ Machine-readable attachments: `bms-state-machine.csv` defines state ownership,
 `protection-thresholds.csv` is the three-level protection register. Threshold
 values intentionally remain supplier/configuration inputs until the exact pack
 revision is selected.
+
+## Executable baseline check
+
+Run the deterministic repository-side check with:
+
+```bash
+python hardware/power/tools/validate_bms_state_machine.py
+```
+
+The validator checks the CSV headers and row shape, the complete controlled
+state/event set, unique source/event keys, known states, contactor actions,
+reset authorities, non-empty guards, explicit fault behavior, and the guarded
+`FAULT_LATCHED -> SELF_TEST` local-reset path. It also requires the reviewable
+transition order and emits a SHA-256 for the normalized transition table in
+`generated/bms_state_machine_report.json`.
+
+The report's structural `pass` means only that the design tables are
+internally complete. It deliberately remains `status:
+DESIGN_BASELINE_ONLY`, `physical_results: NOT_EXECUTED`, and
+`release_ready: false` until Electrical/Safety Owner approval, supplier data,
+calibrated measurements, and physical fault-injection evidence are attached.
+The existing operations-readiness command consumes this check but retains its
+broader `EXTERNAL_EVIDENCE_REQUIRED` release status.

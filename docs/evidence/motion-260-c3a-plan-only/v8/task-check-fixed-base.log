@@ -1,0 +1,2 @@
+git rev-parse --verify f821f417b1e202f310d5bf208a5136fa408fd789d^{commit} failed: fatal: 需要一个单独的版本
+Task Packet validation passed: docs/task_packets/motion-260-c3a-plan-only.json

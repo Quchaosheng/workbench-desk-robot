@@ -1,0 +1,118 @@
+[INFO] [launch]: All log files can be found below /tmp/c3a-v8-ros-log-fresh-3/2026-08-31-17-11-02-350465-zkx-249
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [robot_state_publisher-1]: process started with pid [253]
+[INFO] [joint_state_publisher-2]: process started with pid [254]
+[INFO] [move_group-3]: process started with pid [255]
+[INFO] [c3a_sample_provenance-4]: process started with pid [256]
+[INFO] [c3a_plan_probe-5]: process started with pid [257]
+[robot_state_publisher-1] [INFO] [1788167462.627171350] [robot_state_publisher]: Robot initialized
+[move_group-3] [WARN] [1788167462.636980834] [rcl.logging_rosout]: Publisher already registered for node name: 'move_group'. If this is due to multiple nodes with the same name then all logs for the logger named 'move_group' will go out over the existing publisher. As soon as any node with that name is destructed it will unregister the publisher, preventing any further logs for that name from being published on the rosout topic.
+[move_group-3] [INFO] [1788167462.641893671] [move_group.move_group.moveit.ros.rdf_loader]: Loaded robot model in 0.00305307 seconds
+[move_group-3] [INFO] [1788167462.641952928] [move_group.move_group.moveit.core.robot_model]: Loading robot model 'workbench_arm'...
+[move_group-3] [INFO] [1788167462.641967288] [move_group.move_group.moveit.core.robot_model]: No root/virtual joint specified in SRDF. Assuming fixed joint
+[move_group-3] [WARN] [1788167462.649340495] [move_group.move_group.moveit.core.robot_model]: Link camera_body has visual geometry but no collision geometry. Collision geometry will be left empty. Fix your URDF file by explicitly specifying collision geometry.
+[move_group-3] [INFO] [1788167462.651384098] [trac_ik_kinematics_plugin.trac_ik_kinematics_plugin]: IK Using joint shoulder_link -6.28319 6.28319
+[move_group-3] [INFO] [1788167462.651395630] [trac_ik_kinematics_plugin.trac_ik_kinematics_plugin]: IK Using joint upper_arm_link -6.28319 6.28319
+[move_group-3] [INFO] [1788167462.651398177] [trac_ik_kinematics_plugin.trac_ik_kinematics_plugin]: IK Using joint forearm_link -3.14159 3.14159
+[move_group-3] [INFO] [1788167462.651400466] [trac_ik_kinematics_plugin.trac_ik_kinematics_plugin]: IK Using joint wrist_1_link -6.28319 6.28319
+[move_group-3] [INFO] [1788167462.651402628] [trac_ik_kinematics_plugin.trac_ik_kinematics_plugin]: IK Using joint wrist_2_link -6.28319 6.28319
+[move_group-3] [INFO] [1788167462.651404715] [trac_ik_kinematics_plugin.trac_ik_kinematics_plugin]: IK Using joint wrist_3_link -6.28319 6.28319
+[move_group-3] [INFO] [1788167462.651406927] [trac_ik_kinematics_plugin.trac_ik_kinematics_plugin]: Using solve type Distance
+[move_group-3] [INFO] [1788167462.682306148] [move_group.move_group.moveit.ros.moveit_cpp]: Listening to 'joint_states' for joint states
+[move_group-3] [INFO] [1788167462.683629144] [move_group.move_group.moveit.ros.current_state_monitor]: Listening to joint states on topic 'joint_states'
+[move_group-3] [INFO] [1788167462.689274746] [move_group.move_group.moveit.ros.planning_scene_monitor]: Listening to '/attached_collision_object' for attached collision objects
+[move_group-3] [INFO] [1788167462.690223165] [move_group.move_group.moveit.ros.planning_scene_monitor]: Publishing maintained planning scene on 'monitored_planning_scene'
+[move_group-3] [INFO] [1788167462.690327195] [move_group.move_group.moveit.ros.planning_scene_monitor]: Starting planning scene monitor
+[move_group-3] [INFO] [1788167462.690493200] [move_group.move_group.moveit.ros.planning_scene_monitor]: Listening to '/planning_scene'
+[move_group-3] [INFO] [1788167462.690499927] [move_group.move_group.moveit.ros.planning_scene_monitor]: Starting world geometry update monitor for collision objects, attached objects, octomap updates.
+[move_group-3] [INFO] [1788167462.690869310] [move_group.move_group.moveit.ros.planning_scene_monitor]: Listening to 'collision_object'
+[move_group-3] [INFO] [1788167462.691099395] [move_group.move_group.moveit.ros.planning_scene_monitor]: Listening to 'planning_scene_world' for planning scene world geometry
+[move_group-3] [WARN] [1788167462.691186399] [move_group.move_group.moveit.ros.occupancy_map_monitor]: Resolution not specified for Octomap. Assuming resolution = 0.1 instead
+[move_group-3] [ERROR] [1788167462.691193959] [move_group.move_group.moveit.ros.occupancy_map_monitor]: No 3D sensor plugin(s) defined for octomap updates
+[move_group-3] [INFO] [1788167462.702122277] [move_group.move_group.moveit.ros.planning_pipeline]: Successfully loaded planner 'OMPL'
+[move_group-3] [INFO] [1788167462.702658726] [move_group]: Try loading adapter 'default_planning_request_adapters/ResolveConstraintFrames'
+[move_group-3] [INFO] [1788167462.703238604] [move_group]: Loaded adapter 'default_planning_request_adapters/ResolveConstraintFrames'
+[move_group-3] [INFO] [1788167462.703245521] [move_group]: Try loading adapter 'default_planning_request_adapters/ValidateWorkspaceBounds'
+[move_group-3] [INFO] [1788167462.703329134] [move_group]: Loaded adapter 'default_planning_request_adapters/ValidateWorkspaceBounds'
+[move_group-3] [INFO] [1788167462.703331978] [move_group]: Try loading adapter 'default_planning_request_adapters/CheckStartStateBounds'
+[move_group-3] [INFO] [1788167462.703345206] [move_group]: Loaded adapter 'default_planning_request_adapters/CheckStartStateBounds'
+[move_group-3] [INFO] [1788167462.703347233] [move_group]: Try loading adapter 'default_planning_request_adapters/CheckStartStateCollision'
+[move_group-3] [INFO] [1788167462.703353416] [move_group]: Loaded adapter 'default_planning_request_adapters/CheckStartStateCollision'
+[move_group-3] [INFO] [1788167462.703829813] [move_group]: Try loading adapter 'default_planning_response_adapters/AddTimeOptimalParameterization'
+[move_group-3] [INFO] [1788167462.704972750] [move_group]: Loaded adapter 'default_planning_response_adapters/AddTimeOptimalParameterization'
+[move_group-3] [INFO] [1788167462.704980585] [move_group]: Try loading adapter 'default_planning_response_adapters/ValidateSolution'
+[move_group-3] [INFO] [1788167462.706321683] [move_group]: Loaded adapter 'default_planning_response_adapters/ValidateSolution'
+[move_group-3] [INFO] [1788167462.706331322] [move_group]: Try loading adapter 'default_planning_response_adapters/DisplayMotionPath'
+[move_group-3] [INFO] [1788167462.706631223] [move_group]: Loaded adapter 'default_planning_response_adapters/DisplayMotionPath'
+[move_group-3] [WARN] [1788167462.707229720] [move_group.move_group.moveit.ros.trajectory_execution_manager]: Parameter '~moveit_controller_manager' is not specified but only one matching plugin was found: 'moveit_simple_controller_manager/MoveItSimpleControllerManager'. Using that one.
+[move_group-3] [WARN] [1788167462.707256880] [rcl.logging_rosout]: Publisher already registered for node name: 'move_group'. If this is due to multiple nodes with the same name then all logs for the logger named 'move_group' will go out over the existing publisher. As soon as any node with that name is destructed it will unregister the publisher, preventing any further logs for that name from being published on the rosout topic.
+[move_group-3] [ERROR] [1788167462.712158277] [move_group.move_group.moveit.plugins.simple_controller_manager]: No controller_names specified.
+[move_group-3] [INFO] [1788167462.712282159] [move_group.move_group.moveit.plugins.simple_controller_manager]: Returned 0 controllers in list
+[move_group-3] [INFO] [1788167462.712295671] [move_group.move_group.moveit.plugins.simple_controller_manager]: Returned 0 controllers in list
+[move_group-3] [INFO] [1788167462.712499843] [move_group.move_group.moveit.ros.trajectory_execution_manager]: Trajectory execution is not managing controllers
+[move_group-3] [INFO] [1788167462.712508065] [move_group]: MoveGroup debug mode is ON
+[move_group-3] [INFO] [1788167462.722505858] [move_group.move_group.moveit.ros.move_group.executable]: 
+[move_group-3] 
+[move_group-3] ********************************************************
+[move_group-3] * MoveGroup using: 
+[move_group-3] *     - apply_planning_scene_service
+[move_group-3] *     - clear_octomap_service
+[move_group-3] *     - get_group_urdf
+[move_group-3] *     - load_geometry_from_file
+[move_group-3] *     - CartesianPathService
+[move_group-3] *     - get_planning_scene_service
+[move_group-3] *     - kinematics_service
+[move_group-3] *     - move_action
+[move_group-3] *     - motion_plan_service
+[move_group-3] *     - query_planners_service
+[move_group-3] *     - state_validation_service
+[move_group-3] *     - save_geometry_to_file
+[move_group-3] ********************************************************
+[move_group-3] 
+[move_group-3] [INFO] [1788167462.722544750] [move_group.move_group.moveit.ros.move_group.context]: MoveGroup context using pipeline ompl
+[move_group-3] [INFO] [1788167462.722552123] [move_group.move_group.moveit.ros.move_group.context]: MoveGroup context initialization complete
+[move_group-3] [96mLoading 'move_group/ApplyPlanningSceneService'...[0m
+[move_group-3] [96mLoading 'move_group/ClearOctomapService'...[0m
+[move_group-3] [96mLoading 'move_group/GetUrdfService'...[0m
+[move_group-3] [96mLoading 'move_group/LoadGeometryFromFileService'...[0m
+[move_group-3] [96mLoading 'move_group/MoveGroupCartesianPathService'...[0m
+[move_group-3] [96mLoading 'move_group/MoveGroupGetPlanningSceneService'...[0m
+[move_group-3] [96mLoading 'move_group/MoveGroupKinematicsService'...[0m
+[move_group-3] [96mLoading 'move_group/MoveGroupMoveAction'...[0m
+[move_group-3] [96mLoading 'move_group/MoveGroupPlanService'...[0m
+[move_group-3] [96mLoading 'move_group/MoveGroupQueryPlannersService'...[0m
+[move_group-3] [96mLoading 'move_group/MoveGroupStateValidationService'...[0m
+[move_group-3] [96mLoading 'move_group/SaveGeometryToFileService'...[0m
+[move_group-3] 
+[move_group-3] [92mYou can start planning now![0m
+[move_group-3] 
+[joint_state_publisher-2] [INFO] [1788167462.912989760] [joint_state_publisher]: Waiting for robot_description to be published on the robot_description topic...
+[joint_state_publisher-2] [INFO] [1788167463.011774188] [joint_state_publisher]: Got description, configuring robot
+[INFO] [c3a_sample_provenance-4]: process has finished cleanly [pid 256]
+[c3a_plan_probe-5] [INFO] [1788167463.495607412] [c3a_plan_probe]: C3a readiness window seconds=10.0
+[move_group-3] [INFO] [1788167463.511649534] [move_group.move_group.moveit.ros.move_group.move_action]: MoveGroupMoveAction: Received request
+[move_group-3] [INFO] [1788167463.512020624] [move_group.move_group.moveit.ros.move_group.move_action]: executing..
+[move_group-3] [INFO] [1788167463.516213513] [move_group.move_group.moveit.ros.move_group.move_action]: Planning request received for MoveGroup action. Forwarding to planning pipeline.
+[move_group-3] [INFO] [1788167463.516253596] [move_group.move_group.moveit.ros.move_group.capability]: Using planning pipeline 'ompl'
+[move_group-3] [INFO] [1788167463.516596448] [move_group]: Calling PlanningRequestAdapter 'ResolveConstraintFrames'
+[move_group-3] [INFO] [1788167463.516647740] [move_group]: Calling PlanningRequestAdapter 'ValidateWorkspaceBounds'
+[move_group-3] [WARN] [1788167463.516657908] [move_group.move_group.moveit.ros.validate_workspace_bounds]: It looks like the planning volume was not specified. Using default values.
+[move_group-3] [INFO] [1788167463.516680631] [move_group]: Calling PlanningRequestAdapter 'CheckStartStateBounds'
+[move_group-3] [INFO] [1788167463.516730849] [move_group]: Calling PlanningRequestAdapter 'CheckStartStateCollision'
+[move_group-3] [INFO] [1788167463.517650804] [move_group.move_group.moveit.planners.ompl.model_based_planning_context]: Planner configuration 'ur_manipulator' will use planner 'geometric::RRTConnect'. Additional configuration parameters will be set when the planner is constructed.
+[move_group-3] [INFO] [1788167463.517871343] [move_group]: Calling Planner 'OMPL'
+[move_group-3] [INFO] [1788167463.624057134] [move_group]: Calling PlanningResponseAdapter 'AddTimeOptimalParameterization'
+[move_group-3] [INFO] [1788167463.624680221] [move_group]: Calling PlanningResponseAdapter 'ValidateSolution'
+[move_group-3] [INFO] [1788167463.625269946] [move_group]: Calling PlanningResponseAdapter 'DisplayMotionPath'
+[move_group-3] [WARN] [1788167463.625306504] [move_group.move_group.moveit.ros.planning_pipeline]: The planner plugin did not fill out the 'planner_id' field of the MotionPlanResponse. Setting it to the planner ID name of the MotionPlanRequest assuming that the planner plugin does warn you if it does not use the requested planner.
+[move_group-3] [INFO] [1788167463.625343801] [move_group.move_group.moveit.ros.move_group.move_action]: Motion plan was computed successfully.
+[c3a_plan_probe-5] [INFO] [1788167463.640641868] [c3a_plan_probe]: C3a plan-only evidence written to /tmp/c3a-v8-harness-fresh/.harness-run-3.json.pending
+[INFO] [c3a_plan_probe-5]: process has finished cleanly [pid 257]
+[INFO] [move_group-3]: sending signal 'SIGKILL' to process[move_group-3]
+[ERROR] [move_group-3]: process has died [pid 255, exit code -9, cmd '/opt/ros/jazzy/lib/moveit_ros_move_group/move_group --ros-args -r __node:=move_group --params-file /tmp/launch_params_jwnpud52 --params-file /tmp/launch_params_wjvvjbih --params-file /tmp/launch_params_2pj9qek3 --params-file /tmp/launch_params_8hs574dh --params-file /tmp/launch_params_mieue5_9 --params-file /tmp/launch_params_ngwz8d88 --params-file /tmp/launch_params_zh4c11lq --params-file /tmp/launch_params_sm3nakzd'].
+[INFO] [robot_state_publisher-1]: sending signal 'SIGINT' to process[robot_state_publisher-1]
+[INFO] [joint_state_publisher-2]: sending signal 'SIGINT' to process[joint_state_publisher-2]
+[robot_state_publisher-1] [INFO] [1788167464.801767528] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[INFO] [robot_state_publisher-1]: process has finished cleanly [pid 253]
+[INFO] [joint_state_publisher-2]: process has finished cleanly [pid 254]
+[INFO] [launch]: process[joint_state_publisher-2] was required: shutting down launched system

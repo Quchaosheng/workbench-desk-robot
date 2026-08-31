@@ -1,10 +1,11 @@
 {
-  "schema_version": "c3a-acceptance-summary-6",
-  "commit": "c35c9ad0fec22caea2e22434ca6036d8f708395d",
-  "baseline_commit": "4f892a7fe12a1474fd0e6c77205d862bef095856",
+  "schema_version": "c3a-acceptance-summary-8",
+  "required_ancestor_commit": "4f892a7fe12a1474fd0e6c77205d862bef095856",
+  "actual_branch_base_commit": "f2c5a046509cbf72734885e7924f17b62044f1f1",
+  "tested_code_commit": "5853196cd40b0b270b35df705f16b72e8b7dfc57",
   "git_dirty": false,
-  "motion_tests": "345 passed",
-  "root_tests": "824 passed, 260 subtests passed",
+  "motion_tests": "351 passed",
+  "root_tests": "1009 passed, 305 subtests passed, 1 skipped",
   "required_checks": {
     "lint": "passed",
     "contract": "passed",
@@ -49,6 +50,8 @@
     "v5_unsafe_colcon_log_removed": true,
     "v5_must_not_be_uploaded": true,
     "v5_evidence_directory_removed": true,
+    "v6_evidence_directory_removed": true,
+    "v7_evidence_directory_removed": true,
     "exposed_token_rotated": true,
     "old_token_self_lookup_http": 401,
     "new_token_self_lookup_http": 200,
@@ -58,5 +61,7 @@
     "codex_shell_snapshots_remaining": 0,
     "v6_environment_secret_scan": "passed for exact old/new token values and credential-assignment patterns"
   },
-  "integration_review": "required; not performed by automation"
+  "integration_review": "required; not performed by automation",
+  "evidence_version": "v8",
+  "evidence_generated_from_actual_branch_base": true
 }

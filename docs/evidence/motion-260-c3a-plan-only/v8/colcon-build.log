@@ -1,0 +1,46 @@
+Starting >>> workbench_motion_provenance
+[100%] Built target c3a_sample_provenance
+-- Install configuration: ""
+-- Up-to-date: /tmp/workbench-c3a-install-v8/workbench_motion_provenance/lib/workbench_motion_provenance/c3a_sample_provenance
+-- Up-to-date: /tmp/workbench-c3a-install-v8/workbench_motion_provenance/share/ament_index/resource_index/package_run_dependencies/workbench_motion_provenance
+-- Up-to-date: /tmp/workbench-c3a-install-v8/workbench_motion_provenance/share/ament_index/resource_index/parent_prefix_path/workbench_motion_provenance
+-- Up-to-date: /tmp/workbench-c3a-install-v8/workbench_motion_provenance/share/workbench_motion_provenance/environment/ament_prefix_path.sh
+-- Up-to-date: /tmp/workbench-c3a-install-v8/workbench_motion_provenance/share/workbench_motion_provenance/environment/ament_prefix_path.dsv
+-- Up-to-date: /tmp/workbench-c3a-install-v8/workbench_motion_provenance/share/workbench_motion_provenance/environment/path.sh
+-- Up-to-date: /tmp/workbench-c3a-install-v8/workbench_motion_provenance/share/workbench_motion_provenance/environment/path.dsv
+-- Up-to-date: /tmp/workbench-c3a-install-v8/workbench_motion_provenance/share/workbench_motion_provenance/local_setup.bash
+-- Up-to-date: /tmp/workbench-c3a-install-v8/workbench_motion_provenance/share/workbench_motion_provenance/local_setup.sh
+-- Up-to-date: /tmp/workbench-c3a-install-v8/workbench_motion_provenance/share/workbench_motion_provenance/local_setup.zsh
+-- Up-to-date: /tmp/workbench-c3a-install-v8/workbench_motion_provenance/share/workbench_motion_provenance/local_setup.dsv
+-- Installing: /tmp/workbench-c3a-install-v8/workbench_motion_provenance/share/workbench_motion_provenance/package.dsv
+-- Up-to-date: /tmp/workbench-c3a-install-v8/workbench_motion_provenance/share/ament_index/resource_index/packages/workbench_motion_provenance
+-- Up-to-date: /tmp/workbench-c3a-install-v8/workbench_motion_provenance/share/workbench_motion_provenance/cmake/workbench_motion_provenanceConfig.cmake
+-- Up-to-date: /tmp/workbench-c3a-install-v8/workbench_motion_provenance/share/workbench_motion_provenance/cmake/workbench_motion_provenanceConfig-version.cmake
+-- Up-to-date: /tmp/workbench-c3a-install-v8/workbench_motion_provenance/share/workbench_motion_provenance/package.xml
+Finished <<< workbench_motion_provenance [0.14s]
+Starting >>> workbench_motion
+running egg_info
+writing ../../../../../../tmp/workbench-c3a-build-v8/workbench_motion/workbench_motion.egg-info/PKG-INFO
+writing dependency_links to ../../../../../../tmp/workbench-c3a-build-v8/workbench_motion/workbench_motion.egg-info/dependency_links.txt
+writing entry points to ../../../../../../tmp/workbench-c3a-build-v8/workbench_motion/workbench_motion.egg-info/entry_points.txt
+writing requirements to ../../../../../../tmp/workbench-c3a-build-v8/workbench_motion/workbench_motion.egg-info/requires.txt
+writing top-level names to ../../../../../../tmp/workbench-c3a-build-v8/workbench_motion/workbench_motion.egg-info/top_level.txt
+reading manifest file '../../../../../../tmp/workbench-c3a-build-v8/workbench_motion/workbench_motion.egg-info/SOURCES.txt'
+writing manifest file '../../../../../../tmp/workbench-c3a-build-v8/workbench_motion/workbench_motion.egg-info/SOURCES.txt'
+running build
+running build_py
+running install
+running install_lib
+running install_data
+running install_egg_info
+removing '/tmp/workbench-c3a-install-v8/workbench_motion/lib/python3.12/site-packages/workbench_motion-0.2.0-py3.12.egg-info' (and everything under it)
+Copying ../../../../../../tmp/workbench-c3a-build-v8/workbench_motion/workbench_motion.egg-info to /tmp/workbench-c3a-install-v8/workbench_motion/lib/python3.12/site-packages/workbench_motion-0.2.0-py3.12.egg-info
+running install_scripts
+Installing c3a_plan_probe script to /tmp/workbench-c3a-install-v8/workbench_motion/lib/workbench_motion
+Installing phase2_probe script to /tmp/workbench-c3a-install-v8/workbench_motion/lib/workbench_motion
+Installing reachability_check script to /tmp/workbench-c3a-install-v8/workbench_motion/lib/workbench_motion
+Installing scaffold_node script to /tmp/workbench-c3a-install-v8/workbench_motion/lib/workbench_motion
+writing list of installed files to '/tmp/workbench-c3a-build-v8/workbench_motion/install.log'
+Finished <<< workbench_motion [0.88s]
+
+Summary: 2 packages finished [1.12s]

@@ -1,0 +1,27 @@
+warning: `VIRTUAL_ENV=/home/zkx/workbench-desk-robot/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.3, pluggy-1.6.0
+rootdir: /home/zkx/workbench-desk-robot/robot/control
+configfile: pyproject.toml
+testpaths: workbench_motion/test
+collected 351 items
+
+workbench_motion/test/test_arm_config.py ................                [  4%]
+workbench_motion/test/test_c3a_bridge.py ............................... [ 13%]
+............                                                             [ 16%]
+workbench_motion/test/test_c3a_launch.py .......................         [ 23%]
+workbench_motion/test/test_c3a_ros_adapter.py .......................... [ 30%]
+.....................                                                    [ 36%]
+workbench_motion/test/test_controllers_config.py .......                 [ 38%]
+workbench_motion/test/test_evidence.py ................                  [ 43%]
+workbench_motion/test/test_joint_limits.py ............................. [ 51%]
+.............                                                            [ 55%]
+workbench_motion/test/test_logging_setup.py ....                         [ 56%]
+workbench_motion/test/test_phase2_probe.py ............................. [ 64%]
+.......                                                                  [ 66%]
+workbench_motion/test/test_reachability.py ............................. [ 74%]
+.                                                                        [ 75%]
+workbench_motion/test/test_trajectory_preflight.py ..................... [ 81%]
+..................................................................       [100%]
+
+============================= 351 passed in 0.51s ==============================

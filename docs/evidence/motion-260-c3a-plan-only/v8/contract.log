@@ -1,10 +1,12 @@
 python3 tools/scripts/validate_contracts.py
 ok    every schema registered
+ok    schema properties map to Pydantic fields
 ok    examples parse as JSON
 ok    required fields are defined
 ok    examples satisfy required fields
 ok    jsonschema Draft-2020-12 validation
 ok    Pydantic models accept examples
+ok    Pydantic JSON serialization satisfies schemas
 ok    template planner round-trips
 
 contract validation passed

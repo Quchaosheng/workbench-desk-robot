@@ -1,40 +1,41 @@
 {
   "schema_version": "c3a-command-manifest-1",
-  "working_directory": "/tmp/workbench-c3a-acceptance-v5",
-  "commit": "c35c9ad0fec22caea2e22434ca6036d8f708395d",
-  "baseline_commit": "4f892a7fe12a1474fd0e6c77205d862bef095856",
+  "working_directory": "/home/zkx/workbench-desk-robot",
+  "required_ancestor_commit": "4f892a7fe12a1474fd0e6c77205d862bef095856",
+  "actual_branch_base_commit": "f2c5a046509cbf72734885e7924f17b62044f1f1",
+  "tested_code_commit": "5853196cd40b0b270b35df705f16b72e8b7dfc57",
   "shell_prelude": "umask 077; unset GITLAB_TOKEN CI_API_V4_URL",
   "commands": [
     {
       "name": "motion_focused_tests",
-      "command": "UV_CACHE_DIR=/tmp/c3a-uv-cache-v6 uv run --directory robot/control pytest -q",
-      "result": "exit 0; 345 passed",
+      "command": "UV_CACHE_DIR=/tmp/c3a-uv-cache-v8 uv run --directory robot/control pytest -q",
+      "result": "exit 0; 351 passed",
       "log": "motion-focused-tests.log"
     },
     {
       "name": "colcon_build",
-      "command": "source /opt/ros/jazzy/setup.bash && colcon --log-base /tmp/workbench-c3a-colcon-log-v6 build --base-paths robot/control/workbench_motion robot/control/workbench_motion_provenance --build-base /tmp/workbench-c3a-build-v6 --install-base /tmp/workbench-c3a-install-v6 --packages-select workbench_motion_provenance workbench_motion --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3 --event-handlers console_direct+",
+      "command": "source /opt/ros/jazzy/setup.bash && colcon --log-base /tmp/workbench-c3a-colcon-log-v8 build --base-paths robot/control/workbench_motion robot/control/workbench_motion_provenance --build-base /tmp/workbench-c3a-build-v8 --install-base /tmp/workbench-c3a-install-v8 --packages-select workbench_motion_provenance workbench_motion --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3 --event-handlers console_direct+",
       "result": "exit 0; 2 packages finished",
       "log": "colcon-build.log",
       "environment_capture": false
     },
     {
       "name": "harness_run_1",
-      "command": "source /opt/ros/jazzy/setup.bash && source /tmp/workbench-c3a-install-v6/setup.bash && ROS_DOMAIN_ID=161 ROS_LOG_DIR=/tmp/c3a-v6-ros-log-1 timeout --signal=TERM --kill-after=15s 150s ros2 launch workbench_motion c3a_plan_only.launch.py evidence_path:=/tmp/c3a-acceptance-evidence-v6/harness-run-1.json",
+      "command": "source /opt/ros/jazzy/setup.bash && source /tmp/workbench-c3a-install-v8/setup.bash && ROS_DOMAIN_ID=171 ROS_LOG_DIR=/tmp/c3a-v8-ros-log-1 timeout --signal=TERM --kill-after=15s 150s ros2 launch workbench_motion c3a_plan_only.launch.py evidence_path:=/tmp/c3a-v8-harness-fresh/harness-run-1.json",
       "result": "exit 0; planned/ready; execution_goal_count=0",
       "log": "harness-run-1.log",
       "artifact": "harness-run-1.json"
     },
     {
       "name": "harness_run_2",
-      "command": "source /opt/ros/jazzy/setup.bash && source /tmp/workbench-c3a-install-v6/setup.bash && ROS_DOMAIN_ID=162 ROS_LOG_DIR=/tmp/c3a-v6-ros-log-2 timeout --signal=TERM --kill-after=15s 150s ros2 launch workbench_motion c3a_plan_only.launch.py evidence_path:=/tmp/c3a-acceptance-evidence-v6/harness-run-2.json",
+      "command": "source /opt/ros/jazzy/setup.bash && source /tmp/workbench-c3a-install-v8/setup.bash && ROS_DOMAIN_ID=172 ROS_LOG_DIR=/tmp/c3a-v8-ros-log-2 timeout --signal=TERM --kill-after=15s 150s ros2 launch workbench_motion c3a_plan_only.launch.py evidence_path:=/tmp/c3a-v8-harness-fresh/harness-run-2.json",
       "result": "exit 0; planned/ready; execution_goal_count=0",
       "log": "harness-run-2.log",
       "artifact": "harness-run-2.json"
     },
     {
       "name": "harness_run_3",
-      "command": "source /opt/ros/jazzy/setup.bash && source /tmp/workbench-c3a-install-v6/setup.bash && ROS_DOMAIN_ID=163 ROS_LOG_DIR=/tmp/c3a-v6-ros-log-3 timeout --signal=TERM --kill-after=15s 150s ros2 launch workbench_motion c3a_plan_only.launch.py evidence_path:=/tmp/c3a-acceptance-evidence-v6/harness-run-3.json",
+      "command": "source /opt/ros/jazzy/setup.bash && source /tmp/workbench-c3a-install-v8/setup.bash && ROS_DOMAIN_ID=173 ROS_LOG_DIR=/tmp/c3a-v8-ros-log-3 timeout --signal=TERM --kill-after=15s 150s ros2 launch workbench_motion c3a_plan_only.launch.py evidence_path:=/tmp/c3a-v8-harness-fresh/harness-run-3.json",
       "result": "exit 0; planned/ready; execution_goal_count=0",
       "log": "harness-run-3.log",
       "artifact": "harness-run-3.json"
@@ -42,7 +43,7 @@
     {
       "name": "root_tests",
       "command": "make test PYTHON=/tmp/c3a-root-venv/bin/python",
-      "result": "exit 0; 824 passed, 260 subtests passed",
+      "result": "exit 0; 1009 passed, 305 subtests passed, 1 skipped",
       "log": "root-tests.log"
     },
     {
@@ -60,7 +61,7 @@
     },
     {
       "name": "harness_artifact_verification",
-      "command": "python3 /tmp/verify_c3a_v6.py",
+      "command": "python3 /tmp/verify_c3a_v8.py",
       "result": "exit 0; hashes and provenance ordering independently recomputed; no residual ROS processes",
       "log": "harness-verification.log"
     }

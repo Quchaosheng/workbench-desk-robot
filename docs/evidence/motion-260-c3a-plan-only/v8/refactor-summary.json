@@ -1,0 +1,36 @@
+{
+  "schema_version": "c3a-layering-summary-1",
+  "code_commit": "5853196cd40b0b270b35df705f16b72e8b7dfc57",
+  "required_ancestor_commit": "4f892a7fe12a1474fd0e6c77205d862bef095856",
+  "actual_branch_base_commit": "f2c5a046509cbf72734885e7924f17b62044f1f1",
+  "evidence_base": "docs/evidence/motion-260-c3a-plan-only/v8/",
+  "changes": [
+    "AcceptanceProof is an explicit immutable audit seam over readiness evidence.",
+    "Runtime readiness continues to validate the proof fail-closed for the controlled C3a deployment.",
+    "Trajectory canonicalization is implemented once in joint_limits and reused by materialization."
+    ,"MoveGroup timeout cleanup waits for cancellation acknowledgement and terminal state before failing closed."
+    ,"Accepted trajectory bindings are bounded by a 16-entry ordered eviction policy."
+  ],
+  "motion_tests": "351 passed",
+  "focused_tests": "90 passed",
+  "required_checks": {
+    "lint": "passed",
+    "contract": "passed",
+    "scenario_check": "passed",
+    "context_check": "passed",
+    "demo_scripted": "passed",
+    "task_packet": "passed",
+    "task_packet_fixed_base": "passed"
+  },
+  "root_make_test": {
+    "status": "passed",
+    "passed": 1009,
+    "failed": 0,
+    "skipped": 1,
+    "subtests": 305,
+    "failures": [],
+    "motion_related_failures": 0
+  },
+  "ros_harness": "v8 evidence regenerated on actual branch base with three fresh bounded runs",
+  "git_dirty": false
+}

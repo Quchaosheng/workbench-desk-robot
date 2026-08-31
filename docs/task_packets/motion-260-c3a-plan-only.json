@@ -23,6 +23,7 @@
     "robot/control/README.md",
     "robot/control/PLAN.md",
     "robot/control/PHASE3.md",
+    "docs/evidence/motion-260-c3a-plan-only/v8/**",
     "docs/evidence/motion-260-c3a-plan-only/v7/**",
     "docs/task_packets/motion-260-c3a-plan-only.json"
   ],
@@ -64,7 +65,7 @@
     "in-memory planning/readiness adapters for tests",
     "bounded plan-only launch harness, sample-level RMW provenance collector, and machine-readable probe evidence",
     "C3a README handoff and zero-dispatch evidence",
-    "sanitized, checksummed v7 acceptance and layering evidence under docs/evidence/motion-260-c3a-plan-only/v7"
+    "sanitized, checksummed v8 acceptance and layering evidence under docs/evidence/motion-260-c3a-plan-only/v8"
   ],
   "acceptance": [
     "The implementation baseline contains PR #259 merge commit 4f892a7fe12a1474fd0e6c77205d862bef095856 and AcceptedTrajectory is the only trajectory exposed at the controller seam",

@@ -1,0 +1,89 @@
+{
+  "issue": 207,
+  "human_owner": "zhangjia-1111",
+  "objective": "Replace evaluation's event-envelope replay digest with Issue #47's canonical WorldEvent validation, World Model reducer and WorldState.state_hash, while failing closed on malformed or unreplayable logs.",
+  "decision_supported": "Do replay metrics represent successful canonical WorldState reconstruction and semantic state consistency rather than sorted event-envelope identity?",
+  "allowed_paths": [
+    "docs/task_packets/issue-207-canonical-worldstate-replay-metrics.json",
+    "tools/scripts/collect_metrics.py",
+    "tests/unit/test_evaluation_tools.py",
+    "tests/unit/test_canonical_replay_metrics.py"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "interfaces/json_schema/world_event.schema.json",
+    "interfaces/json_schema/world_state.schema.json",
+    "interfaces/examples/world-event-observation.json",
+    "interfaces/examples/world-state-block-in-tray.json",
+    "libs/contracts/workbench_contracts/models.py",
+    "services/world_model/workbench_world_model/reducer.py",
+    "services/world_model/workbench_world_model/event_payloads.py",
+    "tests/integration/test_world_state_snapshot_replay.py",
+    "tools/scripts/run_evaluation.py"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "services/world_model/**",
+    "services/agent_runtime/**",
+    "services/perception/**",
+    "robot/control/**",
+    "firmware/**",
+    "sim/**",
+    "deploy/**",
+    ".github/**"
+  ],
+  "input_refs": [
+    "interfaces/json_schema/world_event.schema.json",
+    "interfaces/json_schema/world_state.schema.json",
+    "libs/contracts/workbench_contracts/models.py",
+    "services/world_model/workbench_world_model/reducer.py",
+    "services/world_model/workbench_world_model/event_payloads.py",
+    "tests/integration/test_world_state_snapshot_replay.py"
+  ],
+  "outputs": [
+    "canonical WorldEvent-to-WorldState replay metrics",
+    "state_hash_consistency derived only from Issue #47 WorldState.state_hash",
+    "fail-closed evaluation log validation and deterministic focused tests"
+  ],
+  "acceptance": [
+    "Each non-empty JSONL log is parsed through the strict WorldEvent Pydantic contract and Issue #47 create_world_state_snapshot reducer boundary.",
+    "state_hash_consistency compares canonical WorldState hashes for forward and permuted delivery, with no evaluation-owned reducer or hash algorithm.",
+    "A semantic Observation confidence, location or attribute change changes the canonical WorldState hash.",
+    "Permutations of one valid stream produce the same canonical WorldState hash.",
+    "Mixed run IDs, duplicate sequence ownership, duplicate run ownership, malformed JSON/events, legacy non-contract envelopes and reducer failures stop collection with a typed RuntimeError.",
+    "replay_success_rate counts successful canonical replay and does not require contiguous sequence numbers.",
+    "Existing non-replay evaluation metrics operate on detached, contract-normalized WorldEvent dumps after successful canonical replay."
+  ],
+  "commands": [
+    "python tools/scripts/check_task_packet.py docs/task_packets/issue-207-canonical-worldstate-replay-metrics.json",
+    "python -m pytest tests/unit/test_canonical_replay_metrics.py tests/unit/test_evaluation_tools.py -v",
+    "python -m ruff check tools/scripts/collect_metrics.py tests/unit/test_canonical_replay_metrics.py tests/unit/test_evaluation_tools.py",
+    "python -m ruff format --check tools/scripts/collect_metrics.py tests/unit/test_canonical_replay_metrics.py tests/unit/test_evaluation_tools.py",
+    "make test",
+    "make contract",
+    "make context-check",
+    "git diff --check"
+  ],
+  "evidence": [
+    "Focused tests proving semantic Observation changes alter the Issue #47 state hash and delivery permutations do not.",
+    "Fail-closed tests for mixed runs, duplicate sequence/run ownership, malformed JSON, extra envelope fields, unsupported event types and reducer errors.",
+    "Regression evidence showing non-contiguous but valid streams count as successful canonical replay.",
+    "Full tests, contracts, context, lint, formatting, Task Packet and diff-boundary output."
+  ],
+  "stop_conditions": [
+    "Issue #47 canonical WorldState or create_world_state_snapshot changes or is rejected as the stacked base.",
+    "Implementation requires an evaluation-owned state reducer, canonical serializer or hash algorithm.",
+    "A WorldEvent/WorldState schema, Pydantic model or World Model change is required.",
+    "Compatibility with legacy non-contract evaluation envelopes requires modifying run_evaluation.py or silently dropping, rewriting or inventing events.",
+    "A write outside allowed_paths is required or the worktree contains overlapping user modifications in an allowed path."
+  ],
+  "max_iterations": 5,
+  "data_classification": "Local deterministic JSON event fixtures only; no personal data or network access.",
+  "model_policy": "Strict Pydantic contract validation and the Issue #47 canonical World Model reducer only; no evaluation-specific state or hash inference.",
+  "risks_and_fallbacks": [
+    "Legacy scripted evaluation logs contain extra evaluation metadata and unsupported task_graph events, so they now fail closed until their producer is separately migrated to the WorldEvent contract.",
+    "A successful collection has replay_success_rate 1.0 because any invalid run aborts metric publication rather than contributing a misleading partial score.",
+    "This PR remains stacked on feat/47-deterministic-world-state-snapshots and cannot merge before Issue #47."
+  ]
+}

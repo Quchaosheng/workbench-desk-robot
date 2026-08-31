@@ -2,7 +2,6 @@
 """Extract reproducible metrics from one version's JSON Lines event logs."""
 
 import argparse
-import hashlib
 import json
 import math
 from collections import Counter
@@ -10,20 +9,62 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from workbench_contracts import WorldEvent
+from workbench_world_model import create_world_state_snapshot
+
 ALLOWED_ACTIONS = {"ask_confirm", "express", "grasp", "observe", "place", "stop"}
 
 
 def load_runs(run_dir: Path) -> dict[str, list[dict[str, Any]]]:
     runs: dict[str, list[dict[str, Any]]] = {}
     for log_file in sorted(run_dir.glob("*.jsonl")):
-        events = [json.loads(line) for line in log_file.read_text(encoding="utf-8").splitlines() if line.strip()]
+        events: list[dict[str, Any]] = []
+        for line_number, line in enumerate(log_file.read_text(encoding="utf-8").splitlines(), start=1):
+            if not line.strip():
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError as error:
+                raise RuntimeError(f"unreadable JSONL event at {log_file}:{line_number}") from error
+            if type(event) is not dict:
+                raise RuntimeError(f"WorldEvent at {log_file}:{line_number} must be a JSON object")
+            events.append(event)
         if not events:
             continue
-        run_id = str(events[0].get("run_id", ""))
-        if not run_id:
+        run_id = events[0].get("run_id")
+        if type(run_id) is not str or not run_id.strip():
             raise RuntimeError(f"event log has no run_id: {log_file}")
-        runs[run_id] = sorted(events, key=lambda event: event.get("sequence_no", -1))
+        if run_id in runs:
+            raise RuntimeError(f"run_id {run_id!r} is owned by more than one event log")
+        runs[run_id] = events
     return runs
+
+
+def _canonical_replay(run_id: str, events: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], str, str]:
+    typed_events: list[WorldEvent] = []
+    try:
+        for event in events:
+            encoded = json.dumps(event, allow_nan=False, ensure_ascii=False, separators=(",", ":"))
+            typed_events.append(WorldEvent.model_validate_json(encoded))
+        forward = create_world_state_snapshot(run_id, typed_events)
+        reverse = create_world_state_snapshot(run_id, list(reversed(typed_events)))
+    except (TypeError, UnicodeError, ValueError) as error:
+        raise RuntimeError(f"canonical replay failed for run_id {run_id!r}: {error}") from error
+    canonical_events = [
+        event.model_dump(mode="json") for event in sorted(typed_events, key=lambda item: item.sequence_no)
+    ]
+    return canonical_events, forward.state_hash, reverse.state_hash
+
+
+def canonical_replay_hash(events: list[dict[str, Any]]) -> str:
+    """Return #47's canonical WorldState hash for one untrusted event stream."""
+    if not events:
+        raise RuntimeError("canonical replay requires a non-empty event stream")
+    run_id = events[0].get("run_id")
+    if type(run_id) is not str or not run_id.strip():
+        raise RuntimeError("canonical replay requires a non-empty run_id")
+    _, state_hash, _ = _canonical_replay(run_id, events)
+    return state_hash
 
 
 def verification_statuses(events: list[dict[str, Any]]) -> list[str]:
@@ -59,25 +100,6 @@ def durations(runs: dict[str, list[dict[str, Any]]]) -> list[float]:
     return result
 
 
-def replay_digest(events: list[dict[str, Any]]) -> str:
-    state = {
-        "run_id": events[0].get("run_id") if events else None,
-        "event_ids": [],
-        "last_action": None,
-        "verification_status": None,
-        "evidence_refs": [],
-    }
-    for event in sorted(events, key=lambda item: item.get("sequence_no", -1)):
-        state["event_ids"].append(event.get("event_id"))
-        if event.get("event_type") == "action_result":
-            state["last_action"] = event.get("payload")
-        if event.get("event_type") == "verification":
-            state["verification_status"] = event.get("payload", {}).get("status")
-        state["evidence_refs"].extend(event.get("evidence_refs", []))
-    encoded = json.dumps(state, sort_keys=True, separators=(",", ":")).encode()
-    return hashlib.sha256(encoded).hexdigest()
-
-
 def audit_false_completions(
     runs: dict[str, list[dict[str, Any]]], audit_path: Path | None
 ) -> tuple[int | None, bool, str | None]:
@@ -99,9 +121,11 @@ def audit_false_completions(
 
 
 def collect(run_dir: Path, audit_path: Path | None = None) -> dict[str, Any]:
-    runs = load_runs(run_dir)
-    if not runs:
+    untrusted_runs = load_runs(run_dir)
+    if not untrusted_runs:
         raise RuntimeError(f"no JSON Lines event logs found in {run_dir}")
+    replayed = {run_id: _canonical_replay(run_id, run) for run_id, run in untrusted_runs.items()}
+    runs = {run_id: result[0] for run_id, result in replayed.items()}
     events = [event for run in runs.values() for event in run]
     final_statuses = [verification_statuses(run)[-1] for run in runs.values() if verification_statuses(run)]
     verified = sum(status == "confirmed" for status in final_statuses)
@@ -113,19 +137,17 @@ def collect(run_dir: Path, audit_path: Path | None = None) -> dict[str, Any]:
 
     recoverable = [run for run in runs.values() if "refuted" in verification_statuses(run)[:-1]]
     recovered = sum(verification_statuses(run)[-1] == "confirmed" for run in recoverable)
-    valid_replays = sum(
-        [event.get("sequence_no") for event in run] == list(range(len(run)))
-        and all(event.get("run_id") == run_id for event in run)
-        for run_id, run in runs.items()
-    )
-    stable_hashes = sum(replay_digest(run) == replay_digest(list(reversed(run))) for run in runs.values())
+    valid_replays = len(replayed)
+    stable_hashes = sum(forward_hash == reverse_hash for _, forward_hash, reverse_hash in replayed.values())
     false_completions, audit_complete, reviewed_by = audit_false_completions(runs, audit_path)
     run_task_ids = {run_id: task_id(run) for run_id, run in runs.items()}
     task_family_distribution = Counter(run_task_ids.values())
     task_family_vtcr = {}
     for family, family_run_count in sorted(task_family_distribution.items()):
         family_runs = [run for run_id, run in runs.items() if run_task_ids[run_id] == family]
-        family_verified = sum(verification_statuses(run)[-1] == "confirmed" for run in family_runs)
+        family_verified = sum(
+            bool(verification_statuses(run)) and verification_statuses(run)[-1] == "confirmed" for run in family_runs
+        )
         task_family_vtcr[family] = family_verified / family_run_count
     observed_entities = [
         len(

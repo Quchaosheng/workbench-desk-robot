@@ -22,6 +22,59 @@ from scenario_tools import canonical_hash, materialize_scenario
 from validate_golden_set import validate, validate_diverse, validate_parcels
 
 
+def canonical_metric_events(
+    run_id: str,
+    *,
+    task_id: str,
+    entity_ids: tuple[str, ...],
+    status: str = "confirmed",
+) -> list[dict[str, object]]:
+    events: list[dict[str, object]] = []
+
+    def append(event_type: str, payload: dict[str, object], evidence_refs: list[str] | None = None) -> None:
+        sequence_no = len(events)
+        events.append(
+            {
+                "event_id": f"{run_id}-evt-{sequence_no:03d}",
+                "run_id": run_id,
+                "sequence_no": sequence_no,
+                "event_type": event_type,
+                "occurred_at": f"2026-08-30T00:00:{sequence_no:02d}Z",
+                "payload": payload,
+                "evidence_refs": evidence_refs or [],
+            }
+        )
+
+    append("task_accepted", {"task_id": task_id})
+    evidence_refs = []
+    for index, entity_id in enumerate(entity_ids):
+        evidence_ref = f"frame://{run_id}/{entity_id}"
+        evidence_refs.append(evidence_ref)
+        append(
+            "observation",
+            {
+                "observation_id": f"{run_id}-obs-{index:03d}",
+                "run_id": run_id,
+                "entity_id": entity_id,
+                "entity_type": "fixture",
+                "location": "on:table",
+                "confidence": 0.9 - index * 0.1,
+            },
+            [evidence_ref],
+        )
+    append(
+        "verification",
+        {
+            "status": status,
+            "required_conditions": ["known-entities-observed"],
+            "evaluated_conditions": ["known-entities-observed"],
+            "evidence_refs": evidence_refs,
+        },
+        evidence_refs,
+    )
+    return events
+
+
 class ScenarioToolTests(unittest.TestCase):
     def test_same_seed_produces_same_scene_hash(self) -> None:
         manifest = json.loads((ROOT / "sim" / "scenarios" / "frozen" / "normal-001.json").read_text())
@@ -150,10 +203,14 @@ class EvaluationPipelineTests(unittest.TestCase):
             root = Path(temp_dir)
             version_dir = root / "v-test"
             version_dir.mkdir()
-            events = scripted_events("v-test", manifest, "abc123", 1000)
+            events = canonical_metric_events(
+                "v-test--occlusion-001",
+                task_id=manifest["task_id"],
+                entity_ids=("red_block",),
+                status="insufficient_evidence",
+            )
             log_path = version_dir / "occlusion-001.jsonl"
             write_jsonl(log_path, events)
-            validate_event_log(log_path, "v-test--occlusion-001")
             (root / "summary.json").write_text(
                 json.dumps({"runner": "scripted", "release_eligible": False}),
                 encoding="utf-8",
@@ -178,7 +235,15 @@ class EvaluationPipelineTests(unittest.TestCase):
             for manifest in manifests:
                 write_jsonl(
                     version_dir / f"{manifest['scenario_id']}.jsonl",
-                    scripted_events("v-test", manifest, "abc123", 1000),
+                    canonical_metric_events(
+                        f"v-test--{manifest['scenario_id']}",
+                        task_id=manifest["task_id"],
+                        entity_ids=(
+                            ("red_block",)
+                            if manifest["scenario_id"] == "normal-001"
+                            else ("red_block", "blue_cylinder", "green_gear")
+                        ),
+                    ),
                 )
             (root / "summary.json").write_text(
                 json.dumps({"runner": "scripted", "release_eligible": False}),

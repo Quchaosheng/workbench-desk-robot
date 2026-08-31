@@ -1,0 +1,58 @@
+{
+  "issue": "LINUX3",
+  "human_owner": "Quchaosheng",
+  "objective": "Define and test a bounded software UART/SPI framing contract with an injectable fake transport while leaving physical controller, pinmux and device-tree choices to the hardware owners.",
+  "allowed_paths": [
+    "hardware/linux_drivers/uart_spi/**",
+    "hardware/linux_drivers/README.md",
+    "tests/unit/test_uart_spi_contract.py",
+    "Makefile",
+    "docs/architecture/linux-drivers.md",
+    "docs/task_packets/linux-uart-spi-contract.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "firmware/**",
+    "robot/control/**",
+    "hardware/pcb/**",
+    "AGENTS.md"
+  ],
+  "forbidden": [
+    "interfaces/**",
+    "libs/contracts/**",
+    "firmware/**",
+    "robot/control/**",
+    "hardware/pcb/**"
+  ],
+  "acceptance": [
+    "UART and SPI frames have bounded magic, version, transport, sequence, payload-length and CRC validation",
+    "partial reads and writes are reassembled without changing frame ownership",
+    "duplicate, stale and ambiguous sequence numbers fail closed, including the 16-bit wrap boundary",
+    "fake transport queue capacity, closed state, transient write failure and retry budget are observable",
+    "tests cover both UART and SPI while no frozen interface schema or physical hardware ABI is changed",
+    "documentation marks baud rate, SPI clock, pinmux, DMA, IRQ and device-tree resources as owner-gated prerequisites"
+  ],
+  "commands": [
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/linux-uart-spi-contract.json",
+    "python3 -m pytest tests/unit/test_uart_spi_contract.py -v",
+    "make uart-spi-test",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "git diff --check"
+  ],
+  "evidence": [
+    "focused UART/SPI contract test output",
+    "fake transport partial-I/O, CRC, sequence, backpressure and retry assertions",
+    "repository gate output",
+    "software-only scope and owner-gated hardware prerequisites"
+  ],
+  "stop_conditions": [
+    "a production UART/SPI ABI or frozen interface schema change is required",
+    "a physical controller, pinmux, device-tree, DMA or IRQ choice is required",
+    "MCU firmware changes are required to define frame semantics",
+    "software fake evidence would be presented as line-rate, signal-integrity or hard-real-time hardware evidence"
+  ]
+}

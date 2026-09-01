@@ -4,6 +4,11 @@ This record defines a bounded collaboration around a real task. It is not a
 free custom-development agreement and does not grant a partner or scenario
 authority over safety, release, or shared runtime contracts.
 
+Complete the [Design Partner handoff boundary](design-partner-handoff.md)
+before scheduling a trial. That document defines the allowed semantic action
+surface, owner handoff inputs/outputs, stop authority, evidence ladder, and the
+required `continue` / `change` / `defer` / `reject` decision.
+
 ## Partner and scope
 
 - Partner reference (opaque):
@@ -16,6 +21,8 @@ authority over safety, release, or shared runtime contracts.
 - Out of scope:
 - Consent/reference agreement: `private_only` / `anonymous_case_ok` / `public_case_approved`
 - Data retention location and owner:
+- Handoff decision: `continue` / `change` / `defer` / `reject`
+- Handoff record/evidence reference:
 
 ## Real task
 
@@ -28,6 +35,8 @@ authority over safety, release, or shared runtime contracts.
 - Evidence required to confirm success:
 - Failure and recovery cases:
 - Preflight and abort conditions:
+- Product acceptance claim (separate from engineering/safety acceptance):
+- Motion/MCU/Safety acceptance status:
 
 ## Responsibilities
 
@@ -49,7 +58,7 @@ authority over safety, release, or shared runtime contracts.
 - [ ] Evidence bundle and privacy handling are agreed.
 - [ ] Consent, retention, and publication status are recorded.
 - [ ] Safety preflight and abort conditions are reviewed by the site owner.
-- [ ] Continue, change, pause, or stop decision has an owner and date.
+- [ ] `continue`, `change`, `defer`, or `reject` decision has an owner and date.
 
 ## Evidence package
 
@@ -60,6 +69,7 @@ authority over safety, release, or shared runtime contracts.
 - Result: `confirmed` / `refuted` / `insufficient_evidence` / `failed` / `not_executed` / `blocked`
 - `release_eligible`: `false` by default
 - Private evidence reference:
+- Missing evidence or blocker:
 
 ## Guardrails
 

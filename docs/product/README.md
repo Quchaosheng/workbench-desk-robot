@@ -22,6 +22,7 @@ Every proposed scenario should answer two separate questions:
 - [90-day execution](90-day-plan.md): an evidence-gated operating cadence adapted from the product-manager plan.
 - [Problem card template](problem-card-template.md): turn interviews into traceable problem evidence.
 - [Design Partner scenario template](design-partner-scenario-template.md): define a bounded real-task collaboration.
+- [Design Partner handoff boundary](design-partner-handoff.md): separate product acceptance, Motion/MCU/Safety authority, and evidence classes before a trial.
 - [Feedback record template](feedback-record-template.md): make external installation and trial failures reproducible.
 - [Metrics and decision log](metrics-and-decision-log.md): distinguish activity metrics from product and evidence outcomes.
 
@@ -31,9 +32,10 @@ Use the lightest artifact that preserves the decision trail:
 
 1. **Problem card** records a user problem, quote, recent example, frequency, impact, and falsification condition.
 2. **Design Partner scenario** records one bounded real task, responsibilities, safety boundary, and evidence agreement.
-3. **Feedback record** records a reproducible installation, trial, or task result with version and run references.
-4. **Engineering artifact** records the Scenario Registry entry, Event Store run, verifier result, and replay hash.
-5. **Decision log** records whether to continue, change, defer, or stop, with links to the preceding evidence.
+3. **Handoff boundary** records the allowed semantic interface, owner inputs/outputs, stop authority, and evidence class before scheduling the trial.
+4. **Feedback record** records a reproducible installation, trial, or task result with version and run references.
+5. **Engineering artifact** records the Scenario Registry entry, Event Store run, verifier result, and replay hash.
+6. **Decision log** records whether to `continue`, `change`, `defer`, or `reject`, with links to the preceding evidence.
 
 Do not skip from a conversation directly to a feature Issue. A feature becomes
 ready only after its problem card, success condition, non-goals, and evidence
@@ -67,6 +69,8 @@ User statements, product hypotheses, scripted fixtures, Gazebo evidence, and
 physical evidence are different evidence classes. None of them may silently
 upgrade another class. In particular, a scripted fixture remains
 `release_eligible: false` unless the applicable release gate says otherwise.
+User feedback may motivate a product decision, but it is not execution or
+physical evidence unless the applicable run and verification artifacts exist.
 
 ## Ownership boundary
 

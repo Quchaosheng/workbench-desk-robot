@@ -26,13 +26,13 @@ case "$WORKBENCH_CONTAINER_PROFILE" in
   *) echo "invalid WORKBENCH_CONTAINER_PROFILE=$WORKBENCH_CONTAINER_PROFILE" >&2; exit 2 ;;
 esac
 
+if [[ "$WORKBENCH_CONTAINER_PROFILE" != "dashboard" ]]; then
+  /usr/local/bin/workbench-container-doctor --profile "$WORKBENCH_CONTAINER_PROFILE"
+fi
+
 if [[ "$WORKBENCH_CONTAINER_PROFILE" == "hardware-shell" ]]; then
   /usr/local/bin/workbench-dds-config --output /tmp/workbench-fastdds.xml
   export FASTRTPS_DEFAULT_PROFILES_FILE=/tmp/workbench-fastdds.xml
-fi
-
-if [[ "$WORKBENCH_CONTAINER_PROFILE" != "dashboard" ]]; then
-  /usr/local/bin/workbench-container-doctor --profile "$WORKBENCH_CONTAINER_PROFILE"
 fi
 
 exec "$@"

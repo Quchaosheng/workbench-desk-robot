@@ -260,6 +260,9 @@ def test_entrypoint_sources_ros_then_image_then_development_install() -> None:
     development_install = entrypoint.index("/workspace/install/setup.bash")
     assert ros < image_install < development_install < entrypoint.index('exec "$@"')
     assert "/opt/workbench_source/robot/control/install/setup.bash" not in entrypoint
+    doctor = entrypoint.index("workbench-container-doctor")
+    dds = entrypoint.index("workbench-dds-config")
+    assert doctor < dds
 
 
 def test_mujoco_smoke_requires_real_egl_pixels_and_rejects_software_renderer() -> None:

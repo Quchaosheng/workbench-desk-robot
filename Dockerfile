@@ -64,6 +64,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     gpg --dearmor < /tmp/ros.key > /etc/apt/keyrings/ros-archive-keyring.gpg; \
     echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu noble main" > /etc/apt/sources.list.d/ros2.list; \
     apt-get update; \
+    apt-get upgrade -y --no-install-recommends; \
     xargs -r apt-get install -y --no-install-recommends < /tmp/apt-packages.txt; \
     rm -f /tmp/ros.key
 

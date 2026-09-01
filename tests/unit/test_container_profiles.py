@@ -59,6 +59,15 @@ def test_dockerfile_declares_three_gpu_dependency_layers() -> None:
     assert "nvidia-container-toolkit" not in dockerfile
 
 
+def test_dockerfile_upgrades_base_packages_before_installing_runtime_stack() -> None:
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+
+    update = dockerfile.index("apt-get update;", dockerfile.index("ros2.list"))
+    upgrade = dockerfile.index("apt-get upgrade -y --no-install-recommends;", update)
+    install = dockerfile.index("xargs -r apt-get install", upgrade)
+    assert update < upgrade < install
+
+
 def test_gpu_matrix_covers_rtx_30_40_50_with_name_and_compute_guards() -> None:
     matrix = json.loads((ROOT / "docker/gpu-arch-matrix.json").read_text(encoding="utf-8"))
 
@@ -354,7 +363,7 @@ def test_ci_and_release_bare_image_smokes_use_copied_source_workdir() -> None:
         assert f"--workdir /opt/workbench_source {tag}" in workflow
 
 
-def test_supply_chain_scan_gates_actionable_findings_and_keeps_report() -> None:
+def test_supply_chain_scan_gates_actionable_findings_with_filtered_report() -> None:
     workflow = (ROOT / ".github/workflows/container-full-stack.yml").read_text(encoding="utf-8")
 
     scan_block = workflow.split("uses: anchore/scan-action", 1)[1].split("- uses:", 1)[0]

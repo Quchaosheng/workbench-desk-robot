@@ -14,6 +14,8 @@
     "tests/unit/test_container_profiles.py",
     "docs/deployment/container.md",
     ".github/workflows/container-full-stack.yml",
+    ".github/workflows/ci.yml",
+    ".github/workflows/release-image.yml",
     "docs/task_packets/container-full-stack-linux-amd64.json"
   ],
   "read_only_paths": [

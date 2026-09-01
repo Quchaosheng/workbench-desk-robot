@@ -17,6 +17,7 @@ from typing import Any
 MATRIX_PATH = Path("/usr/share/workbench/container/gpu-arch-matrix.json")
 DEVELOPMENT_MATRIX_PATH = Path(__file__).with_name("gpu-arch-matrix.json")
 GPU_PROFILES = {"ros-sim", "gz-gui-x11", "gz-gui-wayland", "mujoco-gpu", "gpu-validation"}
+VALID_PROFILES = {"dashboard", *GPU_PROFILES, "hardware-shell"}
 
 
 def _matrix() -> dict[str, Any]:
@@ -151,6 +152,8 @@ def check_profile(profile: str) -> dict[str, Any]:
         "reason": None,
     }
     failures: list[str] = []
+    if profile not in VALID_PROFILES:
+        failures.append(f"unknown container profile: {profile}")
     if checks["architecture"] != "x86_64":
         failures.append("linux/amd64 is required")
     if profile in {"ros-sim", "gz-gui-x11", "gz-gui-wayland"}:

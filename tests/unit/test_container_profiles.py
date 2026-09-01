@@ -72,7 +72,7 @@ def test_dockerfile_installs_patched_erb_and_runs_regression_guard() -> None:
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
 
     assert "gem install --no-document --ignore-dependencies /tmp/erb-4.0.3.1.gem" in dockerfile
-    assert 'gem contents erb -v 4.0.3.1' in dockerfile
+    assert "gem contents erb -v 4.0.3.1" in dockerfile
     assert 'test -n "${erb_lib_path}"' in dockerfile
     assert "-name 'erb-4.0.2.gemspec' -delete" in dockerfile
     assert "-name 'erb-4.0.2' -prune -exec rm -rf" in dockerfile
@@ -167,6 +167,15 @@ def test_container_doctor_main_returns_two_for_fail_closed_profile(
 
     assert doctor.main() == 2
     assert json.loads(capsys.readouterr().out) == {"profile": "ros-sim", "status": "NOT_EXECUTED"}
+
+
+def test_container_doctor_rejects_unknown_profile() -> None:
+    doctor = _load_doctor()
+
+    report = doctor.check_profile("typo")
+
+    assert report["status"] == "NOT_EXECUTED"
+    assert "unknown container profile: typo" in report["reason"]
 
 
 def test_dds_config_validates_interface_and_writes_bounded_profile(

@@ -418,13 +418,6 @@ def test_supply_chain_scan_gates_actionable_findings_with_filtered_report() -> N
     assert "severity-cutoff: high" in scan_block
     assert "output-file: workbench-1-grype.json" in scan_block
 
-    artifact_block = next(
-        block
-        for block in workflow.split("- uses: actions/upload-artifact")
-        if "name: workbench-1-sbom" in block
-    )
-    assert "if: always()" in artifact_block
-
 
 def test_release_workflow_keeps_the_same_high_vulnerability_gate() -> None:
     workflow = (ROOT / ".github/workflows/release-image.yml").read_text(encoding="utf-8")
@@ -434,6 +427,8 @@ def test_release_workflow_keeps_the_same_high_vulnerability_gate() -> None:
     assert "severity-cutoff: high" in scan_block
     assert "vex: docker/vex.json" in scan_block
     assert "output-file: workbench-1-grype.json" in scan_block
+    artifact_block = next(block for block in workflow.split("- uses: actions/upload-artifact") if "name: workbench-1-sbom" in block)
+    assert "if: always()" in artifact_block
 
 
 @pytest.mark.parametrize("script", ["entrypoint.sh", "gazebo_render_smoke.sh", "sim_smoke.sh"])

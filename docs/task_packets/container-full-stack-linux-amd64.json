@@ -12,6 +12,7 @@
     ".devcontainer/**",
     "tests/unit/test_container_baseline.py",
     "tests/unit/test_container_profiles.py",
+    "tests/unit/test_release_workflow.py",
     "docs/deployment/container.md",
     ".github/workflows/container-full-stack.yml",
     ".github/workflows/ci.yml",
@@ -42,7 +43,7 @@
     "container static tests and CPU dashboard smoke pass; unavailable host capabilities remain NOT_EXECUTED"
   ],
   "commands": [
-    "python3 -m pytest tests/unit/test_container_baseline.py tests/unit/test_container_profiles.py -v",
+    "python3 -m pytest tests/unit/test_container_baseline.py tests/unit/test_container_profiles.py tests/unit/test_release_workflow.py -v",
     "python3 -m ruff check tests/unit/test_container_baseline.py tests/unit/test_container_profiles.py",
     "docker compose config",
     "make container-check",

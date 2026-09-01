@@ -98,3 +98,7 @@ LINUX5/LINUX6 的实现必须在硬件资源确认后补充以下内容：
 不能作为真实吞吐、延迟或 jitter 的证据。后续驱动 PR 应先补齐目标控制器型号、
 寄存器/设备树资源和内核版本，再分别实现 CAN、UART/SPI、GPIO、DMA 和 IRQ 模块，
 并沿用本架构的错误回滚、数据所有权和证据要求。
+
+LINUX4 的 GPIO 软件契约和 fake provider 位于 `hardware/linux_drivers/gpio/`。该契约
+只验证 character-device 语义、unknown 输入、边沿、去抖和有界队列；真实 GPIO 线路、
+设备树和安全回路仍由硬件与安全 Owner 确认。

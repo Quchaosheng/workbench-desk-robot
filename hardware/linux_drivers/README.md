@@ -13,6 +13,10 @@
 面向发布的架构说明位于
 [`docs/architecture/linux-drivers.md`](../../docs/architecture/linux-drivers.md)。
 
+LINUX4 的 GPIO 软件契约和 fake provider 位于
+[`gpio/README.md`](gpio/README.md)。它只验证 character-device 语义、unknown 输入、
+边沿、去抖和有界事件队列；真实 GPIO 线路和安全回路仍由硬件与安全 Owner 确认。
+
 ## 分层边界
 
 ```text

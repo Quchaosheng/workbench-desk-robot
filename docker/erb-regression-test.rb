@@ -2,6 +2,13 @@
 
 require "erb"
 
+source = ERB.instance_method(:def_method).source_location&.first
+abort "ERB source path is unavailable" unless source
+abort "patched ERB guard is not loaded" unless File.read(source).include?("unless @_init.equal?(self.class.singleton_class)")
+
+spec = Gem::Specification.find_all_by_name("erb").find { |candidate| candidate.version.to_s == "4.0.3.1" }
+abort "ERB 4.0.3.1 is not installed" unless spec
+
 def assert_not_initialized(label)
   yield
   abort "#{label} unexpectedly evaluated a deserialized ERB object"

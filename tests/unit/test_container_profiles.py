@@ -86,9 +86,10 @@ def test_supply_chain_scan_uses_exact_vex_document() -> None:
     assert "vex: docker/vex.json" in scan_block
     assert vex["statements"] == [
         {
-            "vulnerability": {"@id": "https://github.com/advisories/GHSA-f865-m6cq-j9vx"},
-            "products": ["pkg:pypi/mpmath@0.0.0"],
+            "vulnerability": {"name": "GHSA-f865-m6cq-j9vx"},
+            "products": [{"identifiers": {"purl": "pkg:pypi/mpmath@0.0.0"}}],
             "status": "not_affected",
+            "timestamp": "2026-09-01T00:00:00Z",
             "justification": "inline_mitigations_already_exist",
             "impact_statement": (
                 "Ubuntu Noble's python3-mpmath package ships a backported ReDOS fix; "

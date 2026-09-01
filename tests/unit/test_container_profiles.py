@@ -72,6 +72,8 @@ def test_dockerfile_installs_patched_erb_and_runs_regression_guard() -> None:
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
 
     assert "gem install --no-document --ignore-dependencies /tmp/erb-4.0.3.1.gem" in dockerfile
+    assert 'gem contents erb -v 4.0.3.1' in dockerfile
+    assert 'test -n "${erb_lib_path}"' in dockerfile
     assert "erb-4.0.2.gemspec' -delete" in dockerfile
     assert "erb-4.0.2' -prune -exec rm -rf" in dockerfile
     assert "ruby /usr/share/workbench/container/erb-regression-test.rb" in dockerfile
@@ -90,7 +92,7 @@ def test_supply_chain_scan_uses_exact_vex_document() -> None:
             "products": [{"identifiers": {"purl": "pkg:pypi/mpmath@0.0.0"}}],
             "status": "not_affected",
             "timestamp": "2026-09-01T00:00:00Z",
-            "justification": "inline_mitigations_already_exist",
+            "justification": "vulnerable_code_not_present",
             "impact_statement": (
                 "Ubuntu Noble's python3-mpmath package ships a backported ReDOS fix; "
                 "Grype 0.118.0 reports synthetic 0.0.0 egg-info metadata, while the "

@@ -12,7 +12,7 @@
       ],
       "status": "not_affected",
       "timestamp": "2026-09-01T00:00:00Z",
-      "justification": "inline_mitigations_already_exist",
+      "justification": "vulnerable_code_not_present",
       "impact_statement": "Ubuntu Noble's python3-mpmath package ships a backported ReDOS fix; Grype 0.118.0 reports synthetic 0.0.0 egg-info metadata, while the runtime package is the patched distro build."
     }
   ]

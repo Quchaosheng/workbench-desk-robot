@@ -72,14 +72,14 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     echo "${ERB_GEM_SHA256}  /tmp/erb-4.0.3.1.gem" | sha256sum --check --strict; \
     gem install --no-document --ignore-dependencies /tmp/erb-4.0.3.1.gem; \
     rm -f /tmp/erb-4.0.3.1.gem; \
-    erb_lib_path="$(gem contents erb --version 4.0.3.1 | awk '/\/lib\/erb\.rb$/ {print; exit}')"; \
+    erb_lib_path="$(gem contents erb -v 4.0.3.1 | awk '/\/lib\/erb\.rb$/ {print; exit}')"; \
     test -n "${erb_lib_path}"; \
     erb_lib_dir="$(dirname "${erb_lib_path}")"; \
     ruby_lib_dir="$(ruby -rrbconfig -e 'print RbConfig::CONFIG["rubylibdir"]')"; \
     cp -a "${erb_lib_dir}"/. "${ruby_lib_dir}"/; \
     for gem_root in /usr/lib/ruby/gems /var/lib/gems /usr/local/lib/ruby/gems /usr/share/rubygems-integration; do \
       if test -d "${gem_root}"; then \
-        find "${gem_root}" -path '*/specifications/default/erb-4.0.2.gemspec' -delete; \
+        find "${gem_root}" -path '*/specifications/*/erb-4.0.2.gemspec' -delete; \
         find "${gem_root}" -path '*/gems/erb-4.0.2' -prune -exec rm -rf '{}' +; \
       fi; \
     done; \

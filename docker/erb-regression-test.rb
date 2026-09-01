@@ -2,6 +2,9 @@
 
 require "erb"
 
+loaded_spec = Gem.loaded_specs["erb"]
+abort "ERB 4.0.3.1 is not the loaded version" unless loaded_spec&.version&.to_s == "4.0.3.1"
+
 source = ERB.instance_method(:def_method).source_location&.first
 abort "ERB source path is unavailable" unless source
 abort "patched ERB guard is not loaded" unless File.read(source).include?("unless @_init.equal?(self.class.singleton_class)")

@@ -9,6 +9,7 @@ ARG HTTP_PROXY
 ARG HTTPS_PROXY
 ARG NO_PROXY
 ARG TARGETARCH
+ARG ERB_GEM_SHA256=bcaaef8cbaa9c46674487c95636050820262ba61293cf33f10242a90dc80654f
 
 RUN test "${TARGETARCH}" = "amd64" || { echo "linux/amd64 is the only supported image platform (got ${TARGETARCH})" >&2; exit 2; }
 
@@ -44,6 +45,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     set -eux; \
     [[ "${ROS_KEY_SHA256}" =~ ^[0-9a-f]{64}$ ]]; \
+    [[ "${ERB_GEM_SHA256}" =~ ^[0-9a-f]{64}$ ]]; \
     printf '%s\n' \
       'Acquire::Retries "10";' \
       'Acquire::http::Timeout "120";' \
@@ -66,6 +68,15 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update; \
     apt-get upgrade -y --no-install-recommends; \
     xargs -r apt-get install -y --no-install-recommends < /tmp/apt-packages.txt; \
+    curl --fail --silent --show-error --location https://rubygems.org/downloads/erb-4.0.3.1.gem --output /tmp/erb-4.0.3.1.gem; \
+    echo "${ERB_GEM_SHA256}  /tmp/erb-4.0.3.1.gem" | sha256sum --check --strict; \
+    gem install --no-document --ignore-dependencies /tmp/erb-4.0.3.1.gem; \
+    rm -f /tmp/erb-4.0.3.1.gem; \
+    erb_lib_dir="$(dirname "$(gem contents erb | awk '/\/lib\/erb\.rb$/ {print; exit}')")"; \
+    ruby_lib_dir="$(ruby -rrbconfig -e 'print RbConfig::CONFIG["rubylibdir"]')"; \
+    cp -a "${erb_lib_dir}"/. "${ruby_lib_dir}"/; \
+    find /usr/lib/ruby/gems -path '*/specifications/default/erb-4.0.2.gemspec' -delete; \
+    find /usr/lib/ruby/gems -path '*/gems/erb-4.0.2' -prune -exec rm -rf '{}' +; \
     rm -f /tmp/ros.key
 
 RUN python3 -m venv --system-site-packages /opt/workbench-venv \
@@ -119,7 +130,10 @@ COPY docker/sim_smoke.sh /usr/local/bin/workbench-sim-smoke
 COPY docker/gazebo_render_smoke.sh /usr/local/bin/workbench-gazebo-render-smoke
 COPY docker/camera-rendering-smoke.sdf /usr/share/workbench/container/camera-rendering-smoke.sdf
 COPY docker/gpu-arch-matrix.json /usr/share/workbench/container/gpu-arch-matrix.json
+COPY docker/erb-regression-test.rb /usr/share/workbench/container/erb-regression-test.rb
+COPY docker/vex.json /usr/share/workbench/container/vex.json
 RUN chmod 0755 /usr/local/bin/workbench-*
+RUN ruby /usr/share/workbench/container/erb-regression-test.rb
 
 USER workbench
 WORKDIR /workspace/src

@@ -68,6 +68,37 @@ def test_dockerfile_upgrades_base_packages_before_installing_runtime_stack() -> 
     assert update < upgrade < install
 
 
+def test_dockerfile_installs_patched_erb_and_runs_regression_guard() -> None:
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+
+    assert "gem install --no-document --ignore-dependencies /tmp/erb-4.0.3.1.gem" in dockerfile
+    assert "erb-4.0.2.gemspec' -delete" in dockerfile
+    assert "erb-4.0.2' -prune -exec rm -rf" in dockerfile
+    assert "ruby /usr/share/workbench/container/erb-regression-test.rb" in dockerfile
+    assert "ERB_GEM_SHA256=bcaaef8cbaa9c46674487c95636050820262ba61293cf33f10242a90dc80654f" in dockerfile
+
+
+def test_supply_chain_scan_uses_exact_vex_document() -> None:
+    workflow = (ROOT / ".github/workflows/container-full-stack.yml").read_text(encoding="utf-8")
+    vex = json.loads((ROOT / "docker/vex.json").read_text(encoding="utf-8"))
+
+    scan_block = workflow.split("uses: anchore/scan-action", 1)[1].split("- uses:", 1)[0]
+    assert "vex: docker/vex.json" in scan_block
+    assert vex["statements"] == [
+        {
+            "vulnerability": {"@id": "https://github.com/advisories/GHSA-f865-m6cq-j9vx"},
+            "products": ["pkg:pypi/mpmath@0.0.0"],
+            "status": "not_affected",
+            "justification": "inline_mitigations_already_exist",
+            "impact_statement": (
+                "Ubuntu Noble's python3-mpmath package ships a backported ReDOS fix; "
+                "Grype 0.118.0 reports synthetic 0.0.0 egg-info metadata, while the "
+                "runtime package is the patched distro build."
+            )
+        }
+    ]
+
+
 def test_gpu_matrix_covers_rtx_30_40_50_with_name_and_compute_guards() -> None:
     matrix = json.loads((ROOT / "docker/gpu-arch-matrix.json").read_text(encoding="utf-8"))
 

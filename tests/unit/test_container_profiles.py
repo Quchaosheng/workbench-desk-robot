@@ -94,7 +94,7 @@ def test_supply_chain_scan_uses_exact_vex_document() -> None:
                 "Ubuntu Noble's python3-mpmath package ships a backported ReDOS fix; "
                 "Grype 0.118.0 reports synthetic 0.0.0 egg-info metadata, while the "
                 "runtime package is the patched distro build."
-            )
+            ),
         }
     ]
 

@@ -74,8 +74,8 @@ def test_dockerfile_installs_patched_erb_and_runs_regression_guard() -> None:
     assert "gem install --no-document --ignore-dependencies /tmp/erb-4.0.3.1.gem" in dockerfile
     assert 'gem contents erb -v 4.0.3.1' in dockerfile
     assert 'test -n "${erb_lib_path}"' in dockerfile
-    assert "erb-4.0.2.gemspec' -delete" in dockerfile
-    assert "erb-4.0.2' -prune -exec rm -rf" in dockerfile
+    assert "-name 'erb-4.0.2.gemspec' -delete" in dockerfile
+    assert "-name 'erb-4.0.2' -prune -exec rm -rf" in dockerfile
     assert "ruby /usr/share/workbench/container/erb-regression-test.rb" in dockerfile
     assert "ERB_GEM_SHA256=bcaaef8cbaa9c46674487c95636050820262ba61293cf33f10242a90dc80654f" in dockerfile
 
@@ -405,7 +405,7 @@ def test_supply_chain_scan_gates_actionable_findings_with_filtered_report() -> N
 
     scan_block = workflow.split("uses: anchore/scan-action", 1)[1].split("- uses:", 1)[0]
     assert "fail-build: true" in scan_block
-    assert "only-fixed: true" in scan_block
+    assert "only-fixed:" not in scan_block
     assert "severity-cutoff: high" in scan_block
     assert "output-file: workbench-1-grype.json" in scan_block
 

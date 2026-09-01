@@ -79,12 +79,12 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     cp -a "${erb_lib_dir}"/. "${ruby_lib_dir}"/; \
     for gem_root in /usr/lib/ruby/gems /var/lib/gems /usr/local/lib/ruby/gems /usr/share/rubygems-integration; do \
       if test -d "${gem_root}"; then \
-        find "${gem_root}" -path '*/specifications/*/erb-4.0.2.gemspec' -delete; \
-        find "${gem_root}" -path '*/gems/erb-4.0.2' -prune -exec rm -rf '{}' +; \
+        find "${gem_root}" -type f -name 'erb-4.0.2.gemspec' -delete; \
+        find "${gem_root}" -type d -name 'erb-4.0.2' -prune -exec rm -rf '{}' +; \
       fi; \
     done; \
     ! find /usr/lib/ruby/gems /var/lib/gems /usr/local/lib/ruby/gems /usr/share/rubygems-integration \
-      \( -path '*/specifications/*/erb-4.0.2.gemspec' -o -path '*/gems/erb-4.0.2' \) -print -quit 2>/dev/null | grep -q .; \
+      \( -type f -name 'erb-4.0.2.gemspec' -o -type d -name 'erb-4.0.2' \) -print -quit 2>/dev/null | grep -q .; \
     rm -f /tmp/ros.key
 
 RUN python3 -m venv --system-site-packages /opt/workbench-venv \

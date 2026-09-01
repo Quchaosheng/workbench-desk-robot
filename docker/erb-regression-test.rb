@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+gem "erb", "4.0.3.1"
 require "erb"
 
 loaded_spec = Gem.loaded_specs["erb"]

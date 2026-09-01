@@ -79,11 +79,6 @@ jobs:
         with:
           image: workbench-1:container-ci
           fail-build: true
-          # Gate only on vulnerabilities for which an upstream fix is available.
-          # This keeps the CI signal actionable; findings without a fix are
-          # tracked separately by the dependency-review and base-image update
-          # processes rather than being treated as remediable build failures.
-          only-fixed: true
           severity-cutoff: high
           output-format: json
           output-file: workbench-1-grype.json

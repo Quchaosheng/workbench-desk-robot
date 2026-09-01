@@ -55,8 +55,8 @@
     "make container-sim-check",
     "make container-mujoco-check",
     "make container-hardware-doctor",
-    "make container-gpu-matrix-check"
-    ,"make container-host-doctor"
+    "make container-gpu-matrix-check",
+    "make container-host-doctor"
   ],
   "evidence": [
     "Task Packet boundary validation",

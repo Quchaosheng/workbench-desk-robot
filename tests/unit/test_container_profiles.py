@@ -341,6 +341,7 @@ def test_ci_bare_image_smoke_uses_copied_source_workdir() -> None:
     assert "--workdir /opt/workbench_source workbench-1:container-ci" in workflow
     assert "docker compose up -d --no-build dashboard" in workflow
     assert "http://127.0.0.1:8080/healthz" in workflow
+    assert "http://127.0.0.1:8080/readyz" in workflow
 
 
 def test_ci_and_release_bare_image_smokes_use_copied_source_workdir() -> None:

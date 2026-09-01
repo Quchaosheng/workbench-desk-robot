@@ -58,7 +58,8 @@ jobs:
           docker compose up -d --no-build dashboard
           trap 'docker compose down' EXIT
           for attempt in $(seq 1 30); do
-            if curl --fail --silent http://127.0.0.1:8080/healthz; then
+            if curl --fail --silent http://127.0.0.1:8080/healthz \
+              && curl --fail --silent http://127.0.0.1:8080/readyz; then
               exit 0
             fi
             sleep 1
@@ -79,8 +80,9 @@ jobs:
           image: workbench-1:container-ci
           fail-build: true
           # Gate only on vulnerabilities for which an upstream fix is available.
-          # Unfixed findings remain in the uploaded Grype report for review but
-          # cannot be remediated by changing packages in this image.
+          # This keeps the CI signal actionable; findings without a fix are
+          # tracked separately by the dependency-review and base-image update
+          # processes rather than being treated as remediable build failures.
           only-fixed: true
           severity-cutoff: high
           output-format: json

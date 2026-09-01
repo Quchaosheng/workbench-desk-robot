@@ -29,7 +29,9 @@ def session(
 
 
 @pytest.mark.parametrize("kind", [TransportKind.UART, TransportKind.SPI])
-def test_frame_round_trip_preserves_transport_sequence_and_payload(kind: TransportKind) -> None:
+def test_frame_round_trip_preserves_transport_sequence_and_payload(
+    kind: TransportKind,
+) -> None:
     frame = UartSpiFrame(kind, 42, b"status")
 
     decoded = UartSpiFrame.decode(frame.encode(), expected_transport=kind)

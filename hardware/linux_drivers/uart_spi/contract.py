@@ -79,7 +79,13 @@ class UartSpiFrame:
             raise FrameFormatError(f"payload exceeds {MAX_PAYLOAD_BYTES} bytes")
 
     def encode(self) -> bytes:
-        header = HEADER.pack(MAGIC, PROTOCOL_VERSION, int(self.transport), self.sequence, len(self.payload))
+        header = HEADER.pack(
+            MAGIC,
+            PROTOCOL_VERSION,
+            int(self.transport),
+            self.sequence,
+            len(self.payload),
+        )
         body = header + self.payload
         return body + CRC.pack(crc16_ccitt(body))
 
@@ -105,7 +111,7 @@ class UartSpiFrame:
         expected_length = HEADER.size + payload_length + CRC.size
         if len(raw) != expected_length:
             raise FrameFormatError("frame length does not match its payload length")
-        if CRC.unpack(raw[-CRC.size:])[0] != crc16_ccitt(raw[:-CRC.size]):
+        if CRC.unpack(raw[-CRC.size :])[0] != crc16_ccitt(raw[: -CRC.size]):
             raise FrameCrcError("frame CRC does not match payload")
         return cls(transport, sequence, raw[HEADER.size : HEADER.size + payload_length])
 

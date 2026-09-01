@@ -419,6 +419,16 @@ def test_supply_chain_scan_gates_actionable_findings_with_filtered_report() -> N
     assert "output-file: workbench-1-grype.json" in scan_block
 
 
+def test_release_workflow_keeps_the_same_high_vulnerability_gate() -> None:
+    workflow = (ROOT / ".github/workflows/release-image.yml").read_text(encoding="utf-8")
+
+    scan_block = workflow.split("uses: anchore/scan-action", 1)[1].split("- uses:", 1)[0]
+    assert "fail-build: true" in scan_block
+    assert "severity-cutoff: high" in scan_block
+    assert "vex: docker/vex.json" in scan_block
+    assert "output-file: workbench-1-grype.json" in scan_block
+
+
 @pytest.mark.parametrize("script", ["entrypoint.sh", "gazebo_render_smoke.sh", "sim_smoke.sh"])
 def test_shell_entrypoints_are_syntax_valid(script: str) -> None:
     subprocess.run(["bash", "-n", str(ROOT / "docker" / script)], check=True)

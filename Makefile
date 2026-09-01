@@ -122,7 +122,8 @@ container-check:
 
 container-dashboard-check:
 	docker compose up -d --no-build dashboard
-	@for attempt in $$(seq 1 30); do \
+	trap 'docker compose down' EXIT; \
+	for attempt in $$(seq 1 30); do \
 		if curl --fail --silent http://127.0.0.1:8080/healthz >/dev/null \
 			&& curl --fail --silent http://127.0.0.1:8080/readyz >/dev/null; then \
 			echo "dashboard healthz=200 readyz=200"; exit 0; \

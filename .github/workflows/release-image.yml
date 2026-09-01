@@ -66,6 +66,15 @@ jobs:
           upload-artifact: false
           upload-release-assets: false
 
+      - uses: anchore/scan-action@8964e60c6fabdb85fdbbbfd9834d8f19c97a3086  # v7.4.1
+        with:
+          image: workbench-1:release-candidate
+          fail-build: true
+          severity-cutoff: high
+          output-format: json
+          output-file: workbench-1-grype.json
+          vex: docker/vex.json
+
       - name: Publish tested image
         id: publish
         if: startsWith(github.ref, 'refs/tags/v')
@@ -89,7 +98,9 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: workbench-1-sbom
-          path: workbench-1.spdx.json
+          path: |
+            workbench-1.spdx.json
+            workbench-1-grype.json
 
       - name: Write release provenance manifest
         env:

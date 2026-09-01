@@ -56,7 +56,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=release-runtime
 
       - name: Smoke-test image
-        run: docker run --rm workbench-1:release-candidate python tools/scripts/local_runner.py --goal "Place the red block in the tray"
+        run: docker run --rm --workdir /opt/workbench_source workbench-1:release-candidate python tools/scripts/local_runner.py --goal "Place the red block in the tray"
 
       - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610  # v0.24.0
         with:

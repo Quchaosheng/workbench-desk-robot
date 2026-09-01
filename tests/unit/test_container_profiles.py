@@ -343,6 +343,26 @@ def test_ci_bare_image_smoke_uses_copied_source_workdir() -> None:
     assert "http://127.0.0.1:8080/healthz" in workflow
 
 
+def test_ci_and_release_bare_image_smokes_use_copied_source_workdir() -> None:
+    smoke_images = (
+        ("ci.yml", "workbench-1:ci"),
+        ("release-image.yml", "workbench-1:release-candidate"),
+    )
+    for workflow_name, tag in smoke_images:
+        workflow = (ROOT / ".github/workflows" / workflow_name).read_text(encoding="utf-8")
+        assert f"--workdir /opt/workbench_source {tag}" in workflow
+
+
+def test_supply_chain_scan_gates_actionable_findings_and_keeps_report() -> None:
+    workflow = (ROOT / ".github/workflows/container-full-stack.yml").read_text(encoding="utf-8")
+
+    scan_block = workflow.split("uses: anchore/scan-action", 1)[1].split("- uses:", 1)[0]
+    assert "fail-build: true" in scan_block
+    assert "only-fixed: true" in scan_block
+    assert "severity-cutoff: high" in scan_block
+    assert "output-file: workbench-1-grype.json" in scan_block
+
+
 @pytest.mark.parametrize("script", ["entrypoint.sh", "gazebo_render_smoke.sh", "sim_smoke.sh"])
 def test_shell_entrypoints_are_syntax_valid(script: str) -> None:
     subprocess.run(["bash", "-n", str(ROOT / "docker" / script)], check=True)

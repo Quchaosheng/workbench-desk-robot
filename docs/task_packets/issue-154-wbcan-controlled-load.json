@@ -30,6 +30,7 @@
     "strict campaign JSON requires at least three complete same-environment repetitions for idle and controlled load",
     "campaign aggregation preserves per-run outliers and reports an observational envelope without a latency pass threshold",
     "CI validates and uploads idle, controlled-load, status-reader and campaign JSON and reports PASS, FAIL or NOT_EXECUTED",
+    "the privileged hosted kernel-module job is the runtime authority when local matching headers, module loading or debugfs access are unavailable",
     "evidence remains virtual-wbcan-userspace and makes no physical CAN, MCU, actuator, PREEMPT_RT or hard-real-time claim"
   ],
   "commands": [

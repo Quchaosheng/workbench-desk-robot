@@ -33,7 +33,11 @@ evidence. A worker that does not produce measured activity is also rejected.
 
 ## Repeated campaign
 
-With the module loaded and `wbcan0` up, run:
+The authoritative execution path is the privileged GitHub Actions
+`kernel-module` job. It builds and loads `wbcan`, runs the complete driver gate,
+then records and uploads the repeated idle/controlled-load reports together
+with the strict campaign JSON. On a Linux host with matching headers, root
+access, debugfs, and `wbcan0` available, the equivalent local command is:
 
 ```bash
 sudo make -C kernel/wbcan latency-campaign
@@ -44,6 +48,13 @@ repetitions with identical warm-up, sample, CAN ID, commit, kernel, affinity,
 clock, and environment fields. Three repetitions are the minimum completeness
 budget for this hosted comparison; they are not a latency acceptance threshold.
 The bounded limits are 20 repetitions and 100,000 measured samples per run.
+
+If a local environment cannot build/load the module or access debugfs (for
+example, WSL without headers matching its running kernel), leave the runtime
+campaign `NOT_EXECUTED` locally and use the hosted `kernel-module` result as the
+virtual-wbcan runtime evidence. A hosted PASS does not extend the claim beyond
+that runner: physical CAN, MCU, actuator, PREEMPT_RT, and hard-real-time
+validation remain `NOT_EXECUTED`.
 
 The two profile reports preserve every run's P50/P95/P99/max, population
 standard-deviation jitter, optional deadline misses, elapsed time, process CPU

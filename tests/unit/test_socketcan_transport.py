@@ -176,7 +176,7 @@ def test_filter_packing_matches_socketcan_flag_mask_contract() -> None:
     item = SocketCANFilter(0x123, CAN_SFF_MASK)
     raw_id, raw_mask = CAN_FILTER_STRUCT.unpack(item.pack())
     assert raw_id == 0x123
-    assert raw_mask == CAN_SFF_MASK | CAN_EFF_FLAG | CAN_RTR_FLAG | CAN_ERR_FLAG
+    assert raw_mask == CAN_SFF_MASK | CAN_EFF_FLAG | CAN_RTR_FLAG
 
     error_mask = CAN_ERR_FILTER_STRUCT.unpack(CAN_ERR_FILTER_STRUCT.pack(CAN_ERR_MASK))[0]
     assert error_mask == CAN_ERR_MASK

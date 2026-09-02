@@ -70,7 +70,7 @@ class SocketCANFilter:
 
     ``mask`` applies to the arbitration-id bits.  The frame-kind flags are
     automatically included in the kernel mask so a standard filter cannot
-    accidentally consume an extended, RTR or error frame.  Error frames use
+    accidentally consume an extended or RTR frame.  Error frames use
     ``CAN_RAW_ERR_FILTER`` separately: Linux assigns the same bit value to
     ``CAN_ERR_FLAG`` and ``CAN_INV_FILTER`` in ``can_filter.can_id``.
     """
@@ -103,7 +103,9 @@ class SocketCANFilter:
 
     @property
     def raw_can_mask(self) -> int:
-        return self.mask | CAN_EFF_FLAG | CAN_RTR_FLAG | CAN_ERR_FLAG
+        # CAN_ERR_FLAG is also CAN_INV_FILTER in the kernel filter ABI.  It
+        # must only be used through CAN_RAW_ERR_FILTER for error frames.
+        return self.mask | CAN_EFF_FLAG | CAN_RTR_FLAG
 
     def pack(self) -> bytes:
         return CAN_FILTER_STRUCT.pack(self.raw_can_id, self.raw_can_mask)

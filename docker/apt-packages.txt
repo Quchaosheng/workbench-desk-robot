@@ -9,7 +9,7 @@ python3
 python3-pip
 python3-venv
 python3-dev
-ros-jazzy-desktop
+ros-jazzy-ros-base
 ros-jazzy-xacro
 ros-jazzy-ur-description
 ros-jazzy-ur-moveit-config

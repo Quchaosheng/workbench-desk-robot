@@ -46,11 +46,12 @@ def test_image_records_build_inventory_and_uses_system_site_packages() -> None:
         assert f'Acquire::https::Proxy::{host} "DIRECT"' in dockerfile
     packages = (ROOT / "docker/apt-packages.txt").read_text(encoding="utf-8")
     for package in (
-        "ros-jazzy-desktop",
+        "ros-jazzy-ros-base",
         "ros-jazzy-moveit",
         "ros-jazzy-gz-ros2-control",
         "ros-jazzy-ros-gz-bridge",
         "liburdfdom-tools",
     ):
         assert package in packages
+    assert "ros-jazzy-desktop" not in packages.splitlines()
     assert "urdfdom-tools" not in packages.splitlines()

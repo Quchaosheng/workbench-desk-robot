@@ -112,6 +112,51 @@ jobs:
           sudo ip link set wbcan0 up
           ip -details link show wbcan0
 
+      - name: Run SocketCAN ingress boundary probe
+        id: socketcan_ingress
+        if: steps.module_load.outcome == 'success'
+        env:
+          SOCKETCAN_INGRESS_REPORT: ${{ runner.temp }}/wbcan-socketcan-ingress-report.json
+        run: |
+          set +e
+          sudo python3 kernel/wbcan/test_socketcan_ingress.py wbcan0 \
+            --source virtual-wbcan \
+            --report "$SOCKETCAN_INGRESS_REPORT" \
+            --require-pass
+          status=$?
+          set -e
+          if [ ! -s "$SOCKETCAN_INGRESS_REPORT" ]; then
+            python3 kernel/wbcan/test_socketcan_ingress.py wbcan0 \
+              --source virtual-wbcan \
+              --write-not-executed-report "$SOCKETCAN_INGRESS_REPORT" \
+              --not-executed-reason "the SocketCAN ingress probe did not produce a report (exit $status)"
+          fi
+          exit "$status"
+
+      - name: Validate SocketCAN ingress evidence
+        id: socketcan_ingress_report
+        if: always()
+        env:
+          SOCKETCAN_INGRESS_REPORT: ${{ runner.temp }}/wbcan-socketcan-ingress-report.json
+        run: |
+          if [ ! -s "$SOCKETCAN_INGRESS_REPORT" ]; then
+            python3 kernel/wbcan/test_socketcan_ingress.py wbcan0 \
+              --source virtual-wbcan \
+              --write-not-executed-report "$SOCKETCAN_INGRESS_REPORT" \
+              --not-executed-reason "the module bring-up did not complete before the SocketCAN ingress probe"
+          fi
+          python3 kernel/wbcan/test_socketcan_ingress.py \
+            --validate-report "$SOCKETCAN_INGRESS_REPORT" \
+            --require-pass
+
+      - name: Upload SocketCAN ingress evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: wbcan-socketcan-ingress-report
+          path: ${{ runner.temp }}/wbcan-socketcan-ingress-report.json
+          if-no-files-found: error
+
       - name: Mark kernel diagnostic scope
         run: |
           marker="wbcan-diagnostics-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"

@@ -1,22 +1,29 @@
 import threading
 from collections import deque
+from dataclasses import FrozenInstanceError
 
 import pytest
 from workbench.hardware import (
+    CAN_ERR_BUSOFF,
+    CAN_ERR_FLAG,
     MCU_CAN_ID_ACK,
     MCU_CAN_ID_COMMAND,
     MCU_CAN_ID_STOP,
     MCU_CAN_ID_STOP_ACK,
     MCU_CAN_ID_TELEMETRY,
     CanBusOffError,
+    CanDiagnosticCode,
+    CanExternalRecord,
     CanFrame,
     CanFrameKind,
     CanLinkLostError,
     CanLinkState,
     CanReceiveStatus,
     CanSendStatus,
+    CanTransportBackpressureError,
     CanTransportConfig,
     CanTransportEnvelope,
+    CanTransportFrameError,
     DeviceRuntime,
     DeviceRuntimeState,
     SafeCANBus,
@@ -235,6 +242,208 @@ def test_worker_drains_one_command_and_correlates_ack_once() -> None:
     duplicate = bus.service_once()
     assert duplicate is not None
     assert duplicate.status is CanReceiveStatus.DUPLICATE
+    assert duplicate.external_record is not None
+    assert not duplicate.external_record.exposure_allowed
+    assert len(bus.external_records()) == 1
+
+
+def test_accepted_ingress_exposes_a_bounded_immutable_projection() -> None:
+    transport = FakeTransport()
+    bus = running_bus(transport, FakeClock(), CanTransportConfig(external_capacity=2))
+    frame = telemetry(27)
+    frame = CanFrame(
+        frame.arbitration_id,
+        frame.data,
+        dlc=8,
+        kernel_timestamp_ns=1_700_000_000_123_000_000,
+        kernel_drop_count=4,
+        observed_monotonic_ts=12.5,
+        observed_wall_ts=1_700_000_000.5,
+        raw_can_id=frame.arbitration_id,
+    )
+    transport.incoming.append(frame)
+
+    result = bus.service_once()
+
+    assert result is not None
+    assert isinstance(result.external_record, CanExternalRecord)
+    record = result.external_record
+    assert record.source == "mcu-can"
+    assert record.interface == "injected-can"
+    assert record.ingress_sequence == 0
+    assert record.event_type == "telemetry"
+    assert record.frame_kind is CanFrameKind.TELEMETRY
+    assert record.dlc == 8
+    assert record.kernel_timestamp_ns == 1_700_000_000_123_000_000
+    assert record.kernel_drop_count == 4
+    assert record.timestamp_source == "kernel+host"
+    assert record.exposure_allowed
+    assert record.sequence_no == 27
+    assert record.data_hex == frame.data.hex()
+    assert record.to_dict()["evidence_refs"] == ["can-ingress://mcu-can/injected-can/0"]
+    assert bus.external_records() == (record,)
+    with pytest.raises(FrozenInstanceError):
+        record.ingress_sequence = 4  # type: ignore[misc]
+
+
+def test_external_projection_drops_oldest_record_and_records_backpressure() -> None:
+    transport = FakeTransport()
+    bus = running_bus(transport, FakeClock(), CanTransportConfig(external_capacity=1))
+    transport.incoming.extend((telemetry(1), telemetry(2)))
+
+    assert bus.service_once() is not None
+    assert bus.service_once() is not None
+
+    records = bus.external_records()
+    assert len(records) == 1
+    assert records[0].sequence_no == 2
+    assert bus.external_drop_count == 1
+    assert any(item.code is CanDiagnosticCode.EXTERNAL_BACKPRESSURE for item in bus.diagnostics())
+
+
+def test_malformed_raw_id_is_rejected_without_corrupting_the_external_projection() -> None:
+    transport = FakeTransport()
+    bus = running_bus(transport, FakeClock())
+    valid = telemetry(28)
+    transport.incoming.append(CanFrame(valid.arbitration_id, valid.data, raw_can_id=0x123))
+
+    result = bus.service_once()
+
+    assert result is not None
+    assert result.status is CanReceiveStatus.INVALID_FRAME
+    assert result.external_record is not None
+    assert not result.external_record.exposure_allowed
+    assert not result.external_record.frame_valid
+    assert result.external_record.raw_can_id is None
+    assert result.external_record.arbitration_id == MCU_CAN_ID_TELEMETRY
+
+
+def test_transport_frame_error_is_an_observable_bounded_rejection() -> None:
+    transport = FakeTransport()
+    bus = running_bus(transport, FakeClock())
+    transport.receive_error = CanTransportFrameError("truncated SocketCAN record")
+
+    result = bus.service_once()
+
+    assert result is not None
+    assert result.status is CanReceiveStatus.INVALID_FRAME
+    assert result.external_record is not None
+    assert result.external_record.reason == "truncated SocketCAN record"
+    assert not result.external_record.exposure_allowed
+
+
+def test_transport_backpressure_retries_within_the_fixed_budget() -> None:
+    class TwiceBackpressuredTransport(FakeTransport):
+        def __init__(self) -> None:
+            super().__init__()
+            self.send_attempts = 0
+
+        def send(self, frame: CanFrame) -> None:
+            self.send_attempts += 1
+            if self.send_attempts <= 2:
+                raise CanTransportBackpressureError("kernel transmit queue is full")
+            super().send(frame)
+
+    transport = TwiceBackpressuredTransport()
+    bus = running_bus(
+        transport,
+        FakeClock(),
+        CanTransportConfig(transport_backpressure_budget=2),
+    )
+    assert bus.send(command(30)).accepted
+
+    assert bus.service_once() is None
+    assert bus.service_once() is None
+    assert bus.state is CanLinkState.ACTIVE
+    assert bus.queued_count == 1
+
+    assert bus.service_once() is None
+    assert transport.sent == [command(30)]
+    assert bus.pending_command_id == 30
+    assert [item.code for item in bus.diagnostics()].count(CanDiagnosticCode.TRANSPORT_BACKPRESSURE) == 2
+
+
+def test_transport_backpressure_exhaustion_fails_closed_without_replay() -> None:
+    class AlwaysBackpressuredTransport(FakeTransport):
+        def send(self, frame: CanFrame) -> None:
+            del frame
+            raise CanTransportBackpressureError("kernel transmit queue is full")
+
+    transport = AlwaysBackpressuredTransport()
+    bus = running_bus(
+        transport,
+        FakeClock(),
+        CanTransportConfig(transport_backpressure_budget=1),
+    )
+    assert bus.send(command(31)).accepted
+
+    assert bus.service_once() is None
+    assert bus.state is CanLinkState.ACTIVE
+    assert bus.queued_count == 1
+
+    assert bus.service_once() is None
+    assert bus.state is CanLinkState.LINK_LOST
+    assert bus.queued_count == 0
+    assert bus.pending_command_id is None
+    assert bus.send(command(32)).status is CanSendStatus.LINK_UNAVAILABLE
+    codes = [item.code for item in bus.diagnostics()]
+    assert codes.count(CanDiagnosticCode.TRANSPORT_BACKPRESSURE) == 2
+    assert codes.count(CanDiagnosticCode.LINK_LOST) == 1
+
+
+def test_bus_off_error_frame_is_observable_but_never_externally_exposed() -> None:
+    transport = FakeTransport()
+    bus = running_bus(transport, FakeClock())
+    transport.incoming.append(
+        CanFrame(
+            CAN_ERR_BUSOFF,
+            b"\0" * 8,
+            is_error_frame=True,
+            dlc=8,
+            raw_can_id=CAN_ERR_FLAG | CAN_ERR_BUSOFF,
+        )
+    )
+
+    result = bus.service_once()
+
+    assert result is not None
+    assert result.status is CanReceiveStatus.INVALID_FRAME
+    assert result.external_record is not None
+    assert result.external_record.health is CanLinkState.BUS_OFF
+    assert result.external_record.is_error_frame is True
+    assert not result.external_record.frame_valid
+    assert not result.external_record.exposure_allowed
+    assert bus.state is CanLinkState.BUS_OFF
+    assert bus.external_records() == ()
+    assert any(item.code is CanDiagnosticCode.BUS_OFF for item in bus.diagnostics())
+
+
+def test_clock_failure_emits_one_rejection_without_recursive_record_generation() -> None:
+    class BrokenClock:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def monotonic(self) -> float:
+            self.calls += 1
+            if self.calls == 1:
+                return 0.0
+            raise RuntimeError("clock unavailable")
+
+    transport = FakeTransport()
+    bus = running_bus(transport, BrokenClock())
+    transport.incoming.append(telemetry(29))
+
+    result = bus.service_once()
+
+    assert result is not None
+    assert result.status is CanReceiveStatus.INVALID_FRAME
+    assert result.external_record is not None
+    assert result.external_record.reason == "monotonic clock failed: clock unavailable"
+    assert bus.external_records() == ()
+    assert bus.take_external_record() is None
+    codes = [item.code for item in bus.diagnostics()]
+    assert codes.count(CanDiagnosticCode.CLOCK_ROLLBACK) == 1
+    assert bus.state is CanLinkState.LINK_LOST
 
 
 def test_malformed_inbound_frame_is_rejected_without_clearing_pending_command() -> None:
@@ -360,6 +569,23 @@ def test_late_ack_does_not_confirm_after_command_timeout() -> None:
     assert late is not None and late.status is CanReceiveStatus.LATE
     assert not late.confirmed
     assert bus.pending_command_id == int.from_bytes(generated_stop.data[1:3], "big")
+    assert late.external_record is not None
+    assert not late.external_record.exposure_allowed
+    assert bus.external_records() == ()
+
+
+def test_uncorrelated_ack_is_observable_but_not_externally_exposed() -> None:
+    transport = FakeTransport()
+    bus = running_bus(transport, FakeClock())
+    transport.incoming.append(ack(0x1234))
+
+    result = bus.service_once()
+
+    assert result is not None and result.status is CanReceiveStatus.UNCORRELATED
+    assert not result.confirmed
+    assert result.external_record is not None
+    assert not result.external_record.exposure_allowed
+    assert bus.external_records() == ()
 
 
 def test_bus_off_clears_pending_work_and_recovery_does_not_replay_it() -> None:
@@ -532,6 +758,41 @@ def test_wall_clock_rollback_is_an_observable_fail_closed_ingress_error() -> Non
     assert bus.send(command(24)).status is CanSendStatus.LINK_UNAVAILABLE
 
 
+def test_monotonic_rollback_is_rejected_without_external_exposure() -> None:
+    transport = FakeTransport()
+    bus = running_bus(transport, FakeClock())
+    first_frame = telemetry(1)
+    second_frame = telemetry(2)
+    transport.incoming.extend(
+        (
+            CanFrame(
+                first_frame.arbitration_id,
+                first_frame.data,
+                observed_monotonic_ts=10.0,
+                observed_wall_ts=20.0,
+            ),
+            CanFrame(
+                second_frame.arbitration_id,
+                second_frame.data,
+                observed_monotonic_ts=9.0,
+                observed_wall_ts=21.0,
+            ),
+        )
+    )
+
+    first = bus.service_once()
+    second = bus.service_once()
+
+    assert first is not None and first.status is CanReceiveStatus.ACCEPTED
+    assert second is not None and second.status is CanReceiveStatus.INVALID_FRAME
+    assert second.external_record is not None
+    assert second.external_record.reason == "monotonic observation moved backwards"
+    assert not second.external_record.exposure_allowed
+    assert tuple(record.sequence_no for record in bus.external_records()) == (1,)
+    assert bus.state is CanLinkState.LINK_LOST
+    assert any(item.code is CanDiagnosticCode.CLOCK_ROLLBACK for item in bus.diagnostics())
+
+
 def test_rejected_ordinary_ack_is_not_confirmation_and_fails_closed() -> None:
     transport = FakeTransport()
     clock = FakeClock()
@@ -685,6 +946,31 @@ def test_shutdown_retries_join_after_an_initial_timeout() -> None:
     transport.release_receive.set()
     assert bus.shutdown(timeout_s=1.0)
     assert transport.closed
+
+
+def test_shutdown_does_not_publish_a_frame_returned_by_an_inflight_receive() -> None:
+    class BlockingFrameReceiveTransport(FakeTransport):
+        def __init__(self) -> None:
+            super().__init__()
+            self.receive_entered = threading.Event()
+            self.release_receive = threading.Event()
+
+        def receive(self, timeout_s: float) -> CanFrame | None:
+            del timeout_s
+            self.receive_entered.set()
+            assert self.release_receive.wait(1.0)
+            return telemetry(91)
+
+    transport = BlockingFrameReceiveTransport()
+    bus = SafeCANBus(transport, clock=FakeClock())
+    assert bus.start(background=True)
+    assert transport.receive_entered.wait(1.0)
+
+    assert not bus.shutdown(timeout_s=0.0)
+    transport.release_receive.set()
+    assert bus.shutdown(timeout_s=1.0)
+    assert bus.external_records() == ()
+    assert bus.external_depth == 0
 
 
 def test_recovery_cannot_reactivate_after_concurrent_shutdown() -> None:

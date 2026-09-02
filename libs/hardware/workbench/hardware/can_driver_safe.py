@@ -11,6 +11,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from enum import IntEnum, StrEnum
 from typing import Protocol
+from urllib.parse import quote
 
 logger = logging.getLogger("CANBusSafe")
 
@@ -21,6 +22,10 @@ MCU_CAN_ID_STOP_ACK = 0x081
 MCU_CAN_ID_COMMAND = 0x100
 MCU_CAN_ID_ACK = 0x101
 MCU_CAN_ID_TELEMETRY = 0x180
+_CAN_ERR_BUSOFF = 0x00000040
+_CAN_EFF_FLAG = 0x80000000
+_CAN_RTR_FLAG = 0x40000000
+_CAN_ERR_FLAG = 0x20000000
 
 
 class CanFrameKind(StrEnum):
@@ -95,6 +100,8 @@ class CanDiagnosticCode(StrEnum):
     SUBSCRIBER_ERROR = "subscriber_error"
     STOP_PREEMPTED = "stop_preempted"
     SHUTDOWN_TIMEOUT = "shutdown_timeout"
+    TRANSPORT_BACKPRESSURE = "transport_backpressure"
+    EXTERNAL_BACKPRESSURE = "external_backpressure"
 
 
 class _WireOpcode(IntEnum):
@@ -159,6 +166,14 @@ class CanTransportError(Exception):
     """Base exception exposed by an injected transport port."""
 
 
+class CanTransportFrameError(CanTransportError):
+    """A received transport record is malformed but the link may remain usable."""
+
+
+class CanTransportBackpressureError(CanTransportError):
+    """The kernel transport temporarily rejected a frame because it is full."""
+
+
 class CanBusOffError(CanTransportError):
     pass
 
@@ -174,6 +189,18 @@ class CanFrame:
     is_extended_id: bool = False
     is_remote_frame: bool = False
     is_error_frame: bool = False
+    dlc: int | None = None
+    kernel_timestamp_ns: int | None = None
+    kernel_drop_count: int | None = None
+    observed_monotonic_ts: float | None = None
+    observed_wall_ts: float | None = None
+    raw_can_id: int | None = None
+
+    @property
+    def effective_dlc(self) -> int:
+        """Return the wire DLC, including an RTR frame's data-less length."""
+
+        return len(self.data) if self.dlc is None else self.dlc
 
 
 @dataclass(frozen=True)
@@ -206,19 +233,22 @@ class CanTransportConfig:
     health_capacity: int = 128
     source: str = "mcu-can"
     interface: str = "injected-can"
+    transport_backpressure_budget: int = 2
+    external_capacity: int = 64
 
     def __post_init__(self) -> None:
         for name in (
             "queue_capacity",
             "telemetry_capacity",
             "health_capacity",
+            "external_capacity",
             "max_subscribers_per_id",
             "correlation_capacity",
         ):
             value = getattr(self, name)
             if type(value) is not int or value <= 0:
                 raise ValueError(f"{name} must be a positive integer")
-        for name in ("ack_retry_budget", "stop_retry_budget"):
+        for name in ("ack_retry_budget", "stop_retry_budget", "transport_backpressure_budget"):
             value = getattr(self, name)
             if type(value) is not int or not 0 <= value <= 255:
                 raise ValueError(f"{name} must be an integer from 0 through 255")
@@ -257,6 +287,7 @@ class CanReceiveResult:
     callback_errors: int = 0
     reason: str | None = None
     envelope: CanTransportEnvelope | None = None
+    external_record: CanExternalRecord | None = None
 
 
 @dataclass(frozen=True)
@@ -279,6 +310,181 @@ class CanTransportEnvelope:
     health: CanLinkState
     wire_frame: CanWireFrame
     evidence_refs: tuple[str, ...] = ()
+    kernel_timestamp_ns: int | None = None
+    kernel_drop_count: int | None = None
+    timestamp_source: str = "host"
+
+
+@dataclass(frozen=True)
+class CanExternalRecord:
+    """Immutable, read-only projection safe for an external observer.
+
+    The projection intentionally contains only validated scalar frame fields
+    and immutable bytes.  It never carries a socket, device handle, callback,
+    or writable protocol object.  ``frame_valid`` means that the complete
+    Wire V1 validation succeeded; ``exposure_allowed`` is true only for an
+    accepted inbound event.
+    """
+
+    status: CanReceiveStatus
+    source: str
+    interface: str
+    ingress_sequence: int
+    health: CanLinkState
+    frame_valid: bool
+    exposure_allowed: bool
+    event_type: str | None = None
+    frame_kind: CanFrameKind | None = None
+    arbitration_id: int | None = None
+    raw_can_id: int | None = None
+    dlc: int | None = None
+    data: bytes | None = None
+    is_extended_id: bool | None = None
+    is_remote_frame: bool | None = None
+    is_error_frame: bool | None = None
+    monotonic_ts: float | None = None
+    wall_ts: float | None = None
+    kernel_timestamp_ns: int | None = None
+    kernel_drop_count: int | None = None
+    timestamp_source: str = "none"
+    reason: str | None = None
+    callback_errors: int = 0
+    confirmed: bool = False
+    command_id: int | None = None
+    sequence_no: int | None = None
+    opcode: int | None = None
+    retry_count: int | None = None
+    result_code: int | None = None
+    fault_code: int | None = None
+    device_mode: int | None = None
+    evidence_refs: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.status, CanReceiveStatus):
+            raise TypeError("external record status must be CanReceiveStatus")
+        if not isinstance(self.health, CanLinkState):
+            raise TypeError("external record health must be CanLinkState")
+        if type(self.ingress_sequence) is not int or self.ingress_sequence < 0:
+            raise ValueError("external record ingress_sequence must be a non-negative integer")
+        if type(self.frame_valid) is not bool or type(self.exposure_allowed) is not bool:
+            raise TypeError("external record validity and exposure flags must be bool")
+        for name in ("source", "interface"):
+            value = getattr(self, name)
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"external record {name} must be non-empty")
+        if self.data is not None and not isinstance(self.data, bytes):
+            raise TypeError("external record data must be immutable bytes")
+        if self.dlc is not None and (type(self.dlc) is not int or not 0 <= self.dlc <= 8):
+            raise ValueError("external record dlc must be from 0 through 8")
+        if self.data is not None and self.dlc is not None and len(self.data) > self.dlc:
+            raise ValueError("external record data cannot exceed its dlc")
+        for name in ("is_extended_id", "is_remote_frame", "is_error_frame"):
+            value = getattr(self, name)
+            if value is not None and type(value) is not bool:
+                raise TypeError(f"external record {name} must be a bool when present")
+        if self.frame_kind is not None and not isinstance(self.frame_kind, CanFrameKind):
+            raise TypeError("external record frame_kind must be CanFrameKind when present")
+        if self.event_type is not None and self.event_type not in {"telemetry", "action_result"}:
+            raise ValueError("external record event_type is invalid")
+        if self.kernel_drop_count is not None and (
+            type(self.kernel_drop_count) is not int or not 0 <= self.kernel_drop_count <= 0xFFFFFFFF
+        ):
+            raise ValueError("external record kernel_drop_count must be a 32-bit unsigned integer")
+        for name, value in (("monotonic_ts", self.monotonic_ts), ("wall_ts", self.wall_ts)):
+            if value is not None and (
+                isinstance(value, bool) or not isinstance(value, int | float) or not math.isfinite(value)
+            ):
+                raise ValueError(f"external record {name} must be finite when present")
+        if self.kernel_timestamp_ns is not None and (
+            type(self.kernel_timestamp_ns) is not int or self.kernel_timestamp_ns < 0
+        ):
+            raise ValueError("external record kernel_timestamp_ns must be non-negative")
+        if self.timestamp_source not in {"none", "adapter", "host", "kernel", "kernel+host"}:
+            raise ValueError("external record timestamp_source is invalid")
+        if type(self.callback_errors) is not int or self.callback_errors < 0:
+            raise ValueError("external record callback_errors must be a non-negative integer")
+        if not isinstance(self.confirmed, bool):
+            raise TypeError("external record confirmed must be a bool")
+        if self.exposure_allowed and (not self.frame_valid or self.status is not CanReceiveStatus.ACCEPTED):
+            raise ValueError("external record exposure requires an accepted, valid frame")
+        if self.confirmed and not self.exposure_allowed:
+            raise ValueError("external record confirmation requires exposure")
+        if self.confirmed and self.status is not CanReceiveStatus.ACCEPTED:
+            raise ValueError("external record confirmation requires accepted status")
+        for name in (
+            "arbitration_id",
+            "raw_can_id",
+            "command_id",
+            "sequence_no",
+            "opcode",
+            "retry_count",
+            "result_code",
+            "fault_code",
+            "device_mode",
+        ):
+            value = getattr(self, name)
+            if value is not None and (type(value) is not int or value < 0):
+                raise ValueError(f"external record {name} must be a non-negative integer when present")
+        if self.raw_can_id is not None:
+            if self.arbitration_id is None or any(
+                value is None for value in (self.is_extended_id, self.is_remote_frame, self.is_error_frame)
+            ):
+                raise ValueError("external record raw_can_id requires complete frame identity metadata")
+            flags = 0
+            if self.is_extended_id:
+                flags |= _CAN_EFF_FLAG
+            if self.is_remote_frame:
+                flags |= _CAN_RTR_FLAG
+            if self.is_error_frame:
+                flags |= _CAN_ERR_FLAG
+            if self.raw_can_id != self.arbitration_id | flags:
+                raise ValueError("external record raw_can_id does not match frame flags")
+        if not isinstance(self.evidence_refs, tuple) or any(
+            not isinstance(reference, str) or not reference.strip() for reference in self.evidence_refs
+        ):
+            raise ValueError("external record evidence_refs must be a tuple of non-empty strings")
+
+    @property
+    def data_hex(self) -> str | None:
+        return None if self.data is None else self.data.hex()
+
+    def to_dict(self) -> dict[str, object | None]:
+        """Serialize only the safe projection fields for a JSON consumer."""
+
+        return {
+            "status": self.status.value,
+            "source": self.source,
+            "interface": self.interface,
+            "ingress_sequence": self.ingress_sequence,
+            "health": self.health.value,
+            "frame_valid": self.frame_valid,
+            "exposure_allowed": self.exposure_allowed,
+            "event_type": self.event_type,
+            "frame_kind": None if self.frame_kind is None else self.frame_kind.value,
+            "arbitration_id": self.arbitration_id,
+            "raw_can_id": self.raw_can_id,
+            "dlc": self.dlc,
+            "data_hex": self.data_hex,
+            "is_extended_id": self.is_extended_id,
+            "is_remote_frame": self.is_remote_frame,
+            "is_error_frame": self.is_error_frame,
+            "monotonic_ts": self.monotonic_ts,
+            "wall_ts": self.wall_ts,
+            "kernel_timestamp_ns": self.kernel_timestamp_ns,
+            "kernel_drop_count": self.kernel_drop_count,
+            "timestamp_source": self.timestamp_source,
+            "reason": self.reason,
+            "callback_errors": self.callback_errors,
+            "confirmed": self.confirmed,
+            "command_id": self.command_id,
+            "sequence_no": self.sequence_no,
+            "opcode": self.opcode,
+            "retry_count": self.retry_count,
+            "result_code": self.result_code,
+            "fault_code": self.fault_code,
+            "device_mode": self.device_mode,
+            "evidence_refs": list(self.evidence_refs),
+        }
 
 
 class MonotonicClock(Protocol):
@@ -316,7 +522,20 @@ class _Dispatch:
     is_retry: bool
 
 
+@dataclass(frozen=True)
+class _IngressObservation:
+    sequence: int
+    monotonic_ts: float | None
+    wall_ts: float | None
+    kernel_timestamp_ns: int | None
+    kernel_drop_count: int | None
+    timestamp_source: str
+    valid: bool
+    reason: str | None = None
+
+
 CorrelationKey = tuple[CanFrameKind, int, int]
+TransportAttemptKey = tuple[CanFrameKind, int | None, int | None]
 Subscriber = Callable[[CanWireFrame], None]
 
 
@@ -352,11 +571,15 @@ class DeviceRuntime:
         health_capacity: int,
         max_subscribers_per_id: int,
         poll_interval_s: float,
+        external_capacity: int | None = None,
     ) -> None:
         self._validate_capacity(command_capacity, "command_capacity")
         self._validate_capacity(telemetry_capacity, "telemetry_capacity")
         self._validate_capacity(health_capacity, "health_capacity")
         self._validate_capacity(max_subscribers_per_id, "max_subscribers_per_id")
+        if external_capacity is None:
+            external_capacity = telemetry_capacity
+        self._validate_capacity(external_capacity, "external_capacity")
         if (
             isinstance(poll_interval_s, bool)
             or not isinstance(poll_interval_s, int | float)
@@ -369,6 +592,7 @@ class DeviceRuntime:
         self._command_capacity = command_capacity
         self._telemetry_capacity = telemetry_capacity
         self._health_capacity = health_capacity
+        self._external_capacity = external_capacity
         self._max_subscribers_per_id = max_subscribers_per_id
         self._poll_interval_s = float(poll_interval_s)
         self._lock = threading.RLock()
@@ -392,8 +616,10 @@ class DeviceRuntime:
         self._command_queue: deque[object] = deque()
         self._telemetry_queue: deque[object] = deque()
         self._health_queue: deque[object] = deque()
+        self._external_queue: deque[object] = deque()
         self._telemetry_drop_count = 0
         self._health_drop_count = 0
+        self._external_drop_count = 0
         self._error_count = 0
         self._subscribers: dict[int, list[Subscriber]] = {}
 
@@ -432,6 +658,16 @@ class DeviceRuntime:
     def health_drop_count(self) -> int:
         with self._lock:
             return self._health_drop_count
+
+    @property
+    def external_depth(self) -> int:
+        with self._lock:
+            return len(self._external_queue)
+
+    @property
+    def external_drop_count(self) -> int:
+        with self._lock:
+            return self._external_drop_count
 
     @property
     def error_count(self) -> int:
@@ -580,6 +816,7 @@ class DeviceRuntime:
             self._cancel_event.set()
             self._command_queue.clear()
             self._telemetry_queue.clear()
+            self._external_queue.clear()
             if self._state is not DeviceRuntimeState.CLEANED:
                 self._state = DeviceRuntimeState.DEACTIVATING
             worker = self._worker
@@ -716,6 +953,12 @@ class DeviceRuntime:
     def _clear_commands_locked(self) -> None:
         self._command_queue.clear()
 
+    def _clear_external_locked(self) -> None:
+        self._external_queue.clear()
+
+    def _prepend_command_locked(self, item: object) -> None:
+        self._command_queue.appendleft(item)
+
     def _enqueue_priority_locked(self, item: object) -> None:
         self._command_queue.clear()
         self._command_queue.appendleft(item)
@@ -737,6 +980,23 @@ class DeviceRuntime:
     def take_telemetry(self) -> object | None:
         with self._lock:
             return self._telemetry_queue.popleft() if self._telemetry_queue else None
+
+    def publish_external(self, item: object) -> None:
+        """Publish one immutable external record to the bounded read plane."""
+
+        with self._lock:
+            if len(self._external_queue) >= self._external_capacity:
+                self._external_queue.popleft()
+                self._external_drop_count += 1
+            self._external_queue.append(item)
+
+    def take_external(self) -> object | None:
+        with self._lock:
+            return self._external_queue.popleft() if self._external_queue else None
+
+    def external_records(self) -> tuple[object, ...]:
+        with self._lock:
+            return tuple(self._external_queue)
 
     def record_health(self, item: object) -> None:
         with self._lock:
@@ -834,7 +1094,13 @@ def decode_can_frame(frame: object) -> CanWireFrame:
         raise CanFrameValidationError("CAN error frames are not protocol frames")
     if not isinstance(frame.data, bytes):
         raise CanFrameValidationError("CAN payload must be immutable bytes")
-    if len(frame.data) != MCU_WIRE_DLC:
+    _validate_raw_can_id(frame)
+    if frame.dlc is not None and (type(frame.dlc) is not int or not 0 <= frame.dlc <= 8):
+        raise CanFrameValidationError("CAN DLC must be an integer from 0 through 8")
+    if frame.dlc is not None and frame.dlc != len(frame.data):
+        raise CanFrameValidationError("CAN payload length must match DLC")
+    _validate_frame_timestamps(frame)
+    if frame.effective_dlc != MCU_WIRE_DLC:
         raise CanFrameValidationError("CAN Wire V1 requires DLC 8")
 
     kind = _ID_TO_KIND.get(frame.arbitration_id)
@@ -922,6 +1188,44 @@ def decode_can_frame(frame: object) -> CanWireFrame:
     )
 
 
+def _validate_frame_timestamps(frame: CanFrame) -> None:
+    _validate_raw_can_id(frame)
+    if frame.kernel_timestamp_ns is not None and (
+        type(frame.kernel_timestamp_ns) is not int or frame.kernel_timestamp_ns < 0
+    ):
+        raise CanFrameValidationError("kernel timestamp must be a non-negative integer")
+    if frame.kernel_drop_count is not None and (
+        type(frame.kernel_drop_count) is not int or not 0 <= frame.kernel_drop_count <= 0xFFFFFFFF
+    ):
+        raise CanFrameValidationError("kernel RX drop count must be a 32-bit unsigned integer")
+    for name in ("observed_monotonic_ts", "observed_wall_ts"):
+        value = getattr(frame, name)
+        if value is not None and (
+            isinstance(value, bool) or not isinstance(value, int | float) or not math.isfinite(value)
+        ):
+            raise CanFrameValidationError(f"{name} must be finite when present")
+
+
+def _validate_raw_can_id(frame: CanFrame) -> None:
+    """Reject stale or contradictory raw ID metadata before protocol use."""
+
+    raw_can_id = frame.raw_can_id
+    if raw_can_id is None:
+        return
+    if type(raw_can_id) is not int or not 0 <= raw_can_id <= 0xFFFFFFFF:
+        raise CanFrameValidationError("raw CAN ID must be a 32-bit unsigned integer when present")
+    flags = 0
+    if frame.is_extended_id:
+        flags |= _CAN_EFF_FLAG
+    if frame.is_remote_frame:
+        flags |= _CAN_RTR_FLAG
+    if frame.is_error_frame:
+        flags |= _CAN_ERR_FLAG
+    expected = frame.arbitration_id | flags
+    if raw_can_id != expected:
+        raise CanFrameValidationError("raw CAN ID does not match arbitration ID and frame flags")
+
+
 class SafeCANBus:
     """CAN ``DeviceAdapter`` hosted by one shared :class:`DeviceRuntime`.
 
@@ -944,12 +1248,28 @@ class SafeCANBus:
         self._wall_clock = wall_clock or time.time
         if not callable(self._wall_clock):
             raise TypeError("wall_clock must be callable")
-        self._config = config or CanTransportConfig()
+        if config is None:
+            transport_source = getattr(transport, "source", None)
+            transport_interface = getattr(transport, "interface", None)
+            config_kwargs = {
+                name: value
+                for name, value in (("source", transport_source), ("interface", transport_interface))
+                if isinstance(value, str) and value.strip()
+            }
+            config = CanTransportConfig(**config_kwargs)
+        else:
+            for name in ("source", "interface"):
+                transport_value = getattr(transport, name, None)
+                if isinstance(transport_value, str) and transport_value != getattr(config, name):
+                    raise ValueError(f"transport {name} does not match CanTransportConfig {name}")
+        self._config = config
         self._opened = False
         self._state = CanLinkState.NEW
         self._pending_command: _PendingRequest | None = None
         self._pending_stop: _PendingRequest | None = None
         self._dispatching: _Dispatch | None = None
+        self._transport_backpressure_key: TransportAttemptKey | None = None
+        self._transport_backpressure_attempts = 0
         self._completed: dict[CorrelationKey, frozenset[int]] = {}
         self._completed_order: deque[CorrelationKey] = deque()
         self._timed_out: dict[CorrelationKey, frozenset[int]] = {}
@@ -957,7 +1277,9 @@ class SafeCANBus:
         self._next_stop_command_id = self._config.initial_stop_command_id
         self._last_telemetry_sequence: int | None = None
         self._ingress_sequence = 0
+        self._last_monotonic_ts: float | None = None
         self._last_wall_ts: float | None = None
+        self._last_observation: _IngressObservation | None = None
         self._runtime = DeviceRuntime(
             self,
             command_capacity=self._config.queue_capacity,
@@ -968,6 +1290,7 @@ class SafeCANBus:
             health_capacity=min(self._config.health_capacity, self._config.diagnostic_capacity),
             max_subscribers_per_id=self._config.max_subscribers_per_id,
             poll_interval_s=self._config.poll_interval_s,
+            external_capacity=self._config.external_capacity,
         )
 
     @property
@@ -1003,6 +1326,14 @@ class SafeCANBus:
     @property
     def queued_count(self) -> int:
         return self._runtime.command_depth
+
+    @property
+    def external_drop_count(self) -> int:
+        return self._runtime.external_drop_count
+
+    @property
+    def external_depth(self) -> int:
+        return self._runtime.external_depth
 
     @property
     def pending_command_id(self) -> int | None:
@@ -1115,13 +1446,16 @@ class SafeCANBus:
         with self._runtime.lock:
             if self._state not in {CanLinkState.ACTIVE, CanLinkState.STOPPING}:
                 return None
-            dispatch = self._next_dispatch_locked(self._clock.monotonic())
+            dispatch = self._next_dispatch_locked(self._safe_monotonic_locked())
             if dispatch is not None:
                 self._dispatching = dispatch
 
         if dispatch is not None:
             try:
                 self._transport.send(dispatch.wire_frame.frame)
+            except CanTransportBackpressureError as exc:
+                self._handle_transport_backpressure(exc)
+                return None
             except CanTransportError as exc:
                 self._handle_transport_error(exc)
                 return None
@@ -1129,10 +1463,16 @@ class SafeCANBus:
                 if self._dispatching is not dispatch or self._runtime.state is not DeviceRuntimeState.ACTIVE:
                     return None
                 self._dispatching = None
-                self._record_dispatch_locked(dispatch, self._clock.monotonic())
+                self._reset_transport_backpressure_locked()
+                self._record_dispatch_locked(dispatch, self._safe_monotonic_locked())
 
         try:
             received = self._transport.receive(float(receive_timeout_s))
+        except CanTransportFrameError as exc:
+            return self._handle_transport_frame_error(exc)
+        except CanTransportBackpressureError as exc:
+            self._handle_transport_backpressure(exc)
+            return None
         except CanTransportError as exc:
             self._handle_transport_error(exc)
             return None
@@ -1166,6 +1506,7 @@ class SafeCANBus:
                 self._pending_command = None
                 self._pending_stop = None
                 self._dispatching = None
+                self._reset_transport_backpressure_locked()
                 self._last_telemetry_sequence = None
                 self._state = CanLinkState.ACTIVE
         self._runtime.end_operation(token)
@@ -1190,6 +1531,7 @@ class SafeCANBus:
             self._pending_command = None
             self._pending_stop = None
             self._dispatching = None
+            self._reset_transport_backpressure_locked()
             opened = self._opened
         if not opened:
             return True
@@ -1211,10 +1553,14 @@ class SafeCANBus:
             self._pending_command = None
             self._pending_stop = None
             self._dispatching = None
+            self._reset_transport_backpressure_locked()
             self._last_telemetry_sequence = None
             self._ingress_sequence = 0
+            self._last_monotonic_ts = None
             self._last_wall_ts = None
+            self._last_observation = None
             self._runtime._telemetry_queue.clear()
+            self._runtime._clear_external_locked()
             self._runtime._subscribers.clear()
             return not self._opened
 
@@ -1234,6 +1580,17 @@ class SafeCANBus:
     def diagnostics(self) -> tuple[CanDiagnostic, ...]:
         return tuple(item for item in self._runtime.health_records() if isinstance(item, CanDiagnostic))
 
+    def take_external_record(self) -> CanExternalRecord | None:
+        """Read one immutable external record without exposing transport state."""
+
+        item = self._runtime.take_external()
+        return item if isinstance(item, CanExternalRecord) else None
+
+    def external_records(self) -> tuple[CanExternalRecord, ...]:
+        """Return a snapshot of the bounded read-only external projection."""
+
+        return tuple(item for item in self._runtime.external_records() if isinstance(item, CanExternalRecord))
+
     def on_runtime_error(self, error: Exception) -> None:
         with self._runtime.lock:
             self._handle_transport_error(CanLinkLostError(str(error)))
@@ -1246,6 +1603,7 @@ class SafeCANBus:
             self._pending_command = None
             self._pending_stop = None
             self._dispatching = None
+            self._reset_transport_backpressure_locked()
             self._state = CanLinkState.SHUTDOWN
 
     def on_runtime_shutdown_timeout(self) -> None:
@@ -1351,29 +1709,106 @@ class SafeCANBus:
                     {retry_count},
                 )
 
-    def _handle_received(self, frame: object) -> CanReceiveResult:
+    def _handle_received(self, frame: object) -> CanReceiveResult | None:
+        with self._runtime.lock:
+            if not self._runtime_accepts_ingress_locked():
+                return None
+        if isinstance(frame, CanFrame) and frame.is_error_frame:
+            displayed_id = (
+                f"0x{frame.arbitration_id:x}" if type(frame.arbitration_id) is int else repr(frame.arbitration_id)
+            )
+            reason = f"CAN error frame {displayed_id} is not a Wire V1 protocol frame"
+            with self._runtime.lock:
+                if type(frame.arbitration_id) is int and frame.arbitration_id & _CAN_ERR_BUSOFF:
+                    self._handle_transport_error(CanBusOffError("SocketCAN reported CAN bus-off"))
+                self._record_diagnostic_locked(CanDiagnosticCode.INVALID_FRAME, reason)
+                record = self._make_external_record_locked(
+                    CanReceiveStatus.INVALID_FRAME,
+                    frame=frame,
+                    reason=reason,
+                    frame_valid=False,
+                    exposure_allowed=False,
+                )
+            return CanReceiveResult(CanReceiveStatus.INVALID_FRAME, reason=reason, external_record=record)
+
         try:
             wire_frame = decode_can_frame(frame)
         except CanFrameValidationError as exc:
-            self._record_diagnostic(CanDiagnosticCode.INVALID_FRAME, str(exc))
-            return CanReceiveResult(CanReceiveStatus.INVALID_FRAME, reason=str(exc))
+            with self._runtime.lock:
+                if not self._runtime_accepts_ingress_locked():
+                    return None
+                self._record_diagnostic_locked(CanDiagnosticCode.INVALID_FRAME, str(exc))
+                record = self._make_external_record_locked(
+                    CanReceiveStatus.INVALID_FRAME,
+                    frame=frame if isinstance(frame, CanFrame) else None,
+                    reason=str(exc),
+                    frame_valid=False,
+                    exposure_allowed=False,
+                )
+            return CanReceiveResult(CanReceiveStatus.INVALID_FRAME, reason=str(exc), external_record=record)
         if wire_frame.kind not in _INBOUND_KINDS:
             reason = "transport receive path only accepts ack, stop_ack, and telemetry frames"
-            self._record_diagnostic(CanDiagnosticCode.INVALID_FRAME, reason, wire_frame.command_id)
-            return CanReceiveResult(CanReceiveStatus.INVALID_FRAME, wire_frame=wire_frame, reason=reason)
+            with self._runtime.lock:
+                if not self._runtime_accepts_ingress_locked():
+                    return None
+                self._record_diagnostic_locked(CanDiagnosticCode.INVALID_FRAME, reason, wire_frame.command_id)
+                record = self._make_external_record_locked(
+                    CanReceiveStatus.INVALID_FRAME,
+                    frame=wire_frame.frame,
+                    wire_frame=wire_frame,
+                    reason=reason,
+                    frame_valid=True,
+                    exposure_allowed=False,
+                )
+            return CanReceiveResult(
+                CanReceiveStatus.INVALID_FRAME,
+                wire_frame=wire_frame,
+                reason=reason,
+                external_record=record,
+            )
 
         with self._runtime.lock:
+            if not self._runtime_accepts_ingress_locked():
+                return None
             envelope = self._make_envelope_locked(wire_frame)
             if envelope is None:
+                observation = self._last_observation
+                reason = "invalid ingress timestamp observation"
+                if observation is not None and observation.reason:
+                    reason = observation.reason
+                record = self._make_external_record_locked(
+                    CanReceiveStatus.INVALID_FRAME,
+                    frame=wire_frame.frame,
+                    wire_frame=wire_frame,
+                    reason=reason,
+                    frame_valid=False,
+                    exposure_allowed=False,
+                )
                 return CanReceiveResult(
                     CanReceiveStatus.INVALID_FRAME,
                     wire_frame=wire_frame,
-                    reason="wall-clock observation regressed or is not finite",
+                    reason=reason,
+                    external_record=record,
                 )
             status, confirmed = self._correlate_received_locked(wire_frame)
             envelope = replace(envelope, health=self._state)
             if status is not CanReceiveStatus.ACCEPTED:
-                return CanReceiveResult(status, wire_frame=wire_frame, envelope=envelope, confirmed=False)
+                record = self._make_external_record_locked(
+                    status,
+                    frame=wire_frame.frame,
+                    wire_frame=wire_frame,
+                    envelope=envelope,
+                    reason="duplicate or late ingress was not exposed as a new event",
+                    frame_valid=True,
+                    exposure_allowed=False,
+                )
+                return CanReceiveResult(
+                    status,
+                    wire_frame=wire_frame,
+                    envelope=envelope,
+                    confirmed=False,
+                    external_record=record,
+                )
             if wire_frame.kind is CanFrameKind.TELEMETRY:
                 self._runtime.publish_telemetry(wire_frame)
                 dispatch_frame = self._runtime.take_telemetry()
@@ -1382,48 +1817,269 @@ class SafeCANBus:
 
         if not isinstance(dispatch_frame, CanWireFrame):
             raise RuntimeError("telemetry plane lost an accepted CAN frame")
+        with self._runtime.lock:
+            if not self._runtime_accepts_ingress_locked():
+                return None
         callback_errors = self._runtime.dispatch_callbacks(dispatch_frame)
         if callback_errors:
             with self._runtime.lock:
+                if not self._runtime_accepts_ingress_locked():
+                    return None
                 for _ in range(callback_errors):
                     self._record_diagnostic_locked(
                         CanDiagnosticCode.SUBSCRIBER_ERROR,
                         "subscriber callback raised an exception",
                         wire_frame.command_id,
                     )
+                record = self._make_external_record_locked(
+                    CanReceiveStatus.ACCEPTED,
+                    frame=wire_frame.frame,
+                    wire_frame=wire_frame,
+                    envelope=envelope,
+                    frame_valid=True,
+                    exposure_allowed=True,
+                    confirmed=confirmed,
+                    callback_errors=callback_errors,
+                )
+        else:
+            with self._runtime.lock:
+                if not self._runtime_accepts_ingress_locked():
+                    return None
+                record = self._make_external_record_locked(
+                    CanReceiveStatus.ACCEPTED,
+                    frame=wire_frame.frame,
+                    wire_frame=wire_frame,
+                    envelope=envelope,
+                    frame_valid=True,
+                    exposure_allowed=True,
+                    confirmed=confirmed,
+                    callback_errors=callback_errors,
+                )
         return CanReceiveResult(
             CanReceiveStatus.ACCEPTED,
             wire_frame=wire_frame,
             envelope=envelope,
             confirmed=confirmed,
             callback_errors=callback_errors,
+            external_record=record,
         )
 
     def _make_envelope_locked(self, wire_frame: CanWireFrame) -> CanTransportEnvelope | None:
-        sequence = self._ingress_sequence
-        self._ingress_sequence += 1
-        try:
-            wall_ts = self._wall_clock()
-        except Exception as exc:  # noqa: BLE001 - clock faults fail closed at ingress.
-            self._fail_clock_locked(f"wall clock failed: {exc}")
+        observation = self._observe_ingress_locked(wire_frame.frame)
+        self._last_observation = observation
+        if not observation.valid:
             return None
-        if isinstance(wall_ts, bool) or not isinstance(wall_ts, int | float) or not math.isfinite(wall_ts):
-            self._fail_clock_locked("wall-clock observation is not finite")
-            return None
-        wall_ts = float(wall_ts)
-        if self._last_wall_ts is not None and wall_ts < self._last_wall_ts:
-            self._fail_clock_locked("wall-clock observation moved backwards")
-            return None
-        self._last_wall_ts = wall_ts
+        self._last_observation = None
+        evidence_ref = self._evidence_ref(observation.sequence)
         return CanTransportEnvelope(
             source=self._config.source,
             interface=self._config.interface,
-            sequence=sequence,
-            monotonic_ts=self._clock.monotonic(),
-            wall_ts=wall_ts,
+            sequence=observation.sequence,
+            monotonic_ts=observation.monotonic_ts,
+            wall_ts=observation.wall_ts,
             health=self._state,
             wire_frame=wire_frame,
+            evidence_refs=(evidence_ref,),
+            kernel_timestamp_ns=observation.kernel_timestamp_ns,
+            kernel_drop_count=observation.kernel_drop_count,
+            timestamp_source=observation.timestamp_source,
         )
+
+    def _observe_ingress_locked(self, frame: CanFrame | None) -> _IngressObservation:
+        sequence = self._ingress_sequence
+        self._ingress_sequence += 1
+        raw_kernel_timestamp_ns = None if frame is None else frame.kernel_timestamp_ns
+        raw_kernel_drop_count = None if frame is None else frame.kernel_drop_count
+        kernel_timestamp_ns = (
+            raw_kernel_timestamp_ns
+            if raw_kernel_timestamp_ns is None
+            or (type(raw_kernel_timestamp_ns) is int and raw_kernel_timestamp_ns >= 0)
+            else None
+        )
+        kernel_drop_count = (
+            raw_kernel_drop_count
+            if raw_kernel_drop_count is None
+            or (type(raw_kernel_drop_count) is int and 0 <= raw_kernel_drop_count <= 0xFFFFFFFF)
+            else None
+        )
+
+        def invalid(reason: str, *, clock_failure: bool = False) -> _IngressObservation:
+            if clock_failure:
+                self._fail_clock_locked(reason)
+            return _IngressObservation(
+                sequence=sequence,
+                monotonic_ts=None,
+                wall_ts=None,
+                kernel_timestamp_ns=kernel_timestamp_ns,
+                kernel_drop_count=kernel_drop_count,
+                timestamp_source="none",
+                valid=False,
+                reason=reason,
+            )
+
+        provided_monotonic = None if frame is None else frame.observed_monotonic_ts
+        valid_provided_monotonic = (
+            provided_monotonic is not None
+            and not isinstance(provided_monotonic, bool)
+            and isinstance(provided_monotonic, int | float)
+            and math.isfinite(provided_monotonic)
+        )
+
+        try:
+            monotonic_value = provided_monotonic if valid_provided_monotonic else self._clock.monotonic()
+        except Exception as exc:  # noqa: BLE001 - clock faults fail closed at ingress.
+            return invalid(f"monotonic clock failed: {exc}", clock_failure=True)
+        if (
+            isinstance(monotonic_value, bool)
+            or not isinstance(monotonic_value, int | float)
+            or not math.isfinite(monotonic_value)
+        ):
+            return invalid("monotonic observation is not finite", clock_failure=True)
+        monotonic_ts = float(monotonic_value)
+        if self._last_monotonic_ts is not None and monotonic_ts < self._last_monotonic_ts:
+            return invalid("monotonic observation moved backwards", clock_failure=True)
+
+        provided_wall = None if frame is None else frame.observed_wall_ts
+        valid_provided_wall = (
+            provided_wall is not None
+            and not isinstance(provided_wall, bool)
+            and isinstance(provided_wall, int | float)
+            and math.isfinite(provided_wall)
+        )
+
+        try:
+            wall_value = provided_wall if valid_provided_wall else self._wall_clock()
+        except Exception as exc:  # noqa: BLE001 - clock faults fail closed at ingress.
+            return invalid(f"wall clock failed: {exc}", clock_failure=True)
+        if isinstance(wall_value, bool) or not isinstance(wall_value, int | float) or not math.isfinite(wall_value):
+            return invalid("wall-clock observation is not finite", clock_failure=True)
+        wall_ts = float(wall_value)
+        if self._last_wall_ts is not None and wall_ts < self._last_wall_ts:
+            return invalid("wall-clock observation moved backwards", clock_failure=True)
+        self._last_monotonic_ts = monotonic_ts
+        self._last_wall_ts = wall_ts
+        has_host_timestamp = valid_provided_monotonic or valid_provided_wall
+        timestamp_source = (
+            "kernel+host"
+            if kernel_timestamp_ns is not None and has_host_timestamp
+            else "kernel"
+            if kernel_timestamp_ns is not None
+            else "host"
+            if has_host_timestamp
+            else "adapter"
+        )
+        return _IngressObservation(
+            sequence=sequence,
+            monotonic_ts=monotonic_ts,
+            wall_ts=wall_ts,
+            kernel_timestamp_ns=kernel_timestamp_ns,
+            kernel_drop_count=kernel_drop_count,
+            timestamp_source=timestamp_source,
+            valid=True,
+        )
+
+    def _make_external_record_locked(
+        self,
+        status: CanReceiveStatus,
+        *,
+        frame: CanFrame | None = None,
+        wire_frame: CanWireFrame | None = None,
+        envelope: CanTransportEnvelope | None = None,
+        reason: str | None = None,
+        frame_valid: bool,
+        exposure_allowed: bool,
+        confirmed: bool = False,
+        callback_errors: int = 0,
+    ) -> CanExternalRecord:
+        source_frame = wire_frame.frame if wire_frame is not None else frame
+        if envelope is not None:
+            sequence = envelope.sequence
+            monotonic_ts = envelope.monotonic_ts
+            wall_ts = envelope.wall_ts
+            kernel_timestamp_ns = envelope.kernel_timestamp_ns
+            kernel_drop_count = envelope.kernel_drop_count
+            timestamp_source = envelope.timestamp_source
+            health = envelope.health
+            evidence_refs = envelope.evidence_refs
+        else:
+            observation = self._last_observation or self._observe_ingress_locked(source_frame)
+            self._last_observation = None
+            sequence = observation.sequence
+            monotonic_ts = observation.monotonic_ts
+            wall_ts = observation.wall_ts
+            kernel_timestamp_ns = observation.kernel_timestamp_ns
+            kernel_drop_count = observation.kernel_drop_count
+            timestamp_source = observation.timestamp_source
+            health = self._state
+            evidence_refs = (self._evidence_ref(sequence),)
+
+        kind = None if wire_frame is None else wire_frame.kind
+        frame_metadata = _safe_external_frame_metadata(source_frame, frame_valid=frame_valid)
+        record = CanExternalRecord(
+            status=status,
+            source=self._config.source,
+            interface=self._config.interface,
+            ingress_sequence=sequence,
+            health=health,
+            frame_valid=frame_valid,
+            exposure_allowed=exposure_allowed,
+            event_type=_external_event_type(kind),
+            frame_kind=kind,
+            arbitration_id=frame_metadata["arbitration_id"],
+            raw_can_id=frame_metadata["raw_can_id"],
+            dlc=frame_metadata["dlc"],
+            data=frame_metadata["data"],
+            is_extended_id=frame_metadata["is_extended_id"],
+            is_remote_frame=frame_metadata["is_remote_frame"],
+            is_error_frame=frame_metadata["is_error_frame"],
+            monotonic_ts=monotonic_ts,
+            wall_ts=wall_ts,
+            kernel_timestamp_ns=kernel_timestamp_ns,
+            kernel_drop_count=kernel_drop_count,
+            timestamp_source=timestamp_source,
+            reason=reason,
+            callback_errors=callback_errors,
+            confirmed=confirmed,
+            command_id=None if wire_frame is None else wire_frame.command_id,
+            sequence_no=None if wire_frame is None else wire_frame.sequence_no,
+            opcode=None if wire_frame is None else wire_frame.opcode,
+            retry_count=None if wire_frame is None else wire_frame.retry_count,
+            result_code=None if wire_frame is None else wire_frame.result_code,
+            fault_code=None if wire_frame is None else wire_frame.fault_code,
+            device_mode=None if wire_frame is None else wire_frame.device_mode,
+            evidence_refs=tuple(evidence_refs),
+        )
+        if exposure_allowed and self._runtime_accepts_ingress_locked():
+            dropped_before = self._runtime.external_drop_count
+            self._runtime.publish_external(record)
+            if self._runtime.external_drop_count > dropped_before:
+                self._record_diagnostic_locked(
+                    CanDiagnosticCode.EXTERNAL_BACKPRESSURE,
+                    "external consumer was slower than the bounded projection plane",
+                )
+        return record
+
+    def _evidence_ref(self, sequence: int) -> str:
+        return (
+            f"can-ingress://{quote(self._config.source, safe='')}/{quote(self._config.interface, safe='')}/{sequence}"
+        )
+
+    def _handle_transport_frame_error(self, error: CanTransportFrameError) -> CanReceiveResult | None:
+        reason = str(error)
+        with self._runtime.lock:
+            if not self._runtime_accepts_ingress_locked():
+                return None
+            self._record_diagnostic_locked(CanDiagnosticCode.INVALID_FRAME, reason)
+            record = self._make_external_record_locked(
+                CanReceiveStatus.INVALID_FRAME,
+                reason=reason,
+                frame_valid=False,
+                exposure_allowed=False,
+            )
+        return CanReceiveResult(CanReceiveStatus.INVALID_FRAME, reason=reason, external_record=record)
+
+    def _runtime_accepts_ingress_locked(self) -> bool:
+        return self._runtime.state is DeviceRuntimeState.ACTIVE and not self._runtime._shutdown_requested
 
     def _fail_clock_locked(self, detail: str) -> None:
         self._handle_transport_error(CanLinkLostError(detail))
@@ -1511,6 +2167,36 @@ class SafeCANBus:
         )
         return CanReceiveStatus.UNCORRELATED, False
 
+    def _handle_transport_backpressure(self, error: CanTransportBackpressureError) -> None:
+        with self._runtime.lock:
+            dispatch = self._dispatching
+            self._dispatching = None
+            self._record_diagnostic_locked(CanDiagnosticCode.TRANSPORT_BACKPRESSURE, str(error))
+            if dispatch is None:
+                return
+            key = (
+                dispatch.wire_frame.kind,
+                dispatch.wire_frame.command_id,
+                dispatch.wire_frame.retry_count,
+            )
+            if key == self._transport_backpressure_key:
+                self._transport_backpressure_attempts += 1
+            else:
+                self._transport_backpressure_key = key
+                self._transport_backpressure_attempts = 1
+            if self._transport_backpressure_attempts > self._config.transport_backpressure_budget:
+                self._handle_transport_error(
+                    CanLinkLostError(
+                        "SocketCAN send remained backpressured beyond the bounded "
+                        f"retry budget ({self._config.transport_backpressure_budget})"
+                    )
+                )
+                return
+            if self._pending_command is None and self._pending_stop is None:
+                if dispatch.wire_frame.kind is CanFrameKind.STOP:
+                    self._runtime._clear_commands_locked()
+                self._runtime._prepend_command_locked(dispatch.wire_frame)
+
     def _handle_transport_error(self, error: CanTransportError) -> None:
         with self._runtime.lock:
             if self._pending_command is not None:
@@ -1528,6 +2214,7 @@ class SafeCANBus:
             self._pending_command = None
             self._pending_stop = None
             self._dispatching = None
+            self._reset_transport_backpressure_locked()
             self._runtime._clear_commands_locked()
             if isinstance(error, CanBusOffError):
                 code = CanDiagnosticCode.BUS_OFF
@@ -1542,6 +2229,7 @@ class SafeCANBus:
     def _preempt_for_stop_locked(self, detail: str) -> None:
         preempted = self._runtime.command_depth
         self._runtime._clear_commands_locked()
+        self._reset_transport_backpressure_locked()
         self._state = CanLinkState.STOPPING
         if self._pending_command is not None:
             sent_retry_counts = set(self._pending_command.sent_retry_counts)
@@ -1635,7 +2323,22 @@ class SafeCANBus:
         detail: str,
         command_id: int | None = None,
     ) -> None:
-        self._runtime._record_health_locked(CanDiagnostic(code, self._clock.monotonic(), detail, command_id))
+        self._runtime._record_health_locked(CanDiagnostic(code, self._safe_monotonic_locked(), detail, command_id))
+
+    def _reset_transport_backpressure_locked(self) -> None:
+        self._transport_backpressure_key = None
+        self._transport_backpressure_attempts = 0
+
+    def _safe_monotonic_locked(self) -> float:
+        """Timestamp diagnostics even when the injected clock is the fault."""
+
+        try:
+            value = self._clock.monotonic()
+        except Exception:  # noqa: BLE001 - diagnostics must remain bounded during clock failure.
+            return time.monotonic()
+        if isinstance(value, bool) or not isinstance(value, int | float) or not math.isfinite(value):
+            return time.monotonic()
+        return float(value)
 
     def _record_diagnostic(
         self,
@@ -1647,6 +2350,67 @@ class SafeCANBus:
             self._record_diagnostic_locked(code, detail, command_id)
 
 
+def _external_event_type(kind: CanFrameKind | None) -> str | None:
+    if kind is CanFrameKind.TELEMETRY:
+        return "telemetry"
+    if kind in {CanFrameKind.ACK, CanFrameKind.STOP_ACK}:
+        return "action_result"
+    return None
+
+
+def _safe_external_frame_metadata(
+    frame: CanFrame | None,
+    *,
+    frame_valid: bool,
+) -> dict[str, object | None]:
+    """Project malformed ingress metadata without reproducing the fault."""
+
+    if not isinstance(frame, CanFrame):
+        return {
+            "arbitration_id": None,
+            "raw_can_id": None,
+            "dlc": None,
+            "data": None,
+            "is_extended_id": None,
+            "is_remote_frame": None,
+            "is_error_frame": None,
+        }
+
+    arbitration_id = frame.arbitration_id if type(frame.arbitration_id) is int and frame.arbitration_id >= 0 else None
+    flags: dict[str, bool | None] = {
+        name: getattr(frame, name) if type(getattr(frame, name)) is bool else None
+        for name in ("is_extended_id", "is_remote_frame", "is_error_frame")
+    }
+    raw_can_id = frame.raw_can_id if type(frame.raw_can_id) is int and 0 <= frame.raw_can_id <= 0xFFFFFFFF else None
+    if raw_can_id is not None and arbitration_id is not None and all(value is not None for value in flags.values()):
+        expected = arbitration_id
+        if flags["is_extended_id"]:
+            expected |= _CAN_EFF_FLAG
+        if flags["is_remote_frame"]:
+            expected |= _CAN_RTR_FLAG
+        if flags["is_error_frame"]:
+            expected |= _CAN_ERR_FLAG
+        if raw_can_id != expected:
+            raw_can_id = None
+    else:
+        raw_can_id = None
+
+    if type(frame.dlc) is int and 0 <= frame.dlc <= 8:
+        dlc: int | None = frame.dlc
+    elif isinstance(frame.data, bytes) and len(frame.data) <= 8:
+        dlc = len(frame.data)
+    else:
+        dlc = None
+    data = frame.data if frame_valid and isinstance(frame.data, bytes) else None
+    return {
+        "arbitration_id": arbitration_id,
+        "raw_can_id": raw_can_id,
+        "dlc": dlc,
+        "data": data,
+        **flags,
+    }
+
+
 def _with_retry_count(wire_frame: CanWireFrame, retry_count: int) -> CanWireFrame:
     data = bytearray(wire_frame.frame.data)
     data[4] = retry_count
@@ -1654,9 +2418,10 @@ def _with_retry_count(wire_frame: CanWireFrame, retry_count: int) -> CanWireFram
         CanFrame(
             wire_frame.frame.arbitration_id,
             bytes(data),
-            wire_frame.frame.is_extended_id,
-            wire_frame.frame.is_remote_frame,
-            wire_frame.frame.is_error_frame,
+            is_extended_id=wire_frame.frame.is_extended_id,
+            is_remote_frame=wire_frame.frame.is_remote_frame,
+            is_error_frame=wire_frame.frame.is_error_frame,
+            dlc=wire_frame.frame.dlc,
         )
     )
 

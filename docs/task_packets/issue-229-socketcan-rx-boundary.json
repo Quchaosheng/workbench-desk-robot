@@ -1,0 +1,85 @@
+{
+  "issue": 229,
+  "human_owner": "TH3478",
+  "objective": "Verify the bounded Linux SocketCAN receive boundary from validated ingress through the host CAN adapter to a read-only external event projection, with truthful virtual and physical evidence labels.",
+  "decision_supported": "Issue #229 acceptance for SocketCAN ingress, Wire V1 validation, bounded runtime handoff, virtual regression, and physical-HIL procedure.",
+  "allowed_paths": [
+    ".github/workflows/ci.yml",
+    "docs/architecture/host-can-transport-v1.md",
+    "docs/hardware/can_bring_up.md",
+    "docs/task_packets/issue-229-socketcan-rx-boundary.json",
+    "hardware/can_adapters/README.md",
+    "kernel/wbcan/test_socketcan_ingress.py",
+    "libs/hardware/README.md",
+    "libs/hardware/workbench/hardware/__init__.py",
+    "libs/hardware/workbench/hardware/can_driver_safe.py",
+    "libs/hardware/workbench/hardware/socketcan_transport.py",
+    "tests/unit/test_can_transport.py",
+    "tests/unit/test_socketcan_ingress.py",
+    "tests/unit/test_socketcan_transport.py",
+    "tests/unit/test_release_workflow.py"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "bsp/**",
+    "hardware/pcb/**",
+    "interfaces/**",
+    "firmware/**"
+  ],
+  "forbidden": [
+    "firmware/**",
+    "interfaces/**",
+    "robot/control/**",
+    "libs/contracts/**",
+    "services/**"
+  ],
+  "input_refs": [
+    "docs/architecture/robot-bsp-can-v0.1.md",
+    "docs/architecture/mcu-can-hal-boundary-v1.md",
+    "docs/task_packets/issue-55-bounded-can-transport.json"
+  ],
+  "outputs": [
+    "libs/hardware/workbench/hardware/socketcan_transport.py",
+    "kernel/wbcan/test_socketcan_ingress.py",
+    "docs/hardware/can_bring_up.md"
+  ],
+  "acceptance": [
+    "The adapter uses one standard AF_CAN/CAN_RAW SocketCAN descriptor with kernel filtering, bounded poll/recvmsg, explicit close, and no adapter-local worker or unbounded queue.",
+    "Classic CAN standard, extended, RTR, error, DLC, truncation, raw arbitration-ID flags, and kernel timestamp records are validated before Wire V1 decoding; malformed records are observable rejections.",
+    "Only complete Wire V1 inbound ACK, STOP_ACK, and telemetry frames reach the bounded runtime and immutable read-only external projection; duplicate, late, uncorrelated, fault, and invalid frames cannot claim completion.",
+    "Link-down, bus-off/error frames, transport backpressure, slow external consumers, shutdown, and recovery have bounded fail-closed behavior with observable diagnostics and drop counters.",
+    "External records contain source, interface, ingress sequence, DLC, timestamps and source, event type, payload/protocol fields, health, evidence reference, and rejection/exposure status without a socket or write handle.",
+    "The deterministic virtual ingress probe exercises a real SocketCAN vcan path when privileged prerequisites exist, validates the exact external record, emits PASS/FAIL/NOT_EXECUTED, and cleans up interfaces and sockets.",
+    "The physical HIL procedure identifies the isolated USB-CAN-FD prototype path, six control domains, raw capture hash, kernel/interface/clock/calibration references, and fail-closed PASS/FAIL/NOT_EXECUTED derivation.",
+    "No firmware, frozen interface/schema, robot-control, physical CAN, MCU, actuator, PREEMPT_RT, or hard-real-time implementation claim is made by this task."
+  ],
+  "commands": [
+    "python3 -m pytest tests/unit/test_can_transport.py tests/unit/test_socketcan_transport.py -q",
+    "python3 -m pytest tests/unit/test_socketcan_ingress.py tests/unit/test_release_workflow.py -q",
+    "python3 -m ruff check libs/hardware/workbench/hardware/can_driver_safe.py libs/hardware/workbench/hardware/socketcan_transport.py libs/hardware/workbench/hardware/__init__.py tests/unit/test_can_transport.py tests/unit/test_socketcan_transport.py tests/unit/test_socketcan_ingress.py tests/unit/test_release_workflow.py kernel/wbcan/test_socketcan_ingress.py",
+    "python3 -m ruff format --check libs/hardware/workbench/hardware/can_driver_safe.py libs/hardware/workbench/hardware/socketcan_transport.py libs/hardware/workbench/hardware/__init__.py tests/unit/test_can_transport.py tests/unit/test_socketcan_transport.py tests/unit/test_socketcan_ingress.py tests/unit/test_release_workflow.py kernel/wbcan/test_socketcan_ingress.py",
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/issue-229-socketcan-rx-boundary.json",
+    "python3 kernel/wbcan/test_socketcan_ingress.py --help",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "make docs",
+    "make -C kernel/wbcan"
+  ],
+  "evidence": [
+    "Focused unit tests for frame layout, transport lifecycle, Wire V1 validation, runtime correlation, bounded projection and shutdown.",
+    "Machine-readable virtual SocketCAN ingress report with an explicit evidence scope and PASS/FAIL/NOT_EXECUTED result.",
+    "Task Packet changed-path validation, repository contract/scenario/context checks, strict documentation build and kernel module build output.",
+    "Physical HIL bring-up record containing interface, adapter, six-domain discovery, kernel/config, clock, calibration, raw capture hash and reviewer references; absent physical inputs remain NOT_EXECUTED."
+  ],
+  "stop_conditions": [
+    "A change to Wire V1 identifiers, payload layout, public schema, firmware HAL, MCU behavior, robot control, or safety authority is required.",
+    "A second adapter-local lifecycle, worker, queue, callback registry, or unbounded retry/diagnostic path is required.",
+    "A physical CAN, USB-CAN-FD, MCU, actuator, PREEMPT_RT, electrical, or hard-real-time result cannot be reproduced with the recorded evidence and owner review.",
+    "The host lacks the privileges, kernel modules, interface, adapter, capture, or calibration input needed for a claimed PASS; record NOT_EXECUTED instead.",
+    "A write outside the allowed paths or a production debugfs/ioctl control API would be needed."
+  ],
+  "data_classification": "hardware ingress metadata and test evidence; no credentials or device write handles",
+  "model_policy": "No model output is admitted as a CAN frame, protocol decision, safety state, or physical evidence."
+}

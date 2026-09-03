@@ -10,7 +10,7 @@
 [![Release](https://img.shields.io/github/v/release/Quchaosheng/workbench-desk-robot?display_name=tag)](https://github.com/Quchaosheng/workbench-desk-robot/releases/latest)
 [![CI](https://github.com/Quchaosheng/workbench-desk-robot/actions/workflows/ci.yml/badge.svg)](https://github.com/Quchaosheng/workbench-desk-robot/actions)
 
-![Workbench Home Robot](docs/assets/workbench-home-robot-market-v6.png)
+![Workbench Home Robot](docs/assets/workbench-home-robot-market-v11.png)
 
 [English](README.md) · [可旋转的 3D 产品视图](docs/assets/premium-product-render.html)
 

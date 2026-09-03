@@ -85,8 +85,7 @@ def validate() -> dict[str, object]:
         "all_package_files_exist": all((ROOT / path).is_file() for path in required_files),
         "power_is_48v_with_three_levels": baseline["power"]
         == {"nominal_pack_voltage_v": 48, "protection_levels": 3, "bms_fail_closed": True},
-        "mechanical_baseline_is_revision_d": baseline["mechanical"]["revision"] == mechanical_spec["revision"]
-        == "D",
+        "mechanical_baseline_is_revision_d": baseline["mechanical"]["revision"] == mechanical_spec["revision"] == "D",
         "mechanical_design_case_matches_generated_analysis": baseline["mechanical"]["design_case_mass_kg"]
         == mechanical_report["mass_kg"],
         "mechanical_drive_module_count_matches_spec": baseline["mechanical"]["drive_module_count"]
@@ -128,10 +127,8 @@ def validate() -> dict[str, object]:
         }
         == {"L1", "L2", "L3"},
         "mass_ledger_matches_generated_mass": abs(total_mass_kg - mechanical_report["mass_kg"]) < 1e-9,
-        "mass_ledger_cg_matches_generated_analysis": center_of_gravity_mm
-        == mechanical_report["center_of_gravity_mm"],
-        "mechanical_generated_geometry_is_measured": mechanical_report["generated_geometry"]["status"]
-        == "MEASURED",
+        "mass_ledger_cg_matches_generated_analysis": center_of_gravity_mm == mechanical_report["center_of_gravity_mm"],
+        "mechanical_generated_geometry_is_measured": mechanical_report["generated_geometry"]["status"] == "MEASURED",
         "mechanical_generated_heights_match_spec": mechanical_report["generated_geometry"]["assembly_bounds_mm"][
             "zmax_mm"
         ]

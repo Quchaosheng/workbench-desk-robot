@@ -136,12 +136,10 @@ def analyse() -> dict[str, object]:
             "head_top_stowed_z_mm": geometry["head_top_stowed_z"],
         },
         "geometry_checks": {
-            "stowed_plus_travel_matches_raised_height": abs(
-                stowed_height + geometry["travel"] - enclosure_height
-            ) <= float(SPEC["coordinate_system"]["height_tolerance_mm"]),
-            "raised_height_matches_enclosure_height": abs(
-                geometry["head_top_raised_z"] - enclosure_height
-            ) <= float(SPEC["coordinate_system"]["height_tolerance_mm"]),
+            "stowed_plus_travel_matches_raised_height": abs(stowed_height + geometry["travel"] - enclosure_height)
+            <= float(SPEC["coordinate_system"]["height_tolerance_mm"]),
+            "raised_height_matches_enclosure_height": abs(geometry["head_top_raised_z"] - enclosure_height)
+            <= float(SPEC["coordinate_system"]["height_tolerance_mm"]),
             "torso_starts_above_base": geometry["torso_bottom_raised_z"] > geometry["base_top_z"],
         },
     }
@@ -294,13 +292,7 @@ def export_cad_package() -> bool:
         .fillet(18)
         .translate((0, 12, lift_carriage_top - lift_carriage_height / 2))
     )
-    lift_plate = (
-        cq.Workplane("XY")
-        .box(270, 228, 28)
-        .edges("|Z")
-        .fillet(24)
-        .translate((0, 12, torso_bottom - 14))
-    )
+    lift_plate = cq.Workplane("XY").box(270, 228, 28).edges("|Z").fillet(24).translate((0, 12, torso_bottom - 14))
     lifting_platform = lift_lower.union(lift_upper).union(lift_plate)
     navigation_lifting_platform = lift_lower.union(lift_upper.translate((0, 0, -geometry["travel"]))).union(
         lift_plate.translate((0, 0, -geometry["travel"]))
@@ -358,7 +350,9 @@ def export_cad_package() -> bool:
         .translate((0, 12, head_bottom - 4))
     )
     neck_mount = neck_pedestal.union(neck_plate).union(head_register)
-    cable_passage = cq.Workplane("XY").circle(neck_spec["cable_passage_mm"] / 2).extrude(100).translate((0, 12, head_bottom - 60))
+    cable_passage = (
+        cq.Workplane("XY").circle(neck_spec["cable_passage_mm"] / 2).extrude(100).translate((0, 12, head_bottom - 60))
+    )
     neck_mount = neck_mount.cut(cable_passage)
     for x in (-48, 48):
         for y in (-22, 22):
@@ -654,12 +648,12 @@ def main() -> None:
         target_height = float(SPEC["enclosure"]["height"])
         stowed_height = float(SPEC["enclosure"]["stowed_height"])
         tolerance = float(SPEC["coordinate_system"]["height_tolerance_mm"])
-        report["geometry_checks"]["generated_step_top_matches_target"] = abs(
-            assembly_bounds["zmax_mm"] - target_height
-        ) <= tolerance
-        report["geometry_checks"]["navigation_step_top_matches_stowed_height"] = abs(
-            navigation_bounds["zmax_mm"] - stowed_height
-        ) <= tolerance
+        report["geometry_checks"]["generated_step_top_matches_target"] = (
+            abs(assembly_bounds["zmax_mm"] - target_height) <= tolerance
+        )
+        report["geometry_checks"]["navigation_step_top_matches_stowed_height"] = (
+            abs(navigation_bounds["zmax_mm"] - stowed_height) <= tolerance
+        )
         report["geometry_checks"]["navigation_footprint_matches_base"] = (
             navigation_bounds["xmin_mm"] >= -float(SPEC["chassis"]["width"]) / 2 - tolerance
             and navigation_bounds["xmax_mm"] <= float(SPEC["chassis"]["width"]) / 2 + tolerance
@@ -667,14 +661,10 @@ def main() -> None:
             and navigation_bounds["ymax_mm"] <= float(SPEC["chassis"]["depth"]) / 2 + tolerance
         )
         report["geometry_checks"]["stabilized_footprint_matches_support_polygon"] = (
-            abs(assembly_bounds["xmin_mm"] + float(SPEC["chassis"]["stabilized_support_width"]) / 2)
-            <= tolerance
-            and abs(assembly_bounds["xmax_mm"] - float(SPEC["chassis"]["stabilized_support_width"]) / 2)
-            <= tolerance
-            and abs(assembly_bounds["ymin_mm"] + float(SPEC["chassis"]["stabilized_support_depth"]) / 2)
-            <= tolerance
-            and abs(assembly_bounds["ymax_mm"] - float(SPEC["chassis"]["stabilized_support_depth"]) / 2)
-            <= tolerance
+            abs(assembly_bounds["xmin_mm"] + float(SPEC["chassis"]["stabilized_support_width"]) / 2) <= tolerance
+            and abs(assembly_bounds["xmax_mm"] - float(SPEC["chassis"]["stabilized_support_width"]) / 2) <= tolerance
+            and abs(assembly_bounds["ymin_mm"] + float(SPEC["chassis"]["stabilized_support_depth"]) / 2) <= tolerance
+            and abs(assembly_bounds["ymax_mm"] - float(SPEC["chassis"]["stabilized_support_depth"]) / 2) <= tolerance
         )
         if not all(report["geometry_checks"].values()):
             raise SystemExit(

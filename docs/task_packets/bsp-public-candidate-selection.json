@@ -3,8 +3,11 @@
   "human_owner": "Quchaosheng",
   "objective": "Record publicly sourced candidates for the Linux BSP, arm/tool controllers, isolated power and third-party integration boundaries without inventing approval or physical evidence.",
   "allowed_paths": [
+    ".github/workflows/ci.yml",
+    "bsp/README.md",
     "bsp/public-candidate-selection.md",
     "THIRD_PARTY_REVIEW.md",
+    "docs/task_packets/bsp-readiness-ci.json",
     "docs/task_packets/bsp-public-candidate-selection.json"
   ],
   "read_only_paths": [

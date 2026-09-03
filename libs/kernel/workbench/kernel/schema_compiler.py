@@ -23,7 +23,9 @@ PROPERTY_KEYWORDS = {
     "description",
     "enum",
     "items",
+    "maxProperties",
     "maximum",
+    "minLength",
     "minimum",
     "minItems",
     "pattern",
@@ -67,6 +69,13 @@ def _numeric_constraint(schema: dict[str, Any], keyword: str, location: str) -> 
     return bound
 
 
+def _non_negative_integer_constraint(schema: dict[str, Any], keyword: str, location: str) -> int:
+    bound = schema[keyword]
+    if type(bound) is not int or bound < 0:
+        raise _MalformedSchema(f"schema {keyword} at {location} must be a non-negative integer")
+    return bound
+
+
 def _validate_schema_structure(
     schema: Any,
     *,
@@ -105,6 +114,11 @@ def _validate_schema_structure(
     for constraint_name in ("minimum", "maximum"):
         if constraint_name in schema:
             _numeric_constraint(schema, constraint_name, location)
+    for constraint_name in ("maxProperties", "minItems", "minLength"):
+        if constraint_name in schema:
+            _non_negative_integer_constraint(schema, constraint_name, location)
+    if "additionalProperties" in schema and type(schema["additionalProperties"]) is not bool:
+        raise _MalformedSchema(f"schema additionalProperties at {location} must be boolean")
     if "pattern" in schema:
         pattern = schema["pattern"]
         if not isinstance(pattern, str):
@@ -113,9 +127,6 @@ def _validate_schema_structure(
             re.compile(pattern)
         except (re.error, OverflowError) as exc:
             raise _MalformedSchema(f"schema pattern at {location} is invalid") from exc
-    if "minItems" in schema and (type(schema["minItems"]) is not int or schema["minItems"] < 0):
-        raise _MalformedSchema(f"schema minItems at {location} must be a non-negative integer")
-
     items = schema.get("items")
     if items is not None:
         _validate_schema_structure(
@@ -296,11 +307,13 @@ def validate_schema_instance(
         if not isinstance(value, str) or matcher.search(value) is None:
             raise _SchemaMismatch(f"value at {location} does not match pattern {pattern!r}")
     if "minItems" in schema:
-        min_items = schema["minItems"]
-        if type(min_items) is not int or min_items < 0:
-            raise _MalformedSchema(f"schema minItems at {location} must be a non-negative integer")
+        min_items = _non_negative_integer_constraint(schema, "minItems", location)
         if not isinstance(value, list) or len(value) < min_items:
             raise _SchemaMismatch(f"array at {location} has fewer than {min_items} items")
+    if "minLength" in schema:
+        min_length = _non_negative_integer_constraint(schema, "minLength", location)
+        if not isinstance(value, str) or len(value) < min_length:
+            raise _SchemaMismatch(f"value at {location} violates minLength {min_length}")
 
     if isinstance(value, list) and "items" in schema:
         for index, item in enumerate(value):
@@ -331,6 +344,10 @@ def validate_schema_instance(
                     references=references,
                     location=f"{location}.{field_name}",
                 )
+        if "maxProperties" in schema:
+            max_properties = _non_negative_integer_constraint(schema, "maxProperties", location)
+            if len(value) > max_properties:
+                raise _SchemaMismatch(f"value at {location} violates maxProperties {max_properties}")
 
     any_of = schema.get("anyOf")
     if any_of is not None:
@@ -472,6 +489,10 @@ def _python_annotation(definition: dict[str, Any], base_annotation: str | None =
         constraints.append(f"le={definition['maximum']!r}")
     if "minItems" in definition:
         constraints.append(f"min_length={definition['minItems']!r}")
+    if "minLength" in definition:
+        constraints.append(f"min_length={definition['minLength']!r}")
+    if "maxProperties" in definition:
+        constraints.append(f"max_length={definition['maxProperties']!r}")
     if "pattern" in definition:
         constraints.append(f"pattern={definition['pattern']!r}")
     if constraints:
@@ -484,6 +505,8 @@ def _typescript_constraint_comment(definition: dict[str, Any]) -> str | None:
         f"minimum: {definition['minimum']}" if "minimum" in definition else None,
         f"maximum: {definition['maximum']}" if "maximum" in definition else None,
         f"minItems: {definition['minItems']}" if "minItems" in definition else None,
+        f"minLength: {definition['minLength']}" if "minLength" in definition else None,
+        f"maxProperties: {definition['maxProperties']}" if "maxProperties" in definition else None,
         f"pattern: {definition['pattern']}" if "pattern" in definition else None,
     ]
     present = [constraint for constraint in constraints if constraint]
@@ -500,6 +523,11 @@ def _validate_definition(definition: dict[str, Any], location: str) -> None:
         raise ValueError(f"maximum must be numeric at {location}")
     if "minItems" in definition and (type(definition["minItems"]) is not int or definition["minItems"] < 0):
         raise ValueError(f"minItems must be a non-negative integer at {location}")
+    for constraint_name in ("maxProperties", "minLength"):
+        if constraint_name in definition and (
+            type(definition[constraint_name]) is not int or definition[constraint_name] < 0
+        ):
+            raise ValueError(f"{constraint_name} must be a non-negative integer at {location}")
     if "pattern" in definition and not isinstance(definition["pattern"], str):
         raise ValueError(f"pattern must be a string at {location}")
     items = definition.get("items")
@@ -521,6 +549,22 @@ def _validate_runtime_schema(schema: dict[str, Any], location: str) -> None:
     unsupported = set(schema) - RUNTIME_SCHEMA_KEYWORDS
     if unsupported:
         raise ValueError(f"unsupported runtime schema keyword(s) at {location}: {sorted(unsupported)}")
+    for constraint_name in ("minimum", "maximum"):
+        if constraint_name in schema:
+            _numeric_constraint(schema, constraint_name, location)
+    for constraint_name in ("maxProperties", "minItems", "minLength"):
+        if constraint_name in schema:
+            _non_negative_integer_constraint(schema, constraint_name, location)
+    if "additionalProperties" in schema and type(schema["additionalProperties"]) is not bool:
+        raise ValueError(f"additionalProperties must be boolean at {location}")
+    if "pattern" in schema:
+        pattern = schema["pattern"]
+        if not isinstance(pattern, str):
+            raise ValueError(f"pattern must be a string at {location}")
+        try:
+            re.compile(pattern)
+        except (re.error, OverflowError) as exc:
+            raise ValueError(f"pattern is invalid at {location}") from exc
     required = schema.get("required")
     if required is not None and (
         not isinstance(required, list) or any(not isinstance(field_name, str) for field_name in required)
@@ -574,9 +618,46 @@ def _conditional_validators(schema: dict[str, Any], name: str) -> tuple[list[str
             ],
             schema.get("allOf", []),
         )
+    conditionals = schema.get("allOf", [])
     lines: list[str] = []
     metadata: list[dict[str, Any]] = []
-    for index, conditional in enumerate(schema.get("allOf", []), start=1):
+
+    def is_numeric_conditional(conditional: object) -> bool:
+        if not isinstance(conditional, dict):
+            return False
+        try:
+            condition_properties = conditional["if"]["properties"]
+            then_properties = conditional["then"]["properties"]
+        except (KeyError, TypeError):
+            return False
+        if len(condition_properties) != 1 or len(then_properties) != 1:
+            return False
+        condition = next(iter(condition_properties.values()))
+        constraint = next(iter(then_properties.values()))
+        return (
+            isinstance(condition, dict)
+            and set(condition) == {"const"}
+            and isinstance(constraint, dict)
+            and bool(constraint)
+            and not set(constraint) - {"minimum", "maximum"}
+        )
+
+    if conditionals and not all(is_numeric_conditional(conditional) for conditional in conditionals):
+        _validate_runtime_schema(schema, name)
+        return (
+            [
+                "",
+                '    @model_validator(mode="before")',
+                "    @classmethod",
+                "    def _validate_schema_conditionals(cls, value):",
+                "        if isinstance(value, cls):",
+                "            return value",
+                f"        validate_schema_instance(value, {schema!r})",
+                "        return value",
+            ],
+            list(conditionals),
+        )
+    for index, conditional in enumerate(conditionals, start=1):
         try:
             condition_properties = conditional["if"]["properties"]
             then_properties = conditional["then"]["properties"]
@@ -772,10 +853,12 @@ class SchemaCompiler:
             if name == "mcu_protocol":
                 pydantic_imports = "BaseModel, ConfigDict, Field, model_serializer, model_validator"
             python_code = f"from typing import Annotated, Any, Literal\n\nfrom pydantic import {pydantic_imports}\n"
-            if name == "mcu_protocol":
+            generated_body = "\n\n".join(class_blocks)
+            if "validate_schema_instance(" in generated_body:
                 python_code += "from workbench.kernel.schema_compiler import validate_schema_instance\n"
+            if name == "mcu_protocol":
                 python_code += f"\n\nMCU_PROTOCOL_SCHEMA = {schema!r}\n"
-            python_code += "\n\n" + "\n\n".join(class_blocks)
+            python_code += "\n\n" + generated_body
             typescript_body = "\n".join(typescript_fields)
             metadata = {
                 "fields": constraint_metadata,

@@ -31,6 +31,8 @@ def test_runtime_number_validation_handles_large_integers_and_non_finite_floats(
         {"type": "string", "pattern": "["},
         {"type": "string", "pattern": 123},
         {"type": "array", "minItems": "not-an-integer"},
+        {"type": "string", "minLength": "not-an-integer"},
+        {"type": "object", "maxProperties": -1},
     ],
 )
 def test_runtime_validation_normalizes_malformed_constraints(schema: dict) -> None:
@@ -54,6 +56,16 @@ def test_runtime_validation_supports_finite_recursive_instances() -> None:
     }
 
     validate_schema_instance({"next": {"next": {}}}, {"$ref": "node"}, references=references)
+
+
+def test_runtime_validation_supports_string_and_object_size_constraints() -> None:
+    validate_schema_instance("home", {"type": "string", "minLength": 1})
+    validate_schema_instance({}, {"type": "object", "maxProperties": 0})
+
+    with pytest.raises(SchemaValidationError, match="minLength"):
+        validate_schema_instance("", {"type": "string", "minLength": 1})
+    with pytest.raises(SchemaValidationError, match="maxProperties"):
+        validate_schema_instance({"extra": True}, {"type": "object", "maxProperties": 0})
 
 
 def test_runtime_validation_rejects_reference_cycles_that_do_not_advance_the_instance() -> None:
@@ -162,6 +174,46 @@ def test_generated_models_enforce_repository_constraints(tmp_path: Path) -> None
             entities=[{"entity_id": "x", "entity_type": "block", "belief": "observed", "confidence": 2.0}],
             reduced_at="t",
         )
+
+
+def test_generated_semantic_action_enforces_structural_navigate_constraints(tmp_path: Path) -> None:
+    semantic_action = generated_model(tmp_path, "semantic_action", "SemanticAction")
+
+    assert semantic_action(
+        action_id="act-navigate",
+        action_type="navigate",
+        target_id="workbench_home",
+        parameters={},
+    )
+    assert semantic_action(
+        action_id="act-place",
+        action_type="place",
+        target_id="red_block",
+        parameters={"destination_id": "tray"},
+    )
+
+    invalid_payloads = (
+        {
+            "action_id": "act-navigate",
+            "action_type": "navigate",
+            "target_id": "",
+            "parameters": {},
+        },
+        {
+            "action_id": "act-navigate",
+            "action_type": "navigate",
+            "target_id": "workbench_home",
+            "parameters": {"x": 1.0},
+        },
+        {
+            "action_id": "act-navigate",
+            "action_type": "navigate",
+            "parameters": {},
+        },
+    )
+    for payload in invalid_payloads:
+        with pytest.raises(ValueError):
+            semantic_action(**payload)
 
 
 def test_generated_models_validate_local_references(tmp_path: Path) -> None:

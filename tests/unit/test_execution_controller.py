@@ -454,6 +454,71 @@ def test_adapter_exceptions_become_typed_terminal_records(
     assert report.records[1].transitions == (ExecutionState.PENDING,)
 
 
+def test_unknown_navigate_waypoint_is_an_explicit_adapter_failure() -> None:
+    graph = _graph(
+        _action(
+            "act-navigate-unknown",
+            ActionType.NAVIGATE,
+            target_id="not-configured",
+        )
+    )
+    unknown_waypoint = ActionResult(
+        result_id="result-navigate-unknown",
+        action_id="act-navigate-unknown",
+        run_id="run-controller-test",
+        outcome=ActionOutcome.FAILED,
+        dispatch_state=DispatchState.SENT,
+        device_state=DeviceState.REJECTED,
+        error_reason="unknown_waypoint",
+        started_at="2026-09-03T00:00:00Z",
+        ended_at="2026-09-03T00:00:01Z",
+    )
+    adapter = FakeAdapter({"act-navigate-unknown": unknown_waypoint})
+
+    report = _controller(adapter).execute(graph)
+
+    assert report.terminal_state is ExecutionState.FAILED
+    assert report.reason_code is ExecutionReasonCode.ACTION_FAILED
+    assert adapter.calls == ["act-navigate-unknown"]
+    assert adapter.action_payloads == [
+        {
+            "action_id": "act-navigate-unknown",
+            "action_type": "navigate",
+            "target_id": "not-configured",
+            "parameters": {},
+        }
+    ]
+    assert report.records[0].result is not None
+    assert report.records[0].result.error_reason == "unknown_waypoint"
+
+
+def test_navigate_does_not_change_independent_stop_preemption() -> None:
+    graph = _graph(
+        _action("act-navigate", ActionType.NAVIGATE, target_id="workbench_home"),
+        _action("act-after-navigate"),
+    )
+    stop_action = _action("act-stop", ActionType.STOP)
+    controller: ExecutionController
+
+    def request_stop_after_navigate(action: SemanticAction) -> None:
+        if action.action_id == "act-navigate":
+            assert controller.request_stop(stop_action) is StopRequestStatus.ACCEPTED
+
+    adapter = FakeAdapter(
+        {stop_action.action_id: _result(stop_action.action_id)},
+        before_return=request_stop_after_navigate,
+    )
+    controller = _controller(adapter)
+
+    report = controller.execute(graph)
+
+    assert adapter.calls == ["act-navigate", "act-stop"]
+    assert report.terminal_state is ExecutionState.STOPPED
+    assert report.reason_code is ExecutionReasonCode.STOP_DISPATCHED
+    assert report.records[1].transitions == (ExecutionState.PENDING,)
+    assert report.records[-1].action_id == "act-stop"
+
+
 @pytest.mark.parametrize(
     "invalid_result",
     [object(), _result("wrong-action-id")],

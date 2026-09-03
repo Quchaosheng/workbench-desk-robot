@@ -23,6 +23,11 @@ Run `python bsp/validation/validate_manifests.py` before changing a board,
 controller or firmware manifest. The validator checks domain identity and
 keeps physical bring-up results fail-closed until evidence is attached.
 
+The public candidate baseline and source links are recorded in
+[`public-candidate-selection.md`](public-candidate-selection.md). It makes the
+next purchase and integration decisions concrete without treating public
+documentation as supplier approval or physical evidence.
+
 The prototype camera baseline is one head-mounted Intel RealSense D435 over
 USB 3. Linux uses the standard `uvcvideo`/V4L2 path, with `librealsense2` and
 the ROS 2 `realsense2_camera` package above the kernel. See

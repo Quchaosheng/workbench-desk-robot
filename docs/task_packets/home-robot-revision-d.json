@@ -7,6 +7,7 @@
     "tests/hardware/test_engineering_packages.py",
     "docs/assets/premium-product-render.html",
     "docs/assets/workbench-home-robot-premium.png",
+    "docs/assets/workbench-home-robot-market.png",
     "docs/assets/desk-robot-revision-b-hero.png",
     "docs/task_packets/home-robot-revision-c.json",
     "docs/task_packets/home-robot-revision-d.json",
@@ -47,7 +48,8 @@
     "hardware/mechanical/generated/desk_robot_assembly.step",
     "hardware/mechanical/generated/drawings/general-arrangement.svg",
     "hardware/mechanical/revision-d-architecture.md",
-    "docs/assets/workbench-home-robot-premium.png"
+    "docs/assets/workbench-home-robot-premium.png",
+    "docs/assets/workbench-home-robot-market.png"
   ],
   "stop_conditions": [
     "a change requires robot control, firmware, interfaces, or PCB ownership",

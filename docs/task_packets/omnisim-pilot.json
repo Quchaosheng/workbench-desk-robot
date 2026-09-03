@@ -1,0 +1,45 @@
+{
+  "issue": "user-request-2026-09-03-omnisim-pilot",
+  "human_owner": "Quchaosheng",
+  "objective": "Add an isolated OmniSim World Harness pilot that records truthful simulation-only evidence without changing the Gazebo runner.",
+  "allowed_paths": [
+    "integrations/omnisim/**",
+    "tests/integration/test_omnisim_pilot.py",
+    "docs/task_packets/omnisim-pilot.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "tools/scripts/sim_cli.py",
+    "sim/**",
+    "robot/control/**",
+    "firmware/**"
+  ],
+  "forbidden": [
+    "Gazebo runner replacement",
+    "physical evidence claims",
+    "release eligibility",
+    "non-loopback simulator control"
+  ],
+  "acceptance": [
+    "client accepts only loopback OmniSim harness URLs",
+    "pilot verifies protocol, connected supervisor, and finalized non-degraded Newton physics",
+    "run artifacts are atomic, checksummed, and permanently simulation-only",
+    "unavailable or malformed harness results remain NOT_EXECUTED or INVALID_OUTPUT"
+  ],
+  "commands": [
+    "python -m pytest tests/integration/test_omnisim_pilot.py",
+    "python -m ruff check integrations/omnisim tests/integration/test_omnisim_pilot.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/omnisim-pilot.json"
+  ],
+  "evidence": [
+    "focused pytest output",
+    "Ruff output",
+    "checksummed mock-harness pilot artifact"
+  ],
+  "stop_conditions": [
+    "protocol major mismatch",
+    "Newton physics is absent, degraded, or unverified",
+    "supervisor is disconnected",
+    "integration requires a frozen interface change"
+  ]
+}

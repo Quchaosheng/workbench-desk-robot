@@ -1,0 +1,8 @@
+{
+  "classification": "SHADOW_PILOT_FIXTURE_ONLY",
+  "command": "python -m pytest tests/integration/test_observe_plan_act.py -q",
+  "observed_at": "2026-09-03T20:43:00+08:00",
+  "result": "5 passed",
+  "release_eligible": false,
+  "physical_evidence": false
+}

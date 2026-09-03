@@ -1,0 +1,44 @@
+{
+  "issue": "user-request-2026-09-03-rlsok-shadow-pilot",
+  "human_owner": "Quchaosheng",
+  "objective": "Add a bounded adapter that runs and verifies an RLSOK standalone Shadow evaluation without dispatching robot commands.",
+  "allowed_paths": [
+    "integrations/rlsok/**",
+    "tests/integration/test_rlsok_shadow.py",
+    "docs/task_packets/rlsok-shadow-pilot.json"
+  ],
+  "read_only_paths": [
+    "interfaces/**",
+    "services/agent_runtime/**",
+    "robot/control/**",
+    "firmware/**"
+  ],
+  "forbidden": [
+    "real controller dispatch",
+    "E-stop or watchdog replacement",
+    "release approval claims",
+    "Cloud credential storage"
+  ],
+  "acceptance": [
+    "RLSOK is invoked without a shell and with bounded time and output",
+    "Shadow output requires zero controller goals and hardwareSignalSent false",
+    "EvidenceBundle is bounded, parsed strictly, and verified against the supplied release",
+    "missing or malformed external results fail closed"
+  ],
+  "commands": [
+    "python -m pytest tests/integration/test_rlsok_shadow.py",
+    "python -m ruff check integrations/rlsok tests/integration/test_rlsok_shadow.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/rlsok-shadow-pilot.json"
+  ],
+  "evidence": [
+    "focused pytest output",
+    "Ruff output",
+    "validated Shadow EvidenceBundle with hardwareSignalSent false"
+  ],
+  "stop_conditions": [
+    "RLSOK reports a hardware signal",
+    "evidence verification fails",
+    "integration requires a frozen interface change",
+    "real hardware becomes reachable"
+  ]
+}

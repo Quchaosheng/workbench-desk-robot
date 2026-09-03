@@ -1,0 +1,49 @@
+apiVersion: realitywarden.io/v1alpha1
+kind: ExecutablePolicy
+metadata:
+  name: workbench-pick-place-shadow-pilot
+  releaseId: workbench-pick-place-shadow-20260903
+  createdAt: "2026-09-03T20:43:00+08:00"
+model:
+  artifact: services/agent_runtime/workbench_agent_runtime/planner.py
+  sha256: 6a9d6b281916591c68df0af85721c5f8281651e516c4603d4efa731c7a78fa11
+  framework: custom
+  policyType: semantic-pick-place-to-six-joint-trajectory
+  codeRevision: a4cd4ac5a48d7f6f54ea3b47c5a8a5b644b29016
+actionContract:
+  representation: trajectory
+  dimension: 6
+  jointOrder:
+    - shoulder_pan_joint
+    - shoulder_lift_joint
+    - elbow_joint
+    - wrist_1_joint
+    - wrist_2_joint
+    - wrist_3_joint
+  units:
+    position: radian
+    velocity: radian_per_second
+  normalizerSha256: f882d7f51088f7acc7c591bbb628484fa6fa1de476c60311b42b8639898e293b
+  preprocessorSha256: e43ce478520f3acee0fb7054703227e60912bc733659a05c9fe83c004be0e1c9
+  postprocessorSha256: f99a5b9162e621cd576515ae65238e13a3d35c16359437fe21fde07db83569db
+robot:
+  profileId: workbench-ur-arm-simulation-profile
+  profileSha256: bd4190227a8f923bad1fd65afa60e421fa696ed420f03d853b399290f4888106
+  urdfSha256: bd4190227a8f923bad1fd65afa60e421fa696ed420f03d853b399290f4888106
+  controllerType: joint_trajectory_controller
+  controllerConfigSha256: d43ed0584b035dc7117dd6be8119bd3c7d582edf9bd89a1f5217f8012c3f76c4
+runtimePolicy:
+  policySha256: e43ce478520f3acee0fb7054703227e60912bc733659a05c9fe83c004be0e1c9
+  maxStateAgeMs: 1000
+  failClosed: true
+evidence:
+  scenarioPackId: workbench-observe-plan-act-v1
+  testReportSha256: 6110049e9ae55ad39a73335d1ab97d4c2cf7b501a5623832443df5c414ba7402
+  status: tested
+  approvedBy: ""
+  approvedAt: ""
+deployment:
+  allowedDeviceIds:
+    - workbench-arm-sim-01
+  mode: shadow
+  expiresAt: "2027-01-01T00:00:00+08:00"

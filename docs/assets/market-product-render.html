@@ -20,8 +20,7 @@ for(const x of[-.98,2.28])for(const z of[-1.36,1.40]){const steer=(x<.65?-.22:.2
 for(const x of[-1.04,2.34])for(const z of[-1.30,1.32])box(.24,.09,.30,.09,metal,[x,.84,z]);
 // One continuous rounded shell replaces the exposed lift pod and rails.
 const lower=box(2.52,3.92,2.18,.72,shell,[.65,2.90,0],[0,0,-.02]);
-// Quiet flush status bar, sized like a home-appliance indicator rather than a control panel.
-box(1.46,.32,.08,.16,metal,[.65,3.88,1.14]);box(1.22,.16,.04,.08,glass,[.65,3.90,1.20]);box(.24,.03,.028,.015,jade,[.65,3.90,1.23]);
+// The consumer hero keeps the torso clean; engineering status stays outside the product silhouette.
 // Narrow recessed shoulders make the arms feel like part of the body.
 for(const side of[-1,1]){const sx=.65+side*1.08;box(.48,.94,.58,.23,graphite,[sx,4.24,.12],[0,0,side*.12]);box(.36,.80,.62,.20,shell,[sx+side*.12,4.23,.13],[0,0,side*.12])}
 // Soft joints and flowing fairings keep seven-axis capability legible without a mechanical block silhouette.
@@ -30,8 +29,8 @@ function buildArm(side){const sx=.65+side*1.08;const P={j1:[sx,4.24,.20],j2:[sx+
 buildArm(-1);buildArm(1);
 // Both adaptive grippers contact the parcel sides in the shared bimanual volume.
 const parcel=box(1.08,.76,.86,.16,physical(0xc9ad86,.7,.02),[.65,3.06,2.68]);box(.07,.78,.90,.02,physical(0x34423d,.62,.1),[.65,3.06,2.68],[0,0,0]);
-// The head and torso meet through one overlapping rounded shell, with no visible neck break.
-box(1.18,1.16,.82,.38,shell,[.65,5.40,0]);box(2.82,1.38,1.08,.56,shell,[.65,6.50,0],[-.05,0,.015]);box(2.48,.92,.44,.24,glass,[.65,6.48,.34],[-.05,0,.015]);for(const x of[.29,1.01]){const eye=cyl(.085,.025,jade,[x,6.54,.575],[Math.PI/2,0,0]);eye.scale.set(1,.72,1)}for(const x of[.18,1.12])cyl(.085,.026,peach,[x,6.35,.576],[Math.PI/2,0,0]);box(.25,.035,.028,.018,jade,[.65,6.30,.58],[-.05,0,0]);box(.10,.035,.028,.018,jade,[.48,6.32,.58],[-.05,0,-.25]);box(.10,.035,.028,.018,jade,[.82,6.32,.58],[-.05,0,.25]);
+// The head and torso meet through a narrow overlapping shell, with no visible neck break.
+box(.86,1.06,.68,.32,shell,[.65,5.38,0]);box(2.82,1.38,1.08,.56,shell,[.65,6.50,0],[-.05,0,.015]);box(2.48,.92,.44,.24,glass,[.65,6.48,.34],[-.05,0,.015]);for(const x of[.29,1.01]){const eye=cyl(.085,.025,jade,[x,6.54,.575],[Math.PI/2,0,0]);eye.scale.set(1,.72,1)}for(const x of[.18,1.12])cyl(.085,.026,peach,[x,6.35,.576],[Math.PI/2,0,0]);box(.25,.035,.028,.018,jade,[.65,6.30,.58],[-.05,0,0]);box(.10,.035,.028,.018,jade,[.48,6.32,.58],[-.05,0,-.25]);box(.10,.035,.028,.018,jade,[.82,6.32,.58],[-.05,0,.25]);
 // A detachable tool dock carries brush, dry mop, and insulated cooking tool.
 box(.62,2.0,.88,.2,metal,[-1.45,2.0,-1.65]);for(const z of[-1.88,-1.65,-1.42])cyl(.12,.4,physical(0xb9b7aa,.45,.2),[-1.45,2.0,z],[0,Math.PI/2,0]);
 // Studio architecture: limestone floor, warm wall, soft window key.

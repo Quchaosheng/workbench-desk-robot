@@ -11,7 +11,7 @@
 [![Release](https://img.shields.io/github/v/release/Quchaosheng/workbench-desk-robot?display_name=tag)](https://github.com/Quchaosheng/workbench-desk-robot/releases/latest)
 [![CI](https://github.com/Quchaosheng/workbench-desk-robot/actions/workflows/ci.yml/badge.svg)](https://github.com/Quchaosheng/workbench-desk-robot/actions)
 
-![Workbench Home Robot](docs/assets/workbench-home-robot-market-v11.png)
+![Workbench Home Robot](docs/assets/workbench-home-robot-market-v12.png)
 
 [简体中文](README.zh-CN.md) · [Interactive 3D view](docs/assets/premium-product-render.html)
 

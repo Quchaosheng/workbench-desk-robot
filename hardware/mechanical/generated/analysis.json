@@ -1,18 +1,40 @@
 {
   "status": "CONCEPT_PHYSICAL_VALIDATION_REQUIRED",
-  "mass_kg": 63.5,
+  "mass_kg": 77.5,
   "center_of_gravity_mm": [
     0.0,
-    -24.1,
-    441.6
+    -22.4,
+    512.0
   ],
-  "static_tip_angle_deg": 38.0,
+  "load_cases": {
+    "navigation_low": {
+      "description": "lift lowered, arms and tools stowed, stabilizers retracted",
+      "center_of_gravity_mm": [
+        0.0,
+        -8.0,
+        358.5
+      ],
+      "minimum_support_margin_mm": 187.0,
+      "tip_angle_deg": 27.5
+    },
+    "stabilized_manipulation": {
+      "description": "lift raised, bimanual payload forward, wheel brakes applied, stabilizers deployed",
+      "center_of_gravity_mm": [
+        0.0,
+        -22.4,
+        512.0
+      ],
+      "minimum_support_margin_mm": 387.6,
+      "tip_angle_deg": 37.1
+    }
+  },
+  "static_tip_angle_deg": 37.1,
   "drive_footprint_tip_angle_deg": 27.5,
-  "stabilized_tip_angle_deg": 38.0,
+  "stabilized_tip_angle_deg": 37.1,
   "payload_only_moment_nm": 12.7,
-  "arm_plus_payload_screen_moment_nm": 51.0,
-  "bimanual_shared_workspace_screen_moment_nm": 70.6,
-  "drop_energy_j": 124.5,
+  "arm_plus_payload_screen_moment_nm": 76.5,
+  "bimanual_shared_workspace_screen_moment_nm": 105.9,
+  "drop_energy_j": 152.0,
   "minimum_energy_absorber_stroke_mm": 10.0,
   "vent_area_ratio_outlet_to_inlet": 1.22,
   "checks": {
@@ -30,5 +52,40 @@
   "pcb_edge_service_margin_mm": [
     70.0,
     65.0
-  ]
+  ],
+  "geometry_reference": {
+    "assembly_pose": "raised_stabilized",
+    "base_top_z_mm": 140.0,
+    "torso_bottom_raised_z_mm": 850.0,
+    "head_top_raised_z_mm": 1450.0,
+    "head_top_stowed_z_mm": 1100.0
+  },
+  "geometry_checks": {
+    "stowed_plus_travel_matches_raised_height": true,
+    "raised_height_matches_enclosure_height": true,
+    "torso_starts_above_base": true,
+    "generated_step_top_matches_target": true,
+    "navigation_step_top_matches_stowed_height": true,
+    "navigation_footprint_matches_base": true,
+    "stabilized_footprint_matches_support_polygon": true
+  },
+  "generated_geometry": {
+    "status": "MEASURED",
+    "assembly_bounds_mm": {
+      "xmin_mm": -410.0,
+      "xmax_mm": 410.0,
+      "ymin_mm": -410.0,
+      "ymax_mm": 410.0,
+      "zmin_mm": 0.0,
+      "zmax_mm": 1450.0
+    },
+    "navigation_bounds_mm": {
+      "xmin_mm": -270.0,
+      "xmax_mm": 270.0,
+      "ymin_mm": -260.0,
+      "ymax_mm": 260.0,
+      "zmin_mm": 0.0,
+      "zmax_mm": 1100.0
+    }
+  }
 }

@@ -47,7 +47,10 @@ class MechanicalPackageTests(unittest.TestCase):
         module = load_module("mechanical_generator", ROOT / "hardware/mechanical/tools/generate_artifacts.py")
         report = module.analyse()
         self.assertTrue(all(report["checks"].values()))
+        self.assertTrue(all(report["geometry_checks"].values()))
         self.assertGreaterEqual(report["static_tip_angle_deg"], 35)
+        self.assertGreaterEqual(report["load_cases"]["navigation_low"]["tip_angle_deg"], 25)
+        self.assertGreaterEqual(report["load_cases"]["stabilized_manipulation"]["tip_angle_deg"], 35)
         self.assertGreater(report["arm_plus_payload_screen_moment_nm"], report["payload_only_moment_nm"])
         self.assertGreater(
             report["bimanual_shared_workspace_screen_moment_nm"], report["arm_plus_payload_screen_moment_nm"]
@@ -64,6 +67,7 @@ class MechanicalPackageTests(unittest.TestCase):
     def test_assembly_parts_drawings_and_drop_screen_are_present(self) -> None:
         generated = ROOT / "hardware/mechanical/generated"
         self.assertGreater((generated / "desk_robot_assembly.step").stat().st_size, 100_000)
+        self.assertGreater((generated / "desk_robot_navigation_low.step").stat().st_size, 100_000)
         self.assertGreater((generated / "desk_robot_exploded.step").stat().st_size, 100_000)
         self.assertEqual(len(list((generated / "parts").glob("*.step"))), 10)
         mobile_base_step = (generated / "parts/mobile_base.step").read_text(encoding="ascii")
@@ -134,6 +138,28 @@ class MechanicalPackageTests(unittest.TestCase):
         self.assertIn("REV D", drawing)
         self.assertIn("Dual seven-axis arms", drawing)
         self.assertIn("keyed bolted neck mount", drawing)
+
+    def test_generated_step_height_matches_revision_d_envelope(self) -> None:
+        report = json.loads((ROOT / "hardware/mechanical/generated/analysis.json").read_text(encoding="utf-8"))
+        bounds = report["generated_geometry"]["assembly_bounds_mm"]
+        navigation_bounds = report["generated_geometry"]["navigation_bounds_mm"]
+        spec = json.loads((ROOT / "hardware/mechanical/design-spec.json").read_text(encoding="utf-8"))
+        self.assertEqual(report["generated_geometry"]["status"], "MEASURED")
+        self.assertAlmostEqual(bounds["zmin_mm"], spec["coordinate_system"]["ground_plane_z_mm"], delta=0.1)
+        self.assertAlmostEqual(
+            bounds["zmax_mm"],
+            spec["enclosure"]["height"],
+            delta=spec["coordinate_system"]["height_tolerance_mm"],
+        )
+        self.assertAlmostEqual(
+            navigation_bounds["zmax_mm"],
+            spec["enclosure"]["stowed_height"],
+            delta=spec["coordinate_system"]["height_tolerance_mm"],
+        )
+        self.assertLessEqual(navigation_bounds["xmax_mm"] - navigation_bounds["xmin_mm"], spec["chassis"]["width"])
+        self.assertLessEqual(navigation_bounds["ymax_mm"] - navigation_bounds["ymin_mm"], spec["chassis"]["depth"])
+        self.assertGreaterEqual(bounds["xmax_mm"], spec["chassis"]["stabilized_support_width"] / 2)
+        self.assertEqual(report["geometry_reference"]["assembly_pose"], "raised_stabilized")
 
 
 class PcbPackageTests(unittest.TestCase):
@@ -422,6 +448,20 @@ class ReleaseReadinessTests(unittest.TestCase):
         self.assertGreaterEqual(report["blocker_count"], 10)
         self.assertIn("REL-004", report["blockers"])
         self.assertIn("REL-014", report["blockers"])
+
+    def test_current_hardware_selection_uses_revision_d_mobility(self) -> None:
+        selection = (ROOT / "hardware/release/recommended-selection-package.md").read_text(encoding="utf-8")
+        closure = (ROOT / "hardware/release/selection-closure-register.csv").read_text(encoding="utf-8")
+        power = json.loads((ROOT / "hardware/release/full-system-power-architecture.json").read_text(encoding="utf-8"))
+        self.assertIn("Revision D", selection)
+        self.assertIn("four independent steer-drive modules", selection.lower())
+        self.assertIn("four 140mm wheel", closure)
+        self.assertNotIn("two 200 mm driven wheels", selection)
+        self.assertEqual(
+            power["operating_modes"]["TRANSPORT"]["allowed_high_power_loads"],
+            ["four_module_steer_drive_system"],
+        )
+        self.assertIn("four_module_steer_drive_system", power["controller_u2_prohibited_loads"])
 
 
 class TaskPacketTests(unittest.TestCase):

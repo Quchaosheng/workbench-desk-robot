@@ -1,8 +1,10 @@
 component,mass_kg,x_mm,y_mm,z_mm,source,status
-base_frame,22,0,0,250,design_case_estimate,ESTIMATE
-left_arm,8,-350,0,650,arm_supplier_class,ESTIMATE
-right_arm,8,350,0,650,arm_supplier_class,ESTIMATE
-payload_and_tooling,6,0,0,850,rated_payload_case,ESTIMATE
-battery_and_bms,5,0,-100,250,pack_design_case,ESTIMATE
-electronics_and_harness,3,0,0,500,engineering_allowance,ESTIMATE
-covers_and_accessories,3,0,0,700,engineering_allowance,ESTIMATE
+chassis_drives_and_ballast,16,0,0,110,revision_d_design_spec,ESTIMATE
+battery,20,0,-35,100,2kWh_pack_mass_reservation,ESTIMATE
+lifting_platform,7.5,0,0,500,revision_d_design_spec,ESTIMATE
+torso_electronics,5,0,15,1065,revision_d_design_spec,ESTIMATE
+shell_and_bay,3.5,0,0,1065,revision_d_design_spec,ESTIMATE
+left_seven_axis_arm,10,-180,0,900,supplier_class_mass_reservation,ESTIMATE
+right_seven_axis_arm,10,180,0,900,supplier_class_mass_reservation,ESTIMATE
+head_display,1.5,0,5,1386,revision_d_design_spec,ESTIMATE
+tools_and_bimanual_payload,4,0,-280,760,rated_bimanual_payload_case,ESTIMATE

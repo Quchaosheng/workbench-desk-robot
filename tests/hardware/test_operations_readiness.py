@@ -32,7 +32,7 @@ def test_planning_values_are_not_claimed_as_physical_evidence() -> None:
     mechanical = (ROOT / "hardware/mechanical/system-integration.md").read_text(encoding="utf-8")
     compliance = (ROOT / "hardware/compliance/README.md").read_text(encoding="utf-8")
     assert "not a quote" in procurement
-    assert "not a measured result" in mechanical
+    assert "not measured product claims" in mechanical
     assert "NOT_CERTIFIED" in compliance
 
 
@@ -66,8 +66,13 @@ def test_structured_evidence_attachments_are_complete() -> None:
         "bms_transition_graph_uses_known_states",
         "bms_run_entry_requires_precharge_or_derate_recovery",
         "bms_fault_transitions_open_and_latch",
-        "mass_ledger_sums_to_55kg",
-        "mass_ledger_cg_is_calculated",
+        "mechanical_baseline_is_revision_d",
+        "mechanical_design_case_matches_generated_analysis",
+        "mechanical_drive_module_count_matches_spec",
+        "mass_ledger_matches_generated_mass",
+        "mass_ledger_cg_matches_generated_analysis",
+        "mechanical_generated_geometry_is_measured",
+        "mechanical_generated_heights_match_spec",
         "planning_bom_rows_sum_to_5100",
         "station_map_has_six_unique_stations",
         "fixture_budget_rows_sum_to_4000",
@@ -79,8 +84,8 @@ def test_structured_evidence_attachments_are_complete() -> None:
         assert checks[name], name
 
     assert report["metrics"] == {
-        "mass_kg": 55.0,
-        "center_of_gravity_mm": [0.0, -9.1, 470.0],
+        "mass_kg": 77.5,
+        "center_of_gravity_mm": [0.0, -22.4, 512.0],
         "planning_bom_total_usd": 5100.0,
         "fixture_budget_total_usd": 4000.0,
         "station_count": 6,

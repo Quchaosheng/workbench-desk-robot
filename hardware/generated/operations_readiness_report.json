@@ -29,10 +29,14 @@
     "fixture_budget_is_4000_usd": true,
     "fixture_budget_rows_sum_to_4000": true,
     "line_has_six_stations": true,
-    "mass_ledger_cg_is_calculated": true,
+    "mass_ledger_cg_matches_generated_analysis": true,
     "mass_ledger_has_physical_validation_status": true,
-    "mass_ledger_sums_to_55kg": true,
-    "mechanical_design_case_is_55kg": true,
+    "mass_ledger_matches_generated_mass": true,
+    "mechanical_baseline_is_revision_d": true,
+    "mechanical_design_case_matches_generated_analysis": true,
+    "mechanical_drive_module_count_matches_spec": true,
+    "mechanical_generated_geometry_is_measured": true,
+    "mechanical_generated_heights_match_spec": true,
     "minimum_fpy_is_85_percent": true,
     "planning_bom_has_certificate_gate": true,
     "planning_bom_is_5100_usd": true,
@@ -46,11 +50,11 @@
   "metrics": {
     "center_of_gravity_mm": [
       0.0,
-      -9.1,
-      470.0
+      -22.4,
+      512.0
     ],
     "fixture_budget_total_usd": 4000.0,
-    "mass_kg": 55.0,
+    "mass_kg": 77.5,
     "planning_bom_total_usd": 5100.0,
     "station_count": 6
   },

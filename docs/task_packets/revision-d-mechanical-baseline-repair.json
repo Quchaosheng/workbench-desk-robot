@@ -1,0 +1,49 @@
+{
+  "issue": "revision-d-mechanical-baseline-repair",
+  "human_owner": "Quchaosheng",
+  "objective": "Make the Revision D mechanical specification, SCAD, CadQuery STEP exports, analytical load cases, and mechanical verification evidence share one coordinate system and fail when generated geometry diverges from the controlled raised and stowed heights.",
+  "allowed_paths": [
+    "hardware/mechanical/**",
+    "tests/hardware/test_engineering_packages.py",
+    "docs/task_packets/revision-d-mechanical-baseline-repair.json"
+  ],
+  "read_only_paths": [
+    "hardware/pcb/**",
+    "hardware/motor_driver/**",
+    "hardware/release/**",
+    "interfaces/**"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "services/**",
+    "interfaces/**"
+  ],
+  "acceptance": [
+    "ground, base-top, stowed-height, lift-travel, torso, arm, neck, and head datums are explicit",
+    "the generated raised assembly STEP top matches the 1450 mm controlled height within tolerance",
+    "navigation and stabilized manipulation use separate center-of-gravity and support-polygon load cases",
+    "SCAD and CadQuery use the same Revision D lift and body datums",
+    "all physical fit, collision, stability, thermal, braking, and drop evidence remains explicitly NOT_EXECUTED or PHYSICAL_VALIDATION_REQUIRED",
+    "mechanical package tests, Ruff, and Task Packet validation pass"
+  ],
+  "commands": [
+    "python hardware/mechanical/tools/generate_artifacts.py",
+    "python -m pytest tests/hardware/test_engineering_packages.py::MechanicalPackageTests -q",
+    "python -m ruff check hardware/mechanical tests/hardware/test_engineering_packages.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/revision-d-mechanical-baseline-repair.json"
+  ],
+  "evidence": [
+    "hardware/mechanical/design-spec.json",
+    "hardware/mechanical/cad/desk_robot.scad",
+    "hardware/mechanical/tools/generate_artifacts.py",
+    "hardware/mechanical/generated/analysis.json",
+    "hardware/mechanical/generated/desk_robot_assembly.step",
+    "mechanical package test output"
+  ],
+  "stop_conditions": [
+    "the repair requires selecting supplier components or claiming physical test evidence",
+    "the repair requires changing robot control, firmware, interfaces, PCB, or safety ownership",
+    "the generated STEP cannot be measured with the available deterministic CAD runtime"
+  ]
+}

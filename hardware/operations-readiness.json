@@ -7,7 +7,9 @@
     "bms_fail_closed": true
   },
   "mechanical": {
-    "design_case_mass_kg": 55,
+    "revision": "D",
+    "design_case_mass_kg": 77.5,
+    "drive_module_count": 4,
     "dual_arm_interference_review": "PHYSICAL_VALIDATION_REQUIRED"
   },
   "procurement": {

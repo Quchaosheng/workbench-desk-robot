@@ -21,8 +21,15 @@ STRESS_MODULE ?= ./wbcan.ko
 LATENCY_REPORT ?= /tmp/wbcan-latency-report.json
 LATENCY_SAMPLES ?= 1000
 LATENCY_WARMUP ?= 50
+LATENCY_REPETITIONS ?= 3
+LATENCY_CPU_WORKERS ?= 2
+LATENCY_IO_WORKERS ?= 1
+LATENCY_LOAD_DIRECTORY ?= /tmp
+LATENCY_IDLE_REPORT ?= /tmp/wbcan-latency-idle.json
+LATENCY_CONTROLLED_REPORT ?= /tmp/wbcan-latency-controlled-load.json
+LATENCY_CAMPAIGN_REPORT ?= /tmp/wbcan-latency-campaign.json
 
-.PHONY: all clean load unload reload test stress stress-smoke stress-release latency checkpatch help
+.PHONY: all clean load unload reload test stress stress-smoke stress-release latency latency-campaign checkpatch help
 
 all:
 	@if [ ! -d "$(KDIR)" ]; then \
@@ -88,6 +95,23 @@ latency:
 		--report $(LATENCY_REPORT) --commit "$${GITHUB_SHA:-unknown}"
 	@python3 ./test_latency.py --validate-report $(LATENCY_REPORT)
 
+latency-campaign:
+	@if [ ! -d "/sys/class/net/$(IFACE)" ]; then \
+		echo "wbcan interface $(IFACE) is unavailable"; exit 1; \
+	fi
+	@python3 ./test_latency.py $(IFACE) --warmup $(LATENCY_WARMUP) --samples $(LATENCY_SAMPLES) \
+		--repetitions $(LATENCY_REPETITIONS) --load-profile idle --report $(LATENCY_IDLE_REPORT)
+	@python3 ./test_latency.py $(IFACE) --warmup $(LATENCY_WARMUP) --samples $(LATENCY_SAMPLES) \
+		--repetitions $(LATENCY_REPETITIONS) --load-profile controlled-load \
+		--cpu-load-workers $(LATENCY_CPU_WORKERS) --io-load-workers $(LATENCY_IO_WORKERS) \
+		--load-directory $(LATENCY_LOAD_DIRECTORY) --report $(LATENCY_CONTROLLED_REPORT)
+	@python3 ./test_latency.py --validate-report $(LATENCY_IDLE_REPORT)
+	@python3 ./test_latency.py --validate-report $(LATENCY_CONTROLLED_REPORT)
+	@python3 ./validate_latency_campaign.py $(LATENCY_IDLE_REPORT) $(LATENCY_CONTROLLED_REPORT) \
+		--report $(LATENCY_CAMPAIGN_REPORT)
+	@python3 ./validate_latency_campaign.py --validate-report $(LATENCY_CAMPAIGN_REPORT)
+	@echo "wbcan latency campaign evidence: $(LATENCY_CAMPAIGN_REPORT)"
+
 # The kernel's own checker. Catches the style issues a maintainer would.
 checkpatch:
 	@if [ -x "$(KDIR)/scripts/checkpatch.pl" ]; then \
@@ -104,6 +128,7 @@ help:
 	@echo "make stress-smoke  run the smaller developer profile"
 	@echo "make stress-release run the fixed release profile"
 	@echo "make latency   record virtual SocketCAN TX-to-RX latency evidence"
+	@echo "make latency-campaign  compare repeated idle and bounded CPU/I/O load evidence"
 	@echo "make checkpatch  kernel style check"
 	@echo "ip link add type wbcan is unsupported; unload before loading another"
 	@echo ""

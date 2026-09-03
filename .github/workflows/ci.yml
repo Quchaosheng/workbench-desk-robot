@@ -190,27 +190,60 @@ jobs:
           path: ${{ runner.temp }}/wbcan-stress-report.json
           if-no-files-found: error
 
-      - name: Run and validate latency baseline
+      - name: Run and validate latency campaign
         id: latency_probe
         env:
           IDLE_REPORT: ${{ runner.temp }}/wbcan-latency-idle.json
+          CONTROLLED_REPORT: ${{ runner.temp }}/wbcan-latency-controlled-load.json
           STATUS_REPORT: ${{ runner.temp }}/wbcan-latency-status-readers.json
+          CAMPAIGN_REPORT: ${{ runner.temp }}/wbcan-latency-campaign.json
         run: |
           sudo python3 kernel/wbcan/test_latency.py wbcan0 --warmup 50 --samples 1000 \
-            --report "$IDLE_REPORT" --commit "$GITHUB_SHA" --load-profile idle
+            --repetitions 3 --report "$IDLE_REPORT" --commit "$GITHUB_SHA" --load-profile idle
+          sudo python3 kernel/wbcan/test_latency.py wbcan0 --warmup 50 --samples 1000 \
+            --repetitions 3 --report "$CONTROLLED_REPORT" --commit "$GITHUB_SHA" \
+            --load-profile controlled-load --cpu-load-workers 2 --io-load-workers 1 \
+            --load-directory "$RUNNER_TEMP"
           sudo python3 kernel/wbcan/test_latency.py wbcan0 --warmup 50 --samples 1000 \
             --report "$STATUS_REPORT" --commit "$GITHUB_SHA" --load-profile status-readers \
             --status-path /sys/kernel/debug/wbcan/wbcan0/status
           python3 kernel/wbcan/test_latency.py --validate-report "$IDLE_REPORT"
+          python3 kernel/wbcan/test_latency.py --validate-report "$CONTROLLED_REPORT"
           python3 kernel/wbcan/test_latency.py --validate-report "$STATUS_REPORT"
+          python3 kernel/wbcan/validate_latency_campaign.py "$IDLE_REPORT" "$CONTROLLED_REPORT" \
+            --report "$CAMPAIGN_REPORT"
+          python3 kernel/wbcan/validate_latency_campaign.py --validate-report "$CAMPAIGN_REPORT"
 
-      - name: Upload latency baseline
+      - name: Upload latency evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: wbcan-latency-report
           path: ${{ runner.temp }}/wbcan-latency-*.json
           if-no-files-found: error
+
+      - name: Report latency evidence result
+        if: always()
+        env:
+          MODULE_LOAD_OUTCOME: ${{ steps.module_load.outcome }}
+          LATENCY_PROBE_OUTCOME: ${{ steps.latency_probe.outcome }}
+        run: |
+          if [ "$LATENCY_PROBE_OUTCOME" = success ]; then
+            status=PASS
+          elif [ "$MODULE_LOAD_OUTCOME" = success ] && [ "$LATENCY_PROBE_OUTCOME" = failure ]; then
+            status=FAIL
+          else
+            status=NOT_EXECUTED
+          fi
+          {
+            echo "### wbcan virtual latency campaign"
+            echo
+            echo "Status: **$status**"
+            echo
+            echo "Three idle and controlled-load repetitions are observational evidence, not an SLA."
+            echo "Physical CAN, MCU, actuator, PREEMPT_RT and hard-real-time claims remain NOT_EXECUTED."
+          } >> "$GITHUB_STEP_SUMMARY"
+          test "$status" != FAIL
 
       - name: Validate structured driver test report
         id: fault_report

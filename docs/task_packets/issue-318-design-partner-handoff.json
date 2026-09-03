@@ -1,0 +1,113 @@
+{
+  "issue": 318,
+  "issues": [260, 305, 306, 312, 318],
+  "human_owner": "TH3478",
+  "objective": "Define a controller-independent Design Partner handoff contract that separates product acceptance from Motion/MCU/Safety acceptance, preserves the evidence ladder, and makes stop authority and incomplete evidence explicit.",
+  "decision_supported": "Can a Design Partner task be continued, changed, deferred, or rejected without granting scenario code or product documentation motion, MCU, E-stop, release, or completion authority?",
+  "allowed_paths": [
+    "docs/product/README.md",
+    "docs/product/design-partner-scenario-template.md",
+    "docs/product/design-partner-handoff.md",
+    "mkdocs.yml",
+    "docs/task_packets/issue-318-design-partner-handoff.json",
+    "tests/unit/test_design_partner_handoff.py"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "docs/architecture/system.md",
+    "docs/architecture/robot-bsp-v0.1.md",
+    "docs/decisions/ADR-0005-hardware-device-runtime.md",
+    "docs/context/CONSTRAINTS.yaml",
+    "docs/context/EVIDENCE_INDEX.md",
+    "docs/product/product-brief.md",
+    "docs/product/feedback-record-template.md",
+    "docs/product/metrics-and-decision-log.md",
+    "libs/contracts/workbench_contracts/models.py",
+    "tools/schemas/task-packet-v1.schema.json",
+    "tools/scripts/check_task_packet.py",
+    "interfaces/**",
+    "robot/control/**",
+    "firmware/**"
+  ],
+  "forbidden": [
+    "apps/**",
+    "bsp/**",
+    "hardware/**",
+    "integrations/**",
+    "services/**",
+    "sim/**",
+    "tasks/**",
+    "libs/**",
+    ".github/**",
+    "compose.yaml"
+  ],
+  "input_refs": [
+    "AGENTS.md",
+    "docs/architecture/system.md",
+    "docs/architecture/robot-bsp-v0.1.md",
+    "docs/decisions/ADR-0005-hardware-device-runtime.md",
+    "docs/context/CONSTRAINTS.yaml",
+    "docs/context/EVIDENCE_INDEX.md",
+    "docs/product/README.md",
+    "docs/product/design-partner-scenario-template.md",
+    "docs/product/product-brief.md",
+    "docs/product/feedback-record-template.md",
+    "docs/product/metrics-and-decision-log.md",
+    "libs/contracts/workbench_contracts/models.py",
+    "tools/schemas/task-packet-v1.schema.json",
+    "tools/scripts/check_task_packet.py"
+  ],
+  "outputs": [
+    "docs/product/README.md",
+    "docs/product/design-partner-scenario-template.md",
+    "docs/product/design-partner-handoff.md",
+    "mkdocs.yml",
+    "docs/task_packets/issue-318-design-partner-handoff.json",
+    "tests/unit/test_design_partner_handoff.py"
+  ],
+  "acceptance": [
+    "The handoff document provides the required conclusion vocabulary: continue, change, defer, and reject, and makes the decision apply to a named claim and evidence class.",
+    "Scenario manifests may declare only versioned semantic actions, opaque targets, bounded typed policy selectors, adapter capability references, goals, evidence policy, and bounded recovery references; raw joint, Cartesian, velocity, torque, force, CAN, controller, pin, credential, or E-stop fields are explicitly forbidden.",
+    "The Motion handoff describes the existing ActionResult boundary, correlation, dispatch/device state, health/fault diagnostics, and evidence references, and explicitly says ActionResult completion is not observed WorldState completion.",
+    "The checklist gives separate inputs and outputs for Product, Motion, MCU/Safety, Runtime/Integration, and site/partner owners, including consent, version/configuration hashes, preflight, abort, and evidence responsibilities.",
+    "The evidence ladder distinguishes software, scripted_fixture, gazebo, and physical claims; lower-rung evidence cannot silently promote a higher-rung claim, and scripted_fixture remains release_eligible=false by default.",
+    "The stop boundary assigns safe_stop and abort to the trusted runtime path, E-stop and safe-enable to the independent site/MCU-Safety authority, bounded recovery to policy plus owner-approved reset rules, and manual confirmation to an authorized human.",
+    "The document defines confirmed, failed/refuted, insufficient_evidence, not_executed, and blocked without treating missing evidence as success.",
+    "At least one illustrative request is marked reject because it asks for raw joint/controller/CAN or direct E-stop access, with a safe semantic alternative and the reason a Safety Owner would refuse it.",
+    "The existing generic Design Partner template links to and remains consistent with the dedicated handoff contract; no public schema, firmware, robot-control, safety implementation, or physical result is changed or claimed.",
+    "The static regression test checks the required headings and boundary phrases so accidental removal of the safety/evidence contract fails locally."
+  ],
+  "commands": [
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/issue-318-design-partner-handoff.json",
+    "python3 -m pytest tests/unit/test_design_partner_handoff.py tests/unit/test_task_packet.py -q",
+    "make lint",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "make docs",
+    "make test",
+    "git diff --check"
+  ],
+  "evidence": [
+    "Issue #318 Task Packet validation and changed-path boundary output.",
+    "Static handoff policy regression tests covering conclusion vocabulary, authority boundaries, evidence statuses, and the rejected-request example.",
+    "Rendered/strict documentation validation and context-check output.",
+    "Full repository test output and final whitespace/diff audit.",
+    "The handoff document itself, including the Product/Motion/MCU/Safety/site checklist and evidence ladder."
+  ],
+  "stop_conditions": [
+    "The requested work requires changing interfaces, public JSON Schema, Pydantic models, robot/control, firmware, or a safety implementation rather than documenting the boundary.",
+    "A scenario or product document would expose raw joint, controller, CAN, credential, safe-enable, E-stop, or emergency-reset authority.",
+    "A user report, screenshot, scripted fixture, Gazebo run, or verbal confirmation would be promoted to physical or release evidence without the eligible artifact and owner approval.",
+    "Identifiable Design Partner data, private logs, raw videos, access tokens, or unredacted quotes would need to be committed.",
+    "The static policy test or required repository checks fail for a reason that cannot be resolved within the allowed documentation/test paths."
+  ],
+  "max_iterations": 3,
+  "data_classification": "Public repository documentation only; partner identity and raw evidence remain private and are represented by opaque references.",
+  "model_policy": "Neither a language model, scenario manifest, Design Partner, nor product acceptance record may grant Motion, MCU, E-stop, safe-enable, release, or observed-completion authority.",
+  "risks_and_fallbacks": [
+    "This change defines a handoff contract and does not implement a Motion adapter, MCU path, E-stop, ROS/DDS bridge, physical test, or scenario registry.",
+    "If owners disagree about a safety or evidence boundary, preserve the stricter interpretation and record the decision as defer or reject until the named human owner resolves it.",
+    "If no physical bench or eligible Gazebo runner exists, keep the corresponding evidence status not_executed or blocked; continue only with the explicitly bounded software/product claim."
+  ]
+}

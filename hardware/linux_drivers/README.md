@@ -13,6 +13,10 @@
 面向发布的架构说明位于
 [`docs/architecture/linux-drivers.md`](../../docs/architecture/linux-drivers.md)。
 
+LINUX3 的软件 UART/SPI 帧契约和 fake transport 位于
+[`uart_spi/README.md`](uart_spi/README.md)。该实现只验证有界编码、CRC、序号、背压、
+重试和错误处理；真实控制器、pinmux、设备树、DMA 和 IRQ 参数仍由硬件负责人确认。
+
 ## 分层边界
 
 ```text

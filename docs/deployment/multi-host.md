@@ -22,6 +22,56 @@ docker compose -f deploy/multi-host/compose.controller.yaml up -d
 curl --fail http://127.0.0.1:8080/readyz
 ```
 
+`CONTROLLER_BIND_ADDRESS` 默认是 `127.0.0.1`，因此控制端 HTTP 端口默认只发布到本机回环接口。不要把它设置为
+`0.0.0.0`、`::`、主机名、公网地址、链路本地地址或组播地址；Backend 会在提供请求前拒绝这些配置。
+
+## 非本地 HTTP 信任边界
+
+非本地开放还必须等待 Issue #65 的远端事件严格校验完成；#65 完成前，controller 必须保持默认的
+`127.0.0.1` 回环发布，下面的私网发布配置只能作为后续部署参考，不能用于生产开放。
+
+非本地访问必须经过反向代理。反向代理负责终止 TLS、执行用户认证并限制客户端来源网络；Workbench Backend
+继续保持只读，不保存账号、密码或 TLS 私钥。推荐让反向代理与 controller 位于同一台主机，并让它通过回环地址访问
+controller：
+
+```bash
+export CONTROLLER_BIND_ADDRESS=127.0.0.1
+export WORKBENCH_CONTROLLER_TRUST_MODE=local
+unset WORKBENCH_CONTROLLER_TRUSTED_PROXY_ALLOWLIST
+docker compose -f deploy/multi-host/compose.controller.yaml up -d
+```
+
+此时安全边界是宿主机的回环发布：只有同机进程能连接 controller，外部客户端只能先经过反向代理。Docker
+端口转发后，Backend 看到的 socket peer 通常是 bridge gateway，而不是 `127.0.0.1`，因此不要把
+`127.0.0.1/32` 当作容器内看到的代理来源。若必须在这个拓扑中启用 `reverse_proxy` 模式，应先从 Backend
+访问日志确认实际 peer，再配置对应的最小私网 IP/CIDR。
+
+若反向代理必须从另一台受控私网主机连接，可将 `CONTROLLER_BIND_ADDRESS` 明确设置为控制机的 RFC1918 IPv4
+地址或 IPv6 ULA 地址，并把 `WORKBENCH_CONTROLLER_TRUSTED_PROXY_ALLOWLIST` 设置为代理实际 TCP 来源地址的最小
+IP/CIDR。例如代理为 `10.20.30.10`、控制机为 `10.20.30.40`：
+
+```bash
+export CONTROLLER_BIND_ADDRESS=10.20.30.40
+export WORKBENCH_CONTROLLER_TRUST_MODE=reverse_proxy
+export WORKBENCH_CONTROLLER_TRUSTED_PROXY_ALLOWLIST=10.20.30.10/32,127.0.0.1/32
+docker compose -f deploy/multi-host/compose.controller.yaml up -d
+```
+
+这里的 `10.20.30.10/32` 是反向代理实际 peer，`127.0.0.1/32` 只供 Compose 容器自身的健康检查访问
+`/readyz`。两者都必须显式列入；不要重新为 health/readiness 增加绕过 allowlist 的隐式信任。
+
+allowlist 只接受回环、RFC1918 或 IPv6 ULA 的字面 IP/CIDR，不能使用主机名、`0.0.0.0/0` 或 `::/0`。
+Backend 根据实际 TCP peer 判断代理身份，故意忽略 `X-Forwarded-For` 和 `Forwarded`；反向代理不得依靠伪造这些
+Header 绕过来源限制。Docker 或代理网络变化后必须重新核对 Backend 日志中的实际 peer，再更新最小 allowlist。
+
+示例配置均为非敏感地址。环境变量、命令行和本文档不得包含密码、令牌或其他凭据；凭据由反向代理的秘密管理机制
+提供。非本地部署在 TLS、认证和来源网络限制全部生效前不得开放。
+
+`/healthz` 和 `/readyz` 是状态受限的运维路径，`/api/v1/**` 是只读数据路径。反向代理不得向非运维客户端公开
+`/healthz` 或 `/readyz`。Backend 不提供写入或控制端点；`POST`、`PUT`、`PATCH` 和 `DELETE` 返回 `405 read_only`。
+请求体上限为 1 MiB，JSON 响应上限为 4 MiB，同时执行的请求最多为 16；达到并发上限时返回
+`503 server_busy`。
+
 控制机必须同时设置 `WORKBENCH_EVENT_SOURCE_URL` 和 `WORKBENCH_EVENT_SOURCE_ALLOWLIST`。后者是以逗号分隔的字面 IP 地址或 CIDR 网段列表，例如 `10.20.30.40/32,10.20.31.0/24`；allow-list 条目不能使用主机名。若事件源 URL 使用主机名，则它解析出的每个地址都必须落在这些网段内。缺失、空白或格式错误的 allow-list 会保持非回环事件源为未就绪状态。
 
 示例中的 `10.20.30.40` 应替换为仿真机的实际地址。URL 和 allow-list 都是非敏感部署配置；不要在 URL 中放入用户名、密码、令牌或其他凭据。

@@ -3,12 +3,14 @@ import json
 import mimetypes
 import os
 import re
+import threading
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib import resources
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
+from .inbound_http import InboundHttpConfigurationError, InboundHttpPolicy
 from .logging import StructuredLogger
 from .read_model import (
     DashboardReadModel,
@@ -27,7 +29,54 @@ OPENAPI_RESOURCE = resources.files("workbench_backend").joinpath("api-openapi-v1
 API_VERSION = "1"
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 MAX_REJECTED_REQUEST_BODY_BYTES = 1024 * 1024
+MAX_CONCURRENT_REQUESTS = 16
 RUN_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+
+
+class BoundedThreadingHTTPServer(ThreadingHTTPServer):
+    """Threading HTTP server with a hard bound before worker creation."""
+
+    daemon_threads = True
+
+    def __init__(self, server_address, request_handler_class, *, max_concurrent_requests: int) -> None:
+        if not 1 <= max_concurrent_requests <= MAX_CONCURRENT_REQUESTS:
+            raise ValueError(f"max_concurrent_requests must be between 1 and {MAX_CONCURRENT_REQUESTS}")
+        self.max_concurrent_requests = max_concurrent_requests
+        self._request_slots = threading.BoundedSemaphore(max_concurrent_requests)
+        self.request_queue_size = max_concurrent_requests
+        super().__init__(server_address, request_handler_class)
+
+    def process_request(self, request, client_address) -> None:
+        if not self._request_slots.acquire(blocking=False):
+            body = json.dumps(
+                {"error": "server_busy", "message": "The server has reached its request concurrency limit."}
+            ).encode()
+            response = (
+                b"HTTP/1.1 503 Service Unavailable\r\n"
+                b"Content-Type: application/json; charset=utf-8\r\n"
+                + f"Content-Length: {len(body)}\r\n".encode()
+                + b"Cache-Control: no-store\r\n"
+                + b"X-Content-Type-Options: nosniff\r\n"
+                + b"Connection: close\r\n\r\n"
+                + body
+            )
+            try:
+                request.sendall(response)
+            except OSError:
+                pass
+            self.shutdown_request(request)
+            return
+        try:
+            super().process_request(request, client_address)
+        except BaseException:
+            self._request_slots.release()
+            raise
+
+    def process_request_thread(self, request, client_address) -> None:
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self._request_slots.release()
 
 
 class DashboardHandler(BaseHTTPRequestHandler):
@@ -35,6 +84,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
     static_dir = DEFAULT_STATIC_DIR
     logger = StructuredLogger("workbench-backend")
     data_source = "dashboard-fixtures"
+    inbound_policy = InboundHttpPolicy()
     server_version = "WorkbenchBackend/0.1"
 
     def log_message(self, format: str, *args) -> None:
@@ -68,6 +118,46 @@ class DashboardHandler(BaseHTTPRequestHandler):
             "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
             "connect-src 'self'; base-uri 'none'; frame-ancestors 'none'",
         )
+
+    def _authorize_request(self) -> bool:
+        if self.inbound_policy.allows_peer(self.client_address[0]):
+            return True
+        self.close_connection = True
+        self._send_json(
+            {"error": "untrusted_client", "message": "The client is outside the trusted proxy boundary."},
+            HTTPStatus.FORBIDDEN,
+        )
+        return False
+
+    def _validated_content_length(self, *, body_allowed: bool) -> int | None:
+        if self.headers.get_all("Transfer-Encoding", []):
+            self.close_connection = True
+            self._send_json({"error": "invalid_request_body"}, HTTPStatus.BAD_REQUEST)
+            return None
+        lengths = self.headers.get_all("Content-Length", [])
+        if len(lengths) > 1:
+            self.close_connection = True
+            self._send_json({"error": "invalid_request_body"}, HTTPStatus.BAD_REQUEST)
+            return None
+        raw_length = lengths[0].strip() if lengths else "0"
+        if not re.fullmatch(r"[0-9]+", raw_length):
+            self.close_connection = True
+            self._send_json({"error": "invalid_request_body"}, HTTPStatus.BAD_REQUEST)
+            return None
+        normalized_length = raw_length.lstrip("0") or "0"
+        maximum_length = str(MAX_REJECTED_REQUEST_BODY_BYTES)
+        if len(normalized_length) > len(maximum_length) or (
+            len(normalized_length) == len(maximum_length) and normalized_length > maximum_length
+        ):
+            self.close_connection = True
+            self._send_json({"error": "request_too_large"}, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+            return None
+        content_length = int(normalized_length)
+        if not body_allowed and content_length:
+            self.close_connection = True
+            self._send_json({"error": "invalid_request_body"}, HTTPStatus.BAD_REQUEST)
+            return None
+        return content_length
 
     def _send_file(self, relative_path: str) -> None:
         try:
@@ -116,6 +206,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self) -> None:
+        if not self._authorize_request() or self._validated_content_length(body_allowed=False) is None:
+            return
         try:
             self._do_get()
         except ReadModelResponseTooLarge:
@@ -183,16 +275,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self._send_file(static_path)
 
     def _reject_write(self) -> None:
-        raw_length = self.headers.get("Content-Length", "0")
-        try:
-            content_length = int(raw_length)
-        except ValueError:
-            content_length = -1
-        if not 0 <= content_length <= MAX_REJECTED_REQUEST_BODY_BYTES:
-            self._send_json({"error": "invalid_request_body"}, HTTPStatus.BAD_REQUEST)
+        if not self._authorize_request() or self._validated_content_length(body_allowed=True) is None:
             return
-        if content_length:
-            self.rfile.read(content_length)
+        self.close_connection = True
         self._send_json(
             {"error": "read_only", "message": "This service exposes no robot or ROS control operations."},
             HTTPStatus.METHOD_NOT_ALLOWED,
@@ -212,7 +297,17 @@ def create_server(
     static_dir: str | Path = DEFAULT_STATIC_DIR,
     event_source_url: str | None = None,
     event_source_allowlist: str | None = None,
-) -> ThreadingHTTPServer:
+    published_host: str = "127.0.0.1",
+    trust_mode: str = "local",
+    trusted_proxy_allowlist: str | None = None,
+    max_concurrent_requests: int = MAX_CONCURRENT_REQUESTS,
+) -> BoundedThreadingHTTPServer:
+    inbound_policy = InboundHttpPolicy(
+        published_host=published_host,
+        trust_mode=trust_mode,
+        trusted_proxy_allowlist=trusted_proxy_allowlist,
+    )
+    configured_inbound_policy = inbound_policy
     if event_source_url:
         try:
             configured_read_model = RemoteDashboardReadModel(
@@ -229,8 +324,13 @@ def create_server(
         read_model = configured_read_model
         static_dir = configured_static_dir
         data_source = configured_read_model.data_source if event_source_url else "dashboard-fixtures"
+        inbound_policy = configured_inbound_policy
 
-    return ThreadingHTTPServer((host, port), ConfiguredHandler)
+    return BoundedThreadingHTTPServer(
+        (host, port),
+        ConfiguredHandler,
+        max_concurrent_requests=max_concurrent_requests,
+    )
 
 
 def main() -> int:
@@ -243,18 +343,36 @@ def main() -> int:
         "--event-source-allowlist",
         default=os.environ.get("WORKBENCH_EVENT_SOURCE_ALLOWLIST"),
     )
-    args = parser.parse_args()
-    server = create_server(
-        args.host,
-        args.port,
-        data_dir=args.data_dir,
-        event_source_url=args.event_source_url,
-        event_source_allowlist=args.event_source_allowlist,
+    parser.add_argument("--published-host", default=os.environ.get("CONTROLLER_BIND_ADDRESS", "127.0.0.1"))
+    parser.add_argument("--trust-mode", default=os.environ.get("WORKBENCH_CONTROLLER_TRUST_MODE", "local"))
+    parser.add_argument(
+        "--trusted-proxy-allowlist",
+        default=os.environ.get("WORKBENCH_CONTROLLER_TRUSTED_PROXY_ALLOWLIST"),
     )
+    args = parser.parse_args()
+    try:
+        server = create_server(
+            args.host,
+            args.port,
+            data_dir=args.data_dir,
+            event_source_url=args.event_source_url,
+            event_source_allowlist=args.event_source_allowlist,
+            published_host=args.published_host,
+            trust_mode=args.trust_mode,
+            trusted_proxy_allowlist=args.trusted_proxy_allowlist,
+        )
+    except InboundHttpConfigurationError as exc:
+        parser.error(str(exc))
     DashboardHandler.logger.emit(
         "service_started",
         f"dashboard listening on http://{args.host}:{args.port}",
-        details={"offline": True, "read_only": True, "data_source": "remote" if args.event_source_url else "local"},
+        details={
+            "offline": True,
+            "read_only": True,
+            "data_source": "remote" if args.event_source_url else "local",
+            "published_host": args.published_host,
+            "trust_mode": args.trust_mode,
+        },
     )
     try:
         server.serve_forever()

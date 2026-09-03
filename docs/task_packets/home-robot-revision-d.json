@@ -11,6 +11,7 @@
     "docs/assets/workbench-home-robot-market.png",
     "docs/assets/workbench-home-robot-market-v2.png",
     "docs/assets/workbench-home-robot-market-v4.png",
+    "docs/assets/workbench-home-robot-market-v6.png",
     "docs/assets/desk-robot-revision-b-hero.png",
     "docs/task_packets/home-robot-revision-c.json",
     "docs/task_packets/home-robot-revision-d.json",
@@ -54,7 +55,8 @@
     "docs/assets/workbench-home-robot-premium.png",
     "docs/assets/workbench-home-robot-market.png",
     "docs/assets/workbench-home-robot-market-v2.png"
-    ,"docs/assets/workbench-home-robot-market-v4.png"
+    ,"docs/assets/workbench-home-robot-market-v4.png",
+    "docs/assets/workbench-home-robot-market-v6.png"
   ],
   "stop_conditions": [
     "a change requires robot control, firmware, interfaces, or PCB ownership",

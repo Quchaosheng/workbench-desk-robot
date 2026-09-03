@@ -2,10 +2,10 @@
 
 | Task | Evidence | Status / gate |
 |---|---|---|
-| MECH1 | Revision D SCAD, mobile base, lift, torso, head and dual 7R assembly STEP | ENGINEERING COMPLETE; CAD REGENERATION REQUIRED |
+| MECH1 | Revision D SCAD, raised stabilized assembly STEP, lowered navigation STEP, and measured 1100/1450 mm envelopes | ENGINEERING COMPLETE; PHYSICAL DATUM INSPECTION REQUIRED |
 | MECH2 | `generated/bom.csv`, lift locks, brake and tool-datum parts | COMPLETE |
 | MECH3 | 260 x 105 x 128 mm smoked-glass head, 228 x 92 rounded display, keyed neck register | COMPLETE |
-| MECH4 | four steer-drive modules, guarded base skirt, retracted/deployed stabilizer states and 350 mm lift | ENGINEERING COMPLETE; PHYSICAL FIT AND DRIVE TEST REQUIRED |
+| MECH4 | four steer-drive modules, guarded base skirt, retracted/deployed 820 x 820 mm support states and 350 mm lift | ENGINEERING COMPLETE; PHYSICAL FIT AND DRIVE TEST REQUIRED |
 | MECH5 | `drawings/thermal-flow.svg`, isolated electronics and food-tool heat zone | ENGINEERING COMPLETE; thermal test external |
 | MECH6 | analysis and drop-screening JSON, 28 mm absorber, 20 g screen | SCREEN COMPLETE; nonlinear FEA/drop external |
 | MECH7 | two sets of seven joint IDs/limits, shared workspace and exploded STEP | DIGITAL CHECK COMPLETE; guarded motion external |

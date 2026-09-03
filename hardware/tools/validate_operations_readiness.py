@@ -10,6 +10,8 @@ ROOT = Path(__file__).resolve().parents[2]
 BASELINE = ROOT / "hardware/operations-readiness.json"
 OUTPUT = ROOT / "hardware/generated/operations_readiness_report.json"
 BMS_VALIDATOR = ROOT / "hardware/power/tools/validate_bms_state_machine.py"
+MECHANICAL_SPEC = ROOT / "hardware/mechanical/design-spec.json"
+MECHANICAL_REPORT = ROOT / "hardware/mechanical/generated/analysis.json"
 
 
 def read_csv(relative: str) -> list[dict[str, str]]:
@@ -29,6 +31,8 @@ def validate_bms_state_machine() -> dict[str, Any]:
 
 def validate() -> dict[str, object]:
     baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
+    mechanical_spec = json.loads(MECHANICAL_SPEC.read_text(encoding="utf-8"))
+    mechanical_report = json.loads(MECHANICAL_REPORT.read_text(encoding="utf-8"))
     bms_report = validate_bms_state_machine()
     mass_rows = read_csv("hardware/mechanical/mass-ledger.csv")
     total_mass_kg = sum(float(row["mass_kg"]) for row in mass_rows)
@@ -81,7 +85,12 @@ def validate() -> dict[str, object]:
         "all_package_files_exist": all((ROOT / path).is_file() for path in required_files),
         "power_is_48v_with_three_levels": baseline["power"]
         == {"nominal_pack_voltage_v": 48, "protection_levels": 3, "bms_fail_closed": True},
-        "mechanical_design_case_is_55kg": baseline["mechanical"]["design_case_mass_kg"] == 55,
+        "mechanical_baseline_is_revision_d": baseline["mechanical"]["revision"] == mechanical_spec["revision"] == "D",
+        "mechanical_design_case_matches_generated_analysis": baseline["mechanical"]["design_case_mass_kg"]
+        == mechanical_report["mass_kg"],
+        "mechanical_drive_module_count_matches_spec": baseline["mechanical"]["drive_module_count"]
+        == mechanical_spec["chassis"]["drive_module_count"]
+        == 4,
         "planning_bom_is_5100_usd": baseline["procurement"]["planning_bom_usd"] == 5100,
         "certificates_block_po": baseline["procurement"]["critical_certificates_required_before_po"],
         "line_has_six_stations": baseline["manufacturing"]["station_count"] == 6,
@@ -117,8 +126,15 @@ def validate() -> dict[str, object]:
             row["level"] for row in read_csv("hardware/power/protection-thresholds.csv")
         }
         == {"L1", "L2", "L3"},
-        "mass_ledger_sums_to_55kg": abs(total_mass_kg - 55) < 1e-9,
-        "mass_ledger_cg_is_calculated": center_of_gravity_mm == [0.0, -9.1, 470.0],
+        "mass_ledger_matches_generated_mass": abs(total_mass_kg - mechanical_report["mass_kg"]) < 1e-9,
+        "mass_ledger_cg_matches_generated_analysis": center_of_gravity_mm == mechanical_report["center_of_gravity_mm"],
+        "mechanical_generated_geometry_is_measured": mechanical_report["generated_geometry"]["status"] == "MEASURED",
+        "mechanical_generated_heights_match_spec": mechanical_report["generated_geometry"]["assembly_bounds_mm"][
+            "zmax_mm"
+        ]
+        == mechanical_spec["enclosure"]["height"]
+        and mechanical_report["generated_geometry"]["navigation_bounds_mm"]["zmax_mm"]
+        == mechanical_spec["enclosure"]["stowed_height"],
         "mass_ledger_has_physical_validation_status": all(
             row["status"] == "ESTIMATE" for row in read_csv("hardware/mechanical/mass-ledger.csv")
         ),

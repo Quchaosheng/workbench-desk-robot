@@ -33,7 +33,7 @@
   "forbidden": ["robot/control/**", "firmware/**", "interfaces/**", "services/**"],
   "acceptance": [
     "48 V pack topology, three protection levels, and fail-closed BMS states are explicit",
-    "55 kg design case, dual-arm interference controls, and assembly evidence gates are explicit",
+    "Revision D 77.5 kg analytical design case, four-module base, dual-arm interference controls, and assembly evidence gates are explicit",
     "planning BOM totals USD 5100 without being represented as supplier quotes",
     "six-station line, USD 4000 fixture cap, and FPY target of at least 85 percent are controlled",
     "RPN above 100 and early failure rate above 5 percent block release",

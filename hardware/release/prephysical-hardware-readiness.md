@@ -12,9 +12,9 @@ peak. High-power modes are mutually exclusive:
 
 - `ARM_OPERATION`: arm controllers only; outriggers loaded, lift locked and
   drive brakes applied.
-- `TRANSPORT`: full-system drive only; deck low, arms stowed/disabled and
+- `TRANSPORT`: four steer-drive modules only; deck low, arms stowed/disabled and
   outriggers retracted.
-- `LIFT`: lifting columns only; arms disabled and drive brakes applied.
+- `LIFT`: dual-screw lift only; arms disabled and drive brakes applied.
 
 The controller PCB U2 240 W isolated rail powers Jetson, logic and low-power
 auxiliaries only. It never powers the seven-axis arms, full-system traction or
@@ -26,8 +26,10 @@ isolated inverter.
 
 1. Select the purchased seven-axis arm revision and collect base, load, power,
    safety and controller documents.
-2. Freeze lift-column ordering codes and the independent mechanical lock.
-3. Match the 48 V drive motor, gearbox, brake, wheel and servo-drive curves.
+2. Freeze the dual-screw lift actuator ordering codes, four-guide interfaces and
+   independent mechanical locks.
+3. Match all four 48 V steer-drive motor, gearbox, brake, wheel, bearing,
+   suspension and controller curves.
 4. Select battery, BMS, contactors, fuse, precharge, disconnect and charger as
    one coordinated protection system.
 5. Execute the controller U2 ECO only after its exact module drawing and thermal

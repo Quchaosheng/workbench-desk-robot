@@ -19,6 +19,6 @@
 <rect class="frame" x="930" y="520" width="190" height="70" rx="22"/><circle class="joint" cx="965" cy="588" r="22"/><circle class="joint" cx="1085" cy="588" r="22"/><rect class="frame" x="990" y="260" width="70" height="270" rx="14"/><rect class="shell" x="960" y="120" width="130" height="145" rx="30"/>
 <line class="dim" x1="875" y1="260" x2="875" y2="385"/><text x="892" y="330" class="note">travel 350</text>
 <text x="675" y="625" class="note">LOW / DRIVE</text><text x="958" y="625" class="note">RAISED / WORK</text>
-<text x="630" y="680" class="note">CG Z=441.6 · drive tip=27.5 deg · stabilized tip=38.0 deg</text>
+<text x="630" y="680" class="note">CG Z=512.0 · drive tip=27.5 deg · stabilized tip=37.1 deg</text>
 <text x="630" y="712" class="note">Holonomic self-motion in navigation; manipulation requires wheel brakes + deployed support feet.</text>
 </svg>

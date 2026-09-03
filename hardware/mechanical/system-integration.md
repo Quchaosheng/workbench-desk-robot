@@ -1,68 +1,71 @@
-# Legacy 55 kg dual-arm workbench integration
+# Revision D system integration
 
-> **Scope note:** this document is retained for the earlier dual-arm workbench
-> planning case. It does not describe the Revision D Workbench Home Robot,
-> which is a dual 7R-arm mobile platform. Use `revision-d-architecture.md`,
-> `design-spec.json`, and the D verification matrix
-> for the current product direction.
+This document controls the current Revision D mobile household manipulator. The
+earlier 55 kg dual-arm workbench and two-wheel/four-caster planning cases are
+obsolete and must not be used for purchasing, stability, harness, or assembly
+decisions.
 
-This document controls the issue 21 design case without replacing the existing
-6.42 kg enclosure model. The 55 kg value is the maximum configured system mass
-for the dual-arm workbench including base, arms, payload, battery, electronics,
-covers, and service accessories. It remains a planning case until a serialized
-prototype is weighed and its centre of gravity is measured.
+## Controlled configuration
 
-## Mass and centre of gravity
+- 540 x 520 mm navigation base with four independent 140 mm steer-drive modules.
+- 1100 mm stowed height and 1450 mm raised height with 350 mm lift travel.
+- Four stowed/deployed stabilizers; the raised concept STEP represents an
+  820 x 820 mm support polygon.
+- Two seven-axis arm envelopes with internal cable routing and one coordinated
+  shared bimanual workspace.
+- 48 V battery and high-power branches separated from controller J2 auxiliary
+  power.
 
-The mass ledger must sum to 55 kg or less and identify each item's measured or
-estimated mass and XYZ location in the common base frame. Calculate centre of
-gravity as `sum(mass * position) / sum(mass)` for each axis. Evaluate the worst
-combination of both arms, rated payloads, moving cables, open service panels,
-and removable battery. The release record includes the ledger revision and the
-arm poses that produce the maximum overturning moment.
+`design-spec.json` is the source for geometry and analytical mass reservations.
+`generated/analysis.json` records the derived navigation and stabilized load
+cases. `mass-ledger.csv` mirrors the raised manipulation case so repository
+validation can detect stale weights or coordinates. All values remain estimates
+until a serialized assembly is weighed and its center of gravity is measured.
 
-Acceptance requires positive stability margin at the declared operating slope,
-caster/brake configuration, and floor friction. Analytical stability does not
-replace a controlled pull test. A load cell, tilt reference, arm joint telemetry,
-and video must identify the first lift or slip event. Any undocumented ballast,
-fixture, tether, or operator restraint invalidates the result.
+## Stability and motion clearance
 
-## Dual-arm interference
+The navigation load case uses the lift lowered, tools stowed, brakes available,
+and stabilizers retracted. The manipulation load case uses the lift raised,
+bimanual payload forward, wheel brakes applied, and all four stabilizers loaded.
+Both cases must include manufacturing tolerance, floor friction, joint
+calibration error, stop distance, cable stiffness, payload overhang, and battery
+configuration before release.
 
-The motion envelope is partitioned into left-only, right-only, shared handoff,
-and forbidden service volumes. Review arm-to-arm, arm-to-base, arm-to-display,
-tool-to-cable, payload-to-cover, and payload-to-operator clearances. CAD sweeps
-must include manufacturing tolerance, joint calibration error, controller stop
-distance, payload overhang, and cable bend radius.
+The analytical tip-angle thresholds are screening gates, not safety functions.
+Acceptance requires controlled pull, 5-degree slope, emergency-stop, brake-hold,
+stabilizer-deployment, and first-wheel-lift tests. Any undocumented ballast,
+tether, fixture, or operator restraint invalidates the result.
 
-The minimum analytical clearance is a design input, not a safety function.
-Physical low-speed sweep tests start without payload, then use the maximum
-bounding payload in guarded conditions. Shared-volume entry requires a single
-coordinator; independent arm commands cannot simultaneously reserve the same
-volume. Collision-model edits require repeat review and regression evidence.
+The motion envelope remains partitioned into left-only, right-only, coordinated
+shared, and forbidden volumes. Review arm-to-arm, arm-to-base, arm-to-head,
+arm-to-lift, tool-to-cable, payload-to-cover, and payload-to-operator clearance.
+`interference-checklist.csv` remains `NOT_EXECUTED` until full-joint CAD sweeps
+and guarded physical tests are attached.
 
 ## Assembly process
 
-1. Receive the base frame and verify datums, flatness, brake function, and labels.
-2. Install ballast/battery low in the base and record mass and mounting torque.
-3. Fit power distribution and protective bonding before covers restrict access.
-4. Mount left and right arm pedestals to controlled datums and record torque.
-5. Install arms with a rated lift aid; manual handling of the full arm is prohibited.
-6. Route energy chains with full-joint sweeps and strain-relief witness marks.
-7. Install compute, display, sensors, guards, and E-stop devices.
-8. Load configuration/calibration under the approved commissioning procedure.
-9. Execute bond, power-off motion, interference, stability, and guarded motion tests.
-10. Close covers, apply tamper marks, weigh the serialized unit, and sign traveller.
+1. Verify base datums, steering retention, wheel bearings, suspension travel,
+   normally-closed brakes, bumper and stabilizer pockets.
+2. Install the battery, BMS, disconnect, fuse, precharge and contactors low in
+   the base; record mass, location and mounting torque.
+3. Install the lift guides, synchronized screws, brakes, lock pins, hard limits
+   and pinch sensors; measure parallelism and skew before fitting the torso.
+4. Install power distribution, safety controller, protective bonding and
+   electronics tray before covers restrict access.
+5. Mount both arm bases to controlled shoulder datums using a rated lift aid;
+   manual handling outside the supplier limit is prohibited.
+6. Route energy chains and internal joint harnesses through complete steering,
+   lift and arm sweeps with strain-relief witness marks.
+7. Install the neck mount, head, sensors, guards, E-stop devices and tools.
+8. Execute bonding, power-off movement, interference, stability and guarded
+   low-speed tests before enabling payload work.
+9. Close covers, apply tamper marks, weigh the serialized unit and sign the
+   assembly traveller.
 
 Assembly feasibility gates include tool access, captive hardware, connector
-keying, lift points, two-person operations, rework access, torque visibility,
-and replacement of the battery and controllers without removing either arm.
-The supplier DFM review must close sharp-edge, pinch-point, tolerance-stack,
-service-clearance, coating-mask, weld distortion, and packaging restraints.
+keying, lift points, torque visibility, service loops, battery replacement,
+controller replacement, sharp edges, pinch points, tolerance stack, coating
+masks and packaging restraints.
 
-Status: `PHYSICAL_VALIDATION_REQUIRED`. A 55 kg target is not a measured result;
-release needs the signed mass ledger, CG/stability report, dual-arm sweep log,
-assembly trial, and resolved DFM actions for the production revision.
-
-The estimate is recorded in `mass-ledger.csv`; `interference-checklist.csv`
-enumerates the CAD and guarded-test evidence still required.
+Status: `CONCEPT_PHYSICAL_VALIDATION_REQUIRED`. The 77.5 kg analytical mass,
+calculated centers of gravity and STEP geometry are not measured product claims.

@@ -1,0 +1,63 @@
+{
+  "issue": "hardware-revision-d-coherence",
+  "human_owner": "Quchaosheng",
+  "objective": "Align current hardware release, manufacturing, safety, selection, and operations-readiness documents with the authoritative Revision D four-module holonomic robot without selecting unapproved supplier parts or claiming physical evidence.",
+  "allowed_paths": [
+    "hardware/mechanical/**",
+    "hardware/release/**",
+    "hardware/manufacturing/connection-safety-baseline.md",
+    "hardware/operations-readiness.json",
+    "hardware/generated/operations_readiness_report.json",
+    "hardware/tools/validate_operations_readiness.py",
+    "tests/hardware/test_engineering_packages.py",
+    "tests/hardware/test_operations_readiness.py",
+    "docs/task_packets/hardware-selection-baseline.json",
+    "docs/task_packets/operations-readiness-020-027.json",
+    "docs/task_packets/hardware-revision-d-coherence.json"
+  ],
+  "read_only_paths": [
+    "hardware/pcb/**",
+    "hardware/motor_driver/**",
+    "hardware/procurement/**",
+    "hardware/qa/**",
+    "hardware/validation/**",
+    "interfaces/**"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "services/**",
+    "interfaces/**"
+  ],
+  "acceptance": [
+    "current release and safety documents identify Revision D as four independent 140 mm steer-drive modules",
+    "legacy Rev B/Rev C and 55 kg planning records are explicitly historical or removed from current selection claims",
+    "mass and operations-readiness summaries use the Revision D 77.5 kg analytical design case",
+    "all supplier candidates remain unapproved and all physical, safety, DFM, and certification gates remain fail-closed",
+    "hardware package tests, Ruff, and Task Packet validation pass"
+  ],
+  "commands": [
+    "python hardware/mechanical/tools/generate_artifacts.py",
+    "python hardware/release/tools/check_release_readiness.py --stage structure",
+    "python hardware/release/tools/validate_optimization_register.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/hardware-revision-d-coherence.json",
+    "python -m pytest tests/hardware/test_engineering_packages.py -q",
+    "python -m ruff check hardware/mechanical hardware/release hardware/manufacturing/connection-safety-baseline.md tests/hardware/test_engineering_packages.py"
+  ],
+  "evidence": [
+    "hardware/mechanical/design-spec.json",
+    "hardware/mechanical/generated/analysis.json",
+    "hardware/mechanical/generated/desk_robot_assembly.step",
+    "hardware/mechanical/generated/desk_robot_navigation_low.step",
+    "hardware/release/recommended-selection-package.md",
+    "hardware/release/selection-closure-register.csv",
+    "hardware/release/hardware-optimization-register.csv",
+    "hardware/generated/operations_readiness_report.json",
+    "hardware package test output"
+  ],
+  "stop_conditions": [
+    "a change requires selecting a final MPN or supplier AVL",
+    "a change would promote physical, EMC, safety, DFM, or certification evidence to complete",
+    "a change requires modifying PCB, motor-driver, firmware, robot-control, services, or interfaces ownership"
+  ]
+}

@@ -12,6 +12,14 @@
     "wall": 3.0,
     "corner_radius": 36
   },
+  "coordinate_system": {
+    "ground_plane_z_mm": 0,
+    "base_top_z_mm": 140,
+    "generated_assembly_pose": "raised_stabilized",
+    "torso_bottom_stowed_z_mm": 500,
+    "head_top_stowed_z_mm": 1100,
+    "height_tolerance_mm": 1.0
+  },
   "chassis": {
     "width": 540,
     "depth": 520,
@@ -32,8 +40,8 @@
     "precision_docking_speed_mps": 0.15,
     "drive_sensors": ["four_absolute_steering_encoders", "four_drive_encoders", "imu", "bumper_ring"],
     "autonomous_navigation_status": "MECHANICAL_INTERFACE_READY_SOFTWARE_AND_PHYSICAL_VALIDATION_REQUIRED",
-    "stabilized_support_width": 690,
-    "stabilized_support_depth": 680,
+    "stabilized_support_width": 820,
+    "stabilized_support_depth": 820,
     "ground_clearance": 28,
     "wheel_brakes": "normally_closed_each_drive_module",
     "stabilizer_count": 4
@@ -120,6 +128,16 @@
       "service_strategy": "joint cartridges removable before cosmetic link fairings"
     },
     "bimanual_payload": {"mass_kg": 4, "reach_mm": 450, "mode": "reduced_speed_shared_workspace"},
+    "navigation_stowed_right_arm_points_relative_to_torso_bottom_mm": [
+      [176, 118, 160],
+      [204, 88, 148],
+      [218, 40, 112],
+      [222, -25, 45],
+      [218, -78, -35],
+      [212, -108, -70],
+      [205, -126, -88],
+      [196, -140, -100]
+    ],
     "workspace_partition": {
       "left_only": true,
       "right_only": true,
@@ -180,15 +198,37 @@
   },
   "ventilation": {"inlet_area_mm2": 3600, "outlet_area_mm2": 4400, "fan_mm": 80, "direction": "lower-front to upper-rear isolated from food-contact zone"},
   "impact": {"bumper_material": "charcoal TPU over compliant honeycomb", "bumper_thickness": 10, "effective_absorber_stroke_mm": 28, "drop_height_m": 0.2, "design_deceleration_g": 20},
+  "analysis_load_cases": {
+    "navigation_low": {
+      "description": "lift lowered, arms and tools stowed, stabilizers retracted",
+      "lift_followers_z_offset_mm": -350,
+      "position_overrides": {
+        "tools_and_bimanual_payload": [0, 0, 410]
+      }
+    },
+    "stabilized_manipulation": {
+      "description": "lift raised, bimanual payload forward, wheel brakes applied, stabilizers deployed",
+      "lift_followers_z_offset_mm": 0,
+      "position_overrides": {}
+    }
+  },
+  "lift_follower_components": [
+    "torso_electronics",
+    "shell_and_bay",
+    "left_seven_axis_arm",
+    "right_seven_axis_arm",
+    "head_display",
+    "tools_and_bimanual_payload"
+  ],
   "components": [
     {"name": "chassis_drives_and_ballast", "mass_kg": 16.0, "xyz": [0, 0, 110]},
-    {"name": "battery", "mass_kg": 14.0, "xyz": [0, -35, 100]},
-    {"name": "lifting_platform", "mass_kg": 7.5, "xyz": [0, 0, 440]},
-    {"name": "torso_electronics", "mass_kg": 5.0, "xyz": [0, 15, 720]},
-    {"name": "shell_and_bay", "mass_kg": 3.5, "xyz": [0, 0, 720]},
-    {"name": "left_seven_axis_arm", "mass_kg": 6.0, "xyz": [-180, 0, 900]},
-    {"name": "right_seven_axis_arm", "mass_kg": 6.0, "xyz": [180, 0, 900]},
-    {"name": "head_display", "mass_kg": 1.5, "xyz": [0, 5, 1080]},
+    {"name": "battery", "mass_kg": 20.0, "xyz": [0, -35, 100]},
+    {"name": "lifting_platform", "mass_kg": 7.5, "xyz": [0, 0, 500]},
+    {"name": "torso_electronics", "mass_kg": 5.0, "xyz": [0, 15, 1065]},
+    {"name": "shell_and_bay", "mass_kg": 3.5, "xyz": [0, 0, 1065]},
+    {"name": "left_seven_axis_arm", "mass_kg": 10.0, "xyz": [-180, 0, 900]},
+    {"name": "right_seven_axis_arm", "mass_kg": 10.0, "xyz": [180, 0, 900]},
+    {"name": "head_display", "mass_kg": 1.5, "xyz": [0, 5, 1386]},
     {"name": "tools_and_bimanual_payload", "mass_kg": 4.0, "xyz": [0, -280, 760]}
   ],
   "minimum_clearances": {"moving_to_fixed": 8, "cable_to_sharp_edge": 8, "pcb_to_shell": 10, "battery_to_heat_source": 80, "hot_tool_to_shell": 120}

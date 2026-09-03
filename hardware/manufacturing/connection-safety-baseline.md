@@ -1,12 +1,17 @@
 # Connection Safety Baseline
 
-Status: fail-closed wiring contract for the fixed mechanical shape. This is an integration control document, not evidence that a harness has been built or tested.
+Status: fail-closed wiring contract for the Revision D mechanical baseline. This
+is an integration control document, not evidence that a harness has been built
+or tested.
 
 ## Two power domains
 
 The repository contains two deliberately separate motor paths:
 
-1. **Full-size service robot:** 48 V battery -> protected 48 V traction branch -> two matched industrial servo drives -> two 200 mm driven wheels. This is the only path allowed for the fixed full-system chassis.
+1. **Revision D mobile robot:** 48 V battery -> protected traction branch -> four
+   independent steer-drive modules. Each corner has a drive axis, steering axis,
+   normally-closed brake and local feedback. This is the only current full-system
+   traction architecture.
 2. **Compact test chassis:** controller J2 12 V auxiliary -> traction childboard J_PWR -> candidate low-voltage brushed motors. This path is bench/test-only and is not allowed to drive the full-size chassis.
 
 Never connect J2 to a 48 V motor, a full-system servo drive, or a battery branch. The current candidate dual-stall demand is 11 A while J2 is limited to 10 A; H02 therefore remains blocked and must not be used as a production power harness.

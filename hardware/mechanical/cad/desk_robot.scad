@@ -8,12 +8,21 @@ BASE_D = 520;
 BASE_H = 112;
 GROUND = 28;
 LIFT_TRAVEL = 350;
-LIFT_EXTENSION = LIFT_TRAVEL;
+LIFT_EXTENSION = LIFT_TRAVEL; // generated package is the raised working pose
+BASE_TOP = GROUND + BASE_H;
+TORSO_BOTTOM_STOWED = 500;
+TORSO_BOTTOM = TORSO_BOTTOM_STOWED + LIFT_EXTENSION;
 TORSO_W = 420;
 TORSO_D = 330;
+TORSO_H = 430;
 HEAD_W = 260;
 HEAD_D = 105;
 HEAD_H = 128;
+HEAD_TILT = 6;
+HEAD_TOP_STOWED = 1100;
+HEAD_TOP = HEAD_TOP_STOWED + LIFT_EXTENSION;
+HEAD_MODEL_Z = HEAD_TOP - (HEAD_H*cos(HEAD_TILT) + HEAD_D/2*sin(HEAD_TILT));
+HEAD_BOTTOM = HEAD_MODEL_Z - HEAD_D/2*sin(HEAD_TILT);
 STABILIZERS_DEPLOYED = false;
 
 module rounded_prism(w, d, h, r) {
@@ -75,33 +84,33 @@ module mobile_base() {
     translate([0, 0, GROUND+58]) rounded_prism(512, 492, 28, 44);
 
   // Stabilizers are flush in navigation and only deploy for manipulation.
-  for (x=[-286, 286], y=[-281, 281])
+  for (x=[-386, 386], y=[-386, 386])
     if (STABILIZERS_DEPLOYED)
       color([0.10, 0.11, 0.11])
         translate([x, y, GROUND+10]) rounded_prism(48, 48, 18, 12);
     else
       color([0.18, 0.20, 0.19])
-        translate([x*0.80, y*0.80, GROUND+72]) rounded_prism(46, 46, 18, 12);
+        translate([x*0.59, y*0.58, GROUND+72]) rounded_prism(46, 46, 18, 12);
 }
 
 module lifting_platform() {
   color([0.10, 0.12, 0.12])
-    translate([0, 12, GROUND+BASE_H-2]) rounded_prism(210, 175, 255, 24);
+    translate([0, 12, BASE_TOP]) rounded_prism(210, 175, TORSO_BOTTOM_STOWED-BASE_TOP, 24);
   color([0.34, 0.36, 0.35])
-    translate([0, 12, GROUND+BASE_H+LIFT_EXTENSION]) rounded_prism(170, 138, 250, 20);
+    translate([0, 12, TORSO_BOTTOM-360]) rounded_prism(170, 138, 350, 20);
   color([0.16, 0.18, 0.18])
     for (z=[GROUND+BASE_H+28:28:GROUND+BASE_H+LIFT_EXTENSION-4])
       translate([0, -79, z]) cube([190, 10, 13], center=true);
   color([0.42, 0.44, 0.42])
-    translate([0, 12, GROUND+BASE_H+LIFT_EXTENSION+238]) rounded_prism(270, 228, 28, 28);
+    translate([0, 12, TORSO_BOTTOM-28]) rounded_prism(270, 228, 28, 28);
 }
 
 module utility_torso() {
-  body_z = GROUND+BASE_H+LIFT_EXTENSION+220;
+  body_z = TORSO_BOTTOM;
   color([0.92, 0.91, 0.87])
     hull() {
       translate([0, 0, body_z]) rounded_prism(TORSO_W, TORSO_D, 8, 42);
-      translate([0, 0, body_z+325]) rounded_prism(292, 248, 8, 38);
+      translate([0, 0, body_z+TORSO_H-8]) rounded_prism(292, 248, 8, 38);
     }
 
   // Soft-close parcel bay and acoustic insert share one graphite plane.
@@ -122,24 +131,23 @@ module neck_mount(head_z) {
   difference() {
     union() {
       color([0.30, 0.32, 0.31])
-        translate([0, 12, head_z-56]) rounded_prism(132, 86, 72, 24);
+        translate([0, 12, head_z-80]) rounded_prism(132, 86, 72, 24);
       color([0.22, 0.24, 0.23])
-        translate([0, 12, head_z-10]) rounded_prism(184, 74, 10, 14);
+        translate([0, 12, head_z-18]) rounded_prism(184, 74, 10, 14);
       color([0.38, 0.41, 0.39])
-        translate([0, 12, head_z]) rounded_prism(154, 58, 8, 12);
+        translate([0, 12, head_z-8]) rounded_prism(154, 58, 8, 12);
     }
     translate([0, 12, head_z-60]) cylinder(h=100, d=32);
     for (x=[-48, 48], y=[-22, 22])
-      translate([x, 12+y, head_z-16]) cylinder(h=36, d=6.8);
+      translate([x, 12+y, head_z-34]) cylinder(h=36, d=6.8);
     for (x=[-60, 60])
-      translate([x, 12, head_z-4]) cylinder(h=18, d=4.1);
+      translate([x, 12, head_z-18]) cylinder(h=18, d=4.1);
   }
 }
 
 module head_and_face() {
-  head_z = GROUND+BASE_H+LIFT_EXTENSION+592;
-  neck_mount(head_z);
-  translate([0, -12, head_z]) rotate([6, 0, 0]) {
+  neck_mount(HEAD_BOTTOM);
+  translate([0, -12, HEAD_MODEL_Z]) rotate([HEAD_TILT, 0, 0]) {
     color([0.92, 0.91, 0.87]) rounded_prism(HEAD_W, HEAD_D, HEAD_H, 32);
     color([0.025, 0.035, 0.035])
       translate([0, -HEAD_D/2-4, 20])
@@ -154,14 +162,15 @@ module seven_axis_arm(side=1) {
   // The three-axis shoulder is nested in the torso side wall. Directional
   // fairings cover the primary links; dark bearing cartridges and 6 mm motion
   // gaps keep the seven-axis assembly and service order visually legible.
-  p1 = [side*176, 118, 770];
-  p2 = [side*204, 88, 758];
-  p3 = [side*250, 48, 730];
-  p4 = [side*375, -105, 625];
-  p5 = [side*330, -245, 560];
-  p6 = [side*270, -295, 540];
-  p7 = [side*225, -318, 528];
-  ee = [side*182, -335, 520];
+  arm_base_z = TORSO_BOTTOM + 160;
+  p1 = [side*176, 118, arm_base_z];
+  p2 = [side*204, 88, arm_base_z-12];
+  p3 = [side*250, 48, arm_base_z-40];
+  p4 = [side*375, -105, arm_base_z-145];
+  p5 = [side*330, -245, arm_base_z-210];
+  p6 = [side*270, -295, arm_base_z-230];
+  p7 = [side*225, -318, arm_base_z-242];
+  ee = [side*182, -335, arm_base_z-250];
 
   // Shoulder bridge, tapered upper arm, tapered forearm and compact wrist.
   faired_link(p1, p2, 72, 66, 66, 60, 12, 20);
@@ -196,9 +205,9 @@ module dual_seven_axis_arms() {
 module tool_dock() {
   // Cleaning and food-contact tools are removable and segregated.
   color([0.26, 0.28, 0.27])
-    translate([-178, 86, 242]) rounded_prism(62, 160, 230, 22);
+    translate([-178, 86, TORSO_BOTTOM]) rounded_prism(62, 160, 230, 22);
   color([0.68, 0.70, 0.66])
-    for (z=[282, 352, 422])
+    for (z=[TORSO_BOTTOM+40, TORSO_BOTTOM+110, TORSO_BOTTOM+180])
       translate([-211, 44, z]) rotate([0, 90, 0]) cylinder(h=34, d=28, center=true);
 }
 

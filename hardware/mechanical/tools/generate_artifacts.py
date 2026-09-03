@@ -13,24 +13,81 @@ SPEC = json.loads((ROOT / "design-spec.json").read_text(encoding="utf-8"))
 OUT = ROOT / "generated"
 
 
+def geometry_context() -> dict[str, float | str]:
+    """Return the shared raised-pose Z datums used by every mechanical exporter."""
+    coordinate = SPEC["coordinate_system"]
+    travel = float(SPEC["lifting_platform"]["travel"])
+    torso_height = float(SPEC["torso"]["height"])
+    head_height = float(SPEC["head"]["height"])
+    torso_bottom_stowed = float(coordinate["torso_bottom_stowed_z_mm"])
+    head_top_stowed = float(coordinate["head_top_stowed_z_mm"])
+    return {
+        "ground_plane_z": float(coordinate["ground_plane_z_mm"]),
+        "base_top_z": float(coordinate["base_top_z_mm"]),
+        "travel": travel,
+        "torso_bottom_stowed_z": torso_bottom_stowed,
+        "torso_bottom_raised_z": torso_bottom_stowed + travel,
+        "torso_top_raised_z": torso_bottom_stowed + travel + torso_height,
+        "head_top_stowed_z": head_top_stowed,
+        "head_top_raised_z": head_top_stowed + travel,
+        "head_bottom_raised_z": head_top_stowed + travel - head_height,
+        "assembly_pose": str(coordinate["generated_assembly_pose"]),
+    }
+
+
 def analyse() -> dict[str, object]:
     components = SPEC["components"]
     arm_mass = max(item["mass_kg"] for item in components if item["name"].endswith("seven_axis_arm"))
     total = sum(item["mass_kg"] for item in components)
-    cg = [sum(item["mass_kg"] * item["xyz"][axis] for item in components) / total for axis in range(3)]
-    drive_half_support = SPEC["chassis"]["track"] / 2
-    stabilized_half_support = SPEC["chassis"]["stabilized_support_width"] / 2
-    drive_tip_angle = math.degrees(math.atan2(drive_half_support, cg[2]))
-    stabilized_tip_angle = math.degrees(math.atan2(stabilized_half_support, cg[2]))
+
+    def load_case(name: str) -> dict[str, object]:
+        case = SPEC["analysis_load_cases"][name]
+        followers = set(SPEC["lift_follower_components"])
+        overrides = case["position_overrides"]
+        positioned: list[dict[str, object]] = []
+        for item in components:
+            xyz = list(overrides.get(item["name"], item["xyz"]))
+            if item["name"] in followers and item["name"] not in overrides:
+                xyz[2] += case["lift_followers_z_offset_mm"]
+            positioned.append({**item, "xyz": xyz})
+        cg = [sum(item["mass_kg"] * item["xyz"][axis] for item in positioned) / total for axis in range(3)]
+        return {
+            "description": case["description"],
+            "center_of_gravity_mm": [round(value, 1) for value in cg],
+        }
+
+    navigation = load_case("navigation_low")
+    manipulation = load_case("stabilized_manipulation")
+    navigation_cg = navigation["center_of_gravity_mm"]
+    manipulation_cg = manipulation["center_of_gravity_mm"]
+    drive_x_margin = SPEC["chassis"]["track"] / 2 - abs(navigation_cg[0])
+    drive_y_margin = SPEC["chassis"]["wheelbase"] / 2 - abs(navigation_cg[1])
+    stabilized_x_margin = SPEC["chassis"]["stabilized_support_width"] / 2 - abs(manipulation_cg[0])
+    stabilized_y_margin = SPEC["chassis"]["stabilized_support_depth"] / 2 - abs(manipulation_cg[1])
+    drive_margin = min(drive_x_margin, drive_y_margin)
+    stabilized_margin = min(stabilized_x_margin, stabilized_y_margin)
+    drive_tip_angle = math.degrees(math.atan2(drive_margin, navigation_cg[2]))
+    stabilized_tip_angle = math.degrees(math.atan2(stabilized_margin, manipulation_cg[2]))
+    navigation["minimum_support_margin_mm"] = round(drive_margin, 1)
+    navigation["tip_angle_deg"] = round(drive_tip_angle, 1)
+    manipulation["minimum_support_margin_mm"] = round(stabilized_margin, 1)
+    manipulation["tip_angle_deg"] = round(stabilized_tip_angle, 1)
     drop_energy = total * 9.80665 * SPEC["impact"]["drop_height_m"]
     stop_distance = drop_energy / (total * SPEC["impact"]["design_deceleration_g"] * 9.80665) * 1000
     tray = SPEC["electronics_tray"]
     pcb_width, pcb_depth, _ = tray["pcb_envelope"]
     service_margin = [(tray["width"] - pcb_width) / 2, (tray["depth"] - pcb_depth) / 2]
+    geometry = geometry_context()
+    enclosure_height = float(SPEC["enclosure"]["height"])
+    stowed_height = float(SPEC["enclosure"]["stowed_height"])
     return {
         "status": SPEC["validation_status"],
         "mass_kg": round(total, 3),
-        "center_of_gravity_mm": [round(value, 1) for value in cg],
+        "center_of_gravity_mm": manipulation_cg,
+        "load_cases": {
+            "navigation_low": navigation,
+            "stabilized_manipulation": manipulation,
+        },
         "static_tip_angle_deg": round(stabilized_tip_angle, 1),
         "drive_footprint_tip_angle_deg": round(drive_tip_angle, 1),
         "stabilized_tip_angle_deg": round(stabilized_tip_angle, 1),
@@ -71,6 +128,22 @@ def analyse() -> dict[str, object]:
         },
         "pcb_tray_margin_mm": [tray["width"] - pcb_width, tray["depth"] - pcb_depth],
         "pcb_edge_service_margin_mm": service_margin,
+        "geometry_reference": {
+            "assembly_pose": geometry["assembly_pose"],
+            "base_top_z_mm": geometry["base_top_z"],
+            "torso_bottom_raised_z_mm": geometry["torso_bottom_raised_z"],
+            "head_top_raised_z_mm": geometry["head_top_raised_z"],
+            "head_top_stowed_z_mm": geometry["head_top_stowed_z"],
+        },
+        "geometry_checks": {
+            "stowed_plus_travel_matches_raised_height": abs(
+                stowed_height + geometry["travel"] - enclosure_height
+            ) <= float(SPEC["coordinate_system"]["height_tolerance_mm"]),
+            "raised_height_matches_enclosure_height": abs(
+                geometry["head_top_raised_z"] - enclosure_height
+            ) <= float(SPEC["coordinate_system"]["height_tolerance_mm"]),
+            "torso_starts_above_base": geometry["torso_bottom_raised_z"] > geometry["base_top_z"],
+        },
     }
 
 
@@ -162,13 +235,24 @@ def export_cad_package() -> bool:
     chassis_spec = SPEC["chassis"]
     head_spec = SPEC["head"]
     torso_spec = SPEC["torso"]
+    geometry = geometry_context()
+    base_body_bottom = float(SPEC["chassis"]["ground_clearance"])
+    base_top = geometry["base_top_z"]
+    torso_bottom = geometry["torso_bottom_raised_z"]
+    head_top = geometry["head_top_raised_z"]
+    head_height = float(head_spec["height"])
+    head_depth = float(head_spec["depth"])
+    head_angle = math.radians(float(head_spec["tilt_deg"]))
+    head_half_z = (head_height / 2) * math.cos(head_angle) + (head_depth / 2) * math.sin(head_angle)
+    head_center_z = head_top - head_half_z
+    head_bottom = head_center_z - head_half_z
 
     chassis = (
         cq.Workplane("XY")
-        .box(chassis_spec["width"], chassis_spec["depth"], 112)
+        .box(chassis_spec["width"], chassis_spec["depth"], base_top - base_body_bottom)
         .edges("|Z")
         .fillet(45)
-        .translate((0, 0, 84))
+        .translate((0, 0, (base_body_bottom + base_top) / 2))
     )
     drive_module_solids = [chassis.val()]
     steering_angle = math.radians(18)
@@ -193,30 +277,55 @@ def export_cad_package() -> bool:
             steering_bearing = cq.Solid.makeCylinder(31, 34, cq.Vector(x, y, 96), cq.Vector(0, 0, 1))
             drive_module_solids.extend((wheel, hub, fork, steering_bearing))
     mobile_base = cq.Compound.makeCompound(drive_module_solids)
-    lift_lower = cq.Workplane("XY").box(210, 175, 255).edges("|Z").fillet(22).translate((0, 12, 270))
-    lift_upper = cq.Workplane("XY").box(170, 138, 250).edges("|Z").fillet(18).translate((0, 12, 440))
-    lifting_platform = lift_lower.union(lift_upper)
+    lift_lower_height = geometry["torso_bottom_stowed_z"] - base_top
+    lift_lower = (
+        cq.Workplane("XY")
+        .box(210, 175, lift_lower_height)
+        .edges("|Z")
+        .fillet(22)
+        .translate((0, 12, base_top + lift_lower_height / 2))
+    )
+    lift_carriage_height = 350
+    lift_carriage_top = torso_bottom - 10
+    lift_upper = (
+        cq.Workplane("XY")
+        .box(170, 138, lift_carriage_height)
+        .edges("|Z")
+        .fillet(18)
+        .translate((0, 12, lift_carriage_top - lift_carriage_height / 2))
+    )
+    lift_plate = (
+        cq.Workplane("XY")
+        .box(270, 228, 28)
+        .edges("|Z")
+        .fillet(24)
+        .translate((0, 12, torso_bottom - 14))
+    )
+    lifting_platform = lift_lower.union(lift_upper).union(lift_plate)
+    navigation_lifting_platform = lift_lower.union(lift_upper.translate((0, 0, -geometry["travel"]))).union(
+        lift_plate.translate((0, 0, -geometry["travel"]))
+    )
     torso = (
         cq.Workplane("XY")
         .box(torso_spec["width"], torso_spec["depth"], torso_spec["height"])
         .edges("|Z")
         .fillet(38)
-        .translate((0, 0, 610))
+        .translate((0, 0, torso_bottom + torso_spec["height"] / 2))
     )
     head = (
         cq.Workplane("XY")
-        .box(head_spec["width"], head_spec["depth"], head_spec["height"])
+        .box(head_spec["width"], head_spec["depth"], head_height)
         .edges("|Z")
         .fillet(30)
         .rotate((0, 0, 0), (1, 0, 0), head_spec["tilt_deg"])
-        .translate((0, -12, 900))
+        .translate((0, -12, head_center_z))
     )
     face_lens = (
         cq.Workplane("XY")
         .box(head_spec["display_cutout"][0], 5, head_spec["display_cutout"][1])
         .edges("|Y")
         .fillet(head_spec["display_corner_radius_mm"])
-        .translate((0, -67, 900))
+        .translate((0, -67, head_center_z))
     )
     neck_spec = head_spec["neck_mount"]
     neck_pedestal = (
@@ -224,7 +333,7 @@ def export_cad_package() -> bool:
         .box(neck_spec["pedestal_width_mm"], neck_spec["pedestal_depth_mm"], neck_spec["pedestal_height_mm"])
         .edges("|Z")
         .fillet(24)
-        .translate((0, 12, 844))
+        .translate((0, 12, head_bottom - 44))
     )
     neck_plate = (
         cq.Workplane("XY")
@@ -235,7 +344,7 @@ def export_cad_package() -> bool:
         )
         .edges("|Z")
         .fillet(14)
-        .translate((0, 12, 890))
+        .translate((0, 12, head_bottom - 13))
     )
     head_register = (
         cq.Workplane("XY")
@@ -246,17 +355,17 @@ def export_cad_package() -> bool:
         )
         .edges("|Z")
         .fillet(12)
-        .translate((0, 12, 900))
+        .translate((0, 12, head_bottom - 4))
     )
     neck_mount = neck_pedestal.union(neck_plate).union(head_register)
-    cable_passage = cq.Workplane("XY").circle(neck_spec["cable_passage_mm"] / 2).extrude(100).translate((0, 12, 804))
+    cable_passage = cq.Workplane("XY").circle(neck_spec["cable_passage_mm"] / 2).extrude(100).translate((0, 12, head_bottom - 60))
     neck_mount = neck_mount.cut(cable_passage)
     for x in (-48, 48):
         for y in (-22, 22):
-            fastener_clearance = cq.Workplane("XY").circle(3.4).extrude(36).translate((x, 12 + y, 866))
+            fastener_clearance = cq.Workplane("XY").circle(3.4).extrude(36).translate((x, 12 + y, head_bottom - 34))
             neck_mount = neck_mount.cut(fastener_clearance)
     for x in (-60, 60):
-        dowel_clearance = cq.Workplane("XY").circle(2.05).extrude(18).translate((x, 12, 884))
+        dowel_clearance = cq.Workplane("XY").circle(2.05).extrude(18).translate((x, 12, head_bottom - 18))
         neck_mount = neck_mount.cut(dowel_clearance)
     tray_spec = SPEC["electronics_tray"]
     tray = (
@@ -271,21 +380,28 @@ def export_cad_package() -> bool:
     )
     stabilizer = cq.Workplane("XY").box(48, 48, 18).edges("|Z").fillet(10)
     stabilizers = None
-    for x in (-230, 230):
+    for x in (-386, 386):
+        for y in (-386, 386):
+            foot = stabilizer.translate((x, y, 9))
+            stabilizers = foot if stabilizers is None else stabilizers.union(foot)
+    stowed_stabilizers = None
+    for x in (-228, 228):
         for y in (-225, 225):
             foot = stabilizer.translate((x, y, 104))
-            stabilizers = foot if stabilizers is None else stabilizers.union(foot)
-    tool_dock = cq.Workplane("XY").box(62, 160, 230).edges("|Z").fillet(18).translate((-178, 86, 357))
+            stowed_stabilizers = foot if stowed_stabilizers is None else stowed_stabilizers.union(foot)
+    tool_dock = cq.Workplane("XY").box(62, 160, 230).edges("|Z").fillet(18).translate((-178, 86, torso_bottom + 115))
 
+    arm_base_z = torso_bottom + 160
+    arm_z_offsets = [0, -12, -40, -145, -210, -230, -242, -250]
     right_arm_points = [
-        (176, 118, 770),
-        (204, 88, 758),
-        (250, 48, 730),
-        (375, -105, 625),
-        (330, -245, 560),
-        (270, -295, 540),
-        (225, -318, 528),
-        (182, -335, 520),
+        (176, 118, arm_base_z + arm_z_offsets[0]),
+        (204, 88, arm_base_z + arm_z_offsets[1]),
+        (250, 48, arm_base_z + arm_z_offsets[2]),
+        (375, -105, arm_base_z + arm_z_offsets[3]),
+        (330, -245, arm_base_z + arm_z_offsets[4]),
+        (270, -295, arm_base_z + arm_z_offsets[5]),
+        (225, -318, arm_base_z + arm_z_offsets[6]),
+        (182, -335, arm_base_z + arm_z_offsets[7]),
     ]
     joint_radii = [41, 34, 29, 27, 21, 17, 15]
     link_sections = [
@@ -316,13 +432,14 @@ def export_cad_package() -> bool:
             direction = end_vector - start_vector
             unit = direction.normalized()
             width, depth, gap = link_sections[index]
-            fairing_length = direction.Length - 2 * gap
-            fairing_plane = cq.Plane(origin=start_vector + unit.multiply(gap), normal=unit)
+            effective_gap = min(gap, direction.Length * 0.2)
+            fairing_length = direction.Length - 2 * effective_gap
+            fairing_plane = cq.Plane(origin=start_vector + unit.multiply(effective_gap), normal=unit)
             fairing = (
                 cq.Workplane(fairing_plane)
                 .box(width, depth, fairing_length, centered=(True, True, False))
                 .edges()
-                .fillet(min(width, depth) * 0.16)
+                .fillet(min(width, depth, fairing_length) * 0.12)
                 .val()
             )
             arm_solids.append(fairing)
@@ -343,6 +460,13 @@ def export_cad_package() -> bool:
 
     left_seven_axis_arm = make_arm(left_arm_points)
     right_seven_axis_arm = make_arm(right_arm_points)
+    navigation_right_arm_points = [
+        (x, y, geometry["torso_bottom_stowed_z"] + z)
+        for x, y, z in SPEC["manipulator"]["navigation_stowed_right_arm_points_relative_to_torso_bottom_mm"]
+    ]
+    navigation_left_arm_points = [(-x, y, z) for x, y, z in navigation_right_arm_points]
+    navigation_left_arm = make_arm(navigation_left_arm_points)
+    navigation_right_arm = make_arm(navigation_right_arm_points)
 
     parts = {
         "mobile_base": mobile_base,
@@ -383,6 +507,23 @@ def export_cad_package() -> bool:
     assembly.save(str(assembly_path), exportType="STEP")
     normalize_step(assembly_path)
 
+    low_offset = -geometry["travel"]
+    navigation = cq.Assembly(name="workbench_home_robot_navigation_low")
+    navigation.add(mobile_base, name="mobile_base", color=cq.Color(0.08, 0.10, 0.10))
+    navigation.add(navigation_lifting_platform, name="lifting_platform", color=cq.Color(0.26, 0.28, 0.27))
+    navigation.add(torso.translate((0, 0, low_offset)), name="utility_torso", color=cq.Color(0.90, 0.89, 0.85))
+    navigation.add(neck_mount.translate((0, 0, low_offset)), name="neck_mount", color=cq.Color(0.24, 0.26, 0.25))
+    navigation.add(head.translate((0, 0, low_offset)), name="head_module", color=cq.Color(0.90, 0.89, 0.85))
+    navigation.add(face_lens.translate((0, 0, low_offset)), name="face_lens", color=cq.Color(0.03, 0.04, 0.04))
+    navigation.add(navigation_left_arm, name="left_seven_axis_arm", color=cq.Color(0.26, 0.28, 0.27))
+    navigation.add(navigation_right_arm, name="right_seven_axis_arm", color=cq.Color(0.26, 0.28, 0.27))
+    navigation.add(tray, name="electronics_tray", color=cq.Color(0.42, 0.44, 0.42))
+    navigation.add(stowed_stabilizers, name="stabilizers", color=cq.Color(0.08, 0.09, 0.09))
+    navigation.add(tool_dock.translate((0, 0, low_offset)), name="tool_dock", color=cq.Color(0.22, 0.24, 0.23))
+    navigation_path = OUT / "desk_robot_navigation_low.step"
+    navigation.save(str(navigation_path), exportType="STEP")
+    normalize_step(navigation_path)
+
     exploded = cq.Assembly(name="workbench_home_robot_exploded")
     exploded.add(mobile_base.translate((0, 0, -100)), name="mobile_base")
     exploded.add(stabilizers.translate((0, 0, -150)), name="stabilizers")
@@ -398,6 +539,26 @@ def export_cad_package() -> bool:
     exploded.save(str(exploded_path), exportType="STEP")
     normalize_step(exploded_path)
     return True
+
+
+def measure_step_bounds(path: Path) -> dict[str, float] | None:
+    """Measure the generated assembly so the exported STEP is checked, not assumed."""
+    try:
+        import cadquery as cq
+    except ImportError:
+        return None
+    if not path.exists():
+        return None
+    imported = cq.importers.importStep(str(path))
+    bounds = imported.val().BoundingBox()
+    return {
+        "xmin_mm": round(bounds.xmin, 1),
+        "xmax_mm": round(bounds.xmax, 1),
+        "ymin_mm": round(bounds.ymin, 1),
+        "ymax_mm": round(bounds.ymax, 1),
+        "zmin_mm": round(bounds.zmin, 1),
+        "zmax_mm": round(bounds.zmax, 1),
+    }
 
 
 def write_engineering_drawings(report: dict[str, object]) -> None:
@@ -478,11 +639,50 @@ def main() -> None:
     report = analyse()
     if not all(report["checks"].values()):
         raise SystemExit(f"mechanical design check failed: {report['checks']}")
-    (OUT / "analysis.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     step_path = OUT / "enclosure.step"
     cad_exported = export_cad_package()
     if not cad_exported and not export_solid_step(step_path) and not step_path.exists():
         step_path.write_text(step_box(enclosure["width"], enclosure["depth"], enclosure["height"]), encoding="ascii")
+    assembly_bounds = measure_step_bounds(OUT / "desk_robot_assembly.step")
+    navigation_bounds = measure_step_bounds(OUT / "desk_robot_navigation_low.step")
+    report["generated_geometry"] = {
+        "status": "MEASURED" if assembly_bounds and navigation_bounds else "NOT_MEASURED",
+        "assembly_bounds_mm": assembly_bounds,
+        "navigation_bounds_mm": navigation_bounds,
+    }
+    if assembly_bounds and navigation_bounds:
+        target_height = float(SPEC["enclosure"]["height"])
+        stowed_height = float(SPEC["enclosure"]["stowed_height"])
+        tolerance = float(SPEC["coordinate_system"]["height_tolerance_mm"])
+        report["geometry_checks"]["generated_step_top_matches_target"] = abs(
+            assembly_bounds["zmax_mm"] - target_height
+        ) <= tolerance
+        report["geometry_checks"]["navigation_step_top_matches_stowed_height"] = abs(
+            navigation_bounds["zmax_mm"] - stowed_height
+        ) <= tolerance
+        report["geometry_checks"]["navigation_footprint_matches_base"] = (
+            navigation_bounds["xmin_mm"] >= -float(SPEC["chassis"]["width"]) / 2 - tolerance
+            and navigation_bounds["xmax_mm"] <= float(SPEC["chassis"]["width"]) / 2 + tolerance
+            and navigation_bounds["ymin_mm"] >= -float(SPEC["chassis"]["depth"]) / 2 - tolerance
+            and navigation_bounds["ymax_mm"] <= float(SPEC["chassis"]["depth"]) / 2 + tolerance
+        )
+        report["geometry_checks"]["stabilized_footprint_matches_support_polygon"] = (
+            abs(assembly_bounds["xmin_mm"] + float(SPEC["chassis"]["stabilized_support_width"]) / 2)
+            <= tolerance
+            and abs(assembly_bounds["xmax_mm"] - float(SPEC["chassis"]["stabilized_support_width"]) / 2)
+            <= tolerance
+            and abs(assembly_bounds["ymin_mm"] + float(SPEC["chassis"]["stabilized_support_depth"]) / 2)
+            <= tolerance
+            and abs(assembly_bounds["ymax_mm"] - float(SPEC["chassis"]["stabilized_support_depth"]) / 2)
+            <= tolerance
+        )
+        if not all(report["geometry_checks"].values()):
+            raise SystemExit(
+                "generated STEP envelope mismatch: "
+                f"raised={assembly_bounds['zmax_mm']} mm target={target_height} mm, "
+                f"stowed={navigation_bounds['zmax_mm']} mm target={stowed_height} mm"
+            )
+    (OUT / "analysis.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     write_engineering_drawings(report)
     rows = [
         ["ME-C01", "Holonomic base frame and perimeter bumper", "5052-H32 aluminium + TPU", 1],

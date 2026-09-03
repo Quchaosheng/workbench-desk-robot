@@ -6,6 +6,20 @@ The current target is a 540 x 520 mm mobile base with a 350 mm braked liftable t
 a continuous mineral-white utility body, two seven-axis arms, an 18 L parcel bay,
 and a locked quick-change tool system.
 
+## Authoritative baseline
+
+`design-spec.json`, `cad/desk_robot.scad`, and the generated STEP package use one
+coordinate system: ground is Z=0, the base top is Z=140 mm, and the checked-in
+assembly is the raised working pose with a 1450 mm head-top envelope. The stowed
+head-top envelope is 1100 mm and the controlled lift travel is 350 mm. Generated
+geometry is measured during export and the generator fails if the STEP top does
+not match the controlled envelope.
+
+The Revision D chassis is four independent 140 mm steer-drive modules. Any
+document describing two 200 mm driven wheels, four support casters, the earlier
+55 kg workbench, or a Rev B/Rev C fixed shape is a legacy planning reference and
+must not be used as the current mechanical or procurement interface.
+
 ## Product architecture
 
 - **Mobile base:** four independent steer-drive modules provide longitudinal,
@@ -58,8 +72,10 @@ or analytical result substitutes for lift synchronization, arm sweep, thermal,
 stability, force-limit, or guarded household-task tests on a serialized unit.
 
 - `generated/enclosure.step`: torso exchange solid for supplier review.
-- `generated/desk_robot_assembly.step`: mobile base, lift, torso, head, dual 7R arms,
-  stabilizers, and tool dock assembly.
+- `generated/desk_robot_assembly.step`: raised working pose with deployed
+  stabilizers, mobile base, lift, torso, head, dual 7R arms, and tool dock.
+- `generated/desk_robot_navigation_low.step`: lowered navigation pose with
+  stabilizers stowed inside the base envelope.
 - `generated/desk_robot_exploded.step`: exploded assembly for work instructions.
 - `generated/parts/*.step`: ten D revision concept parts, including the separate neck mount.
 - `generated/drawings/general-arrangement.svg`: D revision architecture and lift states.

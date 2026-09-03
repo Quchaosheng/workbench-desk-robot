@@ -1,0 +1,44 @@
+{
+  "issue": "bsp-readiness-ci",
+  "human_owner": "Quchaosheng",
+  "objective": "Run repository-side Linux BSP manifest and readiness checks on every pull request and main push.",
+  "allowed_paths": [
+    ".github/workflows/ci.yml",
+    "bsp/validation/**",
+    "bsp/**/*.yaml",
+    "tests/unit/test_bsp_manifests.py",
+    "docs/task_packets/bsp-readiness-ci.json"
+  ],
+  "read_only_paths": [
+    "kernel/**",
+    "robot/**",
+    "firmware/**",
+    "interfaces/**"
+  ],
+  "forbidden": [
+    "physical hardware claims",
+    "invented JetPack, DTS or pin/IRQ evidence"
+  ],
+  "acceptance": [
+    "BSP manifest validation runs in CI",
+    "BSP readiness validation runs in CI",
+    "unit tests cover the BSP manifest contract",
+    "physical bring-up remains fail-closed and NOT_EXECUTED"
+  ],
+  "commands": [
+    "python bsp/validation/validate_manifests.py",
+    "python bsp/validation/check_readiness.py",
+    "python -m pytest tests/unit/test_bsp_manifests.py -q"
+  ],
+  "evidence": [
+    ".github/workflows/ci.yml",
+    "bsp/readiness.yaml",
+    "bsp/image/build-inputs.yaml",
+    "tests/unit/test_bsp_manifests.py"
+  ],
+  "stop_conditions": [
+    "a change would require physical board evidence",
+    "a target-specific DTS or kernel release is not sourced",
+    "a validation change weakens fail-closed behavior"
+  ]
+}

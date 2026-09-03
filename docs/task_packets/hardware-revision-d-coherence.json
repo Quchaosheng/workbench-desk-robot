@@ -13,7 +13,8 @@
     "tests/hardware/test_operations_readiness.py",
     "docs/task_packets/hardware-selection-baseline.json",
     "docs/task_packets/operations-readiness-020-027.json",
-    "docs/task_packets/hardware-revision-d-coherence.json"
+    "docs/task_packets/hardware-revision-d-coherence.json",
+    "docs/task_packets/revision-d-mechanical-baseline-repair.json"
   ],
   "read_only_paths": [
     "hardware/pcb/**",

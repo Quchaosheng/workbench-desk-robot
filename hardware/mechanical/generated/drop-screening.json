@@ -1,5 +1,8 @@
 {
   "method": "energy and equivalent-static screening; nonlinear FEA and physical drop remain required",
+  "mass_model_revision": "D",
+  "mass_model_sha256": "8fd2b60cec18e3fd9e73f47ae4c05f5382090889d41a98e48af3a69a70bc50f0",
+  "mass_model_status": "ESTIMATE",
   "drop_force_n_at_design_g": 15200.3,
   "drop_energy_j": 152.0,
   "effective_stroke_mm": 28,

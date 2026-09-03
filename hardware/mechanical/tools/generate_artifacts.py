@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import math
 from itertools import pairwise
@@ -11,6 +12,268 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = json.loads((ROOT / "design-spec.json").read_text(encoding="utf-8"))
 OUT = ROOT / "generated"
+CALCULATION_VERSION = "revision-d-directional-stability-1"
+DIRECTIONS = ("+X", "-X", "+Y", "-Y")
+REQUIRED_MASS_FIELDS = {
+    "id",
+    "name",
+    "mass_kg",
+    "xyz",
+    "reference_frame",
+    "source",
+    "uncertainty_kg",
+    "status",
+    "inclusion_rule",
+}
+
+
+def _is_finite_number(value: object) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(float(value))
+
+
+def _canonical_json(value: object) -> bytes:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def mass_model_payload(spec: dict[str, object] | None = None) -> dict[str, object]:
+    source = SPEC if spec is None else spec
+    return {"mass_model": source["mass_model"], "components": source["components"]}
+
+
+def mass_model_sha256(spec: dict[str, object] | None = None) -> str:
+    try:
+        return hashlib.sha256(_canonical_json(mass_model_payload(spec))).hexdigest()
+    except (TypeError, ValueError):
+        return ""
+
+
+def validate_mass_model(
+    spec: dict[str, object] | None = None, ledger_rows: list[dict[str, str]] | None = None
+) -> dict[str, object]:
+    source = SPEC if spec is None else spec
+    model = source.get("mass_model")
+    components = source.get("components")
+    errors: list[str] = []
+    model_is_object = isinstance(model, dict)
+    components_are_list = isinstance(components, list)
+    if not model_is_object:
+        errors.append("mass_model must be an object")
+        model = {}
+    if not components_are_list:
+        errors.append("components must be a list")
+        components = []
+    required_model_fields = {
+        "model_id",
+        "revision",
+        "authoritative_source",
+        "units",
+        "reference_frame",
+        "tolerance_kg",
+        "component_ids",
+        "owner_approvals",
+    }
+    checks: dict[str, bool] = {
+        "mass_model_metadata_is_complete": required_model_fields <= set(model),
+        "mass_model_revision_matches_spec": model.get("revision") == source.get("revision"),
+        "mass_model_units_are_controlled": model.get("units") == {"mass": "kg", "position": "mm"},
+        "mass_model_reference_frame_is_present": isinstance(model.get("reference_frame"), str)
+        and bool(model.get("reference_frame")),
+        "mass_model_tolerance_is_positive": _is_finite_number(model.get("tolerance_kg"))
+        and math.isfinite(float(model.get("tolerance_kg", 0)))
+        and float(model.get("tolerance_kg", 0)) > 0,
+        "owner_approval_records_are_explicit": isinstance(model.get("owner_approvals"), list)
+        and {item.get("role") for item in model.get("owner_approvals", []) if isinstance(item, dict)}
+        >= {"Product", "Mechanical", "Hardware", "Safety"},
+        "components_are_present": bool(components),
+    }
+    ids: list[object] = []
+    valid_components: list[dict[str, object]] = []
+    for index, component in enumerate(components):
+        if not isinstance(component, dict):
+            errors.append(f"component[{index}] must be an object")
+            continue
+        ids.append(component.get("id"))
+        missing = REQUIRED_MASS_FIELDS - set(component)
+        if missing:
+            errors.append(f"component[{index}] missing fields: {sorted(missing)}")
+        mass = component.get("mass_kg")
+        uncertainty = component.get("uncertainty_kg")
+        xyz = component.get("xyz")
+        numeric_values = [mass, uncertainty, *(xyz if isinstance(xyz, list) else [])]
+        if not all(_is_finite_number(value) for value in numeric_values):
+            errors.append(f"component[{index}] has non-finite numeric values")
+        if _is_finite_number(mass) and float(mass) <= 0:
+            errors.append(f"component[{index}] mass must be positive")
+        if _is_finite_number(uncertainty) and float(uncertainty) < 0:
+            errors.append(f"component[{index}] uncertainty must not be negative")
+        if not isinstance(xyz, list) or len(xyz) != 3:
+            errors.append(f"component[{index}] xyz must contain three values")
+        if component.get("reference_frame") != model.get("reference_frame"):
+            errors.append(f"component[{index}] reference frame mismatch")
+        if not isinstance(component.get("source"), str) or not component.get("source"):
+            errors.append(f"component[{index}] source is missing")
+        if component.get("status") not in {"ESTIMATE", "MEASURED", "NOT_EXECUTED"}:
+            errors.append(f"component[{index}] status is not controlled")
+        if component.get("inclusion_rule") not in {"AUTHORITATIVE_CURRENT", "EXCLUDED"}:
+            errors.append(f"component[{index}] inclusion rule is not controlled")
+        if component.get("inclusion_rule") == "EXCLUDED" and not component.get("exclusion_reason"):
+            errors.append(f"component[{index}] exclusion reason is missing")
+        if component.get("inclusion_rule") == "AUTHORITATIVE_CURRENT":
+            valid_components.append(component)
+    declared_ids = model.get("component_ids", [])
+    declared_ids_valid = isinstance(declared_ids, list) and all(isinstance(item, str) and item for item in declared_ids)
+    checks.update(
+        {
+            "component_ids_are_unique": all(isinstance(item, str) and item for item in ids)
+            and len(ids) == len(set(ids)),
+            "component_ids_match_model": declared_ids_valid and set(ids) == set(declared_ids),
+            "component_records_are_valid": not errors,
+            "authoritative_components_are_present": bool(valid_components),
+        }
+    )
+    total_mass = sum(float(item["mass_kg"]) for item in valid_components) if valid_components and not errors else None
+    center_of_gravity = (
+        [
+            sum(float(item["mass_kg"]) * float(item["xyz"][axis]) for item in valid_components) / total_mass
+            for axis in range(3)
+        ]
+        if total_mass
+        else None
+    )
+    checks["authoritative_mass_is_positive"] = total_mass is not None and math.isfinite(total_mass) and total_mass > 0
+    if ledger_rows is not None:
+        required_ledger_fields = {
+            "component_id",
+            "model_revision",
+            "mass_kg",
+            "x_mm",
+            "y_mm",
+            "z_mm",
+            "reference_frame",
+            "source",
+            "uncertainty_kg",
+            "inclusion_rule",
+            "status",
+        }
+        checks["mass_ledger_schema_is_current"] = bool(ledger_rows) and required_ledger_fields <= set(ledger_rows[0])
+        ledger_ids = [
+            row.get("component_id") for row in ledger_rows if row.get("inclusion_rule") == "AUTHORITATIVE_CURRENT"
+        ]
+        checks["mass_ledger_has_no_duplicate_ids"] = len(ledger_ids) == len(set(ledger_ids))
+        checks["mass_ledger_matches_authoritative_components"] = set(ledger_ids) == {
+            item.get("id") for item in valid_components
+        }
+        tolerance = float(model.get("tolerance_kg", 0.001)) if _is_finite_number(model.get("tolerance_kg")) else 0.001
+        component_by_id = {item.get("id"): item for item in valid_components}
+        ledger_matches = True
+        for row in ledger_rows:
+            if row.get("inclusion_rule") != "AUTHORITATIVE_CURRENT":
+                continue
+            component = component_by_id.get(row.get("component_id"))
+            if (
+                component is None
+                or row.get("model_revision") != model.get("revision")
+                or row.get("reference_frame") != model.get("reference_frame")
+            ):
+                ledger_matches = False
+                continue
+            try:
+                ledger_matches = (
+                    ledger_matches and abs(float(row["mass_kg"]) - float(component["mass_kg"])) <= tolerance
+                )
+                ledger_matches = ledger_matches and row.get("component") == component.get("name")
+                ledger_matches = ledger_matches and row.get("source") == component.get("source")
+                ledger_matches = ledger_matches and row.get("status") == component.get("status")
+                ledger_matches = ledger_matches and row.get("inclusion_rule") == component.get("inclusion_rule")
+                ledger_matches = (
+                    ledger_matches
+                    and abs(float(row["uncertainty_kg"]) - float(component["uncertainty_kg"])) <= tolerance
+                )
+                ledger_matches = ledger_matches and all(
+                    abs(float(row[f"{axis}_mm"]) - float(component["xyz"][position])) <= tolerance
+                    for position, axis in enumerate(("x", "y", "z"))
+                )
+            except (KeyError, TypeError, ValueError):
+                ledger_matches = False
+        checks["mass_ledger_values_match_authoritative_source"] = ledger_matches
+    return {
+        "pass": all(checks.values()),
+        "checks": checks,
+        "errors": errors,
+        "total_mass_kg": total_mass,
+        "center_of_gravity_mm": [round(value, 1) for value in center_of_gravity] if center_of_gravity else None,
+        "component_count": len(valid_components),
+        "mass_model_sha256": mass_model_sha256(source) if model_is_object and components_are_list else None,
+    }
+
+
+def calculate_directional_stability(
+    center_of_gravity_mm: list[float],
+    support_polygon: dict[str, object],
+    pose_identifier: str,
+    threshold_deg: float,
+    ground_plane_z_mm: float = 0.0,
+) -> dict[str, object]:
+    """Calculate directional tip margins for an axis-aligned support polygon."""
+    directions = support_polygon.get("edges", {})
+    results: dict[str, object] = {}
+    for direction in DIRECTIONS:
+        edge = directions.get(direction) if isinstance(directions, dict) else None
+        valid = isinstance(edge, dict) and edge.get("axis") in {"x", "y"}
+        try:
+            axis = 0 if isinstance(edge, dict) and edge.get("axis") == "x" else 1
+            coordinate = float(edge["coordinate_mm"])
+            cg_axis = float(center_of_gravity_mm[axis])
+            cg_z = float(center_of_gravity_mm[2])
+            margin = coordinate - cg_axis if direction.startswith("+") else cg_axis - coordinate
+            angle = math.degrees(math.atan2(margin, cg_z - ground_plane_z_mm))
+            valid = (
+                valid and math.isfinite(margin) and math.isfinite(angle) and margin >= 0 and cg_z > ground_plane_z_mm
+            )
+        except (KeyError, IndexError, TypeError, ValueError, ZeroDivisionError):
+            valid = False
+            margin = None
+            angle = None
+        results[direction] = {
+            "direction": direction,
+            "support_margin_mm": round(margin, 1) if margin is not None else None,
+            "tip_angle_deg": round(angle, 1) if angle is not None else None,
+            "limiting_support_edge": edge.get("name") if isinstance(edge, dict) else None,
+            "pose_identifier": pose_identifier,
+            "threshold_deg": threshold_deg,
+            "pass": bool(valid and angle >= threshold_deg),
+        }
+    valid_results = [item for item in results.values() if isinstance(item, dict) and item["tip_angle_deg"] is not None]
+    minimum = min(valid_results, key=lambda item: item["tip_angle_deg"]) if valid_results else None
+    return {
+        "pose_identifier": pose_identifier,
+        "directions": results,
+        "minimum_tip_angle_deg": minimum["tip_angle_deg"] if minimum else None,
+        "limiting_direction": minimum["direction"] if minimum else None,
+        "limiting_support_edge": minimum["limiting_support_edge"] if minimum else None,
+        "pass": len(valid_results) == len(DIRECTIONS) and all(item["pass"] for item in valid_results),
+    }
+
+
+def _invalid_analysis(validation: dict[str, object]) -> dict[str, object]:
+    return {
+        "status": SPEC.get("validation_status", "CONCEPT_PHYSICAL_VALIDATION_REQUIRED"),
+        "mass_kg": None,
+        "center_of_gravity_mm": None,
+        "mass_model": {"validation": validation},
+        "stability": {"checks": {"directional_results_are_complete": False}, "cases": {}},
+        "checks": {"mass_model_is_valid": False, "directional_stability_is_valid": False},
+        "geometry_checks": {},
+        "validation_errors": validation.get("errors", []),
+    }
 
 
 def geometry_context() -> dict[str, float | str]:
@@ -36,9 +299,17 @@ def geometry_context() -> dict[str, float | str]:
 
 
 def analyse() -> dict[str, object]:
-    components = SPEC["components"]
-    arm_mass = max(item["mass_kg"] for item in components if item["name"].endswith("seven_axis_arm"))
-    total = sum(item["mass_kg"] for item in components)
+    try:
+        with (ROOT / "mass-ledger.csv").open(newline="", encoding="utf-8") as handle:
+            ledger_rows = list(csv.DictReader(handle))
+    except OSError:
+        ledger_rows = []
+    validation = validate_mass_model(SPEC, ledger_rows)
+    if not validation["pass"]:
+        return _invalid_analysis(validation)
+    components = [item for item in SPEC["components"] if item["inclusion_rule"] == "AUTHORITATIVE_CURRENT"]
+    total = float(validation["total_mass_kg"])
+    arm_mass = max(float(item["mass_kg"]) for item in components if item["name"].endswith("seven_axis_arm"))
 
     def load_case(name: str) -> dict[str, object]:
         case = SPEC["analysis_load_cases"][name]
@@ -50,28 +321,210 @@ def analyse() -> dict[str, object]:
             if item["name"] in followers and item["name"] not in overrides:
                 xyz[2] += case["lift_followers_z_offset_mm"]
             positioned.append({**item, "xyz": xyz})
-        cg = [sum(item["mass_kg"] * item["xyz"][axis] for item in positioned) / total for axis in range(3)]
+        cg = [
+            sum(float(item["mass_kg"]) * float(item["xyz"][axis]) for item in positioned) / total for axis in range(3)
+        ]
         return {
             "description": case["description"],
             "center_of_gravity_mm": [round(value, 1) for value in cg],
         }
 
-    navigation = load_case("navigation_low")
-    manipulation = load_case("stabilized_manipulation")
-    navigation_cg = navigation["center_of_gravity_mm"]
+    try:
+        navigation = load_case("navigation_low")
+        manipulation = load_case("stabilized_manipulation")
+    except (KeyError, IndexError, TypeError, ValueError, ZeroDivisionError) as exc:
+        invalid_validation = dict(validation)
+        invalid_validation["errors"] = [*validation.get("errors", []), f"invalid analysis load case: {exc}"]
+        invalid_validation["pass"] = False
+        return _invalid_analysis(invalid_validation)
     manipulation_cg = manipulation["center_of_gravity_mm"]
-    drive_x_margin = SPEC["chassis"]["track"] / 2 - abs(navigation_cg[0])
-    drive_y_margin = SPEC["chassis"]["wheelbase"] / 2 - abs(navigation_cg[1])
-    stabilized_x_margin = SPEC["chassis"]["stabilized_support_width"] / 2 - abs(manipulation_cg[0])
-    stabilized_y_margin = SPEC["chassis"]["stabilized_support_depth"] / 2 - abs(manipulation_cg[1])
-    drive_margin = min(drive_x_margin, drive_y_margin)
-    stabilized_margin = min(stabilized_x_margin, stabilized_y_margin)
-    drive_tip_angle = math.degrees(math.atan2(drive_margin, navigation_cg[2]))
-    stabilized_tip_angle = math.degrees(math.atan2(stabilized_margin, manipulation_cg[2]))
-    navigation["minimum_support_margin_mm"] = round(drive_margin, 1)
+    stability_spec = SPEC.get("stability_analysis", {})
+    if not isinstance(stability_spec, dict):
+        stability_spec = {}
+    stability_load_cases = SPEC.get("stability_load_cases", {})
+    if not isinstance(stability_load_cases, dict):
+        stability_load_cases = {}
+    support_polygons = stability_spec.get("support_polygons", {})
+    if not isinstance(support_polygons, dict):
+        support_polygons = {}
+    thresholds = stability_spec.get("thresholds_deg", {})
+    if not isinstance(thresholds, dict):
+        thresholds = {}
+    polygons_are_valid = True
+    for configuration in ("drive", "stabilized"):
+        polygon = support_polygons.get(configuration)
+        vertices = polygon.get("vertices_mm") if isinstance(polygon, dict) else None
+        edges = polygon.get("edges") if isinstance(polygon, dict) else None
+        polygons_are_valid = polygons_are_valid and isinstance(vertices, list) and len(vertices) >= 4
+        polygons_are_valid = polygons_are_valid and isinstance(edges, dict) and set(edges) >= set(DIRECTIONS)
+        if isinstance(vertices, list):
+            polygons_are_valid = polygons_are_valid and all(
+                isinstance(vertex, list) and len(vertex) == 2 and all(_is_finite_number(value) for value in vertex)
+                for vertex in vertices
+            )
+        if isinstance(edges, dict):
+            polygons_are_valid = polygons_are_valid and all(
+                isinstance(edges.get(direction), dict)
+                and edges[direction].get("axis") in {"x", "y"}
+                and isinstance(edges[direction].get("name"), str)
+                and _is_finite_number(edges[direction].get("coordinate_mm"))
+                and math.isfinite(float(edges[direction]["coordinate_mm"]))
+                for direction in DIRECTIONS
+            )
+    thresholds_are_valid = all(
+        _is_finite_number(thresholds.get(configuration))
+        and math.isfinite(float(thresholds[configuration]))
+        and float(thresholds[configuration]) > 0
+        for configuration in ("drive", "stabilized")
+    )
+    try:
+        support_polygons_match_chassis = (
+            support_polygons["drive"]["edges"]["+X"]["coordinate_mm"] == float(SPEC["chassis"]["track"]) / 2
+            and support_polygons["drive"]["edges"]["-X"]["coordinate_mm"] == -float(SPEC["chassis"]["track"]) / 2
+            and support_polygons["drive"]["edges"]["+Y"]["coordinate_mm"] == float(SPEC["chassis"]["wheelbase"]) / 2
+            and support_polygons["drive"]["edges"]["-Y"]["coordinate_mm"] == -float(SPEC["chassis"]["wheelbase"]) / 2
+            and support_polygons["stabilized"]["edges"]["+X"]["coordinate_mm"]
+            == float(SPEC["chassis"]["stabilized_support_width"]) / 2
+            and support_polygons["stabilized"]["edges"]["-X"]["coordinate_mm"]
+            == -float(SPEC["chassis"]["stabilized_support_width"]) / 2
+            and support_polygons["stabilized"]["edges"]["+Y"]["coordinate_mm"]
+            == float(SPEC["chassis"]["stabilized_support_depth"]) / 2
+            and support_polygons["stabilized"]["edges"]["-Y"]["coordinate_mm"]
+            == -float(SPEC["chassis"]["stabilized_support_depth"]) / 2
+        )
+    except (KeyError, TypeError, ValueError):
+        support_polygons_match_chassis = False
+    stability_cases: dict[str, object] = {}
+    for case_id, case_spec in stability_load_cases.items():
+        if not isinstance(case_spec, dict):
+            stability_cases[case_id] = {"pass": False, "directions": {}}
+            continue
+        source_case = case_spec.get("source_load_case")
+        configuration = case_spec.get("configuration")
+        source = (
+            navigation
+            if source_case == "navigation_low"
+            else manipulation
+            if source_case == "stabilized_manipulation"
+            else None
+        )
+        polygon = support_polygons.get(configuration)
+        threshold = thresholds.get(configuration)
+        if source is None or polygon is None or threshold is None:
+            stability_cases[case_id] = {
+                "pass": False,
+                "directions": {},
+                "pose_identifier": case_spec.get("pose_identifier"),
+            }
+            continue
+        try:
+            result = calculate_directional_stability(
+                source["center_of_gravity_mm"],
+                polygon,
+                str(case_spec.get("pose_identifier", case_id)),
+                float(threshold),
+                float(stability_spec.get("ground_plane_z_mm", 0.0)),
+            )
+        except (KeyError, IndexError, TypeError, ValueError, ZeroDivisionError):
+            result = {
+                "pose_identifier": str(case_spec.get("pose_identifier", case_id)),
+                "directions": {},
+                "minimum_tip_angle_deg": None,
+                "limiting_direction": None,
+                "limiting_support_edge": None,
+                "pass": False,
+            }
+        result.update(
+            {
+                "configuration": configuration,
+                "source_load_case": source_case,
+                "dynamic_stability_factor": case_spec.get("dynamic_stability_factor", 1.0),
+                "description": case_spec.get("description", source.get("description")),
+            }
+        )
+        try:
+            dynamic_factor_valid = (
+                math.isfinite(float(result["dynamic_stability_factor"]))
+                and float(result["dynamic_stability_factor"]) > 0
+            )
+        except (TypeError, ValueError):
+            dynamic_factor_valid = False
+        result["dynamic_stability_factor_valid"] = dynamic_factor_valid
+        result["pass"] = result["pass"] and dynamic_factor_valid
+        stability_cases[case_id] = result
+    gate_results: dict[str, object] = {}
+    for configuration in ("drive", "stabilized"):
+        cases = [item for item in stability_cases.values() if item.get("configuration") == configuration]
+        directional_minimums: dict[str, object] = {}
+        for direction in DIRECTIONS:
+            candidates = [
+                item["directions"][direction]
+                for item in cases
+                if direction in item.get("directions", {})
+                and item["directions"][direction]["tip_angle_deg"] is not None
+            ]
+            directional_minimums[direction] = (
+                min(candidates, key=lambda item: item["tip_angle_deg"]) if candidates else None
+            )
+        valid = (
+            stability_spec.get("directions") == list(DIRECTIONS)
+            and polygons_are_valid
+            and support_polygons_match_chassis
+            and thresholds_are_valid
+            and all(directional_minimums.values())
+            and bool(cases)
+            and all(item.get("pass", False) for item in cases)
+        )
+        limiting = min(
+            (item for item in directional_minimums.values() if item),
+            key=lambda item: item["tip_angle_deg"],
+            default=None,
+        )
+        gate_results[configuration] = {
+            "threshold_deg": thresholds.get(configuration),
+            "case_ids": [
+                case_id for case_id, item in stability_cases.items() if item.get("configuration") == configuration
+            ],
+            "directional_minimums": directional_minimums,
+            "minimum_tip_angle_deg": limiting["tip_angle_deg"] if limiting else None,
+            "limiting_direction": limiting["direction"] if limiting else None,
+            "limiting_support_edge": limiting["limiting_support_edge"] if limiting else None,
+            "pass": bool(valid),
+        }
+    drive_minimum = gate_results["drive"]["minimum_tip_angle_deg"]
+    stabilized_minimum = gate_results["stabilized"]["minimum_tip_angle_deg"]
+    drive_tip_angle = float(drive_minimum) if drive_minimum is not None else 0.0
+    stabilized_tip_angle = float(stabilized_minimum) if stabilized_minimum is not None else 0.0
+    drive_margins = [
+        item["support_margin_mm"] for item in gate_results["drive"]["directional_minimums"].values() if item
+    ]
+    stabilized_margins = [
+        item["support_margin_mm"] for item in gate_results["stabilized"]["directional_minimums"].values() if item
+    ]
+    navigation["minimum_support_margin_mm"] = round(min(drive_margins), 1) if drive_margins else None
     navigation["tip_angle_deg"] = round(drive_tip_angle, 1)
-    manipulation["minimum_support_margin_mm"] = round(stabilized_margin, 1)
+    manipulation["minimum_support_margin_mm"] = round(min(stabilized_margins), 1) if stabilized_margins else None
     manipulation["tip_angle_deg"] = round(stabilized_tip_angle, 1)
+    stability_checks = {
+        "declared_directions_are_complete": stability_spec.get("directions") == list(DIRECTIONS),
+        "calculation_version_is_current": stability_spec.get("calculation_version") == CALCULATION_VERSION,
+        "support_polygons_are_defined": polygons_are_valid,
+        "support_polygons_match_chassis": support_polygons_match_chassis,
+        "stability_thresholds_are_valid": thresholds_are_valid,
+        "dynamic_stability_factors_are_valid": all(
+            item.get("dynamic_stability_factor_valid", False) for item in stability_cases.values()
+        ),
+        "required_stability_cases_are_present": set(stability_cases) >= set(stability_spec.get("required_cases", [])),
+        "drive_directional_results_are_complete": bool(gate_results["drive"]["pass"]),
+        "stabilized_directional_results_are_complete": bool(gate_results["stabilized"]["pass"]),
+        "gates_use_directional_minimums": all(
+            gate_results[configuration]["minimum_tip_angle_deg"] is not None
+            and all(gate_results[configuration]["directional_minimums"].values())
+            and gate_results[configuration]["minimum_tip_angle_deg"]
+            == min(item["tip_angle_deg"] for item in gate_results[configuration]["directional_minimums"].values())
+            for configuration in ("drive", "stabilized")
+        ),
+    }
     drop_energy = total * 9.80665 * SPEC["impact"]["drop_height_m"]
     stop_distance = drop_energy / (total * SPEC["impact"]["design_deceleration_g"] * 9.80665) * 1000
     tray = SPEC["electronics_tray"]
@@ -83,6 +536,27 @@ def analyse() -> dict[str, object]:
     return {
         "status": SPEC["validation_status"],
         "mass_kg": round(total, 3),
+        "mass_model": {
+            "model_id": SPEC["mass_model"]["model_id"],
+            "revision": SPEC["mass_model"]["revision"],
+            "authoritative_source": SPEC["mass_model"]["authoritative_source"],
+            "source_hashes": {
+                "design_spec_sha256": sha256_file(ROOT / "design-spec.json"),
+                "mass_ledger_sha256": sha256_file(ROOT / "mass-ledger.csv"),
+                "legacy_mass_ledger_sha256": sha256_file(ROOT / "mass-ledger-legacy.csv")
+                if (ROOT / "mass-ledger-legacy.csv").exists()
+                else None,
+            },
+            "mass_model_sha256": validation["mass_model_sha256"],
+            "units": SPEC["mass_model"]["units"],
+            "reference_frame": SPEC["mass_model"]["reference_frame"],
+            "component_count": validation["component_count"],
+            "mass_kg": round(total, 3),
+            "center_of_gravity_mm": manipulation_cg,
+            "status": "ESTIMATE",
+            "validation_status": SPEC["validation_status"],
+            "owner_approval_status": "REQUIRED",
+        },
         "center_of_gravity_mm": manipulation_cg,
         "load_cases": {
             "navigation_low": navigation,
@@ -91,6 +565,18 @@ def analyse() -> dict[str, object]:
         "static_tip_angle_deg": round(stabilized_tip_angle, 1),
         "drive_footprint_tip_angle_deg": round(drive_tip_angle, 1),
         "stabilized_tip_angle_deg": round(stabilized_tip_angle, 1),
+        "stability": {
+            "calculation_version": CALCULATION_VERSION,
+            "coordinate_convention": stability_spec.get("coordinate_convention"),
+            "tip_angle_formula": stability_spec.get("tip_angle_formula"),
+            "ground_plane_z_mm": stability_spec.get("ground_plane_z_mm"),
+            "directions": list(DIRECTIONS),
+            "support_polygons": support_polygons,
+            "cases": stability_cases,
+            "directional_results": stability_cases,
+            "gates": gate_results,
+            "checks": stability_checks,
+        },
         "payload_only_moment_nm": round(
             SPEC["manipulator"]["continuous_payload"]["mass_kg"]
             * 9.80665
@@ -118,8 +604,10 @@ def analyse() -> dict[str, object]:
             SPEC["ventilation"]["outlet_area_mm2"] / SPEC["ventilation"]["inlet_area_mm2"], 2
         ),
         "checks": {
-            "drive_tip_angle_at_least_25_deg": drive_tip_angle >= 25,
-            "stabilized_tip_angle_at_least_35_deg": stabilized_tip_angle >= 35,
+            "mass_model_is_valid": bool(validation["pass"]),
+            "drive_tip_angle_at_least_25_deg": bool(gate_results["drive"]["pass"]),
+            "stabilized_tip_angle_at_least_35_deg": bool(gate_results["stabilized"]["pass"]),
+            **stability_checks,
             "outlet_area_at_least_inlet": SPEC["ventilation"]["outlet_area_mm2"]
             >= SPEC["ventilation"]["inlet_area_mm2"],
             "absorber_at_least_derived_stroke": SPEC["impact"]["effective_absorber_stroke_mm"] >= stop_distance,
@@ -598,6 +1086,9 @@ def write_engineering_drawings(report: dict[str, object]) -> None:
     (drawings / "thermal-flow.svg").write_text(thermal, encoding="utf-8", newline="\n")
     fea = {
         "method": "energy and equivalent-static screening; nonlinear FEA and physical drop remain required",
+        "mass_model_revision": report["mass_model"]["revision"],
+        "mass_model_sha256": report["mass_model"]["mass_model_sha256"],
+        "mass_model_status": report["mass_model"]["status"],
         "drop_force_n_at_design_g": round(report["mass_kg"] * SPEC["impact"]["design_deceleration_g"] * 9.80665, 1),
         "drop_energy_j": report["drop_energy_j"],
         "effective_stroke_mm": SPEC["impact"]["effective_absorber_stroke_mm"],
@@ -691,8 +1182,25 @@ def main() -> None:
     ]
     with (OUT / "bom.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
-        writer.writerow(["part_number", "description", "material", "quantity"])
-        writer.writerows(rows)
+        writer.writerow(
+            ["part_number", "description", "material", "quantity", "mass_model_revision", "mass_model_sha256"]
+        )
+        writer.writerows(
+            [[*row, report["mass_model"]["revision"], report["mass_model"]["mass_model_sha256"]] for row in rows]
+        )
+    (OUT / "bom-manifest.json").write_text(
+        json.dumps(
+            {
+                "mass_model_revision": report["mass_model"]["revision"],
+                "mass_model_sha256": report["mass_model"]["mass_model_sha256"],
+                "status": report["status"],
+                "source": "hardware/mechanical/generated/analysis.json",
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     print(json.dumps(report, indent=2))
 
 

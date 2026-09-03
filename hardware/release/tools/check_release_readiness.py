@@ -4,12 +4,17 @@ from __future__ import annotations
 
 import argparse
 import csv
+import importlib.util
 import json
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[3]
 PACKAGE = ROOT / "hardware" / "release"
+MECHANICAL_REPORT = "hardware/mechanical/generated/analysis.json"
+MECHANICAL_SPEC = ROOT / "hardware/mechanical/design-spec.json"
+MECHANICAL_LEDGER = ROOT / "hardware/mechanical/mass-ledger.csv"
+MECHANICAL_GENERATOR = ROOT / "hardware/mechanical/tools/generate_artifacts.py"
 UPSTREAM_REPORTS = {
     "pcb": "hardware/pcb/generated/release_readiness.json",
     "motor_driver": "hardware/motor_driver/generated/release-readiness.json",
@@ -29,6 +34,7 @@ CONTROLLED_EVIDENCE_BINDINGS = {
 }
 EXPECTED_GATE_BINDINGS = {
     "REL-001": "ENGINEERING_PASS",
+    "REL-001A": "FILE",
     "REL-002": "PRODUCTION_READY",
     "REL-003": "ENGINEERING_PASS",
     "REL-003A": "PRODUCTION_READY",
@@ -121,6 +127,63 @@ def load_report(path: str) -> dict[str, Any]:
     if resolved is None:
         raise ValueError(f"evidence path escapes repository: {path!r}")
     return json.loads(resolved.read_text(encoding="utf-8"))
+
+
+def validate_mechanical_evidence() -> dict[str, object]:
+    """Require bound directional analytical evidence without treating it as physical proof."""
+    report = load_report(MECHANICAL_REPORT)
+    mass_model = report.get("mass_model")
+    stability = report.get("stability")
+    gates = stability.get("gates") if isinstance(stability, dict) else None
+    cases = stability.get("cases") if isinstance(stability, dict) else None
+    directions = stability.get("directions") if isinstance(stability, dict) else None
+    source_validation: dict[str, object] = {"pass": False, "checks": {"validator_loaded": False}}
+    try:
+        generator_spec = importlib.util.spec_from_file_location(
+            "workbench_release_mechanical_generator", MECHANICAL_GENERATOR
+        )
+        if generator_spec is not None and generator_spec.loader is not None:
+            generator = importlib.util.module_from_spec(generator_spec)
+            generator_spec.loader.exec_module(generator)
+            with MECHANICAL_LEDGER.open(newline="", encoding="utf-8") as handle:
+                ledger_rows = list(csv.DictReader(handle))
+            mechanical_spec = json.loads(MECHANICAL_SPEC.read_text(encoding="utf-8"))
+            source_validation = generator.validate_mass_model(mechanical_spec, ledger_rows)
+    except (OSError, TypeError, ValueError, KeyError, ImportError):
+        source_validation = {"pass": False, "checks": {"validator_loaded": False}}
+    report_hash = mass_model.get("mass_model_sha256") if isinstance(mass_model, dict) else None
+    source_hashes = mass_model.get("source_hashes", {}) if isinstance(mass_model, dict) else {}
+    checks = {
+        "report_declares_physical_validation_required": report.get("status") == "CONCEPT_PHYSICAL_VALIDATION_REQUIRED",
+        "mass_model_is_bound_to_report": isinstance(mass_model, dict)
+        and isinstance(mass_model.get("mass_model_sha256"), str)
+        and len(mass_model["mass_model_sha256"]) == 64
+        and mass_model.get("validation_status") == "CONCEPT_PHYSICAL_VALIDATION_REQUIRED",
+        "mass_model_matches_authoritative_source": bool(source_validation.get("pass"))
+        and report_hash == source_validation.get("mass_model_sha256")
+        and isinstance(source_hashes, dict)
+        and source_hashes.get("design_spec_sha256") == generator.sha256_file(MECHANICAL_SPEC),
+        "directional_directions_are_complete": directions == ["+X", "-X", "+Y", "-Y"],
+        "directional_cases_are_present": isinstance(cases, dict)
+        and {"stowed", "raised", "payload", "shared_workspace", "emergency_stop", "stabilizer_deployed"} <= set(cases),
+        "drive_gate_is_directional": isinstance(gates, dict)
+        and isinstance(gates.get("drive"), dict)
+        and set(gates["drive"].get("directional_minimums", {})) == set(directions or []),
+        "stabilized_gate_is_directional": isinstance(gates, dict)
+        and isinstance(gates.get("stabilized"), dict)
+        and set(gates["stabilized"].get("directional_minimums", {})) == set(directions or []),
+        "directional_gates_are_passing": isinstance(gates, dict)
+        and all(
+            isinstance(gates.get(name), dict) and gates[name].get("pass") is True for name in ("drive", "stabilized")
+        ),
+        "physical_release_is_not_inferred": report.get("status") != "RELEASE_READY_FOR_SIGNOFF",
+    }
+    return {
+        "pass": all(checks.values()),
+        "checks": checks,
+        "report": MECHANICAL_REPORT,
+        "source_validation": source_validation,
+    }
 
 
 def _status_is_ready(status: str) -> bool:
@@ -401,6 +464,7 @@ def validate() -> dict[str, object]:
     closure_rows = read_csv("hardware-closure-checklist.csv")
     upstream_reports = validate_upstream_reports()
     closure_report = validate_closure_checklist(closure_rows)
+    mechanical_evidence = validate_mechanical_evidence()
     evidence_bindings = validate_evidence_bindings(rows, "gate_id", EXPECTED_GATE_BINDINGS)
     report_checks = {
         "gate_ids_are_unique": len(rows) == len({row["gate_id"] for row in rows}),
@@ -425,6 +489,7 @@ def validate() -> dict[str, object]:
             item["pass"] for item in upstream_reports.values() if isinstance(item, dict)
         ),
         "master_closure_checklist_is_valid": closure_report["pass"],
+        "mechanical_evidence_is_directional_and_bound": mechanical_evidence["pass"],
     }
     evt_blockers = [row["gate_id"] for row in rows if row["evt_order_blocker"] == "yes" and row["status"] != "PASS"]
     evt_blockers.extend(binding_mismatches(rows, "gate_id", "evt_order_blocker", EXPECTED_GATE_BINDINGS))
@@ -463,6 +528,7 @@ def validate() -> dict[str, object]:
         "upstream_reports": upstream_reports,
         "closure_checklist": closure_report,
         "evidence_bindings": evidence_bindings,
+        "mechanical_evidence": mechanical_evidence,
         "note": (
             "Validator PASS means the governance structure is internally consistent. EVT prototype ordering and "
             "production release are independent fail-closed stages; external evidence is never inferred."

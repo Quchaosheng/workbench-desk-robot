@@ -13,5 +13,12 @@
 | Ollama runtime image | `sha256:b88c73ace3e115f8ec53dc8761ae1c0aabfa675406e3681786b98757ce050f42` | Apache-2.0 (verify at release) | Runtime + Integration | localhost-only endpoint and internal network |
 | Qwen2.5 0.5B weights | `qwen2.5:0.5b` (397 MB pulled locally) | pending model-card review | Runtime + Product | remove model profile and use template runner |
 | Lucide icons | 0.468.0 | ISC (`apps/dashboard/vendor/LUCIDE-LICENSE.txt`) | Interaction | replace with text labels |
+| MonoSim | invited access; version pending | use invitation recorded; license and redistribution terms pending | Simulation + Integration | keep behind an external adapter; remove from release if terms do not permit distribution |
+| RLSOK | invited access; version pending | use invitation recorded; license and redistribution terms pending | Simulation + Integration | keep behind an external adapter; remove from release if terms do not permit distribution |
 
 Model weights, CAD, mesh, images, audio and code are reviewed separately.
+
+MonoSim and RLSOK are recorded as invited third-party integrations, not as
+co-created project assets. Do not vendor their source, models or datasets, or
+claim joint development, until the maintainers confirm the applicable license,
+publication and redistribution terms in writing.

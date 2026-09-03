@@ -1,0 +1,38 @@
+{
+  "issue": 325,
+  "human_owner": "Quchaosheng",
+  "objective": "Make Revision D stability analysis directional, auditable, and fail closed when evidence is incomplete.",
+  "allowed_paths": [
+    "hardware/mechanical/**",
+    "hardware/release/**",
+    "tests/hardware/**",
+    "docs/task_packets/issue-325-directional-stability.json"
+  ],
+  "read_only_paths": ["interfaces/**", "robot/control/**", "firmware/**"],
+  "forbidden": ["robot/control/**", "firmware/**", "interfaces/**"],
+  "acceptance": [
+    "publish +X, -X, +Y, and -Y margins and tip angles for every required pose",
+    "drive and stabilized gates use the minimum directional result and limiting support edge",
+    "missing directions, inconsistent mass/CG, and non-finite values fail closed",
+    "analytical status remains CONCEPT_PHYSICAL_VALIDATION_REQUIRED and physical release evidence remains required"
+  ],
+  "commands": [
+    "python hardware/mechanical/tools/generate_artifacts.py",
+    "python -m pytest tests/hardware/test_mechanical_issue_325_326.py -q",
+    "python -m ruff check hardware/mechanical hardware/release tests/hardware/test_mechanical_issue_325_326.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/issue-325-directional-stability.json"
+  ],
+  "evidence": [
+    "hardware/mechanical/generated/analysis.json",
+    "hardware/mechanical/analysis.schema.json",
+    "hardware/mechanical/fixtures/stability-regression.json",
+    "hardware/mechanical/system-integration.md",
+    "hardware/release/generated/release_readiness_report.json",
+    "tests/hardware/test_mechanical_issue_325_326.py"
+  ],
+  "stop_conditions": [
+    "physical stability or emergency-stop evidence would need to be invented",
+    "a change requires robot control, firmware, interfaces, or PCB ownership",
+    "the generated report cannot be validated against its schema"
+  ]
+}

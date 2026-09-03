@@ -1,5 +1,6 @@
 gate_id,domain,gate,owner,status,evidence_ref,evidence_binding,next_action,evt_order_blocker,production_release_blocker
 REL-001,engineering,mechanical analytical package,Mechanical Owner,PASS,hardware/mechanical/generated/analysis.json,ENGINEERING_PASS,retain analytical checks and complete downstream physical validation,yes,yes
+REL-001A,engineering,mechanical mass/stability approvals and physical gate,Product Mechanical Hardware and Safety Owners,BLOCKED,hardware/mechanical/mass-model-approval-register.csv,FILE,obtain four owner approvals and complete serialized stability validation,yes,yes
 REL-002,engineering,PCB architecture ERC DRC and connectivity,Electrical Owner,BLOCKED,hardware/pcb/generated/release_readiness.json,PRODUCTION_READY,close component selection signatures and external design gates,yes,yes
 REL-003,engineering,manufacturing route and controlled traveller,Manufacturing Owner,PASS,hardware/manufacturing/generated/route_report.json,ENGINEERING_PASS,retain controlled route and run it after prototypes exist,yes,yes
 REL-003A,engineering,dual-axis traction architecture and childboard package,Electrical and Motion Owners,BLOCKED,hardware/motor_driver/generated/release-readiness.json,PRODUCTION_READY,close motor power regeneration safety schematic layout thermal and harness design gates,yes,yes

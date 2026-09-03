@@ -1,6 +1,32 @@
 {
   "status": "CONCEPT_PHYSICAL_VALIDATION_REQUIRED",
   "mass_kg": 77.5,
+  "mass_model": {
+    "model_id": "REV-D-MASS-001",
+    "revision": "D",
+    "authoritative_source": "hardware/mechanical/design-spec.json#components",
+    "source_hashes": {
+      "design_spec_sha256": "311ac2613644ec708816c7e5484976cb4d8d66b294ec309948c94fb158247074",
+      "mass_ledger_sha256": "a9f111bc3b9954b44766f17227883bc5a98fc113f1568449613340112387793a",
+      "legacy_mass_ledger_sha256": "45d674b325d51de56b253f3ce3abcdd250e6e01d724d0c8d877cd2e2ecd5eb90"
+    },
+    "mass_model_sha256": "8fd2b60cec18e3fd9e73f47ae4c05f5382090889d41a98e48af3a69a70bc50f0",
+    "units": {
+      "mass": "kg",
+      "position": "mm"
+    },
+    "reference_frame": "robot_base",
+    "component_count": 9,
+    "mass_kg": 77.5,
+    "center_of_gravity_mm": [
+      0.0,
+      -22.4,
+      512.0
+    ],
+    "status": "ESTIMATE",
+    "validation_status": "CONCEPT_PHYSICAL_VALIDATION_REQUIRED",
+    "owner_approval_status": "REQUIRED"
+  },
   "center_of_gravity_mm": [
     0.0,
     -22.4,
@@ -31,6 +57,830 @@
   "static_tip_angle_deg": 37.1,
   "drive_footprint_tip_angle_deg": 27.5,
   "stabilized_tip_angle_deg": 37.1,
+  "stability": {
+    "calculation_version": "revision-d-directional-stability-1",
+    "coordinate_convention": {
+      "frame": "robot_base",
+      "x_positive": "robot right",
+      "y_positive": "robot rear",
+      "z_positive": "up",
+      "origin": "ground-plane projection of the chassis reference origin"
+    },
+    "tip_angle_formula": "degrees(atan2(support_margin_mm, cg_z_mm - ground_plane_z_mm))",
+    "ground_plane_z_mm": 0,
+    "directions": [
+      "+X",
+      "-X",
+      "+Y",
+      "-Y"
+    ],
+    "support_polygons": {
+      "drive": {
+        "name": "four-wheel drive footprint",
+        "vertices_mm": [
+          [
+            -230,
+            -195
+          ],
+          [
+            230,
+            -195
+          ],
+          [
+            230,
+            195
+          ],
+          [
+            -230,
+            195
+          ]
+        ],
+        "edges": {
+          "+X": {
+            "name": "drive_right_edge",
+            "axis": "x",
+            "coordinate_mm": 230
+          },
+          "-X": {
+            "name": "drive_left_edge",
+            "axis": "x",
+            "coordinate_mm": -230
+          },
+          "+Y": {
+            "name": "drive_rear_edge",
+            "axis": "y",
+            "coordinate_mm": 195
+          },
+          "-Y": {
+            "name": "drive_front_edge",
+            "axis": "y",
+            "coordinate_mm": -195
+          }
+        }
+      },
+      "stabilized": {
+        "name": "deployed stabilizer footprint",
+        "vertices_mm": [
+          [
+            -410,
+            -410
+          ],
+          [
+            410,
+            -410
+          ],
+          [
+            410,
+            410
+          ],
+          [
+            -410,
+            410
+          ]
+        ],
+        "edges": {
+          "+X": {
+            "name": "stabilizer_right_edge",
+            "axis": "x",
+            "coordinate_mm": 410
+          },
+          "-X": {
+            "name": "stabilizer_left_edge",
+            "axis": "x",
+            "coordinate_mm": -410
+          },
+          "+Y": {
+            "name": "stabilizer_rear_edge",
+            "axis": "y",
+            "coordinate_mm": 410
+          },
+          "-Y": {
+            "name": "stabilizer_front_edge",
+            "axis": "y",
+            "coordinate_mm": -410
+          }
+        }
+      }
+    },
+    "cases": {
+      "stowed": {
+        "pose_identifier": "stowed_navigation",
+        "directions": {
+          "+X": {
+            "direction": "+X",
+            "support_margin_mm": 230.0,
+            "tip_angle_deg": 32.7,
+            "limiting_support_edge": "drive_right_edge",
+            "pose_identifier": "stowed_navigation",
+            "threshold_deg": 25.0,
+            "pass": true
+          },
+          "-X": {
+            "direction": "-X",
+            "support_margin_mm": 230.0,
+            "tip_angle_deg": 32.7,
+            "limiting_support_edge": "drive_left_edge",
+            "pose_identifier": "stowed_navigation",
+            "threshold_deg": 25.0,
+            "pass": true
+          },
+          "+Y": {
+            "direction": "+Y",
+            "support_margin_mm": 203.0,
+            "tip_angle_deg": 29.5,
+            "limiting_support_edge": "drive_rear_edge",
+            "pose_identifier": "stowed_navigation",
+            "threshold_deg": 25.0,
+            "pass": true
+          },
+          "-Y": {
+            "direction": "-Y",
+            "support_margin_mm": 187.0,
+            "tip_angle_deg": 27.5,
+            "limiting_support_edge": "drive_front_edge",
+            "pose_identifier": "stowed_navigation",
+            "threshold_deg": 25.0,
+            "pass": true
+          }
+        },
+        "minimum_tip_angle_deg": 27.5,
+        "limiting_direction": "-Y",
+        "limiting_support_edge": "drive_front_edge",
+        "pass": true,
+        "configuration": "drive",
+        "source_load_case": "navigation_low",
+        "dynamic_stability_factor": 1.0,
+        "description": "stowed navigation with stabilizers retracted",
+        "dynamic_stability_factor_valid": true
+      },
+      "raised": {
+        "pose_identifier": "raised_lift",
+        "directions": {
+          "+X": {
+            "direction": "+X",
+            "support_margin_mm": 410.0,
+            "tip_angle_deg": 38.7,
+            "limiting_support_edge": "stabilizer_right_edge",
+            "pose_identifier": "raised_lift",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "-X": {
+            "direction": "-X",
+            "support_margin_mm": 410.0,
+            "tip_angle_deg": 38.7,
+            "limiting_support_edge": "stabilizer_left_edge",
+            "pose_identifier": "raised_lift",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "+Y": {
+            "direction": "+Y",
+            "support_margin_mm": 432.4,
+            "tip_angle_deg": 40.2,
+            "limiting_support_edge": "stabilizer_rear_edge",
+            "pose_identifier": "raised_lift",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "-Y": {
+            "direction": "-Y",
+            "support_margin_mm": 387.6,
+            "tip_angle_deg": 37.1,
+            "limiting_support_edge": "stabilizer_front_edge",
+            "pose_identifier": "raised_lift",
+            "threshold_deg": 35.0,
+            "pass": true
+          }
+        },
+        "minimum_tip_angle_deg": 37.1,
+        "limiting_direction": "-Y",
+        "limiting_support_edge": "stabilizer_front_edge",
+        "pass": true,
+        "configuration": "stabilized",
+        "source_load_case": "stabilized_manipulation",
+        "dynamic_stability_factor": 1.0,
+        "description": "lift raised at the working height",
+        "dynamic_stability_factor_valid": true
+      },
+      "payload": {
+        "pose_identifier": "raised_payload",
+        "directions": {
+          "+X": {
+            "direction": "+X",
+            "support_margin_mm": 410.0,
+            "tip_angle_deg": 38.7,
+            "limiting_support_edge": "stabilizer_right_edge",
+            "pose_identifier": "raised_payload",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "-X": {
+            "direction": "-X",
+            "support_margin_mm": 410.0,
+            "tip_angle_deg": 38.7,
+            "limiting_support_edge": "stabilizer_left_edge",
+            "pose_identifier": "raised_payload",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "+Y": {
+            "direction": "+Y",
+            "support_margin_mm": 432.4,
+            "tip_angle_deg": 40.2,
+            "limiting_support_edge": "stabilizer_rear_edge",
+            "pose_identifier": "raised_payload",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "-Y": {
+            "direction": "-Y",
+            "support_margin_mm": 387.6,
+            "tip_angle_deg": 37.1,
+            "limiting_support_edge": "stabilizer_front_edge",
+            "pose_identifier": "raised_payload",
+            "threshold_deg": 35.0,
+            "pass": true
+          }
+        },
+        "minimum_tip_angle_deg": 37.1,
+        "limiting_direction": "-Y",
+        "limiting_support_edge": "stabilizer_front_edge",
+        "pass": true,
+        "configuration": "stabilized",
+        "source_load_case": "stabilized_manipulation",
+        "dynamic_stability_factor": 1.0,
+        "description": "rated bimanual payload at forward reach",
+        "dynamic_stability_factor_valid": true
+      },
+      "shared_workspace": {
+        "pose_identifier": "raised_shared_workspace",
+        "directions": {
+          "+X": {
+            "direction": "+X",
+            "support_margin_mm": 410.0,
+            "tip_angle_deg": 38.7,
+            "limiting_support_edge": "stabilizer_right_edge",
+            "pose_identifier": "raised_shared_workspace",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "-X": {
+            "direction": "-X",
+            "support_margin_mm": 410.0,
+            "tip_angle_deg": 38.7,
+            "limiting_support_edge": "stabilizer_left_edge",
+            "pose_identifier": "raised_shared_workspace",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "+Y": {
+            "direction": "+Y",
+            "support_margin_mm": 432.4,
+            "tip_angle_deg": 40.2,
+            "limiting_support_edge": "stabilizer_rear_edge",
+            "pose_identifier": "raised_shared_workspace",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "-Y": {
+            "direction": "-Y",
+            "support_margin_mm": 387.6,
+            "tip_angle_deg": 37.1,
+            "limiting_support_edge": "stabilizer_front_edge",
+            "pose_identifier": "raised_shared_workspace",
+            "threshold_deg": 35.0,
+            "pass": true
+          }
+        },
+        "minimum_tip_angle_deg": 37.1,
+        "limiting_direction": "-Y",
+        "limiting_support_edge": "stabilizer_front_edge",
+        "pass": true,
+        "configuration": "stabilized",
+        "source_load_case": "stabilized_manipulation",
+        "dynamic_stability_factor": 1.0,
+        "description": "both arms in coordinated shared workspace",
+        "dynamic_stability_factor_valid": true
+      },
+      "emergency_stop": {
+        "pose_identifier": "stowed_emergency_stop",
+        "directions": {
+          "+X": {
+            "direction": "+X",
+            "support_margin_mm": 230.0,
+            "tip_angle_deg": 32.7,
+            "limiting_support_edge": "drive_right_edge",
+            "pose_identifier": "stowed_emergency_stop",
+            "threshold_deg": 25.0,
+            "pass": true
+          },
+          "-X": {
+            "direction": "-X",
+            "support_margin_mm": 230.0,
+            "tip_angle_deg": 32.7,
+            "limiting_support_edge": "drive_left_edge",
+            "pose_identifier": "stowed_emergency_stop",
+            "threshold_deg": 25.0,
+            "pass": true
+          },
+          "+Y": {
+            "direction": "+Y",
+            "support_margin_mm": 203.0,
+            "tip_angle_deg": 29.5,
+            "limiting_support_edge": "drive_rear_edge",
+            "pose_identifier": "stowed_emergency_stop",
+            "threshold_deg": 25.0,
+            "pass": true
+          },
+          "-Y": {
+            "direction": "-Y",
+            "support_margin_mm": 187.0,
+            "tip_angle_deg": 27.5,
+            "limiting_support_edge": "drive_front_edge",
+            "pose_identifier": "stowed_emergency_stop",
+            "threshold_deg": 25.0,
+            "pass": true
+          }
+        },
+        "minimum_tip_angle_deg": 27.5,
+        "limiting_direction": "-Y",
+        "limiting_support_edge": "drive_front_edge",
+        "pass": true,
+        "configuration": "drive",
+        "source_load_case": "navigation_low",
+        "dynamic_stability_factor": 2.0,
+        "description": "braked emergency-stop screening pose",
+        "dynamic_stability_factor_valid": true
+      },
+      "stabilizer_deployed": {
+        "pose_identifier": "raised_stabilizer_deployed",
+        "directions": {
+          "+X": {
+            "direction": "+X",
+            "support_margin_mm": 410.0,
+            "tip_angle_deg": 38.7,
+            "limiting_support_edge": "stabilizer_right_edge",
+            "pose_identifier": "raised_stabilizer_deployed",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "-X": {
+            "direction": "-X",
+            "support_margin_mm": 410.0,
+            "tip_angle_deg": 38.7,
+            "limiting_support_edge": "stabilizer_left_edge",
+            "pose_identifier": "raised_stabilizer_deployed",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "+Y": {
+            "direction": "+Y",
+            "support_margin_mm": 432.4,
+            "tip_angle_deg": 40.2,
+            "limiting_support_edge": "stabilizer_rear_edge",
+            "pose_identifier": "raised_stabilizer_deployed",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "-Y": {
+            "direction": "-Y",
+            "support_margin_mm": 387.6,
+            "tip_angle_deg": 37.1,
+            "limiting_support_edge": "stabilizer_front_edge",
+            "pose_identifier": "raised_stabilizer_deployed",
+            "threshold_deg": 35.0,
+            "pass": true
+          }
+        },
+        "minimum_tip_angle_deg": 37.1,
+        "limiting_direction": "-Y",
+        "limiting_support_edge": "stabilizer_front_edge",
+        "pass": true,
+        "configuration": "stabilized",
+        "source_load_case": "stabilized_manipulation",
+        "dynamic_stability_factor": 1.0,
+        "description": "all four stabilizers deployed and loaded",
+        "dynamic_stability_factor_valid": true
+      }
+    },
+    "directional_results": {
+      "stowed": {
+        "pose_identifier": "stowed_navigation",
+        "directions": {
+          "+X": {
+            "direction": "+X",
+            "support_margin_mm": 230.0,
+            "tip_angle_deg": 32.7,
+            "limiting_support_edge": "drive_right_edge",
+            "pose_identifier": "stowed_navigation",
+            "threshold_deg": 25.0,
+            "pass": true
+          },
+          "-X": {
+            "direction": "-X",
+            "support_margin_mm": 230.0,
+            "tip_angle_deg": 32.7,
+            "limiting_support_edge": "drive_left_edge",
+            "pose_identifier": "stowed_navigation",
+            "threshold_deg": 25.0,
+            "pass": true
+          },
+          "+Y": {
+            "direction": "+Y",
+            "support_margin_mm": 203.0,
+            "tip_angle_deg": 29.5,
+            "limiting_support_edge": "drive_rear_edge",
+            "pose_identifier": "stowed_navigation",
+            "threshold_deg": 25.0,
+            "pass": true
+          },
+          "-Y": {
+            "direction": "-Y",
+            "support_margin_mm": 187.0,
+            "tip_angle_deg": 27.5,
+            "limiting_support_edge": "drive_front_edge",
+            "pose_identifier": "stowed_navigation",
+            "threshold_deg": 25.0,
+            "pass": true
+          }
+        },
+        "minimum_tip_angle_deg": 27.5,
+        "limiting_direction": "-Y",
+        "limiting_support_edge": "drive_front_edge",
+        "pass": true,
+        "configuration": "drive",
+        "source_load_case": "navigation_low",
+        "dynamic_stability_factor": 1.0,
+        "description": "stowed navigation with stabilizers retracted",
+        "dynamic_stability_factor_valid": true
+      },
+      "raised": {
+        "pose_identifier": "raised_lift",
+        "directions": {
+          "+X": {
+            "direction": "+X",
+            "support_margin_mm": 410.0,
+            "tip_angle_deg": 38.7,
+            "limiting_support_edge": "stabilizer_right_edge",
+            "pose_identifier": "raised_lift",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "-X": {
+            "direction": "-X",
+            "support_margin_mm": 410.0,
+            "tip_angle_deg": 38.7,
+            "limiting_support_edge": "stabilizer_left_edge",
+            "pose_identifier": "raised_lift",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "+Y": {
+            "direction": "+Y",
+            "support_margin_mm": 432.4,
+            "tip_angle_deg": 40.2,
+            "limiting_support_edge": "stabilizer_rear_edge",
+            "pose_identifier": "raised_lift",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "-Y": {
+            "direction": "-Y",
+            "support_margin_mm": 387.6,
+            "tip_angle_deg": 37.1,
+            "limiting_support_edge": "stabilizer_front_edge",
+            "pose_identifier": "raised_lift",
+            "threshold_deg": 35.0,
+            "pass": true
+          }
+        },
+        "minimum_tip_angle_deg": 37.1,
+        "limiting_direction": "-Y",
+        "limiting_support_edge": "stabilizer_front_edge",
+        "pass": true,
+        "configuration": "stabilized",
+        "source_load_case": "stabilized_manipulation",
+        "dynamic_stability_factor": 1.0,
+        "description": "lift raised at the working height",
+        "dynamic_stability_factor_valid": true
+      },
+      "payload": {
+        "pose_identifier": "raised_payload",
+        "directions": {
+          "+X": {
+            "direction": "+X",
+            "support_margin_mm": 410.0,
+            "tip_angle_deg": 38.7,
+            "limiting_support_edge": "stabilizer_right_edge",
+            "pose_identifier": "raised_payload",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "-X": {
+            "direction": "-X",
+            "support_margin_mm": 410.0,
+            "tip_angle_deg": 38.7,
+            "limiting_support_edge": "stabilizer_left_edge",
+            "pose_identifier": "raised_payload",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "+Y": {
+            "direction": "+Y",
+            "support_margin_mm": 432.4,
+            "tip_angle_deg": 40.2,
+            "limiting_support_edge": "stabilizer_rear_edge",
+            "pose_identifier": "raised_payload",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "-Y": {
+            "direction": "-Y",
+            "support_margin_mm": 387.6,
+            "tip_angle_deg": 37.1,
+            "limiting_support_edge": "stabilizer_front_edge",
+            "pose_identifier": "raised_payload",
+            "threshold_deg": 35.0,
+            "pass": true
+          }
+        },
+        "minimum_tip_angle_deg": 37.1,
+        "limiting_direction": "-Y",
+        "limiting_support_edge": "stabilizer_front_edge",
+        "pass": true,
+        "configuration": "stabilized",
+        "source_load_case": "stabilized_manipulation",
+        "dynamic_stability_factor": 1.0,
+        "description": "rated bimanual payload at forward reach",
+        "dynamic_stability_factor_valid": true
+      },
+      "shared_workspace": {
+        "pose_identifier": "raised_shared_workspace",
+        "directions": {
+          "+X": {
+            "direction": "+X",
+            "support_margin_mm": 410.0,
+            "tip_angle_deg": 38.7,
+            "limiting_support_edge": "stabilizer_right_edge",
+            "pose_identifier": "raised_shared_workspace",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "-X": {
+            "direction": "-X",
+            "support_margin_mm": 410.0,
+            "tip_angle_deg": 38.7,
+            "limiting_support_edge": "stabilizer_left_edge",
+            "pose_identifier": "raised_shared_workspace",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "+Y": {
+            "direction": "+Y",
+            "support_margin_mm": 432.4,
+            "tip_angle_deg": 40.2,
+            "limiting_support_edge": "stabilizer_rear_edge",
+            "pose_identifier": "raised_shared_workspace",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "-Y": {
+            "direction": "-Y",
+            "support_margin_mm": 387.6,
+            "tip_angle_deg": 37.1,
+            "limiting_support_edge": "stabilizer_front_edge",
+            "pose_identifier": "raised_shared_workspace",
+            "threshold_deg": 35.0,
+            "pass": true
+          }
+        },
+        "minimum_tip_angle_deg": 37.1,
+        "limiting_direction": "-Y",
+        "limiting_support_edge": "stabilizer_front_edge",
+        "pass": true,
+        "configuration": "stabilized",
+        "source_load_case": "stabilized_manipulation",
+        "dynamic_stability_factor": 1.0,
+        "description": "both arms in coordinated shared workspace",
+        "dynamic_stability_factor_valid": true
+      },
+      "emergency_stop": {
+        "pose_identifier": "stowed_emergency_stop",
+        "directions": {
+          "+X": {
+            "direction": "+X",
+            "support_margin_mm": 230.0,
+            "tip_angle_deg": 32.7,
+            "limiting_support_edge": "drive_right_edge",
+            "pose_identifier": "stowed_emergency_stop",
+            "threshold_deg": 25.0,
+            "pass": true
+          },
+          "-X": {
+            "direction": "-X",
+            "support_margin_mm": 230.0,
+            "tip_angle_deg": 32.7,
+            "limiting_support_edge": "drive_left_edge",
+            "pose_identifier": "stowed_emergency_stop",
+            "threshold_deg": 25.0,
+            "pass": true
+          },
+          "+Y": {
+            "direction": "+Y",
+            "support_margin_mm": 203.0,
+            "tip_angle_deg": 29.5,
+            "limiting_support_edge": "drive_rear_edge",
+            "pose_identifier": "stowed_emergency_stop",
+            "threshold_deg": 25.0,
+            "pass": true
+          },
+          "-Y": {
+            "direction": "-Y",
+            "support_margin_mm": 187.0,
+            "tip_angle_deg": 27.5,
+            "limiting_support_edge": "drive_front_edge",
+            "pose_identifier": "stowed_emergency_stop",
+            "threshold_deg": 25.0,
+            "pass": true
+          }
+        },
+        "minimum_tip_angle_deg": 27.5,
+        "limiting_direction": "-Y",
+        "limiting_support_edge": "drive_front_edge",
+        "pass": true,
+        "configuration": "drive",
+        "source_load_case": "navigation_low",
+        "dynamic_stability_factor": 2.0,
+        "description": "braked emergency-stop screening pose",
+        "dynamic_stability_factor_valid": true
+      },
+      "stabilizer_deployed": {
+        "pose_identifier": "raised_stabilizer_deployed",
+        "directions": {
+          "+X": {
+            "direction": "+X",
+            "support_margin_mm": 410.0,
+            "tip_angle_deg": 38.7,
+            "limiting_support_edge": "stabilizer_right_edge",
+            "pose_identifier": "raised_stabilizer_deployed",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "-X": {
+            "direction": "-X",
+            "support_margin_mm": 410.0,
+            "tip_angle_deg": 38.7,
+            "limiting_support_edge": "stabilizer_left_edge",
+            "pose_identifier": "raised_stabilizer_deployed",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "+Y": {
+            "direction": "+Y",
+            "support_margin_mm": 432.4,
+            "tip_angle_deg": 40.2,
+            "limiting_support_edge": "stabilizer_rear_edge",
+            "pose_identifier": "raised_stabilizer_deployed",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "-Y": {
+            "direction": "-Y",
+            "support_margin_mm": 387.6,
+            "tip_angle_deg": 37.1,
+            "limiting_support_edge": "stabilizer_front_edge",
+            "pose_identifier": "raised_stabilizer_deployed",
+            "threshold_deg": 35.0,
+            "pass": true
+          }
+        },
+        "minimum_tip_angle_deg": 37.1,
+        "limiting_direction": "-Y",
+        "limiting_support_edge": "stabilizer_front_edge",
+        "pass": true,
+        "configuration": "stabilized",
+        "source_load_case": "stabilized_manipulation",
+        "dynamic_stability_factor": 1.0,
+        "description": "all four stabilizers deployed and loaded",
+        "dynamic_stability_factor_valid": true
+      }
+    },
+    "gates": {
+      "drive": {
+        "threshold_deg": 25,
+        "case_ids": [
+          "stowed",
+          "emergency_stop"
+        ],
+        "directional_minimums": {
+          "+X": {
+            "direction": "+X",
+            "support_margin_mm": 230.0,
+            "tip_angle_deg": 32.7,
+            "limiting_support_edge": "drive_right_edge",
+            "pose_identifier": "stowed_navigation",
+            "threshold_deg": 25.0,
+            "pass": true
+          },
+          "-X": {
+            "direction": "-X",
+            "support_margin_mm": 230.0,
+            "tip_angle_deg": 32.7,
+            "limiting_support_edge": "drive_left_edge",
+            "pose_identifier": "stowed_navigation",
+            "threshold_deg": 25.0,
+            "pass": true
+          },
+          "+Y": {
+            "direction": "+Y",
+            "support_margin_mm": 203.0,
+            "tip_angle_deg": 29.5,
+            "limiting_support_edge": "drive_rear_edge",
+            "pose_identifier": "stowed_navigation",
+            "threshold_deg": 25.0,
+            "pass": true
+          },
+          "-Y": {
+            "direction": "-Y",
+            "support_margin_mm": 187.0,
+            "tip_angle_deg": 27.5,
+            "limiting_support_edge": "drive_front_edge",
+            "pose_identifier": "stowed_navigation",
+            "threshold_deg": 25.0,
+            "pass": true
+          }
+        },
+        "minimum_tip_angle_deg": 27.5,
+        "limiting_direction": "-Y",
+        "limiting_support_edge": "drive_front_edge",
+        "pass": true
+      },
+      "stabilized": {
+        "threshold_deg": 35,
+        "case_ids": [
+          "raised",
+          "payload",
+          "shared_workspace",
+          "stabilizer_deployed"
+        ],
+        "directional_minimums": {
+          "+X": {
+            "direction": "+X",
+            "support_margin_mm": 410.0,
+            "tip_angle_deg": 38.7,
+            "limiting_support_edge": "stabilizer_right_edge",
+            "pose_identifier": "raised_lift",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "-X": {
+            "direction": "-X",
+            "support_margin_mm": 410.0,
+            "tip_angle_deg": 38.7,
+            "limiting_support_edge": "stabilizer_left_edge",
+            "pose_identifier": "raised_lift",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "+Y": {
+            "direction": "+Y",
+            "support_margin_mm": 432.4,
+            "tip_angle_deg": 40.2,
+            "limiting_support_edge": "stabilizer_rear_edge",
+            "pose_identifier": "raised_lift",
+            "threshold_deg": 35.0,
+            "pass": true
+          },
+          "-Y": {
+            "direction": "-Y",
+            "support_margin_mm": 387.6,
+            "tip_angle_deg": 37.1,
+            "limiting_support_edge": "stabilizer_front_edge",
+            "pose_identifier": "raised_lift",
+            "threshold_deg": 35.0,
+            "pass": true
+          }
+        },
+        "minimum_tip_angle_deg": 37.1,
+        "limiting_direction": "-Y",
+        "limiting_support_edge": "stabilizer_front_edge",
+        "pass": true
+      }
+    },
+    "checks": {
+      "declared_directions_are_complete": true,
+      "calculation_version_is_current": true,
+      "support_polygons_are_defined": true,
+      "support_polygons_match_chassis": true,
+      "stability_thresholds_are_valid": true,
+      "dynamic_stability_factors_are_valid": true,
+      "required_stability_cases_are_present": true,
+      "drive_directional_results_are_complete": true,
+      "stabilized_directional_results_are_complete": true,
+      "gates_use_directional_minimums": true
+    }
+  },
   "payload_only_moment_nm": 12.7,
   "arm_plus_payload_screen_moment_nm": 76.5,
   "bimanual_shared_workspace_screen_moment_nm": 105.9,
@@ -38,8 +888,19 @@
   "minimum_energy_absorber_stroke_mm": 10.0,
   "vent_area_ratio_outlet_to_inlet": 1.22,
   "checks": {
+    "mass_model_is_valid": true,
     "drive_tip_angle_at_least_25_deg": true,
     "stabilized_tip_angle_at_least_35_deg": true,
+    "declared_directions_are_complete": true,
+    "calculation_version_is_current": true,
+    "support_polygons_are_defined": true,
+    "support_polygons_match_chassis": true,
+    "stability_thresholds_are_valid": true,
+    "dynamic_stability_factors_are_valid": true,
+    "required_stability_cases_are_present": true,
+    "drive_directional_results_are_complete": true,
+    "stabilized_directional_results_are_complete": true,
+    "gates_use_directional_minimums": true,
     "outlet_area_at_least_inlet": true,
     "absorber_at_least_derived_stroke": true,
     "pcb_fits_electronics_tray": true,

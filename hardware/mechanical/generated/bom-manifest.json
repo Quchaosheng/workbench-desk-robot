@@ -1,0 +1,6 @@
+{
+  "mass_model_revision": "D",
+  "mass_model_sha256": "8fd2b60cec18e3fd9e73f47ae4c05f5382090889d41a98e48af3a69a70bc50f0",
+  "status": "CONCEPT_PHYSICAL_VALIDATION_REQUIRED",
+  "source": "hardware/mechanical/generated/analysis.json"
+}

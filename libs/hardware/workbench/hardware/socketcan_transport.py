@@ -52,7 +52,6 @@ SO_RXQ_OVFL = getattr(socket, "SO_RXQ_OVFL", 40)
 SCM_RXQ_OVFL = SO_RXQ_OVFL
 CAN_RAW_ERR_FILTER = getattr(socket, "CAN_RAW_ERR_FILTER", 2)
 _TIMESPEC_STRUCT = struct.Struct("@ll")
-_POLL_ERROR_MASK = select.POLLERR | select.POLLHUP | select.POLLNVAL
 _CAN_FLAG_MASK = CAN_EFF_FLAG | CAN_RTR_FLAG | CAN_ERR_FLAG
 
 
@@ -244,7 +243,7 @@ class SocketCANTransport:
         require_kernel_timestamp: bool = True,
         recovery_probe: Callable[[], bool] | None = None,
         socket_factory: Callable[..., Any] = socket.socket,
-        poller_factory: Callable[[], Any] = select.poll,
+        poller_factory: Callable[[], Any] | None = None,
         monotonic_clock: Callable[[], float] = time.monotonic,
         wall_clock: Callable[[], float] = time.time,
     ) -> None:
@@ -275,8 +274,10 @@ class SocketCANTransport:
             raise TypeError("require_kernel_timestamp must be a bool")
         if recovery_probe is not None and not callable(recovery_probe):
             raise TypeError("recovery_probe must be callable when present")
-        if not callable(socket_factory) or not callable(poller_factory):
-            raise TypeError("socket_factory and poller_factory must be callable")
+        if not callable(socket_factory):
+            raise TypeError("socket_factory must be callable")
+        if poller_factory is not None and not callable(poller_factory):
+            raise TypeError("poller_factory must be callable when present")
         if not callable(monotonic_clock) or not callable(wall_clock):
             raise TypeError("clock arguments must be callable")
         self._receive_own_messages = receive_own_messages
@@ -311,6 +312,7 @@ class SocketCANTransport:
                 return
             if not hasattr(socket, "AF_CAN") or not hasattr(socket, "CAN_RAW"):
                 raise SocketCANError("this platform does not expose AF_CAN/CAN_RAW")
+            _resolve_poll_api(self._poller_factory)
             candidate = None
             try:
                 candidate = self._socket_factory(socket.AF_CAN, socket.SOCK_RAW, socket.CAN_RAW)
@@ -376,9 +378,10 @@ class SocketCANTransport:
         ):
             raise ValueError("timeout_s must be a finite non-negative number")
         candidate = self._require_socket()
-        poller = self._poller_factory()
+        poller_factory, poll_input_mask, poll_error_mask = _resolve_poll_api(self._poller_factory)
+        poller = poller_factory()
         try:
-            poller.register(candidate, select.POLLIN | _POLL_ERROR_MASK)
+            poller.register(candidate, poll_input_mask | poll_error_mask)
             events = poller.poll(min(math.ceil(float(timeout_s) * 1000), 2_147_483_647))
         except OSError as exc:
             raise _map_socket_error(exc, operation="poll") from exc
@@ -399,8 +402,8 @@ class SocketCANTransport:
             if mask < 0:
                 raise SocketCANError("SocketCAN poll returned an invalid event mask")
             event_mask |= mask
-        if not event_mask & select.POLLIN:
-            if event_mask & _POLL_ERROR_MASK:
+        if not event_mask & poll_input_mask:
+            if event_mask & poll_error_mask:
                 raise CanLinkLostError(f"SocketCAN interface {self._interface!r} reported poll error 0x{event_mask:x}")
             return None
 
@@ -467,6 +470,19 @@ def _validate_name(value: str, name: str) -> str:
     if not isinstance(value, str) or not value.strip() or value != value.strip() or "\x00" in value:
         raise ValueError(f"{name} must be a non-empty, trimmed string without NUL")
     return value
+
+
+def _resolve_poll_api(poller_factory: Callable[[], Any] | None) -> tuple[Callable[[], Any], int, int]:
+    resolved_factory = poller_factory if poller_factory is not None else getattr(select, "poll", None)
+    poll_input_mask = getattr(select, "POLLIN", None)
+    poll_error_masks = tuple(getattr(select, name, None) for name in ("POLLERR", "POLLHUP", "POLLNVAL"))
+    if (
+        not callable(resolved_factory)
+        or type(poll_input_mask) is not int
+        or any(type(mask) is not int for mask in poll_error_masks)
+    ):
+        raise SocketCANError("this platform does not expose select.poll SocketCAN support")
+    return resolved_factory, poll_input_mask, poll_error_masks[0] | poll_error_masks[1] | poll_error_masks[2]
 
 
 def _socket_fileno(candidate: Any) -> int | None:

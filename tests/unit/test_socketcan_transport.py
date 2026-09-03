@@ -2,7 +2,11 @@ import errno
 import select
 import socket
 import struct
+import subprocess
+import sys
+import textwrap
 from collections import deque
+from pathlib import Path
 
 import pytest
 from workbench.hardware import (
@@ -26,6 +30,9 @@ from workbench.hardware import (
     unpack_socketcan_frame,
 )
 from workbench.hardware.socketcan_transport import CAN_ERR_FILTER_STRUCT, CAN_FILTER_STRUCT, CAN_FRAME_STRUCT
+
+ROOT = Path(__file__).resolve().parents[2]
+HARDWARE_PACKAGE = ROOT / "libs" / "hardware"
 
 
 class FakeSocket:
@@ -115,6 +122,33 @@ def make_transport(
         wall_clock=lambda: next(clock),
     )
     return transport, poller
+
+
+def test_hardware_package_import_survives_without_linux_poll_primitives() -> None:
+    script = textwrap.dedent(
+        f"""
+        import select
+        import sys
+
+        sys.path.insert(0, {str(HARDWARE_PACKAGE)!r})
+        for name in ("poll", "POLLIN", "POLLERR", "POLLHUP", "POLLNVAL"):
+            if hasattr(select, name):
+                delattr(select, name)
+
+        import workbench.hardware as hardware
+
+        transport = hardware.SocketCANTransport("can0")
+        try:
+            transport.open()
+        except hardware.SocketCANError as exc:
+            assert "platform does not expose" in str(exc)
+        else:
+            raise AssertionError("SocketCAN unexpectedly opened without select.poll support")
+        """
+    )
+    result = subprocess.run([sys.executable, "-S", "-c", script], capture_output=True, text=True, check=False)
+
+    assert result.returncode == 0, result.stderr
 
 
 def test_pack_unpack_preserves_standard_extended_rtr_and_error_flags() -> None:

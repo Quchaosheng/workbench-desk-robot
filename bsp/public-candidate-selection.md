@@ -16,7 +16,7 @@ not an approved AVL, safety certification, or physical bring-up result.
 | ROS 2 | ROS 2 Humble on the JetPack Ubuntu 22.04 host; retain Jazzy for Ubuntu 24.04 simulation/container jobs | Avoid claiming native Jazzy binaries on the Jetson host until a supported image is proven | Freeze the ROS distribution per deployment image and run a compatibility test against `xarm_ros2`. |
 | Seven-axis arm | UFACTORY xArm 7 with the vendor controller and `xarm_ros2` | Candidate for both arm domains; use the vendor controller as the module boundary | Exact xArm 7 SKU, firmware, power, safety I/O, network mode and supplier quotation remain open. Upstream ROS 2 package is BSD-3-Clause. |
 | End effector | Robotiq 2F-85 description and vendor controller | Keep tool control behind `TOOL-L-CTRL`/`TOOL-R-CTRL` | Confirm gripper SKU, mounting, power, control protocol and safe-stop behavior with the supplier. |
-| PCB U2 | Mean Well RSD-300-12 as a 36-60 V to 12 V, 300 W-class candidate | Do not replace the schematic placeholder until footprint, creepage, thermal and EMI reviews pass | [Public datasheet](https://www.meanwell.com/Upload/PDF/RSD-300/RSD-300-SPEC.PDF). Exact variant, derating, mounting, protection and AVL approval remain open. |
+| PCB U2 | Mean Well RSD-300-12 as a 300 W-class candidate | Do not replace the schematic placeholder until the exact input range, isolation, footprint, creepage, thermal and EMI reviews pass | [Public datasheet](https://www.meanwell.com/Upload/PDF/RSD-300/RSD-300-SPEC.PDF). The system bus voltage must be matched to the exact RSD-300 variant; input range, derating, mounting, protection and AVL approval remain open. |
 | Safety hardware | Existing independent STM32G0B1 `MCU-SAFETY` boundary plus dual-channel external inhibit chain | Preserve hardware authority outside Linux and ROS | Safety-owner review, hazard analysis, certified components, wiring and measured trip-time evidence remain required. |
 
 ## Third-party status
@@ -38,3 +38,6 @@ not an approved AVL, safety certification, or physical bring-up result.
 These candidates make the next engineering actions concrete, but they do not
 close the existing release gates. Do not change `REVIEW_REQUIRED`, `BLOCKED`,
 or `NOT_EXECUTED` statuses to `PASS` until the named evidence is attached.
+
+The step-by-step evidence gate is maintained in
+[`validation/bringup-closure-checklist.md`](validation/bringup-closure-checklist.md).

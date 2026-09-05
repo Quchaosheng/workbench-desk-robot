@@ -29,7 +29,15 @@ from workbench.hardware import (
     pack_socketcan_frame,
     unpack_socketcan_frame,
 )
-from workbench.hardware.socketcan_transport import CAN_ERR_FILTER_STRUCT, CAN_FILTER_STRUCT, CAN_FRAME_STRUCT
+from workbench.hardware.socketcan_transport import (
+    CAN_ERR_FILTER_STRUCT,
+    CAN_FILTER_STRUCT,
+    CAN_FRAME_STRUCT,
+    SOL_CAN_RAW,
+)
+
+POLLIN = getattr(select, "POLLIN", 0x001)
+POLLHUP = getattr(select, "POLLHUP", 0x010)
 
 ROOT = Path(__file__).resolve().parents[2]
 HARDWARE_PACKAGE = ROOT / "libs" / "hardware"
@@ -95,11 +103,11 @@ class FakePoller:
         self.timeouts.append(timeout_ms)
         if self.forced_events is not None:
             return self.forced_events
-        return [(self.sock.fd, select.POLLIN)] if self.sock.incoming else []
+        return [(self.sock.fd, POLLIN)] if self.sock.incoming else []
 
 
 def timestamp(seconds: int = 1_700_000_000, nanoseconds: int = 123_000_000) -> bytes:
-    return struct.pack("@ll", seconds, nanoseconds)
+    return struct.pack("=qq", seconds, nanoseconds)
 
 
 def make_transport(
@@ -230,7 +238,7 @@ def test_open_uses_one_raw_socket_and_receive_preserves_timestamp_metadata() -> 
     assert (socket.SOL_SOCKET, SO_TIMESTAMPNS, 1) in fake.options
     assert (socket.SOL_SOCKET, SO_RXQ_OVFL, 1) in fake.options
     assert (
-        socket.SOL_CAN_RAW,
+        SOL_CAN_RAW,
         CAN_RAW_ERR_FILTER,
         CAN_ERR_FILTER_STRUCT.pack(CAN_ERR_MASK),
     ) in fake.options
@@ -347,7 +355,7 @@ def test_receive_rejects_message_truncation_before_frame_decode() -> None:
 def test_poll_hangup_is_reported_as_link_loss_without_receiving() -> None:
     fake = FakeSocket()
     transport, poller = make_transport(fake)
-    poller.forced_events = [(fake.fd, select.POLLHUP)]
+    poller.forced_events = [(fake.fd, POLLHUP)]
     transport.open()
 
     with pytest.raises(CanLinkLostError, match="poll error"):

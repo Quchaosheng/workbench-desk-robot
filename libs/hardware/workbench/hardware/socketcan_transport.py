@@ -46,12 +46,23 @@ CAN_FILTER_STRUCT = struct.Struct("=II")
 CAN_ERR_FILTER_STRUCT = struct.Struct("=I")
 RXQ_OVFL_STRUCT = struct.Struct("=I")
 CAN_FRAME_SIZE = CAN_FRAME_STRUCT.size
+# Linux SocketCAN constants are absent on Windows, but keeping their ABI values
+# available lets injected fake sockets exercise the pure framing logic there.
+AF_CAN = getattr(socket, "AF_CAN", 29)
+CAN_RAW = getattr(socket, "CAN_RAW", 1)
+SOL_CAN_RAW = getattr(socket, "SOL_CAN_RAW", 101)
+CAN_RAW_LOOPBACK = getattr(socket, "CAN_RAW_LOOPBACK", 1)
+CAN_RAW_RECV_OWN_MSGS = getattr(socket, "CAN_RAW_RECV_OWN_MSGS", 2)
+CAN_RAW_FILTER = getattr(socket, "CAN_RAW_FILTER", 1)
 SO_TIMESTAMPNS = getattr(socket, "SO_TIMESTAMPNS", 35)
 SCM_TIMESTAMPNS = getattr(socket, "SCM_TIMESTAMPNS", SO_TIMESTAMPNS)
 SO_RXQ_OVFL = getattr(socket, "SO_RXQ_OVFL", 40)
 SCM_RXQ_OVFL = SO_RXQ_OVFL
 CAN_RAW_ERR_FILTER = getattr(socket, "CAN_RAW_ERR_FILTER", 2)
-_TIMESPEC_STRUCT = struct.Struct("@ll")
+# Linux ``struct timespec`` is two signed 64-bit fields on the supported
+# amd64 image.  Keep the wire layout explicit so a Windows host cannot make
+# an eight-byte test fixture look like a complete timestamp.
+_TIMESPEC_STRUCT = struct.Struct("=qq")
 _CAN_FLAG_MASK = CAN_EFF_FLAG | CAN_RTR_FLAG | CAN_ERR_FLAG
 
 
@@ -310,28 +321,30 @@ class SocketCANTransport:
         with self._lock:
             if self._socket is not None:
                 return
-            if not hasattr(socket, "AF_CAN") or not hasattr(socket, "CAN_RAW"):
+            if self._socket_factory is socket.socket and (
+                not hasattr(socket, "AF_CAN") or not hasattr(socket, "CAN_RAW")
+            ):
                 raise SocketCANError("this platform does not expose AF_CAN/CAN_RAW")
             _resolve_poll_api(self._poller_factory)
             candidate = None
             try:
-                candidate = self._socket_factory(socket.AF_CAN, socket.SOCK_RAW, socket.CAN_RAW)
+                candidate = self._socket_factory(AF_CAN, socket.SOCK_RAW, CAN_RAW)
                 candidate.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self._receive_buffer_bytes)
                 candidate.setsockopt(socket.SOL_SOCKET, SO_RXQ_OVFL, 1)
-                candidate.setsockopt(socket.SOL_CAN_RAW, socket.CAN_RAW_LOOPBACK, int(self._loopback))
+                candidate.setsockopt(SOL_CAN_RAW, CAN_RAW_LOOPBACK, int(self._loopback))
                 candidate.setsockopt(
-                    socket.SOL_CAN_RAW,
-                    socket.CAN_RAW_RECV_OWN_MSGS,
+                    SOL_CAN_RAW,
+                    CAN_RAW_RECV_OWN_MSGS,
                     int(self._receive_own_messages),
                 )
                 candidate.setsockopt(
-                    socket.SOL_CAN_RAW,
-                    socket.CAN_RAW_FILTER,
+                    SOL_CAN_RAW,
+                    CAN_RAW_FILTER,
                     b"".join(item.pack() for item in self._filters),
                 )
                 if self._error_filter is not None:
                     candidate.setsockopt(
-                        socket.SOL_CAN_RAW,
+                        SOL_CAN_RAW,
                         CAN_RAW_ERR_FILTER,
                         CAN_ERR_FILTER_STRUCT.pack(self._error_filter),
                     )
@@ -474,8 +487,14 @@ def _validate_name(value: str, name: str) -> str:
 
 def _resolve_poll_api(poller_factory: Callable[[], Any] | None) -> tuple[Callable[[], Any], int, int]:
     resolved_factory = poller_factory if poller_factory is not None else getattr(select, "poll", None)
-    poll_input_mask = getattr(select, "POLLIN", None)
-    poll_error_masks = tuple(getattr(select, name, None) for name in ("POLLERR", "POLLHUP", "POLLNVAL"))
+    # POSIX poll bit values are stable; use them for injected pollers on
+    # platforms whose select module omits one or more constants.
+    poll_input_mask = getattr(select, "POLLIN", 0x001)
+    poll_error_masks = tuple(getattr(select, name, fallback) for name, fallback in (
+        ("POLLERR", 0x008),
+        ("POLLHUP", 0x010),
+        ("POLLNVAL", 0x020),
+    ))
     if (
         not callable(resolved_factory)
         or type(poll_input_mask) is not int

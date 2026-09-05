@@ -1,63 +1,192 @@
+x-workbench-common: &workbench-common
+  image: workbench-1:local
+  platform: linux/amd64
+  build:
+    context: .
+    args:
+      HTTP_PROXY: "${WORKBENCH_BUILD_HTTP_PROXY:-}"
+      HTTPS_PROXY: "${WORKBENCH_BUILD_HTTPS_PROXY:-}"
+      NO_PROXY: "${WORKBENCH_BUILD_NO_PROXY:-localhost,127.0.0.1}"
+      VCS_REF: "${VCS_REF:-unknown}"
+  init: true
+  user: "${WORKBENCH_UID:-10001}:${WORKBENCH_GID:-10001}"
+  read_only: true
+  tmpfs:
+    - /tmp:size=128m,mode=1777
+    - /home/workbench/.ros:size=64m,mode=700,uid=${WORKBENCH_UID:-10001},gid=${WORKBENCH_GID:-10001}
+    - /home/workbench/.cache:size=256m,mode=700,uid=${WORKBENCH_UID:-10001},gid=${WORKBENCH_GID:-10001}
+  volumes:
+    - .:/workspace/src:ro
+    - workbench-build:/workspace/build
+    - workbench-install:/workspace/install
+    - workbench-log:/workspace/log
+  cap_drop: ["ALL"]
+  security_opt: ["no-new-privileges:true"]
+  shm_size: "512m"
+  stop_grace_period: 20s
+  environment: &workbench-env
+    WORKBENCH_OFFLINE: "1"
+    RMW_IMPLEMENTATION: "${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}"
+    ROS_DOMAIN_ID: "${ROS_DOMAIN_ID:-42}"
+    ROS_LOCALHOST_ONLY: "${ROS_LOCALHOST_ONLY:-1}"
+    HOME: /home/workbench
+    ROS_LOG_DIR: /tmp/ros-log
+    GZ_LOG_PATH: /tmp/gz-log
+    XDG_CACHE_HOME: /tmp/cache
+    GZ_SIM_RESOURCE_PATH: /opt/ros/jazzy/share:/opt/workbench_ws/install/share:/workspace/install/share
+    WORKBENCH_GPU_TIER: "${WORKBENCH_GPU_TIER:-auto}"
+    WORKBENCH_IMAGE_DIGEST: "${WORKBENCH_IMAGE_DIGEST:-local-unpinned}"
+    WORKBENCH_COMMIT: "${VCS_REF:-unknown}"
+
+x-nvidia-environment: &nvidia-environment
+  NVIDIA_VISIBLE_DEVICES: "${NVIDIA_VISIBLE_DEVICES:-all}"
+  NVIDIA_DRIVER_CAPABILITIES: compute,utility,graphics
+
 services:
   dashboard:
-    build:
-      context: .
-    image: workbench-1:local
+    <<: *workbench-common
     environment:
-      WORKBENCH_OFFLINE: "1"
+      <<: *workbench-env
+      WORKBENCH_CONTAINER_PROFILE: dashboard
+      ROS_LOCALHOST_ONLY: "1"
     ports:
       - "127.0.0.1:${WORKBENCH_PORT:-8080}:8080"
-    read_only: true
-    tmpfs:
-      - /tmp:size=32m
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
+    networks: [public, model-runtime]
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/healthz"]
       interval: 10s
       timeout: 3s
       retries: 3
-    networks:
-      - public
-      - model-runtime
+
+  ros-sim:
+    <<: *workbench-common
+    profiles: [ros-sim]
+    gpus: all
+    command: ["ros2", "launch", "workbench_motion", "sim_control.launch.py"]
+    environment:
+      <<: [*workbench-env, *nvidia-environment]
+      WORKBENCH_CONTAINER_PROFILE: ros-sim
+      ROS_LOCALHOST_ONLY: "1"
+    networks: [ros-local]
+
+  gz-gui-x11:
+    <<: *workbench-common
+    profiles: [gz-gui-x11]
+    gpus: all
+    user: "${HOST_UID:-10001}:${HOST_GID:-10001}"
+    command: ["gz", "sim", "-g", "/usr/share/workbench/container/camera-rendering-smoke.sdf"]
+    environment:
+      <<: [*workbench-env, *nvidia-environment]
+      WORKBENCH_CONTAINER_PROFILE: gz-gui-x11
+      DISPLAY: "${DISPLAY:-}"
+      XAUTHORITY: /run/user/workbench.xauthority
+      QT_X11_NO_MITSHM: "1"
+    volumes:
+      - .:/workspace/src:ro
+      - workbench-build:/workspace/build
+      - workbench-install:/workspace/install
+      - workbench-log:/workspace/log
+      - "${XAUTHORITY:-/dev/null}:/run/user/workbench.xauthority:ro"
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+    networks: [ros-local]
+
+  gz-gui-wayland:
+    <<: *workbench-common
+    profiles: [gz-gui-wayland]
+    gpus: all
+    user: "${HOST_UID:-10001}:${HOST_GID:-10001}"
+    command: ["gz", "sim", "-g", "/usr/share/workbench/container/camera-rendering-smoke.sdf"]
+    environment:
+      <<: [*workbench-env, *nvidia-environment]
+      WORKBENCH_CONTAINER_PROFILE: gz-gui-wayland
+      WAYLAND_DISPLAY: "${WAYLAND_DISPLAY:-wayland-missing}"
+      XDG_RUNTIME_DIR: "/run/user/${HOST_UID:-10001}"
+    volumes:
+      - .:/workspace/src:ro
+      - workbench-build:/workspace/build
+      - workbench-install:/workspace/install
+      - workbench-log:/workspace/log
+      - "${XDG_RUNTIME_DIR:-/dev}/${WAYLAND_DISPLAY:-null}:/run/user/${HOST_UID:-10001}/${WAYLAND_DISPLAY:-wayland-missing}:ro"
+    networks: [ros-local]
+
+  mujoco-gpu:
+    <<: *workbench-common
+    profiles: [mujoco-gpu]
+    gpus: all
+    command: ["/opt/workbench-mujoco-venv/bin/python", "/usr/local/bin/workbench-mujoco-smoke"]
+    environment:
+      <<: [*workbench-env, *nvidia-environment]
+      WORKBENCH_CONTAINER_PROFILE: mujoco-gpu
+      MUJOCO_GL: egl
+      WORKBENCH_SEED: "${WORKBENCH_SEED:-0}"
+    networks: [gpu-local]
+
+  hardware-shell:
+    <<: *workbench-common
+    profiles: [hardware-shell]
+    command: ["bash", "-l"]
+    network_mode: host
+    cap_add: ["NET_RAW"]
+    devices:
+      - "${WORKBENCH_SERIAL_DEVICE:-/dev/null}:${WORKBENCH_SERIAL_CONTAINER_PATH:-/dev/workbench-serial}:r"
+    environment:
+      <<: *workbench-env
+      WORKBENCH_CONTAINER_PROFILE: hardware-shell
+      ROS_LOCALHOST_ONLY: "0"
+      ROS_SECURITY_ENABLE: "1"
+      ROS_SECURITY_STRATEGY: Enforce
+      ROS_SECURITY_KEYSTORE: /run/sros2/keystore
+      ROS_SECURITY_ROOT_DIRECTORY: /run/sros2/keystore
+      WORKBENCH_DDS_INTERFACE: "${WORKBENCH_DDS_INTERFACE:-}"
+      WORKBENCH_CAN_INTERFACE: "${WORKBENCH_CAN_INTERFACE:-}"
+      WORKBENCH_SERIAL_DEVICE: "${WORKBENCH_SERIAL_DEVICE:-}"
+      WORKBENCH_SERIAL_CONTAINER_PATH: "${WORKBENCH_SERIAL_CONTAINER_PATH:-/dev/workbench-serial}"
+      WORKBENCH_SROS2_KEYSTORE: /run/sros2/keystore
+      ROS_DISCOVERY_SERVER: "${ROS_DISCOVERY_SERVER:-}"
+    volumes:
+      - .:/workspace/src:ro
+      - workbench-build:/workspace/build
+      - workbench-install:/workspace/install
+      - workbench-log:/workspace/log
+      - "${WORKBENCH_SROS2_KEYSTORE:-/dev/null}:/run/sros2/keystore:ro"
 
   model:
-    profiles: ["model"]
+    profiles: [model]
     image: ollama/ollama@sha256:b88c73ace3e115f8ec53dc8761ae1c0aabfa675406e3681786b98757ce050f42
     environment:
       OLLAMA_HOST: "0.0.0.0:11434"
-    volumes:
-      - model-cache:/root/.ollama
-    expose:
-      - "11434"
-    networks:
-      - model-runtime
+    volumes: [model-cache:/root/.ollama]
+    expose: ["11434"]
+    networks: [model-runtime]
     healthcheck:
       test: ["CMD", "ollama", "list"]
       interval: 10s
-      timeout: 5s
+      timeout: 3s
       retries: 6
 
   model-bootstrap:
-    profiles: ["model-bootstrap"]
+    profiles: [model-bootstrap]
     image: ollama/ollama@sha256:b88c73ace3e115f8ec53dc8761ae1c0aabfa675406e3681786b98757ce050f42
     environment:
       OLLAMA_HOST: "127.0.0.1:11434"
       WORKBENCH_MODEL: "${WORKBENCH_MODEL:-qwen2.5:0.5b}"
-    volumes:
-      - model-cache:/root/.ollama
+    volumes: [model-cache:/root/.ollama]
     entrypoint: ["/bin/sh", "-c"]
     command: ["ollama serve >/tmp/ollama-bootstrap.log 2>&1 & server_pid=$$!; trap 'kill $$server_pid' EXIT; until ollama list >/dev/null 2>&1; do sleep 1; done; ollama pull \"${WORKBENCH_MODEL:-qwen2.5:0.5b}\""]
-    networks:
-      - bootstrap
+    networks: [bootstrap]
 
 networks:
   public:
   model-runtime:
     internal: true
   bootstrap:
+  ros-local:
+    internal: true
+  gpu-local:
+    internal: true
 
 volumes:
   model-cache:
+  workbench-build:
+  workbench-install:
+  workbench-log:

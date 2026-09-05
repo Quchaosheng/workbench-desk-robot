@@ -24,7 +24,10 @@ def test_sbom_generation_keeps_release_workflow_least_privileged() -> None:
 
     artifact_step = _step_block(workflow, "uses: actions/upload-artifact@")
     assert "name: workbench-1-sbom" in artifact_step
-    assert "path: workbench-1.spdx.json" in artifact_step
+    assert "if: always()" in artifact_step
+    assert "path: |" in artifact_step
+    assert "workbench-1.spdx.json" in artifact_step
+    assert "workbench-1-grype.json" in artifact_step
 
 
 def test_kernel_fault_suite_cannot_be_skipped_as_green() -> None:

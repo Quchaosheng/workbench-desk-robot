@@ -2,6 +2,7 @@
 .github
 .venv
 __pycache__
+docker/__pycache__
 *.pyc
 *.pyo
 *.db
@@ -9,6 +10,8 @@ __pycache__
 .pytest_cache
 .ruff_cache
 build
+install
+log
 dist
 runs
 node_modules

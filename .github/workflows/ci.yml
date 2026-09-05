@@ -76,7 +76,7 @@ jobs:
           tags: workbench-1:ci
           cache-from: type=gha,scope=ci-runtime
           cache-to: type=gha,mode=max,scope=ci-runtime
-      - run: docker run --rm workbench-1:ci python tools/scripts/local_runner.py --goal "Place the red block in the tray"
+      - run: docker run --rm --workdir /opt/workbench_source workbench-1:ci python tools/scripts/local_runner.py --goal "Place the red block in the tray"
 
   kernel-module:
     runs-on: ubuntu-24.04

@@ -490,11 +490,14 @@ def _resolve_poll_api(poller_factory: Callable[[], Any] | None) -> tuple[Callabl
     # POSIX poll bit values are stable; use them for injected pollers on
     # platforms whose select module omits one or more constants.
     poll_input_mask = getattr(select, "POLLIN", 0x001)
-    poll_error_masks = tuple(getattr(select, name, fallback) for name, fallback in (
-        ("POLLERR", 0x008),
-        ("POLLHUP", 0x010),
-        ("POLLNVAL", 0x020),
-    ))
+    poll_error_masks = tuple(
+        getattr(select, name, fallback)
+        for name, fallback in (
+            ("POLLERR", 0x008),
+            ("POLLHUP", 0x010),
+            ("POLLNVAL", 0x020),
+        )
+    )
     if (
         not callable(resolved_factory)
         or type(poll_input_mask) is not int

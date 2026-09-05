@@ -39,4 +39,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=15s --timeout=3s --start-period=5s --retries=3 \
     CMD curl --fail --silent http://127.0.0.1:8080/healthz > /dev/null || exit 1
 
-CMD ["python", "-m", "workbench_backend.server", "--host", "0.0.0.0", "--port", "8080", "--published-host", "0.0.0.0", "--trust-mode", "reverse_proxy", "--trusted-proxy-allowlist", "172.16.0.0/12"]
+CMD ["python", "-m", "workbench_backend.server", "--host", "0.0.0.0", "--port", "8080"]

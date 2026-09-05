@@ -99,7 +99,10 @@ class InboundHttpPolicy:
 
     def allows_peer(self, peer_address: str) -> bool:
         if not self.uses_reverse_proxy:
-            return True
+            try:
+                return ip_address(peer_address).is_loopback
+            except ValueError:
+                return False
         try:
             peer = ip_address(peer_address)
         except ValueError:

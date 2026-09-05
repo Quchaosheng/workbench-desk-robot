@@ -5,6 +5,7 @@
   "allowed_paths": [
     ".github/workflows/ci.yml",
     "bsp/README.md",
+    "bsp/validation/bringup-closure-checklist.md",
     "bsp/public-candidate-selection.md",
     "THIRD_PARTY_REVIEW.md",
     "docs/task_packets/bsp-readiness-ci.json",
@@ -26,7 +27,7 @@
     "each candidate has a public evidence link or an explicit unresolved status",
     "JetPack and L4T mapping is recorded",
     "xArm 7 and tool-controller integration boundaries are explicit",
-    "U2 remains a candidate until footprint and safety review",
+    "U2 remains a candidate until electrical, footprint and safety review",
     "third-party support and license limits are recorded"
   ],
   "commands": [
@@ -37,6 +38,7 @@
     "bsp/public-candidate-selection.md",
     "bsp/image/build-inputs.yaml",
     "bsp/readiness.yaml",
+    "bsp/validation/bringup-closure-checklist.md",
     "THIRD_PARTY_REVIEW.md"
   ],
   "stop_conditions": [

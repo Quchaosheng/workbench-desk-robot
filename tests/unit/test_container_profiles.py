@@ -399,6 +399,21 @@ def test_ci_bare_image_smoke_uses_copied_source_workdir() -> None:
     assert "http://127.0.0.1:8080/readyz" in workflow
 
 
+def test_dashboard_compose_uses_an_explicit_fixture_data_path() -> None:
+    compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
+
+    assert '"--data-dir"' in compose
+    assert '"/workspace/src/apps/dashboard/data"' in compose
+
+
+def test_cpu_dashboard_health_dumps_both_probe_responses_on_failure() -> None:
+    workflow = (ROOT / ".github/workflows/container-full-stack.yml").read_text(encoding="utf-8")
+
+    assert 'echo "healthz response:"' in workflow
+    assert 'echo "readyz response:"' in workflow
+    assert "curl --silent --show-error --include http://127.0.0.1:8080/readyz" in workflow
+
+
 def test_ci_and_release_bare_image_smokes_use_copied_source_workdir() -> None:
     smoke_images = (
         ("ci.yml", "workbench-1:ci"),

@@ -80,6 +80,10 @@ jobs:
             fi
             sleep 1
           done
+          echo "healthz response:"
+          curl --silent --show-error --include http://127.0.0.1:8080/healthz || true
+          echo "readyz response:"
+          curl --silent --show-error --include http://127.0.0.1:8080/readyz || true
           docker compose logs dashboard
           exit 1
       - name: Container contract and deterministic checks

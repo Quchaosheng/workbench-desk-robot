@@ -3,6 +3,7 @@ import json
 import mimetypes
 import os
 import re
+import socket
 import threading
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -62,6 +63,9 @@ class BoundedThreadingHTTPServer(ThreadingHTTPServer):
             )
             try:
                 request.sendall(response)
+                # Half-close after the complete response to avoid a TCP reset
+                # on Windows when the client has no unread request body.
+                request.shutdown(socket.SHUT_WR)
             except OSError:
                 pass
             self.shutdown_request(request)
@@ -205,6 +209,28 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _drain_request_body(self, content_length: int) -> bool:
+        """Consume a bounded rejected body so the 405 response is not reset."""
+        if content_length == 0:
+            return True
+        previous_timeout = self.connection.gettimeout()
+        try:
+            self.connection.settimeout(1.0)
+            remaining = content_length
+            while remaining:
+                chunk = self.rfile.read(min(64 * 1024, remaining))
+                if not chunk:
+                    return False
+                remaining -= len(chunk)
+            return True
+        except (OSError, socket.timeout):
+            return False
+        finally:
+            try:
+                self.connection.settimeout(previous_timeout)
+            except OSError:
+                pass
+
     def do_GET(self) -> None:
         if not self._authorize_request() or self._validated_content_length(body_allowed=False) is None:
             return
@@ -275,7 +301,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self._send_file(static_path)
 
     def _reject_write(self) -> None:
-        if not self._authorize_request() or self._validated_content_length(body_allowed=True) is None:
+        if not self._authorize_request():
+            return
+        content_length = self._validated_content_length(body_allowed=True)
+        if content_length is None:
+            return
+        if not self._drain_request_body(content_length):
+            self.close_connection = True
+            self._send_json({"error": "incomplete_request_body"}, HTTPStatus.BAD_REQUEST)
             return
         self.close_connection = True
         self._send_json(

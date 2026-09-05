@@ -11,22 +11,31 @@ import urllib.request
 import uuid
 from pathlib import Path
 
+from workbench_backend.inbound_http import InboundHttpConfigurationError, InboundHttpPolicy
+
 ROOT = Path(__file__).resolve().parents[2]
 CONTROLLER_COMPOSE = ROOT / "deploy" / "multi-host" / "compose.controller.yaml"
 SIM_COMPOSE = ROOT / "deploy" / "multi-host" / "compose.sim.yaml"
 CONTROLLER_ENV_FIXTURE = ROOT / "tests" / "fixtures" / "issue-71-controller.env"
+ISSUE_66_CONTROLLER_ENV_FIXTURE = ROOT / "tests" / "fixtures" / "issue-66-controller.env"
 DEPLOYMENT_DOC = ROOT / "docs" / "deployment" / "multi-host.md"
 SMOKE_IMAGE = "workbench-1:issue-71-smoke"
+ISSUE_66_SMOKE_IMAGE = "workbench-1:issue-66-smoke"
 EVENT_SOURCE_ENVIRONMENT = {
     "WORKBENCH_EVENT_SOURCE_URL": "http://10.20.30.40:8090",
     "WORKBENCH_EVENT_SOURCE_ALLOWLIST": "10.20.30.0/24",
+}
+INBOUND_ENVIRONMENT_VARIABLES = {
+    "CONTROLLER_BIND_ADDRESS",
+    "WORKBENCH_CONTROLLER_TRUST_MODE",
+    "WORKBENCH_CONTROLLER_TRUSTED_PROXY_ALLOWLIST",
 }
 
 
 class ControllerComposeDeploymentTests(unittest.TestCase):
     def compose_environment(self, **overrides: str) -> dict[str, str]:
         environment = os.environ.copy()
-        for variable in EVENT_SOURCE_ENVIRONMENT:
+        for variable in set(EVENT_SOURCE_ENVIRONMENT) | INBOUND_ENVIRONMENT_VARIABLES:
             environment.pop(variable, None)
         environment.update(EVENT_SOURCE_ENVIRONMENT)
         environment.update(overrides)
@@ -105,6 +114,69 @@ class ControllerComposeDeploymentTests(unittest.TestCase):
         self.assertEqual(controller["tmpfs"], ["/tmp:size=32m"])
         for prohibited_capability in ("cap_add", "devices", "privileged", "volumes"):
             self.assertNotIn(prohibited_capability, controller)
+
+    def test_controller_defaults_to_loopback_host_binding(self) -> None:
+        result = self.render_controller(environment=self.compose_environment())
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        controller = json.loads(result.stdout)["services"]["controller"]
+        self.assertEqual(controller["ports"][0]["host_ip"], "127.0.0.1")
+        command = controller["command"]
+        self.assertEqual(command[command.index("--published-host") + 1], "127.0.0.1")
+        self.assertEqual(command[command.index("--trust-mode") + 1], "local")
+        self.assertEqual(command[command.index("--trusted-proxy-allowlist") + 1], "")
+
+    def test_private_bind_requires_reverse_proxy_trust(self) -> None:
+        private_environment = self.compose_environment(
+            CONTROLLER_BIND_ADDRESS="10.20.30.40",
+            WORKBENCH_CONTROLLER_TRUST_MODE="reverse_proxy",
+            WORKBENCH_CONTROLLER_TRUSTED_PROXY_ALLOWLIST="10.20.31.10/32,127.0.0.1/32",
+        )
+        result = self.render_controller(environment=private_environment)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        controller = json.loads(result.stdout)["services"]["controller"]
+        self.assertEqual(controller["ports"][0]["host_ip"], "10.20.30.40")
+        command = controller["command"]
+        options = {
+            argument: command[command.index(argument) + 1]
+            for argument in ("--published-host", "--trust-mode", "--trusted-proxy-allowlist")
+        }
+        policy = InboundHttpPolicy(
+            published_host=options["--published-host"],
+            trust_mode=options["--trust-mode"],
+            trusted_proxy_allowlist=options["--trusted-proxy-allowlist"],
+        )
+        self.assertTrue(policy.allows_peer("10.20.31.10"))
+        self.assertTrue(policy.allows_peer("127.0.0.1"))
+
+        missing_trust = self.render_controller(
+            environment=self.compose_environment(CONTROLLER_BIND_ADDRESS="10.20.30.40")
+        )
+        self.assertEqual(missing_trust.returncode, 0, missing_trust.stdout + missing_trust.stderr)
+        command = json.loads(missing_trust.stdout)["services"]["controller"]["command"]
+        with self.assertRaises(InboundHttpConfigurationError):
+            InboundHttpPolicy(
+                published_host=command[command.index("--published-host") + 1],
+                trust_mode=command[command.index("--trust-mode") + 1],
+                trusted_proxy_allowlist=command[command.index("--trusted-proxy-allowlist") + 1],
+            )
+
+    def test_public_and_ambiguous_bind_addresses_fail_closed(self) -> None:
+        for published_host in ("", "0.0.0.0", "::", "8.8.8.8", "controller.internal"):
+            with self.subTest(published_host=published_host):
+                result = self.render_controller(
+                    environment=self.compose_environment(CONTROLLER_BIND_ADDRESS=published_host)
+                )
+                if result.returncode != 0:
+                    self.assertIn("invalid ip address", (result.stdout + result.stderr).lower())
+                    continue
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                command = json.loads(result.stdout)["services"]["controller"]["command"]
+                with self.assertRaises(InboundHttpConfigurationError):
+                    InboundHttpPolicy(
+                        published_host=command[command.index("--published-host") + 1],
+                        trust_mode=command[command.index("--trust-mode") + 1],
+                        trusted_proxy_allowlist=command[command.index("--trusted-proxy-allowlist") + 1],
+                    )
 
 
 class ControllerComposeRuntimeSmokeTests(unittest.TestCase):
@@ -309,6 +381,177 @@ class ControllerComposeRuntimeSmokeTests(unittest.TestCase):
         )
 
 
+class Issue66ControllerComposeRuntimeSmokeTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        try:
+            image = subprocess.run(
+                ["docker", "image", "inspect", ISSUE_66_SMOKE_IMAGE],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+        except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+            raise unittest.SkipTest(f"Docker is unavailable: {exc}") from exc
+        if image.returncode != 0:
+            raise unittest.SkipTest(f"build {ISSUE_66_SMOKE_IMAGE!r} before running the Issue #66 runtime smoke")
+
+    def setUp(self) -> None:
+        token = uuid.uuid4().hex[:12]
+        self.project = f"issue66-controller-{token}"
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as controller_socket:
+            controller_socket.bind(("127.0.0.1", 0))
+            self.controller_port = controller_socket.getsockname()[1]
+        self.environment = os.environ | {
+            "WORKBENCH_IMAGE": ISSUE_66_SMOKE_IMAGE,
+            "CONTROLLER_PORT": str(self.controller_port),
+            "WORKBENCH_EVENT_SOURCE_URL": "http://127.0.0.1:1",
+            "WORKBENCH_EVENT_SOURCE_ALLOWLIST": "127.0.0.1/32",
+        }
+        for variable in INBOUND_ENVIRONMENT_VARIABLES:
+            self.environment.pop(variable, None)
+        self.addCleanup(self._cleanup)
+
+    def _run(self, command: list[str], *, check: bool = True, timeout: float = 90):
+        result = subprocess.run(
+            command,
+            cwd=ROOT,
+            env=self.environment,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+        if check and result.returncode != 0:
+            self.fail(
+                f"command failed ({result.returncode}): {' '.join(command)}\n"
+                f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+            )
+        return result
+
+    def _compose(self, *arguments: str, check: bool = True):
+        return self._run(
+            [
+                "docker",
+                "compose",
+                "-p",
+                self.project,
+                "-f",
+                str(CONTROLLER_COMPOSE.relative_to(ROOT)),
+                *arguments,
+            ],
+            check=check,
+        )
+
+    def _cleanup(self) -> None:
+        self._compose("down", "--remove-orphans", check=False)
+
+    def _wait_for_status(
+        self,
+        path: str,
+        expected_status: int,
+        *,
+        data: bytes | None = None,
+        headers: dict[str, str] | None = None,
+        method: str | None = None,
+    ) -> dict[str, object]:
+        deadline = time.monotonic() + 30
+        last_status: int | None = None
+        last_body = ""
+        url = f"http://127.0.0.1:{self.controller_port}{path}"
+        while time.monotonic() < deadline:
+            request = urllib.request.Request(url, data=data, headers=headers or {}, method=method)
+            try:
+                with urllib.request.urlopen(request, timeout=2) as response:
+                    last_status = response.status
+                    last_body = response.read().decode("utf-8")
+            except urllib.error.HTTPError as exc:
+                last_status = exc.code
+                last_body = exc.read().decode("utf-8")
+            except (ConnectionError, TimeoutError, urllib.error.URLError):
+                time.sleep(0.25)
+                continue
+            if last_status == expected_status:
+                payload = json.loads(last_body)
+                self.assertIsInstance(payload, dict)
+                return payload
+            time.sleep(0.25)
+        self.fail(f"{url} returned status={last_status}, body={last_body!r}; expected {expected_status}")
+
+    def _logged_peer(self) -> str:
+        logs = self._compose("logs", "--no-color", "--no-log-prefix", "controller").stdout
+        for line in reversed(logs.splitlines()):
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if record.get("event") == "http_access" and "/api/v1/runs" in str(record.get("message")):
+                return str(record["details"]["client"])
+        self.fail(f"controller logs contain no API access record:\n{logs}")
+
+    def test_issue_66_controller_runtime_is_loopback_only_and_read_only(self) -> None:
+        self._compose("up", "-d")
+        health = self._wait_for_status("/healthz", 200)
+        readiness = self._wait_for_status("/readyz", 503)
+        data = self._wait_for_status("/api/v1/runs", 503)
+        rejected_write = self._wait_for_status("/api/v1/control", 405, data=b"{}", method="POST")
+        self.assertEqual(health["status"], "ok")
+        self.assertEqual(readiness["status"], "not_ready")
+        self.assertEqual(data["error"], "invalid_event_source")
+        self.assertEqual(rejected_write["error"], "read_only")
+
+        container_id = self._compose("ps", "-q", "controller").stdout.strip()
+        bindings = json.loads(
+            self._run(["docker", "inspect", container_id, "--format", "{{json .NetworkSettings.Ports}}"]).stdout
+        )
+        published = bindings["8080/tcp"]
+        self.assertEqual({binding["HostIp"] for binding in published}, {"127.0.0.1"})
+
+        self.environment |= {
+            "CONTROLLER_BIND_ADDRESS": "127.0.0.1",
+            "WORKBENCH_CONTROLLER_TRUST_MODE": "reverse_proxy",
+            "WORKBENCH_CONTROLLER_TRUSTED_PROXY_ALLOWLIST": "10.123.0.1/32",
+        }
+        self._compose("up", "-d", "--force-recreate")
+        for path in ("/", "/healthz", "/readyz", "/api/v1/openapi.json", "/api/v1/runs"):
+            denied = self._wait_for_status(
+                path,
+                403,
+                headers={"X-Forwarded-For": "10.123.0.1", "Forwarded": "for=10.123.0.1"},
+            )
+            self.assertEqual(denied["error"], "untrusted_client")
+        peer = ipaddress.ip_address(self._logged_peer())
+        self.assertTrue(peer.is_loopback or peer.is_private)
+
+        prefix_length = 32 if peer.version == 4 else 128
+        self.environment["WORKBENCH_CONTROLLER_TRUSTED_PROXY_ALLOWLIST"] = f"{peer}/{prefix_length},127.0.0.1/32"
+        self._compose("up", "-d", "--force-recreate")
+
+        health = self._wait_for_status("/healthz", 200)
+        readiness = self._wait_for_status("/readyz", 503)
+        data = self._wait_for_status("/api/v1/runs", 503)
+        rejected_write = self._wait_for_status("/api/v1/control", 405, data=b"{}", method="POST")
+        self.assertEqual(health["status"], "ok")
+        self.assertEqual(readiness["status"], "not_ready")
+        self.assertEqual(data["error"], "invalid_event_source")
+        self.assertEqual(rejected_write["error"], "read_only")
+        print(
+            json.dumps(
+                {
+                    "authorized_peer": str(peer),
+                    "data_status": 503,
+                    "health_status": 200,
+                    "host_ips": sorted(binding["HostIp"] for binding in published),
+                    "readiness_status": 503,
+                    "spoofed_untrusted_status": 403,
+                    "write_status": 405,
+                },
+                sort_keys=True,
+            )
+        )
+
+
 class MultiHostDeploymentDocumentationTests(unittest.TestCase):
     def test_allowlist_contract_is_ip_or_cidr_only_with_both_examples(self) -> None:
         documentation = DEPLOYMENT_DOC.read_text(encoding="utf-8")
@@ -327,6 +570,41 @@ class MultiHostDeploymentDocumentationTests(unittest.TestCase):
             for entry in assignment.split(","):
                 with self.subTest(entry=entry):
                     ipaddress.ip_network(entry, strict=False)
+
+    def test_controller_reverse_proxy_boundary_is_documented(self) -> None:
+        documentation = DEPLOYMENT_DOC.read_text(encoding="utf-8")
+        for requirement in (
+            "CONTROLLER_BIND_ADDRESS",
+            "WORKBENCH_CONTROLLER_TRUST_MODE",
+            "WORKBENCH_CONTROLLER_TRUSTED_PROXY_ALLOWLIST",
+            "reverse_proxy",
+            "TLS",
+            "认证",
+            "反向代理",
+            "/healthz",
+            "/readyz",
+            "X-Forwarded-For",
+        ):
+            with self.subTest(requirement=requirement):
+                self.assertIn(requirement, documentation)
+        self.assertIn("不得包含密码、令牌或其他凭据", documentation)
+        self.assertIn("#65", documentation)
+        self.assertIn("#65 完成前", documentation)
+        self.assertIn(
+            "WORKBENCH_CONTROLLER_TRUSTED_PROXY_ALLOWLIST=10.20.30.10/32,127.0.0.1/32",
+            documentation,
+        )
+        self.assertIn("容器自身的健康检查", documentation)
+
+    def test_controller_loopback_proxy_example_uses_local_backend_trust(self) -> None:
+        documentation = DEPLOYMENT_DOC.read_text(encoding="utf-8")
+        self.assertIn(
+            "export CONTROLLER_BIND_ADDRESS=127.0.0.1\n"
+            "export WORKBENCH_CONTROLLER_TRUST_MODE=local\n"
+            "unset WORKBENCH_CONTROLLER_TRUSTED_PROXY_ALLOWLIST",
+            documentation,
+        )
+        self.assertNotIn("WORKBENCH_CONTROLLER_TRUSTED_PROXY_ALLOWLIST=127.0.0.1/32", documentation)
 
 
 if __name__ == "__main__":

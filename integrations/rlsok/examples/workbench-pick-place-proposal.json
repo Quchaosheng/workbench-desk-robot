@@ -1,0 +1,36 @@
+{
+  "proposalId": "workbench-pick-place-act-003-shadow-001",
+  "deviceId": "workbench-arm-sim-01",
+  "action": {
+    "representation": "trajectory",
+    "jointNames": [
+      "shoulder_pan_joint",
+      "shoulder_lift_joint",
+      "elbow_joint",
+      "wrist_1_joint",
+      "wrist_2_joint",
+      "wrist_3_joint"
+    ],
+    "points": [
+      {
+        "positions": [0.0, -1.2, 1.4, -1.7, -1.57, 0.0],
+        "timeFromStartMs": 1500
+      }
+    ],
+    "units": {
+      "position": "radian",
+      "velocity": "radian_per_second"
+    }
+  },
+  "state": {
+    "names": [
+      "shoulder_pan_joint",
+      "shoulder_lift_joint",
+      "elbow_joint",
+      "wrist_1_joint",
+      "wrist_2_joint",
+      "wrist_3_joint"
+    ],
+    "positions": [0.0, -1.57, 1.57, -1.57, -1.57, 0.0]
+  }
+}

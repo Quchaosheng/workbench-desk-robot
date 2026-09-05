@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Revision D mechanical analysis evidence",
+  "type": "object",
+  "required": ["status", "mass_kg", "center_of_gravity_mm", "mass_model", "stability", "checks"],
+  "properties": {
+    "status": {"const": "CONCEPT_PHYSICAL_VALIDATION_REQUIRED"},
+    "mass_kg": {"type": "number", "exclusiveMinimum": 0},
+    "center_of_gravity_mm": {"type": "array", "prefixItems": [{"type": "number"}, {"type": "number"}, {"type": "number"}], "minItems": 3, "maxItems": 3},
+    "mass_model": {
+      "type": "object",
+      "required": ["model_id", "revision", "mass_model_sha256", "source_hashes", "units", "reference_frame", "mass_kg", "center_of_gravity_mm", "validation_status"],
+      "properties": {
+        "model_id": {"type": "string", "minLength": 1},
+        "revision": {"type": "string", "minLength": 1},
+        "mass_model_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "source_hashes": {"type": "object", "required": ["design_spec_sha256", "mass_ledger_sha256"], "additionalProperties": {"type": ["string", "null"]}},
+        "units": {"const": {"mass": "kg", "position": "mm"}},
+        "reference_frame": {"type": "string", "minLength": 1},
+        "mass_kg": {"type": "number", "exclusiveMinimum": 0},
+        "center_of_gravity_mm": {"type": "array", "minItems": 3, "maxItems": 3},
+        "validation_status": {"const": "CONCEPT_PHYSICAL_VALIDATION_REQUIRED"}
+      },
+      "additionalProperties": true
+    },
+    "stability": {
+      "type": "object",
+      "required": ["calculation_version", "coordinate_convention", "tip_angle_formula", "directions", "support_polygons", "cases", "gates", "checks"],
+      "properties": {
+        "directions": {"const": ["+X", "-X", "+Y", "-Y"]},
+        "cases": {"type": "object", "required": ["stowed", "raised", "payload", "shared_workspace", "emergency_stop", "stabilizer_deployed"]},
+        "gates": {"type": "object", "required": ["drive", "stabilized"]}
+      },
+      "additionalProperties": true
+    },
+    "checks": {"type": "object", "additionalProperties": {"type": "boolean"}}
+  },
+  "additionalProperties": true
+}

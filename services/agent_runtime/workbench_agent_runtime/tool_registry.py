@@ -21,7 +21,7 @@ from . import tool_schemas as _schemas
 # public types
 # ---------------------------------------------------------------------------
 
-_TARGET_REQUIRED_ACTIONS: frozenset[ActionType] = frozenset({ActionType.GRASP, ActionType.PLACE})
+_TARGET_REQUIRED_ACTIONS: frozenset[ActionType] = frozenset({ActionType.GRASP, ActionType.PLACE, ActionType.NAVIGATE})
 _SCHEMA_KEYS: frozenset[str] = frozenset(
     {
         "description",
@@ -75,7 +75,7 @@ class ValidationResult:
 
 
 class ToolRegistry:
-    """Register and validate the six bounded semantic-action tools.
+    """Register and validate the seven bounded semantic-action tools.
 
     Validation layers, applied in order:
 

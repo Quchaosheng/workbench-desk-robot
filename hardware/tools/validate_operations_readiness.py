@@ -12,6 +12,7 @@ OUTPUT = ROOT / "hardware/generated/operations_readiness_report.json"
 BMS_VALIDATOR = ROOT / "hardware/power/tools/validate_bms_state_machine.py"
 MECHANICAL_SPEC = ROOT / "hardware/mechanical/design-spec.json"
 MECHANICAL_REPORT = ROOT / "hardware/mechanical/generated/analysis.json"
+MECHANICAL_GENERATOR = ROOT / "hardware/mechanical/tools/generate_artifacts.py"
 
 
 def read_csv(relative: str) -> list[dict[str, str]]:
@@ -29,17 +30,64 @@ def validate_bms_state_machine() -> dict[str, Any]:
     return module.validate(write_report=True)
 
 
+def validate_mechanical_mass_model(
+    mechanical_spec: dict[str, object], mechanical_report: dict[str, object], mass_rows: list[dict[str, str]]
+) -> dict[str, object]:
+    spec = importlib.util.spec_from_file_location("workbench_mechanical_generator", MECHANICAL_GENERATOR)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load mechanical generator: {MECHANICAL_GENERATOR}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    validation = module.validate_mass_model(mechanical_spec, mass_rows)
+    mass_model = mechanical_report.get("mass_model", {})
+    source_hashes = mass_model.get("source_hashes", {}) if isinstance(mass_model, dict) else {}
+    legacy_rows = read_csv("hardware/mechanical/mass-ledger-legacy.csv")
+    validation["checks"].update(
+        {
+            "generated_mass_model_is_present": isinstance(mass_model, dict) and bool(mass_model),
+            "generated_mass_model_hash_is_present": isinstance(mass_model, dict)
+            and isinstance(mass_model.get("mass_model_sha256"), str)
+            and len(mass_model["mass_model_sha256"]) == 64,
+            "generated_mass_model_hash_matches_source": isinstance(mass_model, dict)
+            and mass_model.get("mass_model_sha256") == validation.get("mass_model_sha256"),
+            "generated_design_spec_hash_matches_source": isinstance(source_hashes, dict)
+            and source_hashes.get("design_spec_sha256") == module.sha256_file(MECHANICAL_SPEC),
+            "generated_mass_matches_source": isinstance(mass_model, dict)
+            and mass_model.get("mass_kg") == mechanical_report.get("mass_kg")
+            and mass_model.get("mass_kg") == validation.get("total_mass_kg")
+            and mass_model.get("center_of_gravity_mm") == validation.get("center_of_gravity_mm"),
+            "legacy_mass_rows_are_superseded": bool(legacy_rows)
+            and all(
+                row.get("status") == "SUPERSEDED" and row.get("inclusion_rule") == "EXCLUDED" for row in legacy_rows
+            ),
+        }
+    )
+    validation["pass"] = all(validation["checks"].values())
+    return validation
+
+
 def validate() -> dict[str, object]:
     baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
     mechanical_spec = json.loads(MECHANICAL_SPEC.read_text(encoding="utf-8"))
     mechanical_report = json.loads(MECHANICAL_REPORT.read_text(encoding="utf-8"))
     bms_report = validate_bms_state_machine()
     mass_rows = read_csv("hardware/mechanical/mass-ledger.csv")
-    total_mass_kg = sum(float(row["mass_kg"]) for row in mass_rows)
-    center_of_gravity_mm = [
-        round(sum(float(row["mass_kg"]) * float(row[axis]) for row in mass_rows) / total_mass_kg, 1)
-        for axis in ("x_mm", "y_mm", "z_mm")
-    ]
+    mass_validation = validate_mechanical_mass_model(mechanical_spec, mechanical_report, mass_rows)
+    stability_report = mechanical_report.get("stability", {})
+    current_mass_rows = [row for row in mass_rows if row.get("inclusion_rule") == "AUTHORITATIVE_CURRENT"]
+    try:
+        total_mass_kg = sum(float(row["mass_kg"]) for row in current_mass_rows)
+        center_of_gravity_mm = (
+            [
+                round(sum(float(row["mass_kg"]) * float(row[axis]) for row in current_mass_rows) / total_mass_kg, 1)
+                for axis in ("x_mm", "y_mm", "z_mm")
+            ]
+            if total_mass_kg > 0
+            else []
+        )
+    except (KeyError, TypeError, ValueError, ZeroDivisionError):
+        total_mass_kg = 0.0
+        center_of_gravity_mm = []
     bms_states = {row["state"] for row in read_csv("hardware/power/bms-state-machine.csv")}
     bms_transitions = read_csv("hardware/power/bms-transitions.csv")
     planning_bom_total_usd = sum(
@@ -50,6 +98,7 @@ def validate() -> dict[str, object]:
         for row in read_csv("hardware/manufacturing/fixture-budget.csv")
         if row["fixture_id"] != "TOTAL"
     )
+    approval_rows = read_csv("hardware/mechanical/mass-model-approval-register.csv")
     required_files = [
         "hardware/power/README.md",
         "hardware/power/bms-state-machine.csv",
@@ -57,6 +106,8 @@ def validate() -> dict[str, object]:
         "hardware/power/protection-thresholds.csv",
         "hardware/mechanical/system-integration.md",
         "hardware/mechanical/mass-ledger.csv",
+        "hardware/mechanical/mass-ledger-legacy.csv",
+        "hardware/mechanical/mass-model-approval-register.csv",
         "hardware/mechanical/interference-checklist.csv",
         "hardware/procurement/planning-baseline.md",
         "hardware/procurement/planning-bom.csv",
@@ -128,6 +179,22 @@ def validate() -> dict[str, object]:
         == {"L1", "L2", "L3"},
         "mass_ledger_matches_generated_mass": abs(total_mass_kg - mechanical_report["mass_kg"]) < 1e-9,
         "mass_ledger_cg_matches_generated_analysis": center_of_gravity_mm == mechanical_report["center_of_gravity_mm"],
+        "mechanical_mass_model_is_valid": bool(mass_validation["pass"]),
+        "mechanical_mass_model_revision_is_current": mechanical_report.get("mass_model", {}).get("revision")
+        == mechanical_spec.get("revision"),
+        "mechanical_stability_analysis_is_directional": isinstance(stability_report, dict)
+        and isinstance(stability_report.get("checks"), dict)
+        and all(stability_report["checks"].values())
+        and stability_report.get("directions") == ["+X", "-X", "+Y", "-Y"],
+        "mechanical_mass_model_id_matches_baseline": mechanical_report.get("mass_model", {}).get("model_id")
+        == baseline["mechanical"].get("mass_model_id")
+        and mechanical_report.get("mass_model", {}).get("revision")
+        == baseline["mechanical"].get("mass_model_revision"),
+        "mass_model_approval_roles_are_explicit": {row.get("role") for row in approval_rows}
+        >= {"Product", "Mechanical", "Hardware", "Safety"}
+        and all(row.get("model_id") == mechanical_spec.get("mass_model", {}).get("model_id") for row in approval_rows),
+        "mass_model_approval_is_required_before_release": bool(approval_rows)
+        and all(row.get("approval_status") == "REQUIRED" for row in approval_rows),
         "mechanical_generated_geometry_is_measured": mechanical_report["generated_geometry"]["status"] == "MEASURED",
         "mechanical_generated_heights_match_spec": mechanical_report["generated_geometry"]["assembly_bounds_mm"][
             "zmax_mm"
@@ -135,9 +202,7 @@ def validate() -> dict[str, object]:
         == mechanical_spec["enclosure"]["height"]
         and mechanical_report["generated_geometry"]["navigation_bounds_mm"]["zmax_mm"]
         == mechanical_spec["enclosure"]["stowed_height"],
-        "mass_ledger_has_physical_validation_status": all(
-            row["status"] == "ESTIMATE" for row in read_csv("hardware/mechanical/mass-ledger.csv")
-        ),
+        "mass_ledger_has_physical_validation_status": all(row["status"] == "ESTIMATE" for row in current_mass_rows),
         "planning_bom_rows_sum_to_5100": planning_bom_total_usd == 5100,
         "planning_bom_has_certificate_gate": all(
             row["certificate_gate"] == "REQUIRED_BEFORE_PO" for row in read_csv("hardware/procurement/planning-bom.csv")
@@ -187,6 +252,14 @@ def validate() -> dict[str, object]:
             "planning_bom_total_usd": planning_bom_total_usd,
             "fixture_budget_total_usd": fixture_budget_total_usd,
             "station_count": len({row["station"] for row in read_csv("hardware/manufacturing/station-map.csv")}),
+        },
+        "mechanical_mass_model": {
+            "validation": mass_validation,
+            "model_id": mechanical_report.get("mass_model", {}).get("model_id"),
+            "revision": mechanical_report.get("mass_model", {}).get("revision"),
+            "mass_model_sha256": mechanical_report.get("mass_model", {}).get("mass_model_sha256"),
+            "source_hashes": mechanical_report.get("mass_model", {}).get("source_hashes"),
+            "status": mechanical_report.get("mass_model", {}).get("status"),
         },
         "required_files": required_files,
         "note": "A passing document check never substitutes for quotes, certificates, pilot data, or physical tests.",

@@ -32,11 +32,17 @@
     "mass_ledger_cg_matches_generated_analysis": true,
     "mass_ledger_has_physical_validation_status": true,
     "mass_ledger_matches_generated_mass": true,
+    "mass_model_approval_is_required_before_release": true,
+    "mass_model_approval_roles_are_explicit": true,
     "mechanical_baseline_is_revision_d": true,
     "mechanical_design_case_matches_generated_analysis": true,
     "mechanical_drive_module_count_matches_spec": true,
     "mechanical_generated_geometry_is_measured": true,
     "mechanical_generated_heights_match_spec": true,
+    "mechanical_mass_model_id_matches_baseline": true,
+    "mechanical_mass_model_is_valid": true,
+    "mechanical_mass_model_revision_is_current": true,
+    "mechanical_stability_analysis_is_directional": true,
     "minimum_fpy_is_85_percent": true,
     "planning_bom_has_certificate_gate": true,
     "planning_bom_is_5100_usd": true,
@@ -46,6 +52,53 @@
     "rpn_actions_start_above_100": true,
     "station_map_has_six_unique_stations": true,
     "support_has_four_severity_levels": true
+  },
+  "mechanical_mass_model": {
+    "mass_model_sha256": "8fd2b60cec18e3fd9e73f47ae4c05f5382090889d41a98e48af3a69a70bc50f0",
+    "model_id": "REV-D-MASS-001",
+    "revision": "D",
+    "source_hashes": {
+      "design_spec_sha256": "311ac2613644ec708816c7e5484976cb4d8d66b294ec309948c94fb158247074",
+      "legacy_mass_ledger_sha256": "45d674b325d51de56b253f3ce3abcdd250e6e01d724d0c8d877cd2e2ecd5eb90",
+      "mass_ledger_sha256": "a9f111bc3b9954b44766f17227883bc5a98fc113f1568449613340112387793a"
+    },
+    "status": "ESTIMATE",
+    "validation": {
+      "center_of_gravity_mm": [
+        0.0,
+        -22.4,
+        512.0
+      ],
+      "checks": {
+        "authoritative_components_are_present": true,
+        "authoritative_mass_is_positive": true,
+        "component_ids_are_unique": true,
+        "component_ids_match_model": true,
+        "component_records_are_valid": true,
+        "components_are_present": true,
+        "generated_design_spec_hash_matches_source": true,
+        "generated_mass_matches_source": true,
+        "generated_mass_model_hash_is_present": true,
+        "generated_mass_model_hash_matches_source": true,
+        "generated_mass_model_is_present": true,
+        "legacy_mass_rows_are_superseded": true,
+        "mass_ledger_has_no_duplicate_ids": true,
+        "mass_ledger_matches_authoritative_components": true,
+        "mass_ledger_schema_is_current": true,
+        "mass_ledger_values_match_authoritative_source": true,
+        "mass_model_metadata_is_complete": true,
+        "mass_model_reference_frame_is_present": true,
+        "mass_model_revision_matches_spec": true,
+        "mass_model_tolerance_is_positive": true,
+        "mass_model_units_are_controlled": true,
+        "owner_approval_records_are_explicit": true
+      },
+      "component_count": 9,
+      "errors": [],
+      "mass_model_sha256": "8fd2b60cec18e3fd9e73f47ae4c05f5382090889d41a98e48af3a69a70bc50f0",
+      "pass": true,
+      "total_mass_kg": 77.5
+    }
   },
   "metrics": {
     "center_of_gravity_mm": [
@@ -68,6 +121,8 @@
     "hardware/power/protection-thresholds.csv",
     "hardware/mechanical/system-integration.md",
     "hardware/mechanical/mass-ledger.csv",
+    "hardware/mechanical/mass-ledger-legacy.csv",
+    "hardware/mechanical/mass-model-approval-register.csv",
     "hardware/mechanical/interference-checklist.csv",
     "hardware/procurement/planning-baseline.md",
     "hardware/procurement/planning-bom.csv",

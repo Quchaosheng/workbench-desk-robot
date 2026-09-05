@@ -1,0 +1,49 @@
+{
+  "issue": "bsp-public-candidate-selection",
+  "human_owner": "Quchaosheng",
+  "objective": "Record publicly sourced candidates for the Linux BSP, arm/tool controllers, isolated power and third-party integration boundaries without inventing approval or physical evidence.",
+  "allowed_paths": [
+    ".github/workflows/ci.yml",
+    "bsp/README.md",
+    "bsp/validation/bringup-closure-checklist.md",
+    "bsp/public-candidate-selection.md",
+    "THIRD_PARTY_REVIEW.md",
+    "docs/task_packets/bsp-readiness-ci.json",
+    "docs/task_packets/bsp-public-candidate-selection.json"
+  ],
+  "read_only_paths": [
+    "kernel/**",
+    "robot/**",
+    "firmware/**",
+    "interfaces/**",
+    "hardware/pcb/**"
+  ],
+  "forbidden": [
+    "invented supplier approval",
+    "invented physical test result",
+    "unverified license or redistribution claim"
+  ],
+  "acceptance": [
+    "each candidate has a public evidence link or an explicit unresolved status",
+    "JetPack and L4T mapping is recorded",
+    "xArm 7 and tool-controller integration boundaries are explicit",
+    "U2 remains a candidate until electrical, footprint and safety review",
+    "third-party support and license limits are recorded"
+  ],
+  "commands": [
+    "python tools/scripts/check_task_packet.py docs/task_packets/bsp-public-candidate-selection.json",
+    "python -m json.tool docs/task_packets/bsp-public-candidate-selection.json"
+  ],
+  "evidence": [
+    "bsp/public-candidate-selection.md",
+    "bsp/image/build-inputs.yaml",
+    "bsp/readiness.yaml",
+    "bsp/validation/bringup-closure-checklist.md",
+    "THIRD_PARTY_REVIEW.md"
+  ],
+  "stop_conditions": [
+    "a candidate would be promoted to an approved MPN without owner evidence",
+    "a private invitation or proprietary protocol is assumed from a public page",
+    "a physical bring-up result is inferred from a simulator or CI run"
+  ]
+}

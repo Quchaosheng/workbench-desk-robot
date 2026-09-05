@@ -47,6 +47,23 @@ jobs:
       - run: make demo-scripted
       - run: make demo-offline
 
+  bsp-manifests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install pyyaml pytest
+      - name: Validate BSP manifests and readiness
+        run: |
+          python bsp/validation/validate_manifests.py
+          python bsp/validation/check_readiness.py
+      - name: Run BSP manifest tests
+        run: python -m pytest tests/unit/test_bsp_manifests.py -q
+
   container-smoke:
     runs-on: ubuntu-24.04
     steps:
@@ -59,7 +76,7 @@ jobs:
           tags: workbench-1:ci
           cache-from: type=gha,scope=ci-runtime
           cache-to: type=gha,mode=max,scope=ci-runtime
-      - run: docker run --rm workbench-1:ci python tools/scripts/local_runner.py --goal "Place the red block in the tray"
+      - run: docker run --rm --workdir /opt/workbench_source workbench-1:ci python tools/scripts/local_runner.py --goal "Place the red block in the tray"
 
   kernel-module:
     runs-on: ubuntu-24.04
@@ -111,6 +128,51 @@ jobs:
           sudo ip link set wbcan0 type can restart-ms 100
           sudo ip link set wbcan0 up
           ip -details link show wbcan0
+
+      - name: Run SocketCAN ingress boundary probe
+        id: socketcan_ingress
+        if: steps.module_load.outcome == 'success'
+        env:
+          SOCKETCAN_INGRESS_REPORT: ${{ runner.temp }}/wbcan-socketcan-ingress-report.json
+        run: |
+          set +e
+          sudo python3 kernel/wbcan/test_socketcan_ingress.py wbcan0 \
+            --source virtual-wbcan \
+            --report "$SOCKETCAN_INGRESS_REPORT" \
+            --require-pass
+          status=$?
+          set -e
+          if [ ! -s "$SOCKETCAN_INGRESS_REPORT" ]; then
+            python3 kernel/wbcan/test_socketcan_ingress.py wbcan0 \
+              --source virtual-wbcan \
+              --write-not-executed-report "$SOCKETCAN_INGRESS_REPORT" \
+              --not-executed-reason "the SocketCAN ingress probe did not produce a report (exit $status)"
+          fi
+          exit "$status"
+
+      - name: Validate SocketCAN ingress evidence
+        id: socketcan_ingress_report
+        if: always()
+        env:
+          SOCKETCAN_INGRESS_REPORT: ${{ runner.temp }}/wbcan-socketcan-ingress-report.json
+        run: |
+          if [ ! -s "$SOCKETCAN_INGRESS_REPORT" ]; then
+            python3 kernel/wbcan/test_socketcan_ingress.py wbcan0 \
+              --source virtual-wbcan \
+              --write-not-executed-report "$SOCKETCAN_INGRESS_REPORT" \
+              --not-executed-reason "the module bring-up did not complete before the SocketCAN ingress probe"
+          fi
+          python3 kernel/wbcan/test_socketcan_ingress.py \
+            --validate-report "$SOCKETCAN_INGRESS_REPORT" \
+            --require-pass
+
+      - name: Upload SocketCAN ingress evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: wbcan-socketcan-ingress-report
+          path: ${{ runner.temp }}/wbcan-socketcan-ingress-report.json
+          if-no-files-found: error
 
       - name: Mark kernel diagnostic scope
         run: |

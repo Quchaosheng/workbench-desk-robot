@@ -1,5 +1,6 @@
 import io
 import json
+import socket
 import sys
 import tempfile
 import threading
@@ -7,6 +8,7 @@ import tomllib
 import unittest
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -15,7 +17,13 @@ sys.path.insert(0, str(ROOT / "services" / "backend"))
 from workbench_backend.expression import ExpressionMachine, ExpressionState, derive_expression
 from workbench_backend.logging import StructuredLogger
 from workbench_backend.read_model import DashboardReadModel, ReadModelError
-from workbench_backend.server import OPENAPI_RESOURCE, create_server
+from workbench_backend.server import (
+    MAX_CONCURRENT_REQUESTS,
+    MAX_REJECTED_REQUEST_BODY_BYTES,
+    MAX_RESPONSE_BYTES,
+    OPENAPI_RESOURCE,
+    create_server,
+)
 
 
 def stored_event(run_id: object, sequence_no: object, event_type: object) -> dict:
@@ -394,6 +402,186 @@ class DashboardApiTests(unittest.TestCase):
                 server.shutdown()
                 server.server_close()
                 thread.join(timeout=2)
+
+
+class DashboardInboundBoundaryTests(unittest.TestCase):
+    def start_server(self, **options):
+        server = create_server("127.0.0.1", 0, **options)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        def stop() -> None:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
+
+        self.addCleanup(stop)
+        return server, f"http://127.0.0.1:{server.server_address[1]}"
+
+    @staticmethod
+    def raw_request(port: int, request: bytes) -> tuple[int, bytes]:
+        with socket.create_connection(("127.0.0.1", port), timeout=3) as connection:
+            connection.settimeout(3)
+            try:
+                connection.sendall(request)
+            except BrokenPipeError:
+                pass
+            try:
+                connection.shutdown(socket.SHUT_WR)
+            except OSError:
+                pass
+            chunks: list[bytes] = []
+            while True:
+                chunk = connection.recv(65536)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+        response = b"".join(chunks)
+        status = int(response.split(b" ", 2)[1])
+        return status, response
+
+    def test_reverse_proxy_mode_enforces_socket_peer_allowlist(self) -> None:
+        _, allowed_url = self.start_server(
+            published_host="127.0.0.1",
+            trust_mode="reverse_proxy",
+            trusted_proxy_allowlist="127.0.0.1/32",
+        )
+        with urllib.request.urlopen(f"{allowed_url}/api/v1/runs", timeout=2) as response:
+            self.assertEqual(response.status, 200)
+
+        _, denied_url = self.start_server(
+            published_host="127.0.0.1",
+            trust_mode="reverse_proxy",
+            trusted_proxy_allowlist="10.20.30.0/24",
+        )
+        for path in ("/", "/healthz", "/readyz", "/api/v1/openapi.json", "/api/v1/runs"):
+            spoofed = urllib.request.Request(
+                f"{denied_url}{path}",
+                headers={
+                    "Forwarded": "for=10.20.30.40",
+                    "X-Forwarded-For": "10.20.30.40",
+                },
+            )
+            with self.subTest(path=path), self.assertRaises(urllib.error.HTTPError) as caught:
+                urllib.request.urlopen(spoofed, timeout=2)
+            with caught.exception as response:
+                self.assertEqual(response.code, 403)
+                self.assertEqual(json.loads(response.read())["error"], "untrusted_client")
+
+    def test_operational_routes_are_separate_from_data_routes(self) -> None:
+        _, base_url = self.start_server()
+        with urllib.request.urlopen(f"{base_url}/healthz", timeout=2) as response:
+            health = json.loads(response.read())
+        with urllib.request.urlopen(f"{base_url}/readyz", timeout=2) as response:
+            readiness = json.loads(response.read())
+        with urllib.request.urlopen(f"{base_url}/api/v1/runs", timeout=2) as response:
+            runs = json.loads(response.read())
+        self.assertEqual(set(health), {"status", "service", "version"})
+        self.assertEqual(set(readiness), {"status", "data_source"})
+        self.assertEqual(set(runs), {"runs", "read_only"})
+
+    def test_request_body_boundaries_fail_closed(self) -> None:
+        server, _ = self.start_server()
+        port = server.server_address[1]
+
+        exact_body = b"x" * MAX_REJECTED_REQUEST_BODY_BYTES
+        exact_request = (
+            f"POST /api/v1/runs HTTP/1.0\r\nHost: localhost\r\nContent-Length: {len(exact_body)}\r\n\r\n"
+        ).encode() + exact_body
+        self.assertEqual(self.raw_request(port, exact_request)[0], 405)
+
+        oversized_request = (
+            f"POST /api/v1/runs HTTP/1.0\r\nHost: localhost\r\n"
+            f"Content-Length: {MAX_REJECTED_REQUEST_BODY_BYTES + 1}\r\n\r\n"
+        ).encode()
+        oversized_status, oversized_response = self.raw_request(port, oversized_request)
+        self.assertEqual(oversized_status, 413)
+        self.assertEqual(json.loads(oversized_response.split(b"\r\n\r\n", 1)[1])["error"], "request_too_large")
+
+        extremely_large_length = b"9" * 5000
+        extremely_large_request = (
+            b"POST /api/v1/runs HTTP/1.0\r\nHost: localhost\r\nContent-Length: " + extremely_large_length + b"\r\n\r\n"
+        )
+        self.assertEqual(self.raw_request(port, extremely_large_request)[0], 413)
+
+        malformed_requests = (
+            b"GET /api/v1/runs HTTP/1.0\r\nHost: localhost\r\nContent-Length: 1\r\n\r\nx",
+            b"GET /api/v1/runs HTTP/1.0\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\n",
+            b"GET /api/v1/runs HTTP/1.0\r\nHost: localhost\r\nContent-Length: 0\r\nContent-Length: 0\r\n\r\n",
+            b"GET /api/v1/runs HTTP/1.0\r\nHost: localhost\r\nContent-Length: invalid\r\n\r\n",
+        )
+        for request in malformed_requests:
+            with self.subTest(request=request.split(b"\r\n", 1)[1].split(b"\r\n\r\n", 1)[0]):
+                self.assertEqual(self.raw_request(port, request)[0], 400)
+
+    def test_concurrent_requests_are_bounded(self) -> None:
+        condition = threading.Condition()
+        release = threading.Event()
+        entered = 0
+
+        class BlockingReadModel:
+            def list_runs(self) -> list[dict]:
+                nonlocal entered
+                with condition:
+                    entered += 1
+                    condition.notify_all()
+                if not release.wait(timeout=5):
+                    raise AssertionError("test did not release blocked requests")
+                return []
+
+        server, base_url = self.start_server(max_concurrent_requests=MAX_CONCURRENT_REQUESTS)
+        server.RequestHandlerClass.read_model = BlockingReadModel()
+
+        def read_runs() -> int:
+            with urllib.request.urlopen(f"{base_url}/api/v1/runs", timeout=5) as response:
+                response.read()
+                return response.status
+
+        executor = ThreadPoolExecutor(max_workers=MAX_CONCURRENT_REQUESTS)
+        futures = [executor.submit(read_runs) for _ in range(MAX_CONCURRENT_REQUESTS)]
+        try:
+            with condition:
+                self.assertTrue(
+                    condition.wait_for(lambda: entered == MAX_CONCURRENT_REQUESTS, timeout=3),
+                    f"only {entered} requests reached the handler",
+                )
+            with self.assertRaises(urllib.error.HTTPError) as caught:
+                urllib.request.urlopen(f"{base_url}/api/v1/runs", timeout=2)
+            with caught.exception as response:
+                self.assertEqual(response.code, 503)
+                self.assertEqual(json.loads(response.read())["error"], "server_busy")
+        finally:
+            release.set()
+            self.assertEqual([future.result(timeout=5) for future in futures], [200] * MAX_CONCURRENT_REQUESTS)
+            executor.shutdown(wait=True)
+
+    def test_response_size_exact_boundary(self) -> None:
+        def response_for_size(size: int) -> tuple[int, bytes]:
+            server, base_url = self.start_server()
+            template = {"runs": [{"padding": ""}], "read_only": True}
+            overhead = len(json.dumps(template, ensure_ascii=False).encode())
+            padding = size - overhead
+
+            class SizedReadModel:
+                def list_runs(self) -> list[dict]:
+                    return [{"padding": "x" * padding}]
+
+            server.RequestHandlerClass.read_model = SizedReadModel()
+            try:
+                with urllib.request.urlopen(f"{base_url}/api/v1/runs", timeout=3) as response:
+                    body = response.read()
+                    return response.status, body
+            except urllib.error.HTTPError as response:
+                return response.code, response.read()
+
+        exact_status, exact_body = response_for_size(MAX_RESPONSE_BYTES)
+        self.assertEqual(exact_status, 200)
+        self.assertEqual(len(exact_body), MAX_RESPONSE_BYTES)
+
+        oversized_status, oversized_body = response_for_size(MAX_RESPONSE_BYTES + 1)
+        self.assertEqual(oversized_status, 413)
+        self.assertLessEqual(len(oversized_body), MAX_RESPONSE_BYTES)
+        self.assertEqual(json.loads(oversized_body)["error"], "response_too_large")
 
 
 if __name__ == "__main__":

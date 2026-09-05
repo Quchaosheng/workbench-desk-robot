@@ -1,6 +1,7 @@
 {
-  "blocker_count": 16,
+  "blocker_count": 17,
   "blockers": [
+    "REL-001A",
     "REL-002",
     "REL-003A",
     "REL-004",
@@ -26,6 +27,7 @@
     "evt_gates_are_production_gates": true,
     "gate_ids_are_unique": true,
     "master_closure_checklist_is_valid": true,
+    "mechanical_evidence_is_directional_and_bound": true,
     "not_executed_gates_do_not_block_evt_order": true,
     "stage_blockers_are_explicit": true,
     "statuses_are_controlled": true,
@@ -120,8 +122,9 @@
     "pass": true
   },
   "evt_prototype_order": {
-    "blocker_count": 6,
+    "blocker_count": 7,
     "blockers": [
+      "REL-001A",
       "REL-002",
       "REL-003A",
       "REL-004",
@@ -132,14 +135,60 @@
     "ready": false,
     "status": "EVT_PROTOTYPE_ORDER_BLOCKED"
   },
-  "gate_count": 18,
+  "gate_count": 19,
   "legacy_status": "RELEASE_BLOCKED",
+  "mechanical_evidence": {
+    "checks": {
+      "directional_cases_are_present": true,
+      "directional_directions_are_complete": true,
+      "directional_gates_are_passing": true,
+      "drive_gate_is_directional": true,
+      "mass_model_is_bound_to_report": true,
+      "mass_model_matches_authoritative_source": true,
+      "physical_release_is_not_inferred": true,
+      "report_declares_physical_validation_required": true,
+      "stabilized_gate_is_directional": true
+    },
+    "pass": true,
+    "report": "hardware/mechanical/generated/analysis.json",
+    "source_validation": {
+      "center_of_gravity_mm": [
+        0.0,
+        -22.4,
+        512.0
+      ],
+      "checks": {
+        "authoritative_components_are_present": true,
+        "authoritative_mass_is_positive": true,
+        "component_ids_are_unique": true,
+        "component_ids_match_model": true,
+        "component_records_are_valid": true,
+        "components_are_present": true,
+        "mass_ledger_has_no_duplicate_ids": true,
+        "mass_ledger_matches_authoritative_components": true,
+        "mass_ledger_schema_is_current": true,
+        "mass_ledger_values_match_authoritative_source": true,
+        "mass_model_metadata_is_complete": true,
+        "mass_model_reference_frame_is_present": true,
+        "mass_model_revision_matches_spec": true,
+        "mass_model_tolerance_is_positive": true,
+        "mass_model_units_are_controlled": true,
+        "owner_approval_records_are_explicit": true
+      },
+      "component_count": 9,
+      "errors": [],
+      "mass_model_sha256": "8fd2b60cec18e3fd9e73f47ae4c05f5382090889d41a98e48af3a69a70bc50f0",
+      "pass": true,
+      "total_mass_kg": 77.5
+    }
+  },
   "note": "Validator PASS means the governance structure is internally consistent. EVT prototype ordering and production release are independent fail-closed stages; external evidence is never inferred.",
   "package": "hardware-release-readiness",
   "pass": true,
   "production_release": {
-    "blocker_count": 16,
+    "blocker_count": 17,
     "blockers": [
+      "REL-001A",
       "REL-002",
       "REL-003A",
       "REL-004",

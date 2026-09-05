@@ -29,6 +29,36 @@ Hardware Layer
     └─ Realtime Executor (100Hz)
 ```
 
+## SocketCAN ingress (Issue #229)
+
+The host adapter can be backed by the standard-library
+`workbench.hardware.SocketCANTransport`, which owns one Linux
+`AF_CAN`/`CAN_RAW` descriptor. It uses kernel filters, bounded `poll`/
+`recvmsg`, Classic CAN frame validation, `SO_TIMESTAMPNS` and
+`SO_RXQ_OVFL` metadata. `DeviceRuntime` remains the sole owner of lifecycle,
+worker and bounded data planes; the adapter does not add another queue or
+worker.
+
+Validated inbound ACK, STOP_ACK and telemetry frames produce immutable,
+read-only `CanExternalRecord` values. These records contain source/interface,
+ingress sequence, DLC, raw ID flags, timestamps, protocol fields, health and
+an evidence reference. Invalid, duplicate, late, uncorrelated, error and
+post-shutdown frames remain observable through the receive result and
+diagnostics while the runtime is active, but cannot enter the external queue or
+become externally exposed completion events.
+
+The reproducible virtual probe is:
+
+```bash
+python3 kernel/wbcan/test_socketcan_ingress.py wbcan0 \
+  --report /tmp/wbcan-socketcan-ingress-report.json
+```
+
+It emits `PASS`, `FAIL` or `NOT_EXECUTED` and labels physical CAN, MCU,
+actuator and hard-real-time evidence as `NOT_EXECUTED`. See the
+[`SocketCAN architecture contract`](../../docs/architecture/host-can-transport-v1.md)
+and the [physical bring-up procedure](../../docs/hardware/can_bring_up.md).
+
 ## HW1 usage
 
 The parser consumes expanded URDF XML, not Xacro source. Generate an official

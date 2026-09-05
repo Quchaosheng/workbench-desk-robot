@@ -1,0 +1,45 @@
+{
+  "schema_version": "workbench-gpu-matrix-v1",
+  "platform": "linux/amd64",
+  "cuda_baseline": "12.8",
+  "minimum_driver_linux": "570.26",
+  "minimum_container_toolkit": "1.17",
+  "minimum_compose": "2.30",
+  "dependency_layers": {
+    "gpu-runtime": {
+      "purpose": "CUDA user-space runtime and host NVIDIA device injection",
+      "requires_gpu": false,
+      "host_owned": ["NVIDIA kernel driver", "NVIDIA Container Toolkit"]
+    },
+    "gpu-simulation": {
+      "purpose": "Gazebo Harmonic OGRE/EGL and MuJoCo EGL rendering",
+      "requires_gpu": true,
+      "required_driver_capabilities": ["compute", "utility", "graphics"]
+    },
+    "gpu-validation": {
+      "purpose": "Fail-closed driver, model, compute capability and NVIDIA renderer evidence",
+      "requires_gpu": true,
+      "forbidden_renderers": ["llvmpipe", "softpipe", "swrast", "software rasterizer"]
+    }
+  },
+  "generations": {
+    "rtx30": {
+      "family": "Ampere",
+      "name_patterns": ["GeForce RTX 30"],
+      "compute_capabilities": ["8.6"],
+      "physical_evidence_required": true
+    },
+    "rtx40": {
+      "family": "Ada Lovelace",
+      "name_patterns": ["GeForce RTX 40"],
+      "compute_capabilities": ["8.9"],
+      "physical_evidence_required": true
+    },
+    "rtx50": {
+      "family": "Blackwell",
+      "name_patterns": ["GeForce RTX 50"],
+      "compute_capabilities": ["12.0"],
+      "physical_evidence_required": true
+    }
+  }
+}

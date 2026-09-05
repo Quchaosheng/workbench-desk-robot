@@ -1,0 +1,9 @@
+legacy_component,legacy_mass_kg,legacy_x_mm,legacy_y_mm,legacy_z_mm,legacy_source,status,mapped_to_component_id,inclusion_rule
+base_frame,22,0,0,250,design_case_estimate,SUPERSEDED,REV-D-ME-001,EXCLUDED
+left_arm,8,-350,0,650,arm_supplier_class,SUPERSEDED,REV-D-ME-006,EXCLUDED
+right_arm,8,350,0,650,arm_supplier_class,SUPERSEDED,REV-D-ME-007,EXCLUDED
+payload_and_tooling,6,0,0,850,rated_payload_case,SUPERSEDED,REV-D-ME-009,EXCLUDED
+battery_and_bms,5,0,-100,250,pack_design_case,SUPERSEDED,REV-D-ME-002,EXCLUDED
+electronics_and_harness,3,0,0,500,engineering_allowance,SUPERSEDED,REV-D-ME-004,EXCLUDED
+covers_and_accessories,3,0,0,700,engineering_allowance,SUPERSEDED,REV-D-ME-005,EXCLUDED
+revision_d_pre_baseline_total,63.5,0,-24.1,441.6,generated_analysis_before_REV-D-MASS-001,SUPERSEDED,,EXCLUDED

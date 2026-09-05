@@ -1,0 +1,5 @@
+role,owner,model_id,revision,approval_status,approval_evidence,next_action
+Product,Product Owner,REV-D-MASS-001,D,REQUIRED,owner approval required before release,approve authoritative Revision D mass source
+Mechanical,Mechanical Owner,REV-D-MASS-001,D,REQUIRED,owner approval required before release,approve component IDs coordinates and uncertainty assumptions
+Hardware,Hardware Owner,REV-D-MASS-001,D,REQUIRED,owner approval required before release,approve battery electronics and harness mass reservations
+Safety,Safety Owner,REV-D-MASS-001,D,REQUIRED,owner approval required before release,approve safety-case mass and stability inputs

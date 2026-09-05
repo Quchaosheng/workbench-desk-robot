@@ -16,11 +16,14 @@ decisions.
 - 48 V battery and high-power branches separated from controller J2 auxiliary
   power.
 
-`design-spec.json` is the source for geometry and analytical mass reservations.
-`generated/analysis.json` records the derived navigation and stabilized load
-cases. `mass-ledger.csv` mirrors the raised manipulation case so repository
-validation can detect stale weights or coordinates. All values remain estimates
-until a serialized assembly is weighed and its center of gravity is measured.
+`design-spec.json#components` is the sole source for the `REV-D-MASS-001`
+analytical mass model. `generated/analysis.json` records its source hashes,
+revision, derived load cases, and center of gravity. `mass-ledger.csv` is a
+validated mirror, while `mass-ledger-legacy.csv` retains the superseded 55 kg
+planning baseline with explicit mappings and `EXCLUDED` inclusion rules. Any
+duplicate, missing, non-finite, negative, unit-mismatched, frame-mismatched, or
+stale row fails closed. All values remain estimates until a serialized assembly
+is weighed and its center of gravity is measured.
 
 ## Stability and motion clearance
 
@@ -31,7 +34,14 @@ Both cases must include manufacturing tolerance, floor friction, joint
 calibration error, stop distance, cable stiffness, payload overhang, and battery
 configuration before release.
 
-The analytical tip-angle thresholds are screening gates, not safety functions.
+The analytical tip-angle formula is
+`degrees(atan2(support_margin_mm, cg_z_mm - ground_plane_z_mm))`. Results are
+published for +X, -X, +Y, and -Y against the explicit rectangular drive and
+deployed-stabilizer support polygons; each result names its limiting edge and
+pose identifier. The drive gate is the minimum across its stowed and emergency
+stop cases. The stabilized gate is the minimum across raised, payload,
+shared-workspace, and stabilizer-deployed cases. These thresholds are screening
+gates, not safety functions.
 Acceptance requires controlled pull, 5-degree slope, emergency-stop, brake-hold,
 stabilizer-deployment, and first-wheel-lift tests. Any undocumented ballast,
 tether, fixture, or operator restraint invalidates the result.
@@ -67,5 +77,4 @@ keying, lift points, torque visibility, service loops, battery replacement,
 controller replacement, sharp edges, pinch points, tolerance stack, coating
 masks and packaging restraints.
 
-Status: `CONCEPT_PHYSICAL_VALIDATION_REQUIRED`. The 77.5 kg analytical mass,
-calculated centers of gravity and STEP geometry are not measured product claims.
+Status: `CONCEPT_PHYSICAL_VALIDATION_REQUIRED`. The 77.5 kg analytical mass, calculated centers of gravity, directional tip angles, and STEP geometry are not measured product claims. Simulation or document-only evidence cannot close the physical release gate.

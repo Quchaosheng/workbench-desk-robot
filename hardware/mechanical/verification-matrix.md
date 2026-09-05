@@ -16,6 +16,8 @@
 | MECH12 | parcel, cleaning and supervised induction task boundary | CONCEPT ONLY; physical validation required |
 | MECH13 | CMF and concealed parting strategy in design spec | DESIGN COMPLETE; DFM and finish sample required |
 | MECH14 | four steer-drive wheel/fork/bearing stacks in mobile-base STEP and visible all-angle render | DIGITAL CHECK COMPLETE; autonomous navigation software and physical drive tests required |
+| MECH15 | `REV-D-MASS-001`, stable component IDs, source/hash binding, legacy 55 kg migration, and owner approval register | ANALYTICAL CHECK COMPLETE; four owner approvals and serialized weighing required |
+| MECH16 | +X/-X/+Y/-Y tip screens for stowed, raised, payload, shared-workspace, emergency-stop, and stabilizer-deployed poses | ANALYTICAL SCREEN COMPLETE; pull, slope, brake-hold, emergency-stop, and stabilizer physical tests required |
 
 ## Assembly and tolerance datums
 

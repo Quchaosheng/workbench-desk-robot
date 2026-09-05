@@ -1,14 +1,14 @@
-part_number,description,material,quantity
-ME-C01,Holonomic base frame and perimeter bumper,5052-H32 aluminium + TPU,1
-ME-D01A,Independent steer-drive wheel module,6061-T6 aluminium + non-marking PU,4
-ME-C02,Dual-screw lifting platform,6061-T6 aluminium + steel screws,1
-ME-C03,Utility torso and parcel bay,mineral PC-ABS + recycled PET,1
-ME-D04,Seven-axis arm joint set,bead-blasted anodized aluminium,2
-ME-C05,Keyed neck mount and head flange,6061-T6 aluminium + steel inserts,1
-ME-C06,Smoked glass head module,chemically strengthened glass + PC-ABS,1
-ME-C07,Deployable stabilizer feet,steel core + charcoal TPU,4
-ME-C08,Tool dock and quick-change datum,6061-T6 aluminium + PEEK,1
-ISO4762-M4,Captive socket screw,A2-70 stainless,28
-ISO4762-M6,Captive neck mount socket screw,A2-70 stainless,4
-DOWEL-04,Head register dowel pin,hardened stainless,2
-LIFT-LOCK-01,Normally-closed brake and lock pin set,steel + spring,2
+part_number,description,material,quantity,mass_model_revision,mass_model_sha256
+ME-C01,Holonomic base frame and perimeter bumper,5052-H32 aluminium + TPU,1,D,8fd2b60cec18e3fd9e73f47ae4c05f5382090889d41a98e48af3a69a70bc50f0
+ME-D01A,Independent steer-drive wheel module,6061-T6 aluminium + non-marking PU,4,D,8fd2b60cec18e3fd9e73f47ae4c05f5382090889d41a98e48af3a69a70bc50f0
+ME-C02,Dual-screw lifting platform,6061-T6 aluminium + steel screws,1,D,8fd2b60cec18e3fd9e73f47ae4c05f5382090889d41a98e48af3a69a70bc50f0
+ME-C03,Utility torso and parcel bay,mineral PC-ABS + recycled PET,1,D,8fd2b60cec18e3fd9e73f47ae4c05f5382090889d41a98e48af3a69a70bc50f0
+ME-D04,Seven-axis arm joint set,bead-blasted anodized aluminium,2,D,8fd2b60cec18e3fd9e73f47ae4c05f5382090889d41a98e48af3a69a70bc50f0
+ME-C05,Keyed neck mount and head flange,6061-T6 aluminium + steel inserts,1,D,8fd2b60cec18e3fd9e73f47ae4c05f5382090889d41a98e48af3a69a70bc50f0
+ME-C06,Smoked glass head module,chemically strengthened glass + PC-ABS,1,D,8fd2b60cec18e3fd9e73f47ae4c05f5382090889d41a98e48af3a69a70bc50f0
+ME-C07,Deployable stabilizer feet,steel core + charcoal TPU,4,D,8fd2b60cec18e3fd9e73f47ae4c05f5382090889d41a98e48af3a69a70bc50f0
+ME-C08,Tool dock and quick-change datum,6061-T6 aluminium + PEEK,1,D,8fd2b60cec18e3fd9e73f47ae4c05f5382090889d41a98e48af3a69a70bc50f0
+ISO4762-M4,Captive socket screw,A2-70 stainless,28,D,8fd2b60cec18e3fd9e73f47ae4c05f5382090889d41a98e48af3a69a70bc50f0
+ISO4762-M6,Captive neck mount socket screw,A2-70 stainless,4,D,8fd2b60cec18e3fd9e73f47ae4c05f5382090889d41a98e48af3a69a70bc50f0
+DOWEL-04,Head register dowel pin,hardened stainless,2,D,8fd2b60cec18e3fd9e73f47ae4c05f5382090889d41a98e48af3a69a70bc50f0
+LIFT-LOCK-01,Normally-closed brake and lock pin set,steel + spring,2,D,8fd2b60cec18e3fd9e73f47ae4c05f5382090889d41a98e48af3a69a70bc50f0

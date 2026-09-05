@@ -1,0 +1,121 @@
+{
+  "issue": 162,
+  "human_owner": "TH3478",
+  "objective": "Add a bounded version-compatible NAVIGATE semantic action addressed only by a configured waypoint identifier, while preserving the independent STOP, execution, observation, and verification boundaries.",
+  "decision_supported": "Can Agent Runtime expose fixed-map waypoint navigation through the reviewed public semantic contract without accepting coordinates, raw motion controls, or unverified location claims?",
+  "allowed_paths": [
+    "docs/task_packets/issue-162-navigate-contract.json",
+    "interfaces/json_schema/semantic_action.schema.json",
+    "interfaces/examples/semantic-action-navigate.json",
+    "libs/kernel/workbench/kernel/schema_compiler.py",
+    "libs/contracts/workbench_contracts/models.py",
+    "services/agent_runtime/workbench_agent_runtime/tool_schemas.py",
+    "services/agent_runtime/workbench_agent_runtime/tool_registry.py",
+    "tests/unit/test_contract_navigate.py",
+    "tests/unit/test_kernel_schema_compiler.py",
+    "tests/unit/test_tool_registry.py",
+    "tests/unit/test_policy_validator.py",
+    "tests/unit/test_execution_controller.py"
+  ],
+  "read_only_paths": [
+    "AGENTS.md",
+    "interfaces/examples/semantic-action-place.json",
+    "interfaces/examples/task-graph-place.json",
+    "interfaces/json_schema/action_result.schema.json",
+    "interfaces/json_schema/task_graph.schema.json",
+    "services/agent_runtime/workbench_agent_runtime/execution_controller.py",
+    "services/agent_runtime/workbench_agent_runtime/policy_validator.py",
+    "services/agent_runtime/workbench_agent_runtime/planner.py",
+    "services/agent_runtime/workbench_agent_runtime/__init__.py",
+    "services/world_model/**",
+    "tests/integration/test_observe_plan_act.py",
+    "tests/unit/test_agent_runtime.py",
+    "tools/scripts/check_task_packet.py",
+    "tools/scripts/validate_contracts.py",
+    "Makefile",
+    "pyproject.toml"
+  ],
+  "forbidden": [
+    "robot/control/**",
+    "firmware/**",
+    "hardware/**",
+    "sim/**",
+    "services/backend/**",
+    "services/perception/**",
+    ".github/**"
+  ],
+  "input_refs": [
+    "AGENTS.md",
+    "interfaces/json_schema/semantic_action.schema.json",
+    "interfaces/json_schema/action_result.schema.json",
+    "interfaces/json_schema/task_graph.schema.json",
+    "interfaces/examples/semantic-action-place.json",
+    "interfaces/examples/task-graph-place.json",
+    "libs/kernel/workbench/kernel/schema_compiler.py",
+    "libs/contracts/workbench_contracts/models.py",
+    "services/agent_runtime/workbench_agent_runtime/tool_schemas.py",
+    "services/agent_runtime/workbench_agent_runtime/tool_registry.py",
+    "services/agent_runtime/workbench_agent_runtime/policy_validator.py",
+    "services/agent_runtime/workbench_agent_runtime/execution_controller.py"
+  ],
+  "outputs": [
+    "interfaces/json_schema/semantic_action.schema.json",
+    "interfaces/examples/semantic-action-navigate.json",
+    "libs/kernel/workbench/kernel/schema_compiler.py",
+    "libs/contracts/workbench_contracts/models.py",
+    "services/agent_runtime/workbench_agent_runtime/tool_schemas.py",
+    "services/agent_runtime/workbench_agent_runtime/tool_registry.py",
+    "tests/unit/test_contract_navigate.py",
+    "tests/unit/test_kernel_schema_compiler.py",
+    "tests/unit/test_tool_registry.py",
+    "tests/unit/test_policy_validator.py",
+    "tests/unit/test_execution_controller.py",
+    "docs/task_packets/issue-162-navigate-contract.json"
+  ],
+  "acceptance": [
+    "ActionType and the public SemanticAction JSON Schema both register navigate while the existing six action values and examples remain valid.",
+    "A navigate action requires a non-empty target_id that is treated as an opaque configured waypoint identifier; no coordinate, pose, TF, wheel, velocity, acceleration, joint, or free-form planner field is accepted.",
+    "The navigate parameter object is closed and currently empty, so no caller-supplied selector can loosen deployment safety limits; unknown waypoint resolution remains the injected executor adapter's explicit failure.",
+    "Pydantic construction and JSON ingress enforce the navigate-specific target and parameter boundary, and schema validation enforces the same conditional shape and rejects extra fields.",
+    "The repository Schema Compiler accepts the structural navigate conditional and generated models enforce its required target and closed parameter shape.",
+    "ToolRegistry and PolicyValidator accept a valid navigate action through the existing single allow-list, reject missing or blank targets and forbidden parameters, and allow STOP to remain independently registered.",
+    "Execution-controller regression evidence shows a valid navigate action is forwarded without inventing coordinates, an adapter-reported unknown waypoint fails explicitly, and a queued STOP is still dispatched at the next boundary.",
+    "A completed navigation ActionResult remains adapter evidence only and does not assert an observed or verified World Model location.",
+    "The Task Packet boundary, focused tests, contract, scenario, context, full test, lint, and whitespace checks pass; interface changes remain subject to Runtime, World Model, and Integration owner approval before merge."
+  ],
+  "commands": [
+    "python3 tools/scripts/check_task_packet.py docs/task_packets/issue-162-navigate-contract.json --base origin/main",
+    "python3 -m pytest tests/unit/test_contract_navigate.py tests/unit/test_tool_registry.py tests/unit/test_policy_validator.py tests/unit/test_execution_controller.py -v",
+    "python3 -m pytest tests/unit/test_kernel_schema_compiler.py -v",
+    "python3 -m pytest tests/integration/test_observe_plan_act.py tests/unit/test_agent_runtime.py -v",
+    "python3 -m ruff check libs/kernel/workbench/kernel/schema_compiler.py libs/contracts/workbench_contracts/models.py services/agent_runtime/workbench_agent_runtime/tool_schemas.py services/agent_runtime/workbench_agent_runtime/tool_registry.py tests/unit/test_contract_navigate.py tests/unit/test_kernel_schema_compiler.py tests/unit/test_tool_registry.py tests/unit/test_policy_validator.py tests/unit/test_execution_controller.py",
+    "make test",
+    "make contract",
+    "make scenario-check",
+    "make context-check",
+    "git diff --check"
+  ],
+  "evidence": [
+    "Task Packet boundary output against the fixed branch base.",
+    "Focused contract, registry, policy, and execution-controller tests for valid navigation, closed parameters, unknown waypoint failure, STOP independence, and legacy action compatibility.",
+    "Schema/example and Pydantic round-trip output from make contract.",
+    "Full test, Ruff, scenario, context, and whitespace-check output.",
+    "Three-way Runtime, World Model, and Integration approval references on the eventual pull request."
+  ],
+  "stop_conditions": [
+    "Implementation requires Nav2, mapping, planners, appliance skills, firmware, robot/control, or physical navigation changes.",
+    "A public parameter cannot be kept closed and typed without adding a raw motion or arbitrary pose side channel.",
+    "Unknown waypoint handling would require guessing coordinates or claiming observed/verified location from ActionResult alone.",
+    "A required change falls outside allowed_paths or conflicts with the pre-existing .gitignore edit.",
+    "The interface change lacks Runtime, World Model, or Integration owner approval for merge.",
+    "A required validation command fails for a reason that cannot be fixed within this bounded contract and consumer scope."
+  ],
+  "max_iterations": 3,
+  "data_classification": "repository-contract",
+  "model_policy": "external_allowed",
+  "risks_and_fallbacks": [
+    "No waypoint catalog exists in this bounded contract change; the executor adapter owns deployment configuration and must return an explicit failure for an unknown identifier.",
+    "The zero-parameter NAVIGATE shape leaves future policy selectors for a separately reviewed contract change rather than accepting open-ended options.",
+    "Existing tabletop planners remain unchanged and continue emitting only their previously supported actions; navigation planning belongs to later issues."
+  ]
+}

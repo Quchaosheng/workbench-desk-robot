@@ -1,13 +1,17 @@
 # Host CAN transport adapter V1
 
-Status: **bounded host-adapter contract** for Issue #55.
+Status: **bounded host-adapter and SocketCAN ingress contract** for Issues #55
+and #229.
 
 `SafeCANBus` is the CAN `DeviceAdapter` for the unified `DeviceRuntime`
 defined by ADR-0005. It owns the injected blocking transport port and the
 CAN Wire V1 protocol state, but it does not own a lifecycle, worker, queue or
-subscriber registry. Construction never opens SocketCAN or any hardware
-device, and a successful queue or write never means that an MCU accepted a
-command.
+subscriber registry. `SocketCANTransport` is the standard-library
+`AF_CAN`/`CAN_RAW` implementation of that port: it owns one raw file
+descriptor, applies kernel filters, and translates one bounded
+`struct can_frame` at a time. Construction never opens SocketCAN or any
+hardware device, and a successful queue or write never means that an MCU
+accepted a command.
 
 ## Unified runtime ownership
 
@@ -25,13 +29,14 @@ protocol health only; it is not a second lifecycle state machine. The adapter
 implements `configure`, `activate`, `poll`, `deactivate` and `cleanup`, and
 uses the runtime's one lock when it updates protocol correlation state.
 
-The runtime owns three independent bounded planes:
+The runtime owns four independent bounded planes:
 
 | Plane | Owner and policy | Observable boundary |
 | --- | --- | --- |
 | command/ACK | fixed command queue; reject ordinary commands at capacity; STOP is priority and preempts | typed backpressure, correlation and timeout diagnostics |
 | telemetry | fixed ingress queue; duplicate/stale frames are rejected before dispatch | telemetry depth and drop counter |
 | health/provenance | fixed diagnostic queue with oldest-record eviction | error and health-drop counters |
+| external projection | immutable read-only records with oldest-record eviction | external depth and drop counter |
 
 Subscriber registration and callback snapshot dispatch also belong to the
 runtime. Callback exceptions are isolated and become health records. A
@@ -67,12 +72,49 @@ mistaken for successful cleanup.
 Every valid inbound result carries an immutable `CanTransportEnvelope` with
 `source`, `interface`, an adapter-ingress sequence, monotonic and wall-clock
 observation times, current link health, the validated wire frame and immutable
-evidence references. The adapter-ingress sequence is never reset by link
-recovery; the separate MCU telemetry sequence follows the Wire V1 half-range
-ordering rule. A non-finite or regressed wall-clock observation is an
-observable `clock_rollback` ingress error and blocks normal commands; it is
-not silently normalized. A bridge may map this envelope to the later typed
-ROS 2/event contract without exposing a raw device handle.
+evidence references. SocketCAN records additionally preserve the raw CAN ID,
+DLC, kernel `SO_TIMESTAMPNS` timestamp, `SO_RXQ_OVFL` counter when supplied,
+and host observation clocks. The adapter-ingress sequence is never reset by
+link recovery; the separate MCU telemetry sequence follows the Wire V1
+half-range ordering rule. A non-finite or regressed clock observation is an
+observable fail-closed ingress error and is not silently normalized. A bridge
+may map the envelope to the later typed ROS 2/event contract without exposing
+a raw device handle.
+
+## SocketCAN ingress contract
+
+`SocketCANTransport` performs the following boundary checks before
+`decode_can_frame()` runs:
+
+1. Open exactly one `AF_CAN`, `SOCK_RAW`, `CAN_RAW` socket and bind it to the
+   configured interface. No adapter-local worker, queue, retry loop or second
+   lifecycle state machine is created.
+2. Install typed `CAN_RAW_FILTER` entries. A filter includes the selected
+   standard/extended/RTR/error flag bits in its mask, so a frame-kind variant
+   cannot match accidentally. The optional CAN error mask remains separate
+   from protocol-frame filters.
+3. Enable a bounded receive buffer, `SO_RXQ_OVFL`, and (by default)
+   `SO_TIMESTAMPNS`. `poll()` and non-blocking `recvmsg()` are used for one
+   record per call. `MSG_TRUNC`, `MSG_CTRUNC`, malformed ancillary data, short
+   records, CAN-FD-sized records, invalid DLC, and contradictory raw-ID flags
+   become observable frame rejections.
+4. Preserve standard, extended, RTR and error flags in an immutable
+   `CanFrame`. Error frames are never passed to Wire V1 decoding; a bus-off
+   error moves the adapter to `BUS_OFF` and clears pending work.
+5. Only standard, non-RTR, non-error, DLC-8 frames with a known Wire V1 ID,
+   version, reserved bytes and valid cross-fields enter the protocol/runtime
+   boundary. ACK, STOP_ACK and telemetry are the only inbound kinds.
+
+`CanExternalRecord` is the only projection intended for an external observer.
+It contains source/interface identity, ingress sequence, frame metadata,
+timestamps and source, event/protocol fields, health, evidence reference and
+whether the frame was valid and exposed. It contains immutable `bytes` only;
+it never contains a socket, file descriptor, callback, debugfs path or write
+handle. Accepted ACK/STOP_ACK/telemetry records may be exposed. Duplicate,
+late, uncorrelated, malformed, error and post-shutdown records remain
+observable rejections (through `CanReceiveResult` and bounded diagnostics while
+the runtime is active), but they are deliberately excluded from the external
+projection queue and cannot claim completion.
 
 ## Concurrency and backpressure
 
@@ -82,15 +124,37 @@ dispatch uses an immutable snapshot, so a callback may subscribe or
 unsubscribe without changing the current iteration. Callback exceptions are
 isolated and recorded.
 
-Command, telemetry, health, subscriber and correlation capacities are fixed by
-`CanTransportConfig`. Queue saturation returns a typed backpressure result.
-`shutdown()` stops the runtime worker, clears pending work, and closes the
-injected port within a caller-supplied bound. There is no adapter-local
-fallback worker or unbounded callback path.
+Command, telemetry, health, external projection, subscriber and correlation
+capacities are fixed by `CanTransportConfig`. Queue saturation returns a typed
+backpressure result and increments a bounded drop counter. `shutdown()` stops
+the runtime worker, clears pending work and external records, joins the worker
+by the caller's deadline, and only then closes the injected port. A frame that
+returns from a receive racing with shutdown is not dispatched or published.
+There is no adapter-local fallback worker or unbounded callback path.
+
+## Evidence and recovery boundary
+
+`kernel/wbcan/test_socketcan_ingress.py` is a deterministic virtual probe. It
+uses a real SocketCAN fd and a second peer socket to send a Wire V1 command,
+return an ACK, return telemetry, replay a duplicate ACK and send a wrong-DLC
+frame. It writes `socketcan-ingress-report-v1` with `PASS`, `FAIL` or
+`NOT_EXECUTED`, exact external records and cleanup checks. `--require-pass` is
+appropriate only in a privileged CI job whose virtual prerequisites are
+present.
+
+Recovery is deliberately two-stage: the CAN administrator or supervisor
+restores the interface, then the configured transport recovery probe confirms
+that operation. `SafeCANBus.recover()` clears pre-fault commands and
+correlation state; it never replays them. A physical adapter, firmware/MCU,
+actuator, electrical bus, PREEMPT_RT scheduler or hard-real-time deadline is
+outside this virtual probe and must remain `NOT_EXECUTED` until the physical
+HIL procedure records the required raw evidence and owner review.
 
 ## Evidence limits
 
 The fake transport and fake clock tests prove adapter state transitions,
-validation, bounded retry and lifecycle behavior only. They are not evidence
-of SocketCAN operation, physical CAN arbitration, MCU acceptance, actuator
-motion, or a hard-real-time deadline.
+validation, bounded retry and lifecycle behavior only. The SocketCAN probe
+proves a virtual Linux SocketCAN ingress and projection path when it returns
+`PASS`. Neither evidence class proves physical CAN arbitration, MCU
+acceptance, actuator motion, PREEMPT_RT behavior, electrical integrity or a
+hard-real-time deadline.

@@ -1,0 +1,41 @@
+{
+  "issue": 326,
+  "human_owner": "Quchaosheng",
+  "objective": "Make the Revision D mass model authoritative, hashed, traceable, and shared by every mechanical and release consumer.",
+  "allowed_paths": [
+    "hardware/mechanical/**",
+    "hardware/tools/**",
+    "hardware/operations-readiness.json",
+    "hardware/generated/operations_readiness_report.json",
+    "tests/hardware/**",
+    "docs/task_packets/issue-326-authoritative-mass-model.json"
+  ],
+  "read_only_paths": ["interfaces/**", "robot/control/**", "firmware/**"],
+  "forbidden": ["robot/control/**", "firmware/**", "interfaces/**"],
+  "acceptance": [
+    "design-spec.json#components is the only current source of total mass and CG",
+    "every component has a stable ID, source, uncertainty, status, inclusion rule, units, and frame",
+    "the legacy 55 kg rows are preserved as superseded and excluded",
+    "duplicate, missing, invalid, stale, or disagreeing mass data fails closed"
+  ],
+  "commands": [
+    "python hardware/mechanical/tools/generate_artifacts.py",
+    "python hardware/tools/validate_operations_readiness.py",
+    "python -m pytest tests/hardware/test_mechanical_issue_325_326.py -q",
+    "python -m ruff check hardware/mechanical hardware/tools tests/hardware/test_mechanical_issue_325_326.py",
+    "python tools/scripts/check_task_packet.py docs/task_packets/issue-326-authoritative-mass-model.json"
+  ],
+  "evidence": [
+    "hardware/mechanical/design-spec.json",
+    "hardware/mechanical/mass-ledger.csv",
+    "hardware/mechanical/mass-ledger-legacy.csv",
+    "hardware/mechanical/generated/analysis.json",
+    "hardware/generated/operations_readiness_report.json",
+    "hardware/mechanical/mass-model-migration.md"
+  ],
+  "stop_conditions": [
+    "owner approval or physical weighing would need to be fabricated",
+    "a change requires robot control, firmware, interfaces, or PCB ownership",
+    "the authoritative source and generated hash disagree"
+  ]
+}

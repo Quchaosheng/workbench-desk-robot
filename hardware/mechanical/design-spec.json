@@ -4,6 +4,45 @@
   "product_class": "mobile domestic manipulator concept",
   "design_intent": "a calm-appliance household utility robot with two seven-axis collaborative arms, a braked liftable torso, stabilized wheeled base, bimanual parcel handling, cleaning assistance, and supervised induction-cooking assistance",
   "validation_status": "CONCEPT_PHYSICAL_VALIDATION_REQUIRED",
+  "mass_model": {
+    "model_id": "REV-D-MASS-001",
+    "revision": "D",
+    "authoritative_source": "hardware/mechanical/design-spec.json#components",
+    "units": {"mass": "kg", "position": "mm"},
+    "reference_frame": "robot_base",
+    "tolerance_kg": 0.001,
+    "component_ids": [
+      "REV-D-ME-001",
+      "REV-D-ME-002",
+      "REV-D-ME-003",
+      "REV-D-ME-004",
+      "REV-D-ME-005",
+      "REV-D-ME-006",
+      "REV-D-ME-007",
+      "REV-D-ME-008",
+      "REV-D-ME-009"
+    ],
+    "owner_approvals": [
+      {"role": "Product", "owner": "Product Owner", "status": "REQUIRED"},
+      {"role": "Mechanical", "owner": "Mechanical Owner", "status": "REQUIRED"},
+      {"role": "Hardware", "owner": "Hardware Owner", "status": "REQUIRED"},
+      {"role": "Safety", "owner": "Safety Owner", "status": "REQUIRED"}
+    ],
+    "legacy_sources": [
+      {
+        "path": "hardware/mechanical/mass-ledger-legacy.csv",
+        "revision": "LEGACY-55KG",
+        "status": "SUPERSEDED",
+        "used_for_release": false
+      },
+      {
+        "path": "hardware/mechanical/mass-ledger-legacy.csv",
+        "revision": "REV-D-PRE-BASELINE-63.5KG",
+        "status": "SUPERSEDED",
+        "used_for_release": false
+      }
+    ]
+  },
   "enclosure": {
     "width": 540,
     "depth": 520,
@@ -52,6 +91,43 @@
     "minimum_dynamic_stability_factor": 2.0,
     "required_physical_tests": ["pull_test", "5_deg_slope", "emergency_stop", "brake_hold", "stabilizer_deploy"],
     "drive_tip_angle_is_not_manipulation_release": true
+  },
+  "stability_analysis": {
+    "calculation_version": "revision-d-directional-stability-1",
+    "coordinate_convention": {
+      "frame": "robot_base",
+      "x_positive": "robot right",
+      "y_positive": "robot rear",
+      "z_positive": "up",
+      "origin": "ground-plane projection of the chassis reference origin"
+    },
+    "ground_plane_z_mm": 0,
+    "tip_angle_formula": "degrees(atan2(support_margin_mm, cg_z_mm - ground_plane_z_mm))",
+    "directions": ["+X", "-X", "+Y", "-Y"],
+    "thresholds_deg": {"drive": 25, "stabilized": 35},
+    "support_polygons": {
+      "drive": {
+        "name": "four-wheel drive footprint",
+        "vertices_mm": [[-230, -195], [230, -195], [230, 195], [-230, 195]],
+        "edges": {
+          "+X": {"name": "drive_right_edge", "axis": "x", "coordinate_mm": 230},
+          "-X": {"name": "drive_left_edge", "axis": "x", "coordinate_mm": -230},
+          "+Y": {"name": "drive_rear_edge", "axis": "y", "coordinate_mm": 195},
+          "-Y": {"name": "drive_front_edge", "axis": "y", "coordinate_mm": -195}
+        }
+      },
+      "stabilized": {
+        "name": "deployed stabilizer footprint",
+        "vertices_mm": [[-410, -410], [410, -410], [410, 410], [-410, 410]],
+        "edges": {
+          "+X": {"name": "stabilizer_right_edge", "axis": "x", "coordinate_mm": 410},
+          "-X": {"name": "stabilizer_left_edge", "axis": "x", "coordinate_mm": -410},
+          "+Y": {"name": "stabilizer_rear_edge", "axis": "y", "coordinate_mm": 410},
+          "-Y": {"name": "stabilizer_front_edge", "axis": "y", "coordinate_mm": -410}
+        }
+      }
+    },
+    "required_cases": ["stowed", "raised", "payload", "shared_workspace", "emergency_stop", "stabilizer_deployed"]
   },
   "lifting_platform": {
     "type": "four_guide_dual_screw_synchronized_lift",
@@ -212,6 +288,14 @@
       "position_overrides": {}
     }
   },
+  "stability_load_cases": {
+    "stowed": {"source_load_case": "navigation_low", "configuration": "drive", "pose_identifier": "stowed_navigation", "description": "stowed navigation with stabilizers retracted"},
+    "raised": {"source_load_case": "stabilized_manipulation", "configuration": "stabilized", "pose_identifier": "raised_lift", "description": "lift raised at the working height"},
+    "payload": {"source_load_case": "stabilized_manipulation", "configuration": "stabilized", "pose_identifier": "raised_payload", "description": "rated bimanual payload at forward reach"},
+    "shared_workspace": {"source_load_case": "stabilized_manipulation", "configuration": "stabilized", "pose_identifier": "raised_shared_workspace", "description": "both arms in coordinated shared workspace"},
+    "emergency_stop": {"source_load_case": "navigation_low", "configuration": "drive", "pose_identifier": "stowed_emergency_stop", "dynamic_stability_factor": 2.0, "description": "braked emergency-stop screening pose"},
+    "stabilizer_deployed": {"source_load_case": "stabilized_manipulation", "configuration": "stabilized", "pose_identifier": "raised_stabilizer_deployed", "description": "all four stabilizers deployed and loaded"}
+  },
   "lift_follower_components": [
     "torso_electronics",
     "shell_and_bay",
@@ -221,15 +305,15 @@
     "tools_and_bimanual_payload"
   ],
   "components": [
-    {"name": "chassis_drives_and_ballast", "mass_kg": 16.0, "xyz": [0, 0, 110]},
-    {"name": "battery", "mass_kg": 20.0, "xyz": [0, -35, 100]},
-    {"name": "lifting_platform", "mass_kg": 7.5, "xyz": [0, 0, 500]},
-    {"name": "torso_electronics", "mass_kg": 5.0, "xyz": [0, 15, 1065]},
-    {"name": "shell_and_bay", "mass_kg": 3.5, "xyz": [0, 0, 1065]},
-    {"name": "left_seven_axis_arm", "mass_kg": 10.0, "xyz": [-180, 0, 900]},
-    {"name": "right_seven_axis_arm", "mass_kg": 10.0, "xyz": [180, 0, 900]},
-    {"name": "head_display", "mass_kg": 1.5, "xyz": [0, 5, 1386]},
-    {"name": "tools_and_bimanual_payload", "mass_kg": 4.0, "xyz": [0, -280, 760]}
+    {"id": "REV-D-ME-001", "name": "chassis_drives_and_ballast", "mass_kg": 16.0, "xyz": [0, 0, 110], "reference_frame": "robot_base", "source": "revision_d_chassis_reservation", "uncertainty_kg": 1.6, "status": "ESTIMATE", "inclusion_rule": "AUTHORITATIVE_CURRENT"},
+    {"id": "REV-D-ME-002", "name": "battery", "mass_kg": 20.0, "xyz": [0, -35, 100], "reference_frame": "robot_base", "source": "2kWh_pack_mass_reservation", "uncertainty_kg": 2.0, "status": "ESTIMATE", "inclusion_rule": "AUTHORITATIVE_CURRENT"},
+    {"id": "REV-D-ME-003", "name": "lifting_platform", "mass_kg": 7.5, "xyz": [0, 0, 500], "reference_frame": "robot_base", "source": "revision_d_lift_reservation", "uncertainty_kg": 0.8, "status": "ESTIMATE", "inclusion_rule": "AUTHORITATIVE_CURRENT"},
+    {"id": "REV-D-ME-004", "name": "torso_electronics", "mass_kg": 5.0, "xyz": [0, 15, 1065], "reference_frame": "robot_base", "source": "revision_d_torso_reservation", "uncertainty_kg": 0.5, "status": "ESTIMATE", "inclusion_rule": "AUTHORITATIVE_CURRENT"},
+    {"id": "REV-D-ME-005", "name": "shell_and_bay", "mass_kg": 3.5, "xyz": [0, 0, 1065], "reference_frame": "robot_base", "source": "revision_d_shell_reservation", "uncertainty_kg": 0.5, "status": "ESTIMATE", "inclusion_rule": "AUTHORITATIVE_CURRENT"},
+    {"id": "REV-D-ME-006", "name": "left_seven_axis_arm", "mass_kg": 10.0, "xyz": [-180, 0, 900], "reference_frame": "robot_base", "source": "supplier_class_mass_reservation", "uncertainty_kg": 1.0, "status": "ESTIMATE", "inclusion_rule": "AUTHORITATIVE_CURRENT"},
+    {"id": "REV-D-ME-007", "name": "right_seven_axis_arm", "mass_kg": 10.0, "xyz": [180, 0, 900], "reference_frame": "robot_base", "source": "supplier_class_mass_reservation", "uncertainty_kg": 1.0, "status": "ESTIMATE", "inclusion_rule": "AUTHORITATIVE_CURRENT"},
+    {"id": "REV-D-ME-008", "name": "head_display", "mass_kg": 1.5, "xyz": [0, 5, 1386], "reference_frame": "robot_base", "source": "revision_d_head_reservation", "uncertainty_kg": 0.2, "status": "ESTIMATE", "inclusion_rule": "AUTHORITATIVE_CURRENT"},
+    {"id": "REV-D-ME-009", "name": "tools_and_bimanual_payload", "mass_kg": 4.0, "xyz": [0, -280, 760], "reference_frame": "robot_base", "source": "rated_bimanual_payload_case", "uncertainty_kg": 0.0, "status": "ESTIMATE", "inclusion_rule": "AUTHORITATIVE_CURRENT"}
   ],
   "minimum_clearances": {"moving_to_fixed": 8, "cable_to_sharp_edge": 8, "pcb_to_shell": 10, "battery_to_heat_source": 80, "hot_tool_to_shell": 120}
 }

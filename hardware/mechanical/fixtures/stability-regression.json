@@ -1,0 +1,5 @@
+[
+  {"case_id": "audited_fore_aft_drive", "tip_angle_deg": 21.2, "threshold_deg": 25},
+  {"case_id": "audited_raised_worst_pose", "tip_angle_deg": 15.8, "threshold_deg": 25},
+  {"case_id": "audited_stabilizer_deployed", "tip_angle_deg": 27.6, "threshold_deg": 35}
+]

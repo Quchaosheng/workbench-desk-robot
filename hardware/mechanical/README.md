@@ -9,11 +9,20 @@ and a locked quick-change tool system.
 ## Authoritative baseline
 
 `design-spec.json`, `cad/desk_robot.scad`, and the generated STEP package use one
-coordinate system: ground is Z=0, the base top is Z=140 mm, and the checked-in
-assembly is the raised working pose with a 1450 mm head-top envelope. The stowed
-head-top envelope is 1100 mm and the controlled lift travel is 350 mm. Generated
+coordinate system: `robot_base` has +X to robot right, +Y to robot rear, +Z up,
+and ground is Z=0. The base top is Z=140 mm and the checked-in assembly is the
+raised working pose with a 1450 mm head-top envelope. The stowed head-top
+envelope is 1100 mm and the controlled lift travel is 350 mm. Generated
 geometry is measured during export and the generator fails if the STEP top does
 not match the controlled envelope.
+
+`design-spec.json#components` is the sole authoritative Revision D mass source
+(`REV-D-MASS-001`). Each component has a stable ID, kg/mm values in
+`robot_base`, source, uncertainty, status, and inclusion rule. The current
+`mass-ledger.csv` is a checked mirror; `mass-ledger-legacy.csv` preserves the
+superseded 55 kg planning rows and is never included in release calculations.
+Product, Mechanical, Hardware, and Safety approval is explicitly required in
+`mass-model-approval-register.csv` before any release decision.
 
 The Revision D chassis is four independent 140 mm steer-drive modules. Any
 document describing two 200 mm driven wheels, four support casters, the earlier
@@ -80,5 +89,7 @@ stability, force-limit, or guarded household-task tests on a serialized unit.
 - `generated/parts/*.step`: ten D revision concept parts, including the separate neck mount.
 - `generated/drawings/general-arrangement.svg`: D revision architecture and lift states.
 - `generated/drawings/thermal-flow.svg`: isolated electronics airflow path.
-- `generated/analysis.json`: mass, CG, drive/stabilized tip screens, payload moment, and clearances.
+- `generated/analysis.json`: hashed mass model, per-pose CG, four-direction drive/stabilized tip screens, payload moment, and clearances.
+- `analysis.schema.json`: contract for the generated analytical evidence.
+- `generated/bom-manifest.json`: mass-model revision/hash binding for the generated BOM.
 - `revision-d-architecture.md`: bimanual workspace, task boundary, and architecture rationale.

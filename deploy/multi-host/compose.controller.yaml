@@ -14,13 +14,25 @@ services:
         "${WORKBENCH_EVENT_SOURCE_URL:?Set WORKBENCH_EVENT_SOURCE_URL to the simulation host}",
         "--event-source-allowlist",
         "${WORKBENCH_EVENT_SOURCE_ALLOWLIST:?Set WORKBENCH_EVENT_SOURCE_ALLOWLIST to literal IP addresses or CIDR ranges}",
+        "--published-host",
+        "${CONTROLLER_BIND_ADDRESS-127.0.0.1}",
+        "--trust-mode",
+        "${WORKBENCH_CONTROLLER_TRUST_MODE-local}",
+        "--trusted-proxy-allowlist",
+        "${WORKBENCH_CONTROLLER_TRUSTED_PROXY_ALLOWLIST:-}",
       ]
     environment:
       WORKBENCH_OFFLINE: "1"
       WORKBENCH_EVENT_SOURCE_URL: ${WORKBENCH_EVENT_SOURCE_URL:?Set WORKBENCH_EVENT_SOURCE_URL to the simulation host}
       WORKBENCH_EVENT_SOURCE_ALLOWLIST: ${WORKBENCH_EVENT_SOURCE_ALLOWLIST:?Set WORKBENCH_EVENT_SOURCE_ALLOWLIST to literal IP addresses or CIDR ranges}
+      CONTROLLER_BIND_ADDRESS: ${CONTROLLER_BIND_ADDRESS-127.0.0.1}
+      WORKBENCH_CONTROLLER_TRUST_MODE: ${WORKBENCH_CONTROLLER_TRUST_MODE-local}
+      WORKBENCH_CONTROLLER_TRUSTED_PROXY_ALLOWLIST: ${WORKBENCH_CONTROLLER_TRUSTED_PROXY_ALLOWLIST:-}
     ports:
-      - "${CONTROLLER_PORT:-8080}:8080"
+      - target: 8080
+        published: "${CONTROLLER_PORT:-8080}"
+        host_ip: "${CONTROLLER_BIND_ADDRESS-127.0.0.1}"
+        protocol: tcp
     read_only: true
     tmpfs:
       - /tmp:size=32m

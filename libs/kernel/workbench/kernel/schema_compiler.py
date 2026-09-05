@@ -17,18 +17,30 @@ ROOT_KEYWORDS = {
     "properties",
     "additionalProperties",
     "allOf",
+    "maxProperties",
 }
 PROPERTY_KEYWORDS = {
     "$ref",
+    "allOf",
+    "additionalProperties",
+    "anyOf",
+    "const",
     "description",
     "enum",
+    "else",
+    "if",
     "items",
+    "maxItems",
+    "maxLength",
+    "maxProperties",
     "maximum",
+    "minLength",
     "minimum",
     "minItems",
     "pattern",
     "properties",
     "required",
+    "then",
     "type",
 }
 RUNTIME_SCHEMA_KEYWORDS = (ROOT_KEYWORDS | PROPERTY_KEYWORDS) - {"$ref"} | {
@@ -113,8 +125,16 @@ def _validate_schema_structure(
             re.compile(pattern)
         except (re.error, OverflowError) as exc:
             raise _MalformedSchema(f"schema pattern at {location} is invalid") from exc
-    if "minItems" in schema and (type(schema["minItems"]) is not int or schema["minItems"] < 0):
-        raise _MalformedSchema(f"schema minItems at {location} must be a non-negative integer")
+    for constraint_name in ("minLength", "maxLength", "maxProperties"):
+        if constraint_name in schema and (type(schema[constraint_name]) is not int or schema[constraint_name] < 0):
+            raise _MalformedSchema(f"schema {constraint_name} at {location} must be a non-negative integer")
+    if "minLength" in schema and "maxLength" in schema and schema["minLength"] > schema["maxLength"]:
+        raise _MalformedSchema(f"schema minLength exceeds maxLength at {location}")
+    for constraint_name in ("minItems", "maxItems"):
+        if constraint_name in schema and (type(schema[constraint_name]) is not int or schema[constraint_name] < 0):
+            raise _MalformedSchema(f"schema {constraint_name} at {location} must be a non-negative integer")
+    if "minItems" in schema and "maxItems" in schema and schema["minItems"] > schema["maxItems"]:
+        raise _MalformedSchema(f"schema minItems exceeds maxItems at {location}")
 
     items = schema.get("items")
     if items is not None:
@@ -301,6 +321,17 @@ def validate_schema_instance(
             raise _MalformedSchema(f"schema minItems at {location} must be a non-negative integer")
         if not isinstance(value, list) or len(value) < min_items:
             raise _SchemaMismatch(f"array at {location} has fewer than {min_items} items")
+    if "maxItems" in schema:
+        max_items = schema["maxItems"]
+        if type(max_items) is not int or max_items < 0:
+            raise _MalformedSchema(f"schema maxItems at {location} must be a non-negative integer")
+        if not isinstance(value, list) or len(value) > max_items:
+            raise _SchemaMismatch(f"array at {location} has more than {max_items} items")
+    if isinstance(value, str):
+        if "minLength" in schema and len(value) < schema["minLength"]:
+            raise _SchemaMismatch(f"string at {location} is shorter than {schema['minLength']} characters")
+        if "maxLength" in schema and len(value) > schema["maxLength"]:
+            raise _SchemaMismatch(f"string at {location} is longer than {schema['maxLength']} characters")
 
     if isinstance(value, list) and "items" in schema:
         for index, item in enumerate(value):
@@ -323,6 +354,8 @@ def validate_schema_instance(
             extra = set(value) - set(properties)
             if extra:
                 raise _SchemaMismatch(f"object at {location} has extra fields: {sorted(extra)}")
+        if "maxProperties" in schema and len(value) > schema["maxProperties"]:
+            raise _SchemaMismatch(f"object at {location} has more than {schema['maxProperties']} properties")
         for field_name, definition in properties.items():
             if field_name in value:
                 validate_schema_instance(
@@ -472,6 +505,12 @@ def _python_annotation(definition: dict[str, Any], base_annotation: str | None =
         constraints.append(f"le={definition['maximum']!r}")
     if "minItems" in definition:
         constraints.append(f"min_length={definition['minItems']!r}")
+    if "maxItems" in definition:
+        constraints.append(f"max_length={definition['maxItems']!r}")
+    if "minLength" in definition:
+        constraints.append(f"min_length={definition['minLength']!r}")
+    if "maxLength" in definition:
+        constraints.append(f"max_length={definition['maxLength']!r}")
     if "pattern" in definition:
         constraints.append(f"pattern={definition['pattern']!r}")
     if constraints:
@@ -484,6 +523,10 @@ def _typescript_constraint_comment(definition: dict[str, Any]) -> str | None:
         f"minimum: {definition['minimum']}" if "minimum" in definition else None,
         f"maximum: {definition['maximum']}" if "maximum" in definition else None,
         f"minItems: {definition['minItems']}" if "minItems" in definition else None,
+        f"maxItems: {definition['maxItems']}" if "maxItems" in definition else None,
+        f"minLength: {definition['minLength']}" if "minLength" in definition else None,
+        f"maxLength: {definition['maxLength']}" if "maxLength" in definition else None,
+        f"maxProperties: {definition['maxProperties']}" if "maxProperties" in definition else None,
         f"pattern: {definition['pattern']}" if "pattern" in definition else None,
     ]
     present = [constraint for constraint in constraints if constraint]
@@ -498,8 +541,22 @@ def _validate_definition(definition: dict[str, Any], location: str) -> None:
         raise ValueError(f"minimum must be numeric at {location}")
     if "maximum" in definition and not isinstance(definition["maximum"], int | float):
         raise ValueError(f"maximum must be numeric at {location}")
-    if "minItems" in definition and (type(definition["minItems"]) is not int or definition["minItems"] < 0):
-        raise ValueError(f"minItems must be a non-negative integer at {location}")
+    for constraint_name in ("minItems", "maxItems"):
+        if constraint_name in definition and (
+            type(definition[constraint_name]) is not int or definition[constraint_name] < 0
+        ):
+            raise ValueError(f"{constraint_name} must be a non-negative integer at {location}")
+    if "minItems" in definition and "maxItems" in definition and definition["minItems"] > definition["maxItems"]:
+        raise ValueError(f"minItems exceeds maxItems at {location}")
+    for constraint_name in ("minLength", "maxLength", "maxProperties"):
+        if constraint_name in definition and (
+            type(definition[constraint_name]) is not int or definition[constraint_name] < 0
+        ):
+            raise ValueError(f"{constraint_name} must be a non-negative integer at {location}")
+    if "minLength" in definition and "maxLength" in definition and definition["minLength"] > definition["maxLength"]:
+        raise ValueError(f"minLength exceeds maxLength at {location}")
+    if "additionalProperties" in definition and type(definition["additionalProperties"]) is not bool:
+        raise ValueError(f"additionalProperties must be boolean at {location}")
     if "pattern" in definition and not isinstance(definition["pattern"], str):
         raise ValueError(f"pattern must be a string at {location}")
     items = definition.get("items")
@@ -577,17 +634,101 @@ def _conditional_validators(schema: dict[str, Any], name: str) -> tuple[list[str
     lines: list[str] = []
     metadata: list[dict[str, Any]] = []
     for index, conditional in enumerate(schema.get("allOf", []), start=1):
-        try:
-            condition_properties = conditional["if"]["properties"]
-            then_properties = conditional["then"]["properties"]
-        except (KeyError, TypeError) as exc:
-            raise ValueError(f"unsupported allOf conditional in schema {name} at index {index}") from exc
-        if len(condition_properties) != 1 or len(then_properties) != 1:
+        if not isinstance(conditional, dict):
+            raise ValueError(f"unsupported allOf conditional in schema {name} at index {index}")
+        condition = conditional.get("if")
+        then = conditional.get("then")
+        if (
+            isinstance(condition, dict)
+            and isinstance(then, dict)
+            and isinstance(condition.get("required"), list)
+            and isinstance(then.get("required"), list)
+            and len(condition) == 1
+            and len(then) == 1
+            and len(condition["required"]) == 1
+            and len(then["required"]) == 1
+            and all(isinstance(field, str) for field in condition["required"] + then["required"])
+        ):
+            condition_field = condition["required"][0]
+            target_field = then["required"][0]
+            condition_check = (
+                f"isinstance(value, dict) and {condition_field!r} in value and {target_field!r} not in value"
+            )
+            required_message = f"{target_field} is required when {condition_field} is present"
+            lines.extend(
+                [
+                    "",
+                    '    @model_validator(mode="before")',
+                    "    @classmethod",
+                    f"    def _validate_conditional_{index}(cls, value):",
+                    f"        if {condition_check}:",
+                    f"            raise ValueError({required_message!r})",
+                    "        return value",
+                ]
+            )
+            metadata.append(
+                {
+                    "if": {"required": [condition_field]},
+                    "then": {"required": [target_field]},
+                }
+            )
+            continue
+        condition_properties = condition.get("properties") if isinstance(condition, dict) else None
+        condition_required = condition.get("required") if isinstance(condition, dict) else None
+        if not isinstance(condition_properties, dict):
+            raise ValueError(f"unsupported allOf conditional in schema {name} at index {index}")
+        if not isinstance(condition_properties, dict) or len(condition_properties) != 1:
             raise ValueError(f"allOf conditional must target one field in schema {name} at index {index}")
         condition_field, condition = next(iter(condition_properties.items()))
-        target_field, constraint = next(iter(then_properties.items()))
         if not isinstance(condition, dict) or set(condition) != {"const"}:
             raise ValueError(f"allOf condition must use one const in schema {name} at index {index}")
+        if condition_required is not None and (
+            not isinstance(condition_required, list) or condition_required != [condition_field]
+        ):
+            raise ValueError(
+                f"allOf condition required field must match its const field in schema {name} at index {index}"
+            )
+        if set(then) == {"required"} and isinstance(then["required"], list) and len(then["required"]) == 1:
+            target_field = then["required"][0]
+            if not isinstance(target_field, str):
+                raise ValueError(f"allOf required target must be a string in schema {name} at index {index}")
+            condition_value = condition["const"]
+            condition_check = (
+                f"isinstance(value, dict) and value.get({condition_field!r}) == {condition_value!r} "
+                f"and {target_field!r} not in value"
+            )
+            required_message = f"{target_field} is required when {condition_field}={condition_value!r}"
+            lines.extend(
+                [
+                    "",
+                    '    @model_validator(mode="before")',
+                    "    @classmethod",
+                    f"    def _validate_conditional_{index}(cls, value):",
+                    f"        if {condition_check}:",
+                    f"            raise ValueError({required_message!r})",
+                    "        return value",
+                ]
+            )
+            metadata.append(
+                {
+                    "if": {
+                        **({"required": [condition_field]} if condition_required is not None else {}),
+                        "properties": {condition_field: {"const": condition["const"]}},
+                    },
+                    "then": {"required": [target_field]},
+                }
+            )
+            continue
+        try:
+            then_properties = then["properties"]
+        except (KeyError, TypeError) as exc:
+            raise ValueError(f"unsupported allOf conditional in schema {name} at index {index}") from exc
+        if not isinstance(then_properties, dict) or len(then_properties) != 1:
+            raise ValueError(f"allOf conditional must target one field in schema {name} at index {index}")
+        try:
+            target_field, constraint = next(iter(then_properties.items()))
+        except (TypeError, StopIteration) as exc:
+            raise ValueError(f"allOf conditional must target one field in schema {name} at index {index}") from exc
         if not isinstance(constraint, dict) or set(constraint) - {"minimum", "maximum"}:
             raise ValueError(f"allOf result must use numeric bounds in schema {name} at index {index}")
         checks = []
@@ -699,6 +840,9 @@ class SchemaCompiler:
         additional_properties = schema.get("additionalProperties", True)
         if type(additional_properties) is not bool:
             raise ValueError(f"additionalProperties must be boolean at {location}")
+        max_properties = schema.get("maxProperties")
+        if max_properties is not None and (type(max_properties) is not int or max_properties < 0):
+            raise ValueError(f"maxProperties must be a non-negative integer at {location}")
 
         fields = []
         for field_name, definition in properties.items():
@@ -723,6 +867,19 @@ class SchemaCompiler:
             fields.append(f"    {field_name}: {annotation}{' = None' if optional else ''}")
 
         conditional_lines, _ = _conditional_validators(schema, location)
+        if max_properties is not None:
+            max_properties_message = f"object at {location} has more than {max_properties} properties"
+            conditional_lines.extend(
+                [
+                    "",
+                    '    @model_validator(mode="before")',
+                    "    @classmethod",
+                    "    def _validate_max_properties(cls, value):",
+                    f"        if isinstance(value, dict) and len(value) > {max_properties}:",
+                    f"            raise ValueError({max_properties_message!r})",
+                    "        return value",
+                ]
+            )
         if not additional_properties:
             fields.insert(0, '    model_config = ConfigDict(extra="forbid")')
         body = "\n".join([*fields, *conditional_lines]) or "    pass"
@@ -760,7 +917,16 @@ class SchemaCompiler:
                     typescript_fields.append(comment)
                     constraint_metadata[field_name] = {
                         key: definition[key]
-                        for key in ("minimum", "maximum", "minItems", "pattern")
+                        for key in (
+                            "minimum",
+                            "maximum",
+                            "minItems",
+                            "maxItems",
+                            "minLength",
+                            "maxLength",
+                            "maxProperties",
+                            "pattern",
+                        )
                         if key in definition
                     }
                 typescript_fields.append(f"  {json.dumps(field_name)}{marker}: {_typescript_type(definition)};")

@@ -671,14 +671,17 @@ def _conditional_validators(schema: dict[str, Any], name: str) -> tuple[list[str
             and all(isinstance(field, str) for field in condition["required"] + then["required"])
         ):
             condition_field, target_field = condition["required"][0], then["required"][0]
+            condition_check = f"isinstance(value, dict) and {condition_field!r} in value and "
+            condition_check += f"{target_field!r} not in value:"
+            required_message = f"{target_field} is required when {condition_field} is present"
             lines.extend(
                 [
                     "",
                     '    @model_validator(mode="before")',
                     "    @classmethod",
                     f"    def _validate_conditional_{index}(cls, value):",
-                    f"        if isinstance(value, dict) and {condition_field!r} in value and {target_field!r} not in value:",
-                    f"            raise ValueError({f'{target_field} is required when {condition_field} is present'!r})",
+                    f"        if {condition_check}",
+                    f"            raise ValueError({required_message!r})",
                     "        return value",
                 ]
             )
@@ -724,20 +727,27 @@ def _conditional_validators(schema: dict[str, Any], name: str) -> tuple[list[str
             )
         condition_required = condition.get("required")
         if condition_required is not None and condition_required != [condition_field]:
-            raise ValueError(f"allOf condition required field must match its const field in schema {name} at index {index}")
+            raise ValueError(
+                f"allOf condition required field must match its const field in schema {name} at index {index}"
+            )
         if set(then) == {"required"} and isinstance(then.get("required"), list) and len(then["required"]) == 1:
             target_field = then["required"][0]
             if not isinstance(target_field, str):
                 raise ValueError(f"allOf required target must be a string in schema {name} at index {index}")
             condition_value = condition_spec["const"]
+            condition_check = (
+                f"isinstance(value, dict) and value.get({condition_field!r}) == {condition_value!r} "
+                f"and {target_field!r} not in value:"
+            )
+            required_message = f"{target_field} is required when {condition_field}={condition_value!r}"
             lines.extend(
                 [
                     "",
                     '    @model_validator(mode="before")',
                     "    @classmethod",
                     f"    def _validate_conditional_{index}(cls, value):",
-                    f"        if isinstance(value, dict) and value.get({condition_field!r}) == {condition_value!r} and {target_field!r} not in value:",
-                    f"            raise ValueError({f'{target_field} is required when {condition_field}={condition_value!r}'!r})",
+                    f"        if {condition_check}",
+                    f"            raise ValueError({required_message!r})",
                     "        return value",
                 ]
             )

@@ -14,6 +14,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from unittest import mock
 
+from workbench_backend.inbound_http import InboundHttpConfigurationError, InboundHttpPolicy
 from workbench_backend.read_model import ReadModelError, RemoteDashboardReadModel
 from workbench_backend.remote_http import (
     MAX_REMOTE_RESPONSE_BYTES,
@@ -70,6 +71,91 @@ def json_body_with_size(size: int) -> bytes:
     if len(body) != size:
         raise AssertionError("incorrect test body size")
     return body
+
+
+class ControllerInboundPolicyTests(unittest.TestCase):
+    def test_loopback_and_private_reverse_proxy_configurations_are_accepted(self) -> None:
+        local = InboundHttpPolicy(published_host="127.0.0.1")
+        self.assertEqual(str(local.published_address), "127.0.0.1")
+        self.assertEqual(local.trust_mode, "local")
+
+        for published_host, allowlist, allowed_peer in (
+            ("10.20.30.40", "10.20.31.10/32", "10.20.31.10"),
+            ("fd12:3456::40", "fd12:3456::10/128", "fd12:3456::10"),
+            ("127.0.0.1", "127.0.0.1/32", "127.0.0.1"),
+        ):
+            with self.subTest(published_host=published_host):
+                policy = InboundHttpPolicy(
+                    published_host=published_host,
+                    trust_mode="reverse_proxy",
+                    trusted_proxy_allowlist=allowlist,
+                )
+                self.assertTrue(policy.allows_peer(allowed_peer))
+
+    def test_public_and_ambiguous_bind_addresses_fail_closed(self) -> None:
+        rejected = (
+            "",
+            "   ",
+            "0.0.0.0",
+            "::",
+            "8.8.8.8",
+            "2001:4860:4860::8888",
+            "169.254.1.10",
+            "fe80::1",
+            "224.0.0.1",
+            "ff02::1",
+            "240.0.0.1",
+            "controller.internal",
+        )
+        for published_host in rejected:
+            with self.subTest(published_host=published_host), self.assertRaises(InboundHttpConfigurationError):
+                InboundHttpPolicy(published_host=published_host)
+
+    def test_private_bind_requires_reverse_proxy_trust(self) -> None:
+        for published_host in ("10.20.30.40", "fd12:3456::40"):
+            with self.subTest(published_host=published_host, reason="local_mode"):
+                with self.assertRaisesRegex(InboundHttpConfigurationError, "reverse_proxy"):
+                    InboundHttpPolicy(published_host=published_host)
+            with self.subTest(published_host=published_host, reason="missing_allowlist"):
+                with self.assertRaisesRegex(InboundHttpConfigurationError, "allow-list"):
+                    InboundHttpPolicy(published_host=published_host, trust_mode="reverse_proxy")
+
+        for trust_mode in ("", "LOCAL", "proxy", "unknown"):
+            with self.subTest(trust_mode=trust_mode), self.assertRaises(InboundHttpConfigurationError):
+                InboundHttpPolicy(published_host="127.0.0.1", trust_mode=trust_mode)
+
+    def test_trusted_proxy_allowlist_is_bounded_and_fail_closed(self) -> None:
+        rejected = (
+            "",
+            "   ",
+            "0.0.0.0/0",
+            "::/0",
+            "8.8.8.8/32",
+            "2001:4860:4860::8888/128",
+            "169.254.0.0/16",
+            "fe80::/10",
+            "10.0.0.1,,10.0.0.2",
+            "proxy.internal",
+            "10.0.0.1/999",
+        )
+        for allowlist in rejected:
+            with self.subTest(allowlist=allowlist), self.assertRaises(InboundHttpConfigurationError):
+                InboundHttpPolicy(
+                    published_host="127.0.0.1",
+                    trust_mode="reverse_proxy",
+                    trusted_proxy_allowlist=allowlist,
+                )
+
+        policy = InboundHttpPolicy(
+            published_host="127.0.0.1",
+            trust_mode="reverse_proxy",
+            trusted_proxy_allowlist="10.20.30.0/24,fd12:3456::/64",
+        )
+        self.assertTrue(policy.allows_peer("10.20.30.40"))
+        self.assertTrue(policy.allows_peer("fd12:3456::40"))
+        self.assertFalse(policy.allows_peer("10.20.31.40"))
+        self.assertFalse(policy.allows_peer("not-an-address"))
+        self.assertFalse(policy.allows_peer("127.0.0.1"))
 
 
 class MultiHostReadModelTests(unittest.TestCase):

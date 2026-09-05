@@ -21,6 +21,7 @@ class ActionType(StrEnum):
     ASK_CONFIRM = "ask_confirm"
     EXPRESS = "express"
     STOP = "stop"
+    NAVIGATE = "navigate"
 
 
 class ActionStatus(StrEnum):
@@ -275,10 +276,37 @@ class EmotionIntent(_CanonicalRuntimeModel):
 
 
 class SemanticAction(_CanonicalRuntimeModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "allOf": [
+                {
+                    "if": {"properties": {"action_type": {"const": "navigate"}}},
+                    "then": {
+                        "required": ["target_id"],
+                        "properties": {
+                            "target_id": {"type": "string", "minLength": 1, "pattern": r".*\S.*"},
+                            "parameters": {"type": "object", "additionalProperties": False, "maxProperties": 0},
+                        },
+                    },
+                }
+            ]
+        }
+    )
+
     action_id: str
     action_type: ActionType
     target_id: str | None = None
     parameters: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_navigate_boundary(self) -> "SemanticAction":
+        if self.action_type is not ActionType.NAVIGATE:
+            return self
+        if not isinstance(self.target_id, str) or not self.target_id.strip():
+            raise ValueError("navigate requires a non-empty configured waypoint target_id")
+        if self.parameters:
+            raise ValueError("navigate parameters must be empty; waypoint policy is executor-owned")
+        return self
 
 
 class ActionOutcome(StrEnum):

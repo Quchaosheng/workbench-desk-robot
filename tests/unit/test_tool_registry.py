@@ -72,21 +72,22 @@ class _ChangingSchema(Mapping):
 
 
 class ToolRegistryRegistrationTests(unittest.TestCase):
-    """ToolRegistry knows all six ActionTypes on construction,
+    """ToolRegistry knows all seven ActionTypes on construction,
     supports register()/get(), and rejects invalid or duplicate registrations."""
 
     def setUp(self) -> None:
         self.registry = ToolRegistry()
 
-    def test_all_six_action_types_are_registered(self) -> None:
+    def test_all_seven_action_types_are_registered(self) -> None:
         registered = self.registry.list_all()
-        self.assertEqual(len(registered), 6)
+        self.assertEqual(len(registered), 7)
         self.assertIn(ActionType.OBSERVE, registered)
         self.assertIn(ActionType.GRASP, registered)
         self.assertIn(ActionType.PLACE, registered)
         self.assertIn(ActionType.ASK_CONFIRM, registered)
         self.assertIn(ActionType.EXPRESS, registered)
         self.assertIn(ActionType.STOP, registered)
+        self.assertIn(ActionType.NAVIGATE, registered)
 
     def test_register_rejects_non_action_type(self) -> None:
         with self.assertRaises(ValueError):

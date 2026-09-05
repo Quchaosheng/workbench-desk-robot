@@ -1,0 +1,6 @@
+{
+  "action_id": "act-navigate-home",
+  "action_type": "navigate",
+  "target_id": "workbench_home",
+  "parameters": {}
+}

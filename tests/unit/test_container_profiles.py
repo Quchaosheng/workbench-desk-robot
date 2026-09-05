@@ -59,13 +59,13 @@ def test_dockerfile_declares_three_gpu_dependency_layers() -> None:
     assert "nvidia-container-toolkit" not in dockerfile
 
 
-def test_dockerfile_upgrades_base_packages_before_installing_runtime_stack() -> None:
+def test_dockerfile_does_not_upgrade_base_packages_before_installing_runtime_stack() -> None:
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
 
     update = dockerfile.index("apt-get update;", dockerfile.index("ros2.list"))
-    upgrade = dockerfile.index("apt-get upgrade -y --no-install-recommends;", update)
-    install = dockerfile.index("xargs -r apt-get install", upgrade)
-    assert update < upgrade < install
+    install = dockerfile.index("xargs -r apt-get install", update)
+    assert update < install
+    assert "apt-get upgrade" not in dockerfile
 
 
 def test_dockerfile_installs_patched_erb_and_runs_regression_guard() -> None:

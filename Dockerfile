@@ -66,7 +66,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     gpg --dearmor < /tmp/ros.key > /etc/apt/keyrings/ros-archive-keyring.gpg; \
     echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu noble main" > /etc/apt/sources.list.d/ros2.list; \
     apt-get update; \
-    apt-get upgrade -y --no-install-recommends; \
     xargs -r apt-get install -y --no-install-recommends < /tmp/apt-packages.txt; \
     curl --fail --silent --show-error --location https://rubygems.org/downloads/erb-4.0.3.1.gem --output /tmp/erb-4.0.3.1.gem; \
     echo "${ERB_GEM_SHA256}  /tmp/erb-4.0.3.1.gem" | sha256sum --check --strict; \
@@ -91,6 +90,7 @@ RUN python3 -m venv --system-site-packages /opt/workbench-venv \
     && python3 -m venv --system-site-packages /opt/workbench-mujoco-venv
 
 COPY requirements-mujoco.txt /tmp/requirements-mujoco.txt
+COPY docker/python-constraints.txt /tmp/python-constraints.txt
 COPY pyproject.toml README.md README.zh-CN.md LICENSE NOTICE ./
 COPY libs/application ./libs/application
 COPY libs/contracts ./libs/contracts
@@ -103,7 +103,9 @@ COPY services/world_model ./services/world_model
 COPY firmware/virtual_mcu ./firmware/virtual_mcu
 RUN --mount=type=cache,target=/root/.cache/pip \
     /opt/workbench-venv/bin/python -m pip install --no-compile ".[dev]" \
-    && /opt/workbench-mujoco-venv/bin/python -m pip install --no-compile -r /tmp/requirements-mujoco.txt
+      --constraint /tmp/python-constraints.txt \
+    && /opt/workbench-mujoco-venv/bin/python -m pip install --no-compile \
+      --constraint /tmp/python-constraints.txt -r /tmp/requirements-mujoco.txt
 
 COPY . /opt/workbench_source
 RUN mkdir -p \

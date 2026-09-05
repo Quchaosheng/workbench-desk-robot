@@ -223,7 +223,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     return False
                 remaining -= len(chunk)
             return True
-        except (OSError, socket.timeout):
+        except (TimeoutError, OSError):
             return False
         finally:
             try:

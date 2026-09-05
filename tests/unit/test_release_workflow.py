@@ -67,6 +67,27 @@ def test_kernel_fault_suite_publishes_and_validates_structured_report() -> None:
     assert "status=PASS" in kernel_job
 
 
+def test_kernel_job_publishes_and_requires_socketcan_ingress_evidence() -> None:
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+    kernel_job = workflow.split("  kernel-module:", maxsplit=1)[1].split("\n  mcu-qemu:", maxsplit=1)[0]
+    probe_step = _step_block(kernel_job, "name: Run SocketCAN ingress boundary probe")
+    validate_step = _step_block(kernel_job, "name: Validate SocketCAN ingress evidence")
+    artifact_step = _step_block(kernel_job, "name: Upload SocketCAN ingress evidence")
+
+    assert "id: socketcan_ingress" in probe_step
+    assert "if: steps.module_load.outcome == 'success'" in probe_step
+    assert "kernel/wbcan/test_socketcan_ingress.py wbcan0" in probe_step
+    assert "--require-pass" in probe_step
+    assert "--write-not-executed-report" in probe_step
+    assert "if: always()" in validate_step
+    assert "--validate-report" in validate_step
+    assert "--require-pass" in validate_step
+    assert "if: always()" in artifact_step
+    assert "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a" in artifact_step
+    assert "wbcan-socketcan-ingress-report" in artifact_step
+    assert "if-no-files-found: error" in artifact_step
+
+
 def test_kernel_module_builds_against_lts_and_runner_headers() -> None:
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
     kernel_job = workflow.split("  kernel-module:", maxsplit=1)[1].split("\n  mcu-qemu:", maxsplit=1)[0]

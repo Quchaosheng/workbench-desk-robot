@@ -67,6 +67,7 @@
   ],
   "acceptance": [
     "The handoff document provides the required conclusion vocabulary: continue, change, defer, and reject, and makes the decision apply to a named claim and evidence class.",
+    "The documented public semantic action vocabulary includes navigate when the versioned contract registers it, alongside the existing bounded actions.",
     "Scenario manifests may declare only versioned semantic actions, opaque targets, bounded typed policy selectors, adapter capability references, goals, evidence policy, and bounded recovery references; raw joint, Cartesian, velocity, torque, force, CAN, controller, pin, credential, or E-stop fields are explicitly forbidden.",
     "The Motion handoff describes the existing ActionResult boundary, correlation, dispatch/device state, health/fault diagnostics, and evidence references, and explicitly says ActionResult completion is not observed WorldState completion.",
     "The checklist gives separate inputs and outputs for Product, Motion, MCU/Safety, Runtime/Integration, and site/partner owners, including consent, version/configuration hashes, preflight, abort, and evidence responsibilities.",

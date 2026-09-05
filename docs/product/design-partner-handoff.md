@@ -26,9 +26,10 @@ physical or safety claim remains `insufficient_evidence`, `not_executed`, or
 ## 2. Semantic action contract
 
 The Scenario layer describes a user task. It does not describe how a
-controller should move. The current public semantic action set is:
+controller should move. Until a separately approved versioned contract adds
+more actions, the current public semantic action set is:
 
-`observe`, `grasp`, `place`, `ask_confirm`, `express`, `stop`, and `navigate`.
+`observe`, `grasp`, `place`, `ask_confirm`, `express`, and `stop`.
 
 A scenario may refer to an action only when that action is registered and
 version-compatible. It may provide:

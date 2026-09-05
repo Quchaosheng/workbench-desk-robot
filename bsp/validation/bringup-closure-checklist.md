@@ -34,4 +34,5 @@ evidence; a simulation result or CI pass is not physical evidence.
 - [ ] Release owner verifies every manifest hash and evidence link.
 
 Until all applicable boxes are checked, keep `bsp/readiness.yaml` at
-`PRODUCTION_RELEASE_BLOCKED` and keep image inputs at `inputs_unresolved`.
+`REPOSITORY_BASELINE_READY_PHYSICAL_BRINGUP_BLOCKED` and keep image inputs at
+`inputs_unresolved`.
